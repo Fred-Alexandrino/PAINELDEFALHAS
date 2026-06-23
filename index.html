@@ -596,16 +596,6 @@ let _forcedCliente = null; // definido após login de cliente
 const SHEET_ID = '1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs';
 const GID      = '0'; // aba (0 = primeira aba)
 
-/*
-  Usa o endpoint Google Visualization Query API com a query "select *"
-  forçada via parâmetro tq. Isso ignora completamente quaisquer filtros
-  de visualização ativos na planilha (filtros aplicados diretamente no
-  Google Sheets pelo usuário), garantindo que o dashboard sempre receba
-  TODOS os dados brutos independente de filtros ativos.
-  Funciona com qualquer planilha pública e NÃO tem bloqueio CORS.
-*/
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&tq=select%20*`;
-
 /* ─────────────────────────────────────────────
    DADOS LOCAIS (snapshot — usado como fallback)
 ───────────────────────────────────────────── */
@@ -632,103 +622,150 @@ let sortKey  = 'id';
 let activeCausa = null;
 
 /* ─────────────────────────────────────────────
-   BUSCA DE DADOS — Google Visualization API
-   Funciona em GitHub Pages (sem CORS)
+   BUSCA DE DADOS
+   Estratégia dupla para ignorar filtros da planilha:
+   1ª tentativa → gviz com "headers=1" (ignora filtros de visualização)
+   2ª tentativa → export CSV (ignora filtros padrão)
+   Fallback final → snapshot local
 ───────────────────────────────────────────── */
 async function fetchSheet() {
   const btn   = document.getElementById('updateBtn');
   const badge = document.getElementById('sourceBadge');
   const label = document.getElementById('sourceLabel');
 
-  // estado: carregando
   btn.disabled = true;
   btn.classList.add('spinning');
   badge.className = 'source-badge loading';
   label.textContent = 'buscando dados…';
   showSkeletons();
 
+  let parsed = null;
+
+  // ── Tentativa 1: gviz com headers=1 e tq=select * (mais rápido, sem CORS)
   try {
-    // Adiciona timestamp para evitar cache do browser
-    const url = GVIZ_URL + '&t=' + Date.now();
-    const res  = await fetch(url);
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&headers=1&tq=select%20*&t=${Date.now()}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const raw  = await res.text();
-
-    // A resposta vem assim: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
-    // Precisamos extrair apenas o JSON interno
-    const jsonStr = raw
-      .replace(/^[^(]*\(/, '')   // remove tudo até o primeiro (
-      .replace(/\);?\s*$/, '');  // remove ); no final
-
+    const raw = await res.text();
+    const jsonStr = raw.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
     const json = JSON.parse(jsonStr);
     const rows = json.table.rows;
     const cols = json.table.cols;
 
-    // Mapeia índice de coluna pelo label (robusto a reordenações)
     const idx = {};
     cols.forEach((c, i) => {
       const lbl = (c.label || '').toLowerCase().trim();
-      if (lbl === 'id')                                  idx.id = i;
-      else if (lbl === 'cliente')                        idx.cliente = i;
-      else if (lbl === 'usina')                          idx.usina = i;
-      else if (lbl === 'equipamento')                    idx.equipamento = i;
-      else if (lbl.startsWith('falha'))                  idx.falha = i;
-      else if (lbl.startsWith('causa'))                  idx.causa = i;
-      else if (lbl.includes('impactado'))                idx.impactados = i;
+      if (lbl === 'id')                                          idx.id = i;
+      else if (lbl === 'cliente')                               idx.cliente = i;
+      else if (lbl === 'usina')                                 idx.usina = i;
+      else if (lbl === 'equipamento')                           idx.equipamento = i;
+      else if (lbl.startsWith('falha'))                         idx.falha = i;
+      else if (lbl.startsWith('causa'))                         idx.causa = i;
+      else if (lbl.includes('impactado'))                       idx.impactados = i;
       else if (lbl.startsWith('ação') || lbl.startsWith('acao')) idx.acao = i;
-      else if (lbl.includes('status'))                   idx.status = i;
+      else if (lbl.includes('status'))                          idx.status = i;
       else if (lbl.includes('histórico') || lbl.includes('historico')) idx.historico = i;
-      else if (lbl.includes('ticket'))                               idx.ticket = i;
-      else if (lbl.includes('os') || lbl.includes('ordem'))         idx.os = i;
+      else if (lbl.includes('ticket'))                          idx.ticket = i;
+      else if (lbl.includes('os') || lbl.includes('ordem'))    idx.os = i;
     });
 
-    const parsed = rows
-      .map(r => {
-        // Para células com quebras de linha, o Google gviz às vezes coloca o
-        // conteúdo completo em "f" (formatted) e trunca em "v" (raw value).
-        // Usamos sempre o campo com mais conteúdo, priorizando "f" quando disponível.
-        const g = (i) => {
-          const cell = r.c?.[i];
-          if (!cell) return '';
-          const v = cell.v != null ? String(cell.v) : '';
-          const f = cell.f != null ? String(cell.f) : '';
-          return (f.length > v.length ? f : v).trim();
-        };
+    const g = (r, i) => {
+      const cell = r.c?.[i];
+      if (!cell) return '';
+      const v = cell.v != null ? String(cell.v) : '';
+      const f = cell.f != null ? String(cell.f) : '';
+      return (f.length > v.length ? f : v).trim();
+    };
+
+    parsed = rows.map(r => ({
+      id:               g(r, idx.id          ?? 0),
+      cliente:          g(r, idx.cliente      ?? 1),
+      usina:            g(r, idx.usina        ?? 2),
+      equipamento:      g(r, idx.equipamento  ?? 3),
+      falha:            g(r, idx.falha        ?? 4),
+      causa:            g(r, idx.causa        ?? 5),
+      impactados:       g(r, idx.impactados   ?? 6),
+      acao:             g(r, idx.acao         ?? 7),
+      status:           g(r, idx.status       ?? 8) || 'Em Aberto',
+      historico:        g(r, idx.historico    ?? 9),
+      ticketFabricante: idx.ticket != null ? g(r, idx.ticket) : '',
+      numeroOS:         idx.os     != null ? g(r, idx.os)     : g(r, 10),
+    })).filter(d => d.equipamento && d.id);
+
+    if (parsed.length === 0) throw new Error('gviz retornou 0 registros');
+    console.info(`[Dashboard] gviz: ${parsed.length} registros`);
+
+  } catch (e1) {
+    console.warn('[Dashboard] gviz falhou, tentando CSV:', e1.message);
+
+    // ── Tentativa 2: export CSV (ignora filtros padrão e de visualização)
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const csv = await res.text();
+
+      // O CSV exportado pode ter múltiplas linhas por célula com quebras — recompomos
+      const rows = splitCSVRows(csv);
+      if (rows.length < 2) throw new Error('CSV vazio');
+
+      const headers = parseCSVLine(rows[0]).map(h => h.toLowerCase().trim());
+      const idx = {};
+      headers.forEach((h, i) => {
+        if (h === 'id')                                          idx.id = i;
+        else if (h === 'cliente')                               idx.cliente = i;
+        else if (h === 'usina')                                 idx.usina = i;
+        else if (h === 'equipamento')                           idx.equipamento = i;
+        else if (h.startsWith('falha'))                         idx.falha = i;
+        else if (h.startsWith('causa'))                         idx.causa = i;
+        else if (h.includes('impactado'))                       idx.impactados = i;
+        else if (h.startsWith('ação') || h.startsWith('acao')) idx.acao = i;
+        else if (h.includes('status'))                          idx.status = i;
+        else if (h.includes('histórico') || h.includes('historico')) idx.historico = i;
+        else if (h.includes('ticket'))                          idx.ticket = i;
+        else if (h.includes('os') || h.includes('ordem'))      idx.os = i;
+      });
+
+      parsed = rows.slice(1).filter(r => r.trim()).map(r => {
+        const cells = parseCSVLine(r);
+        const g = (i) => (cells[i] || '').trim();
         return {
-          id:          g(idx.id        ?? 0),
-          cliente:     g(idx.cliente   ?? 1),
-          usina:       g(idx.usina     ?? 2),
-          equipamento: g(idx.equipamento ?? 3),
-          falha:       g(idx.falha     ?? 4),
-          causa:       g(idx.causa     ?? 5),
-          impactados:  g(idx.impactados ?? 6),
-          acao:        g(idx.acao      ?? 7),
-          status:      g(idx.status    ?? 8) || 'Em Aberto',
-          historico:   g(idx.historico ?? 9),
+          id:               g(idx.id          ?? 0),
+          cliente:          g(idx.cliente      ?? 1),
+          usina:            g(idx.usina        ?? 2),
+          equipamento:      g(idx.equipamento  ?? 3),
+          falha:            g(idx.falha        ?? 4),
+          causa:            g(idx.causa        ?? 5),
+          impactados:       g(idx.impactados   ?? 6),
+          acao:             g(idx.acao         ?? 7),
+          status:           g(idx.status       ?? 8) || 'Em Aberto',
+          historico:        g(idx.historico    ?? 9),
           ticketFabricante: idx.ticket != null ? g(idx.ticket) : '',
           numeroOS:         idx.os     != null ? g(idx.os)     : g(10),
         };
-      })
-      .filter(d => d.equipamento && d.id);
+      }).filter(d => d.equipamento && d.id);
 
-    if (parsed.length === 0) throw new Error('Nenhum dado retornado');
+      if (parsed.length === 0) throw new Error('CSV retornou 0 registros');
+      console.info(`[Dashboard] CSV: ${parsed.length} registros`);
 
+    } catch (e2) {
+      console.warn('[Dashboard] CSV falhou, usando snapshot:', e2.message);
+      parsed = null;
+    }
+  }
+
+  if (parsed && parsed.length > 0) {
     DATA = parsed;
-
     const now = new Date();
     const ts  = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-    badge.className    = 'source-badge live';
-    label.textContent  = `ao vivo · ${ts}`;
-    showToast(`${parsed.length} registros carregados da planilha`, true);
-
-  } catch (err) {
-    // Fallback: usa snapshot local
+    badge.className   = 'source-badge live';
+    label.textContent = `ao vivo · ${ts}`;
+    showToast(`${DATA.length} registros carregados da planilha`, true);
+  } else {
     DATA = SNAPSHOT.slice();
-    badge.className    = 'source-badge error';
-    label.textContent  = 'snapshot local · 18/06/2026';
+    badge.className   = 'source-badge error';
+    label.textContent = 'snapshot local · 18/06/2026';
     showToast('Não foi possível conectar à planilha. Usando dados locais.', false);
-    console.warn('[Dashboard] Erro ao buscar planilha:', err.message);
   }
 
   btn.disabled = false;
@@ -737,6 +774,65 @@ async function fetchSheet() {
   const clienteParam = _forcedCliente || URL_CLIENTE;
   if (clienteParam) activateClientMode(clienteParam);
   clearFilters();
+}
+
+/* ─────────────────────────────────────────────
+   PARSER CSV — robusto com aspas e vírgulas internas
+───────────────────────────────────────────── */
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        // Aspas dobradas "" dentro de aspas = uma aspas literal
+        current += '"';
+        i++;
+      } else {
+        // Toggle do estado de aspas
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Vírgula fora de aspas = delimitador
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current);
+  return result;
+}
+
+/* ─────────────────────────────────────────────
+   SPLIT CSV ROWS — respeita células com \n dentro de aspas
+───────────────────────────────────────────── */
+function splitCSVRows(csv) {
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (ch === '"') {
+      if (inQuotes && csv[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+      current += ch;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && csv[i+1] === '\n') i++;
+      if (current.trim()) rows.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim()) rows.push(current);
+  return rows;
 }
 
 /* ─────────────────────────────────────────────
