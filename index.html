@@ -642,14 +642,11 @@ async function fetchSheet() {
   let parsed = null;
 
 
-  // ── Passo 0: limpa filtros da planilha via Apps Script Web App
+  // ── Passo 0: dispara limpeza de filtros em paralelo (não bloqueia o carregamento)
   const CLEAR_FILTERS_URL = 'https://script.google.com/macros/s/AKfycbyiI0LvyPPa6nzLYOk2CiwyrtZS5yBtFBei-gD_pywBh5JYxL74vGx759lZ6jj26Hd4/exec';
-  try {
-    await fetch(CLEAR_FILTERS_URL, { method: 'GET', mode: 'no-cors' });
-    await new Promise(r => setTimeout(r, 1200));
-  } catch(e) {
-    console.warn('[Dashboard] Nao foi possivel limpar filtros:', e.message);
-  }
+  fetch(CLEAR_FILTERS_URL, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+  // Não awaita — dispara limpeza e busca os dados simultaneamente
+
   // ── Tentativa 1: gviz com headers=1 e tq=select * (mais rápido, sem CORS)
   try {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&headers=1&tq=select%20*&t=${Date.now()}`;
