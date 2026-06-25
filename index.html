@@ -1348,20 +1348,20 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 
     <!-- Tabs por tipo de serviço -->
     <div class="zel-tabs" id="zelTabs">
-      <button class="zel-tab active" data-tab="limpeza" style="--tab-color:var(--blue)">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Limpeza de Módulos
-        <span class="zel-tab-badge" id="tabBadgeLimpeza">0</span>
-      </button>
-      <button class="zel-tab" data-tab="supressao" style="--tab-color:var(--sla-ok)">
+      <button class="zel-tab active" data-tab="supressao" style="--tab-color:var(--sla-ok)">
         <svg viewBox="0 0 24 24"><path d="M12 22V12"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M8 6l4-4 4 4"/><path d="M8 12l4-4 4 4"/></svg>
-        Supressão Vegetal
+        Roçada
         <span class="zel-tab-badge" id="tabBadgeSupressao">0</span>
       </button>
       <button class="zel-tab" data-tab="poda" style="--tab-color:var(--amber)">
         <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
         Poda Química
         <span class="zel-tab-badge" id="tabBadgePoda">0</span>
+      </button>
+      <button class="zel-tab" data-tab="limpeza" style="--tab-color:var(--blue)">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Lavagem dos Módulos
+        <span class="zel-tab-badge" id="tabBadgeLimpeza">0</span>
       </button>
     </div>
 
@@ -2922,7 +2922,7 @@ const ZEL_STATUS_CLASS = {
   'Pendente':      'zs-pendente',
 };
 
-let zelTab     = 'limpeza';
+let zelTab     = 'supressao';
 let zelData    = { limpeza:[], supressao:[], poda:[] };
 let _zelTimer  = null;
 let _zelFromSheet = false; // true quando dados vieram da planilha
@@ -3013,9 +3013,19 @@ const ZEL_GID = '987654321';
 /* ─────────────────────────────────────────────────────
    FETCH DA PLANILHA DE ZELADORIAS
 ───────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════
+   FETCH DA PLANILHA — CONTROLE DE PROCESSOS
+   ──────────────────────────────────────────────────────
+   ESTRUTURA REAL DA PLANILHA (layout com cabeçalho duplo):
+   Linha 1: Cliente | Usina | Roçada(merge 4col) | Poda Química(merge 4col) | Lavagem dos Módulos(merge 4col)
+   Linha 2: (vazio) | (vazio) | Última Data | Próxima Data | Quantidade | Status | (repete) | (repete)
+
+   Estratégia: buscamos o CSV sem headers (headers=0) para
+   ler as 2 linhas de cabeçalho separadamente e montar o mapa
+   de colunas correto antes de processar os dados.
+   ════════════════════════════════════════════════════════ */
 async function zelFetchSheet() {
   const badge = document.getElementById('zelSourceBadge');
-  const dot   = document.getElementById('zelSourceDot');
   const label = document.getElementById('zelSourceLabel');
   const btn   = document.getElementById('zelRefreshBtn');
 
@@ -3024,128 +3034,113 @@ async function zelFetchSheet() {
   if (btn)   { btn.disabled = true; btn.classList.add('spinning'); }
 
   try {
-    const gid = ZEL_GID;
-
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&headers=1&tq=select%20*&t=${Date.now()}`;
-    const res = await fetch(url);
+    // ── Busca CSV sem headers para processar as 2 linhas de cabeçalho ──
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${ZEL_GID}&t=${Date.now()}`;
+    const res    = await fetch(csvUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const csv    = await res.text();
 
-    const raw     = await res.text();
-    const jsonStr = raw.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
-    const json    = JSON.parse(jsonStr);
-    const cols    = json.table.cols;
-    const rows    = json.table.rows;
+    // Parser CSV robusto (reutiliza o do painel principal)
+    const allRows = splitCSVRows(csv);
+    if (allRows.length < 3) throw new Error('CSV vazio ou incompleto');
 
-    const headers = cols.map(c => (c.label || '').trim());
-    const g = (r, i) => {
-      const cell = r.c?.[i];
-      if (!cell) return '';
-      const v = cell.v != null ? String(cell.v) : '';
-      const f = cell.f != null ? String(cell.f) : '';
-      return (f.length > v.length ? f : v).trim();
+    // ── Lê as 2 linhas de cabeçalho ──────────────────────────────────
+    const row1 = parseCSVLine(allRows[0]).map(v => v.trim());  // ex: "","","Roçada","","","","Poda Química",...
+    const row2 = parseCSVLine(allRows[1]).map(v => v.trim());  // ex: "","","Última Data","Próxima Data","Quantidade","Status",...
+
+    // Normaliza string para comparação (remove acentos, lowercase)
+    function norm(s) {
+      return (s || '').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, ' ').trim();
+    }
+
+    // ── Mapeia grupos de colunas pelo cabeçalho da linha 1 ───────────
+    // Cada grupo tem: ultimaData, proxData, quantidade, status
+    // Mapeamento: nome do grupo (linha 1) → chave interna
+    const GRUPO_MAP = {
+      supressao: ['rocada','rocagem','supressao vegetal','supressao','vegetal','roçada'],
+      poda:      ['poda quimica','poda','quimica','herbicida'],
+      limpeza:   ['lavagem dos modulos','lavagem modulos','limpeza','lavagem','modulos','cleaning'],
     };
 
-    // Detecta layout: "uma linha por usina+tipo" OU "colunas por tipo"
-    const iTipo     = zelFindCol(headers, 'tipo');
-    const iCliente  = zelFindCol(headers, 'cliente');
-    const iUsina    = zelFindCol(headers, 'usina');
-    const iStatus   = zelFindCol(headers, 'status');
-    const iPrevisto = zelFindCol(headers, 'previsto');
-    const iRealiz   = zelFindCol(headers, 'realizado');
-    const iProx     = zelFindCol(headers, 'prox');
-    const iObs      = zelFindCol(headers, 'obs');
+    // Descobre qual grupo pertence à coluna i (pela linha 1 — que pode ter merge: valor na col inicial, vazio nas demais)
+    let currentGroup = null;
+    const colGroup = []; // colGroup[i] = 'supressao' | 'poda' | 'limpeza' | null
+    for (let i = 0; i < row1.length; i++) {
+      const v = norm(row1[i]);
+      if (v) {
+        // Nova célula com valor → detecta grupo
+        currentGroup = null;
+        for (const [key, aliases] of Object.entries(GRUPO_MAP)) {
+          if (aliases.some(a => v.includes(a) || a.includes(v))) {
+            currentGroup = key;
+            break;
+          }
+        }
+      }
+      colGroup.push(currentGroup); // herda o grupo da célula anterior (merge vazio)
+    }
 
+    // ── Mapeia subcolunas pela linha 2 dentro de cada grupo ──────────
+    // Para cada grupo, encontra os índices de: ultimaData, proxData, status, obs/qtd
+    const SUB_MAP = {};
+    for (const tipo of ['supressao','poda','limpeza']) {
+      SUB_MAP[tipo] = { ultimaData:-1, proxData:-1, status:-1, qtd:-1 };
+    }
+
+    for (let i = 0; i < row2.length; i++) {
+      const grupo = colGroup[i];
+      if (!grupo || !SUB_MAP[grupo]) continue;
+      const sub = norm(row2[i]);
+      if (sub.includes('ultima') || sub.includes('realiz') || sub === 'data' && SUB_MAP[grupo].ultimaData < 0) {
+        SUB_MAP[grupo].ultimaData = i;
+      } else if (sub.includes('proxim') || sub.includes('next') || sub.includes('prox')) {
+        SUB_MAP[grupo].proxData = i;
+      } else if (sub.includes('status') || sub.includes('situac') || sub.includes('estado')) {
+        SUB_MAP[grupo].status = i;
+      } else if (sub.includes('quant') || sub.includes('qtd') || sub.includes('obs') || sub.includes('nota')) {
+        SUB_MAP[grupo].qtd = i;
+      }
+    }
+
+    // Índices fixos das colunas A e B (Cliente, Usina)
+    const iCliente = 0;
+    const iUsina   = 1;
+
+    console.info('[Zeladorias] Mapa de colunas:', JSON.stringify(SUB_MAP));
+
+    // ── Processa linhas de dados (a partir da linha 3, índice 2) ─────
     const novo = { limpeza:[], supressao:[], poda:[] };
 
-    if (iTipo >= 0) {
-      // ── LAYOUT A: uma linha por usina × tipo de serviço ──────────
-      rows.forEach(r => {
-        const tipo = zelNormalizeTipo(g(r, iTipo));
-        if (!tipo) return;
-        const cliente  = iCliente  >= 0 ? g(r, iCliente)  : '';
-        const usina    = iUsina    >= 0 ? normalizeUsina(g(r, iUsina)) : '';
-        if (!usina) return;
+    const g = (cells, i) => (i >= 0 && i < cells.length) ? cells[i].trim() : '';
+
+    allRows.slice(2).forEach((rawRow, rowIdx) => {
+      const cells   = parseCSVLine(rawRow);
+      const cliente = g(cells, iCliente);
+      const usina   = normalizeUsina(g(cells, iUsina));
+      if (!usina) return; // linha vazia
+
+      ['supressao','poda','limpeza'].forEach(tipo => {
+        const m = SUB_MAP[tipo];
         novo[tipo].push({
-          id:        `${usina}_${tipo}_${Date.now()}_${Math.random()}`,
+          id:        `${usina}_${tipo}_${rowIdx}`,
           cliente:   cliente,
           usina:     usina,
-          status:    zelNormalizeStatus(iStatus   >= 0 ? g(r, iStatus)   : ''),
-          previsto:  iPrevisto >= 0 ? g(r, iPrevisto) : '',
-          realizado: iRealiz   >= 0 ? g(r, iRealiz)   : '',
-          prox:      iProx     >= 0 ? g(r, iProx)      : '',
-          obs:       iObs      >= 0 ? g(r, iObs)       : '',
+          status:    zelNormalizeStatus(g(cells, m.status)),
+          previsto:  '', // planilha não tem "previsto" — usa Próxima Data como referência
+          realizado: zelFormatDate(g(cells, m.ultimaData)),
+          prox:      zelFormatDate(g(cells, m.proxData)),
+          qtd:       g(cells, m.qtd),
+          obs:       '',
           _fromSheet: true,
         });
       });
-    } else {
-      // ── LAYOUT B: uma linha por usina, colunas por tipo ──────────
-      // Detecta grupos de colunas por prefixo/nome
-      function findByPrefix(prefix, field) {
-        const aliases = (ZEL_COL_MAP[field] || [field]);
-        for (let i = 0; i < headers.length; i++) {
-          const h = headers[i].toLowerCase()
-            .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
-            .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
-            .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
-          const p = prefix.toLowerCase()
-            .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
-            .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
-            .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
-          if (h.startsWith(p) && aliases.some(a => {
-            const an = a.replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
-              .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
-              .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
-            return h.includes(an);
-          })) return i;
-        }
-        return -1;
-      }
-
-      // Prefixos de cada tipo
-      const tipoAliases = {
-        limpeza:   ['limpeza','limp'],
-        supressao: ['supressão','supressao','supr','vegetal'],
-        poda:      ['poda','químic','quimic'],
-      };
-
-      rows.forEach(r => {
-        const cliente = iCliente >= 0 ? g(r, iCliente) : '';
-        const usina   = iUsina   >= 0 ? normalizeUsina(g(r, iUsina)) : '';
-        if (!usina) return;
-
-        Object.entries(tipoAliases).forEach(([tipo, prefixes]) => {
-          prefixes.forEach(prefix => {
-            const idxSt  = findByPrefix(prefix, 'status');
-            const idxPre = findByPrefix(prefix, 'previsto');
-            const idxRe  = findByPrefix(prefix, 'realizado');
-            const idxPrx = findByPrefix(prefix, 'prox');
-            const idxObs = findByPrefix(prefix, 'obs');
-
-            if (idxSt < 0 && idxPre < 0) return; // não encontrou colunas desse tipo
-
-            // evita duplicata
-            if (novo[tipo].find(x => x.usina === usina)) return;
-
-            novo[tipo].push({
-              id:        `${usina}_${tipo}_${Date.now()}_${Math.random()}`,
-              cliente:   cliente,
-              usina:     usina,
-              status:    zelNormalizeStatus(idxSt  >= 0 ? g(r, idxSt)  : ''),
-              previsto:  idxPre >= 0 ? g(r, idxPre) : '',
-              realizado: idxRe  >= 0 ? g(r, idxRe)  : '',
-              prox:      idxPrx >= 0 ? g(r, idxPrx) : '',
-              obs:       idxObs >= 0 ? g(r, idxObs) : '',
-              _fromSheet: true,
-            });
-          });
-        });
-      });
-    }
+    });
 
     const total = novo.limpeza.length + novo.supressao.length + novo.poda.length;
-    if (total === 0) throw new Error('Nenhuma linha mapeada');
+    if (total === 0) throw new Error('Nenhuma usina mapeada');
 
-    // Mescla: edições manuais do usuário sobrepõem dados da planilha
     zelMergeEdits(novo);
     zelData = novo;
     _zelFromSheet = true;
@@ -3154,11 +3149,10 @@ async function zelFetchSheet() {
     const ts  = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     if (badge) badge.className = 'source-badge live';
     if (label) label.textContent = `planilha · ${ts}`;
-    console.info(`[Zeladorias] ${total} linhas carregadas — limpeza:${novo.limpeza.length} supressao:${novo.supressao.length} poda:${novo.poda.length}`);
+    console.info(`[Zeladorias] ${total} registros — supr:${novo.supressao.length} poda:${novo.poda.length} limp:${novo.limpeza.length}`);
 
   } catch(err) {
-    console.warn('[Zeladorias] Erro ao buscar planilha:', err.message);
-    // Fallback: localStorage → seed
+    console.warn('[Zeladorias] Erro:', err.message);
     try {
       const saved = localStorage.getItem('om_zeladorias');
       if (saved) {
@@ -3167,16 +3161,47 @@ async function zelFetchSheet() {
         if (badge) badge.className = 'source-badge error';
         if (label) label.textContent = 'cache local';
       } else {
-        zelData = zelSeedData();
+        // Sem cache: monta estrutura vazia com usinas da planilha principal
+        zelData = zelEmptyFromData();
         if (badge) badge.className = 'source-badge error';
-        if (label) label.textContent = 'dados de exemplo';
+        if (label) label.textContent = 'sem conexão';
       }
     } catch(e2) {
-      zelData = zelSeedData();
+      zelData = { limpeza:[], supressao:[], poda:[] };
     }
   } finally {
     if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
   }
+}
+
+/* Formata datas que vêm do Sheets em vários formatos para DD/MM/AAAA */
+function zelFormatDate(raw) {
+  if (!raw || raw === '—' || raw === '-') return '';
+  // Já está em DD/MM/AAAA
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
+  // MM/DD/AAAA (formato americano do Sheets)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(raw)) {
+    const [m, d, y] = raw.split('/');
+    return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+  }
+  // AAAA-MM-DD (ISO)
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [y, m, d] = raw.substring(0,10).split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return raw; // devolve como está se não reconhecer
+}
+
+/* Monta estrutura vazia usando as usinas que já estão no DATA do painel */
+function zelEmptyFromData() {
+  const usinas = [...new Map(DATA.map(d => [d.usina, {cliente:d.cliente, usina:d.usina}])).values()];
+  function makeEmpty(list) {
+    return list.map((u, i) => ({
+      id: `${u.usina}_empty_${i}`, cliente:u.cliente, usina:u.usina,
+      status:'Pendente', previsto:'', realizado:'', prox:'', qtd:'', obs:'',
+    }));
+  }
+  return { limpeza:makeEmpty(usinas), supressao:makeEmpty(usinas), poda:makeEmpty(usinas) };
 }
 
 /* ─────────────────────────────────────────────────────
@@ -3341,14 +3366,15 @@ function zelRender() {
   }
   function isOverdue(row) {
     if (row.status==='Concluído') return false;
-    const d = parseDate(row.previsto);
+    const d = parseDate(row.prox) || parseDate(row.previsto);
     return d && d < today;
   }
 
   const rowsHtml = rows.map(row => {
     const cc     = clientColor(row.cliente);
     const stCls  = ZEL_STATUS_CLASS[row.status] || 'zs-pendente';
-    const overdue = isOverdue(row);
+    // Atrasado: status=Atrasado OU próxima data já passou e não concluído
+    const overdue = row.status === 'Atrasado' || isOverdue(row);
 
     const stOpts = ZEL_STATUS.map(s=>
       `<option value="${esc(s)}" ${row.status===s?'selected':''}>${esc(s)}</option>`
@@ -3365,9 +3391,9 @@ function zelRender() {
           <select class="zs-select" data-field="status" data-id="${row.id}">${stOpts}</select>
         </label>
       </td>
-      <td class="zel-date ${overdue&&row.status!=='Concluído'?'overdue':''}">${esc(row.previsto||'—')}</td>
-      <td class="zel-date">${esc(row.realizado||'—')}</td>
+      <td class="zel-date ${overdue?'overdue':''}">${esc(row.realizado||'—')}</td>
       <td class="zel-date">${esc(row.prox||'—')}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);">${esc(row.qtd||'—')}</td>
       <td><input class="zel-obs-input" type="text" placeholder="Observação…" value="${esc(row.obs||'')}" data-field="obs" data-id="${row.id}" maxlength="120"></td>
       <td style="text-align:center;">
         <button class="drawer-icon-btn" style="border-color:rgba(226,84,61,.25);color:var(--red);" data-del="${row.id}" title="Remover">
@@ -3382,9 +3408,9 @@ function zelRender() {
       <thead><tr>
         <th>Usina</th>
         <th>Status</th>
-        <th>Prev. Execução</th>
-        <th>Realizado</th>
+        <th>Última Execução</th>
         <th>Próx. Execução</th>
+        <th>Quantidade</th>
         <th>Observações</th>
         <th style="width:44px;"></th>
       </tr></thead>
