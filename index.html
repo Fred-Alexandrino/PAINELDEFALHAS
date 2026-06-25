@@ -1655,8 +1655,7 @@ function getOpenDate(d) {
   const thisYear = today.getFullYear();
 
   // Percorre cada linha — pega a PRIMEIRA data válida
-  const lines = hist.split(/[
-]+/);
+  const lines = hist.split(/[\r\n]+/);
   for (const line of lines) {
     const l = line.trim();
     if (!l) continue;
