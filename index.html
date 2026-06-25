@@ -1743,6 +1743,24 @@ const USERS = [
   { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'RENOGRID' },
 ];
 
+let _currentSession = { role: 'viewer' }; // sessão ativa
+let _forcedCliente  = null;
+
+function initDashboard(session) {
+  _currentSession = session;
+  if (session.role === 'client' && session.cliente) _forcedCliente = session.cliente;
+  // Botão de Controle de Processos — visível apenas para admin e manager
+  if (session.role === 'admin' || session.role === 'manager') {
+    const btn = document.getElementById('processosBtn');
+    if (btn) btn.style.display = 'inline-flex';
+  }
+  fetchSheet();
+}
+
+function canEdit() {
+  return _currentSession.role === 'admin' || _currentSession.role === 'manager';
+}
+
 function tryLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value;
@@ -1775,23 +1793,7 @@ document.getElementById('loginUser').addEventListener('keydown', e => { if (e.ke
   }
 })();
 
-let _currentSession = { role: 'viewer' }; // sessão ativa
-let _forcedCliente  = null;
 
-function initDashboard(session) {
-  _currentSession = session;
-  if (session.role === 'client' && session.cliente) _forcedCliente = session.cliente;
-  // Botão de Controle de Processos — visível apenas para admin e manager
-  if (session.role === 'admin' || session.role === 'manager') {
-    const btn = document.getElementById('processosBtn');
-    if (btn) btn.style.display = 'inline-flex';
-  }
-  fetchSheet();
-}
-
-function canEdit() {
-  return _currentSession.role === 'admin' || _currentSession.role === 'manager';
-}
 
 /* ═══════════════════════════════════════════════════
    CONFIG PLANILHA
@@ -1804,7 +1806,7 @@ const GID      = '0';
    Cole aqui a URL gerada após implantar o Web App.
    Exemplo: 'https://script.google.com/macros/s/ABC.../exec'
 ───────────────────────────────────────────────────── */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec'; // ← cole a URL aqui
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec'; // ← URL do Web App
 
 /* ═══════════════════════════════════════════════════
    SNAPSHOT LOCAL — inclui novo campo dataAbertura
