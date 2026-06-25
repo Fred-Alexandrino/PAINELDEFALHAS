@@ -1309,6 +1309,14 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         Salvo
       </span>
+      <div class="source-badge" id="zelSourceBadge" style="font-size:10.5px;">
+        <div class="source-dot" id="zelSourceDot"></div>
+        <span id="zelSourceLabel">aguardando…</span>
+      </div>
+      <button class="update-btn" id="zelRefreshBtn" style="padding:7px 12px;font-size:11px;">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Atualizar
+      </button>
       <button class="update-btn" id="zelAddRow" style="background:rgba(63,193,176,.1);border-color:rgba(63,193,176,.4);color:var(--teal);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nova Usina
@@ -1746,7 +1754,7 @@ async function fetchSheet() {
       id:               g(r, idx.id           ?? 0),
       dataAbertura:     idx.dataAbertura != null ? g(r, idx.dataAbertura) : '',
       cliente:          g(r, idx.cliente       ?? 1),
-      usina:            g(r, idx.usina         ?? 2),
+      usina:            normalizeUsina(g(r, idx.usina ?? 2)),
       equipamento:      g(r, idx.equipamento   ?? 3),
       falha:            g(r, idx.falha         ?? 4),
       causa:            g(r, idx.causa         ?? 5),
@@ -1796,7 +1804,7 @@ async function fetchSheet() {
           id:               g(idx.id           ?? 0),
           dataAbertura:     idx.dataAbertura != null ? g(idx.dataAbertura) : '',
           cliente:          g(idx.cliente       ?? 1),
-          usina:            g(idx.usina         ?? 2),
+          usina:            normalizeUsina(g(idx.usina ?? 2)),
           equipamento:      g(idx.equipamento   ?? 3),
           falha:            g(idx.falha         ?? 4),
           causa:            g(idx.causa         ?? 5),
@@ -1882,6 +1890,44 @@ function splitCSVRows(csv) {
 ═══════════════════════════════════════════════════ */
 function esc(s) {
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ─────────────────────────────────────────────
+   normalizeUsina — padroniza variações de nome
+   Boa Esperança do Sul 1 / I / 1A / IA → "Boa Esperança do Sul 1"
+   Boa Esperança do Sul 2 / II / IB / B  → "Boa Esperança do Sul 2"
+   Adicione outros aliases abaixo conforme necessário.
+───────────────────────────────────────────── */
+function normalizeUsina(raw) {
+  if (!raw) return raw;
+  const s = raw.trim();
+
+  // Normaliza "Boa Esperança do Sul" em todas as grafias (com/sem acento, abreviações)
+  const BES = /^boa\s+espe[rn]an[çc]a\s+do\s+sul\s*/i;
+
+  if (BES.test(s)) {
+    // Extrai o sufixo após o nome base
+    const suffix = s.replace(BES, '').trim().toUpperCase();
+
+    // Grupo 1: variações de "1" → sempre "Boa Esperança do Sul 1"
+    // Aceita: "1", "I", "1A", "IA", "A" (sozinho), vazio com eventual espaço
+    if (/^(1A?|IA?|A)$/i.test(suffix) || suffix === '1' || suffix === 'I') {
+      return 'Boa Esperança do Sul 1';
+    }
+
+    // Grupo 2: variações de "2" → sempre "Boa Esperança do Sul 2"
+    // Aceita: "2", "II", "IB", "2B", "B"
+    if (/^(2B?|IIB?|IB|B)$/i.test(suffix) || suffix === '2' || suffix === 'II') {
+      return 'Boa Esperança do Sul 2';
+    }
+
+    // Sufixo não reconhecido → devolve capitalizado no padrão
+    const capSuffix = suffix ? ' ' + suffix : '';
+    return 'Boa Esperança do Sul' + capSuffix;
+  }
+
+  // Nenhum alias encontrado → devolve original sem alteração
+  return s;
 }
 
 const STATUS_PALETTE = {
@@ -2876,25 +2922,305 @@ const ZEL_STATUS_CLASS = {
   'Pendente':      'zs-pendente',
 };
 
-let zelTab    = 'limpeza';
-let zelData   = { limpeza:[], supressao:[], poda:[] };
-let _zelTimer = null;
+let zelTab     = 'limpeza';
+let zelData    = { limpeza:[], supressao:[], poda:[] };
+let _zelTimer  = null;
+let _zelFromSheet = false; // true quando dados vieram da planilha
 
-/* ── Carrega dados do localStorage ── */
-function zelLoad() {
+/* ════════════════════════════════════════════════════
+   MAPEAMENTO DE COLUNAS DA PLANILHA
+   ─────────────────────────────────────────────────────
+   A aba "Controle de Processos" pode ter colunas em
+   qualquer ordem. O mapeamento abaixo é flexível:
+   cada alias (lowercase) aponta para o campo interno.
+
+   Estrutura esperada (uma linha por usina × serviço):
+     Cliente | Usina | Tipo de Serviço | Status |
+     Data Prevista | Data Realizada | Próxima Execução | Observações
+
+   OU (uma linha por usina, colunas por serviço):
+     Cliente | Usina |
+     Limpeza Status | Limpeza Previsto | Limpeza Realizado | Limpeza Próximo |
+     Supressão Status | ... | Poda Status | ... | Obs
+   ════════════════════════════════════════════════════ */
+const ZEL_COL_MAP = {
+  // campo interno → aliases aceitos (lowercase, sem acento exigido)
+  cliente:   ['cliente','client','empresa'],
+  usina:     ['usina','planta','fazenda','local','site'],
+  tipo:      ['tipo','tipo de serviço','tipo servico','serviço','servico','tipo_servico'],
+  status:    ['status','situação','situacao','estado'],
+  previsto:  ['previsto','data prevista','data_prevista','prev','prev. execução','prev execucao','data prev'],
+  realizado: ['realizado','data realizada','data_realizada','real','executado','data exec','data realiz'],
+  prox:      ['próximo','proximo','próx','prox','próxima execução','proxima execucao','próx. execução','next'],
+  obs:       ['obs','observações','observacoes','observacao','nota','notas','comentário','comentario'],
+};
+
+// Mapeamento de "tipo de serviço" texto → chave interna
+const ZEL_TIPO_MAP = {
+  limpeza:   ['limpeza','limpeza de módulos','limpeza modulos','limpeza dos módulos','módulos','modulos','cleaning'],
+  supressao: ['supressão','supressao','supressão vegetal','supressao vegetal','vegetação','vegetacao','vegetal','roçagem','rocagem'],
+  poda:      ['poda','poda química','poda quimica','herbicida','químico','quimico'],
+};
+
+function zelNormalizeTipo(raw) {
+  const v = (raw||'').toLowerCase().trim();
+  for (const [key, aliases] of Object.entries(ZEL_TIPO_MAP)) {
+    if (aliases.some(a => v.includes(a) || a.includes(v))) return key;
+  }
+  return null; // desconhecido — será ignorado
+}
+
+function zelNormalizeStatus(raw) {
+  const v = (raw||'').toLowerCase().trim();
+  if (v.includes('andamento') || v.includes('execuc') || v.includes('progress')) return 'Em andamento';
+  if (v.includes('conclu') || v.includes('realiz') || v.includes('done') || v.includes('feito')) return 'Concluído';
+  if (v.includes('atras') || v.includes('vencid') || v.includes('overdue') || v.includes('atraso')) return 'Atrasado';
+  if (v.includes('agend') || v.includes('program') || v.includes('scheduled')) return 'Agendado';
+  if (v.includes('pend') || v.includes('aguard') || v.includes('pending')) return 'Pendente';
+  if (v === '') return 'Pendente';
+  return raw || 'Pendente'; // devolve original se não reconhecer
+}
+
+function zelFindCol(headers, field) {
+  const aliases = ZEL_COL_MAP[field] || [field];
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i].toLowerCase().trim()
+      .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
+      .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
+      .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
+    for (const alias of aliases) {
+      const a = alias.toLowerCase()
+        .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
+        .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
+        .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
+      if (h === a || h.includes(a) || a.includes(h)) return i;
+    }
+  }
+  return -1;
+}
+
+/* ─────────────────────────────────────────────────────
+   GID da aba "Controle de Processos"
+   Será descoberto automaticamente na primeira abertura.
+   O valor encontrado é cacheado em localStorage.
+───────────────────────────────────────────────────── */
+// GID fixo definido em ZEL_GID — sem necessidade de aliases de nome de aba
+/* ─────────────────────────────────────────────────────
+   GID da aba "Controle de Processos" — fixo e definitivo
+───────────────────────────────────────────────────── */
+const ZEL_GID = '987654321';
+
+/* ─────────────────────────────────────────────────────
+   FETCH DA PLANILHA DE ZELADORIAS
+───────────────────────────────────────────────────── */
+async function zelFetchSheet() {
+  const badge = document.getElementById('zelSourceBadge');
+  const dot   = document.getElementById('zelSourceDot');
+  const label = document.getElementById('zelSourceLabel');
+  const btn   = document.getElementById('zelRefreshBtn');
+
+  if (badge) badge.className = 'source-badge loading';
+  if (label) label.textContent = 'buscando…';
+  if (btn)   { btn.disabled = true; btn.classList.add('spinning'); }
+
   try {
-    const saved = localStorage.getItem('om_zeladorias');
-    if (saved) zelData = Object.assign({limpeza:[],supressao:[],poda:[]}, JSON.parse(saved));
-  } catch(e) { zelData = {limpeza:[],supressao:[],poda:[]}; }
-  // Se vazio, injeta dados de exemplo
-  if (!zelData.limpeza.length && !zelData.supressao.length && !zelData.poda.length) {
-    zelData = zelSeedData();
-    zelSave(false);
+    const gid = ZEL_GID;
+
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&headers=1&tq=select%20*&t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const raw     = await res.text();
+    const jsonStr = raw.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+    const json    = JSON.parse(jsonStr);
+    const cols    = json.table.cols;
+    const rows    = json.table.rows;
+
+    const headers = cols.map(c => (c.label || '').trim());
+    const g = (r, i) => {
+      const cell = r.c?.[i];
+      if (!cell) return '';
+      const v = cell.v != null ? String(cell.v) : '';
+      const f = cell.f != null ? String(cell.f) : '';
+      return (f.length > v.length ? f : v).trim();
+    };
+
+    // Detecta layout: "uma linha por usina+tipo" OU "colunas por tipo"
+    const iTipo     = zelFindCol(headers, 'tipo');
+    const iCliente  = zelFindCol(headers, 'cliente');
+    const iUsina    = zelFindCol(headers, 'usina');
+    const iStatus   = zelFindCol(headers, 'status');
+    const iPrevisto = zelFindCol(headers, 'previsto');
+    const iRealiz   = zelFindCol(headers, 'realizado');
+    const iProx     = zelFindCol(headers, 'prox');
+    const iObs      = zelFindCol(headers, 'obs');
+
+    const novo = { limpeza:[], supressao:[], poda:[] };
+
+    if (iTipo >= 0) {
+      // ── LAYOUT A: uma linha por usina × tipo de serviço ──────────
+      rows.forEach(r => {
+        const tipo = zelNormalizeTipo(g(r, iTipo));
+        if (!tipo) return;
+        const cliente  = iCliente  >= 0 ? g(r, iCliente)  : '';
+        const usina    = iUsina    >= 0 ? normalizeUsina(g(r, iUsina)) : '';
+        if (!usina) return;
+        novo[tipo].push({
+          id:        `${usina}_${tipo}_${Date.now()}_${Math.random()}`,
+          cliente:   cliente,
+          usina:     usina,
+          status:    zelNormalizeStatus(iStatus   >= 0 ? g(r, iStatus)   : ''),
+          previsto:  iPrevisto >= 0 ? g(r, iPrevisto) : '',
+          realizado: iRealiz   >= 0 ? g(r, iRealiz)   : '',
+          prox:      iProx     >= 0 ? g(r, iProx)      : '',
+          obs:       iObs      >= 0 ? g(r, iObs)       : '',
+          _fromSheet: true,
+        });
+      });
+    } else {
+      // ── LAYOUT B: uma linha por usina, colunas por tipo ──────────
+      // Detecta grupos de colunas por prefixo/nome
+      function findByPrefix(prefix, field) {
+        const aliases = (ZEL_COL_MAP[field] || [field]);
+        for (let i = 0; i < headers.length; i++) {
+          const h = headers[i].toLowerCase()
+            .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
+            .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
+            .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
+          const p = prefix.toLowerCase()
+            .replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
+            .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
+            .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
+          if (h.startsWith(p) && aliases.some(a => {
+            const an = a.replace(/[áàãâ]/g,'a').replace(/[éê]/g,'e')
+              .replace(/[íî]/g,'i').replace(/[óõô]/g,'o')
+              .replace(/[úû]/g,'u').replace(/[ç]/g,'c');
+            return h.includes(an);
+          })) return i;
+        }
+        return -1;
+      }
+
+      // Prefixos de cada tipo
+      const tipoAliases = {
+        limpeza:   ['limpeza','limp'],
+        supressao: ['supressão','supressao','supr','vegetal'],
+        poda:      ['poda','químic','quimic'],
+      };
+
+      rows.forEach(r => {
+        const cliente = iCliente >= 0 ? g(r, iCliente) : '';
+        const usina   = iUsina   >= 0 ? normalizeUsina(g(r, iUsina)) : '';
+        if (!usina) return;
+
+        Object.entries(tipoAliases).forEach(([tipo, prefixes]) => {
+          prefixes.forEach(prefix => {
+            const idxSt  = findByPrefix(prefix, 'status');
+            const idxPre = findByPrefix(prefix, 'previsto');
+            const idxRe  = findByPrefix(prefix, 'realizado');
+            const idxPrx = findByPrefix(prefix, 'prox');
+            const idxObs = findByPrefix(prefix, 'obs');
+
+            if (idxSt < 0 && idxPre < 0) return; // não encontrou colunas desse tipo
+
+            // evita duplicata
+            if (novo[tipo].find(x => x.usina === usina)) return;
+
+            novo[tipo].push({
+              id:        `${usina}_${tipo}_${Date.now()}_${Math.random()}`,
+              cliente:   cliente,
+              usina:     usina,
+              status:    zelNormalizeStatus(idxSt  >= 0 ? g(r, idxSt)  : ''),
+              previsto:  idxPre >= 0 ? g(r, idxPre) : '',
+              realizado: idxRe  >= 0 ? g(r, idxRe)  : '',
+              prox:      idxPrx >= 0 ? g(r, idxPrx) : '',
+              obs:       idxObs >= 0 ? g(r, idxObs) : '',
+              _fromSheet: true,
+            });
+          });
+        });
+      });
+    }
+
+    const total = novo.limpeza.length + novo.supressao.length + novo.poda.length;
+    if (total === 0) throw new Error('Nenhuma linha mapeada');
+
+    // Mescla: edições manuais do usuário sobrepõem dados da planilha
+    zelMergeEdits(novo);
+    zelData = novo;
+    _zelFromSheet = true;
+
+    const now = new Date();
+    const ts  = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    if (badge) badge.className = 'source-badge live';
+    if (label) label.textContent = `planilha · ${ts}`;
+    console.info(`[Zeladorias] ${total} linhas carregadas — limpeza:${novo.limpeza.length} supressao:${novo.supressao.length} poda:${novo.poda.length}`);
+
+  } catch(err) {
+    console.warn('[Zeladorias] Erro ao buscar planilha:', err.message);
+    // Fallback: localStorage → seed
+    try {
+      const saved = localStorage.getItem('om_zeladorias');
+      if (saved) {
+        zelData = Object.assign({limpeza:[],supressao:[],poda:[]}, JSON.parse(saved));
+        _zelFromSheet = false;
+        if (badge) badge.className = 'source-badge error';
+        if (label) label.textContent = 'cache local';
+      } else {
+        zelData = zelSeedData();
+        if (badge) badge.className = 'source-badge error';
+        if (label) label.textContent = 'dados de exemplo';
+      }
+    } catch(e2) {
+      zelData = zelSeedData();
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
   }
 }
 
+/* ─────────────────────────────────────────────────────
+   MESCLA EDIÇÕES MANUAIS SOBRE DADOS DA PLANILHA
+   Edições salvas no localStorage (status, obs alterados
+   pelo usuário) prevalecem sobre o que veio da planilha,
+   exceto se o usuário tiver zerado a edição.
+───────────────────────────────────────────────────── */
+function zelMergeEdits(novo) {
+  try {
+    const saved = localStorage.getItem('om_zeladorias_edits');
+    if (!saved) return;
+    const edits = JSON.parse(saved); // { "usina_tipo": { status, obs } }
+    Object.keys(novo).forEach(tipo => {
+      novo[tipo].forEach(row => {
+        const key = row.usina + '_' + tipo;
+        if (edits[key]) {
+          if (edits[key].status !== undefined) row.status = edits[key].status;
+          if (edits[key].obs    !== undefined) row.obs    = edits[key].obs;
+        }
+      });
+    });
+  } catch(e) { /* silencioso */ }
+}
+
+/* ── Salva apenas as edições manuais (status/obs) num storage separado ── */
+function zelSaveEdit(usina, tipo, field, value) {
+  try {
+    const saved = localStorage.getItem('om_zeladorias_edits');
+    const edits = saved ? JSON.parse(saved) : {};
+    const key   = usina + '_' + tipo;
+    if (!edits[key]) edits[key] = {};
+    edits[key][field] = value;
+    localStorage.setItem('om_zeladorias_edits', JSON.stringify(edits));
+  } catch(e) { /* silencioso */ }
+}
+
 function zelSave(showBadge) {
-  localStorage.setItem('om_zeladorias', JSON.stringify(zelData));
+  // Quando os dados vêm da planilha, salva só as edições
+  if (_zelFromSheet) {
+    // Já salvo inline via zelSaveEdit
+  } else {
+    localStorage.setItem('om_zeladorias', JSON.stringify(zelData));
+  }
   if (showBadge !== false) {
     const badge = document.getElementById('zelSaveBadge');
     if (badge) {
@@ -2905,7 +3231,7 @@ function zelSave(showBadge) {
   }
 }
 
-/* ── Dados de exemplo com as usinas do snapshot ── */
+/* ── Dados de exemplo (fallback quando planilha inacessível) ── */
 function zelSeedData() {
   const usinas = [
     {cliente:'THOPEN',   usina:'Poconé'},
@@ -2918,17 +3244,13 @@ function zelSeedData() {
   const today = new Date();
   function fmtDate(d) { return d.toLocaleDateString('pt-BR'); }
   function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
-
   function makeRows(statusArr) {
-    return usinas.map((u, i) => ({
-      id: Date.now() + i + Math.random(),
-      cliente: u.cliente,
-      usina:   u.usina,
+    return usinas.map((u,i) => ({
+      id: Date.now()+i+Math.random(), cliente:u.cliente, usina:u.usina,
       status:  statusArr[i % statusArr.length],
-      previsto: fmtDate(addDays(today, -15 + i * 12)),
-      realizado: statusArr[i % statusArr.length] === 'Concluído' ? fmtDate(addDays(today, -10 + i * 8)) : '',
-      prox: fmtDate(addDays(today, 75 + i * 10)),
-      obs: '',
+      previsto: fmtDate(addDays(today,-15+i*12)),
+      realizado: statusArr[i%statusArr.length]==='Concluído' ? fmtDate(addDays(today,-10+i*8)) : '',
+      prox: fmtDate(addDays(today,75+i*10)), obs:'',
     }));
   }
   return {
@@ -2939,19 +3261,23 @@ function zelSeedData() {
 }
 
 /* ── Abre tela ── */
-function openZeladorias() {
-  zelLoad();
+async function openZeladorias() {
   document.getElementById('zelOverlay').classList.add('open');
+  await zelFetchSheet();
+  zelRenderFull();
+}
+function closeZeladorias() {
+  document.getElementById('zelOverlay').classList.remove('open');
+}
+
+function zelRenderFull() {
   // Popula select de clientes
-  const clientes = [...new Set([...zelData.limpeza,...zelData.supressao,...zelData.poda].map(r=>r.cliente))].sort();
+  const clientes = [...new Set([...zelData.limpeza,...zelData.supressao,...zelData.poda].map(r=>r.cliente).filter(Boolean))].sort();
   const sel = document.getElementById('zelFiltroCliente');
   const cur = sel.value;
   sel.innerHTML = '<option value="">Todos os clientes</option>' +
     clientes.map(c=>`<option value="${esc(c)}" ${cur===c?'selected':''}>${esc(c)}</option>`).join('');
   zelRender();
-}
-function closeZeladorias() {
-  document.getElementById('zelOverlay').classList.remove('open');
 }
 
 /* ── Filtra e renderiza ── */
@@ -3068,16 +3394,24 @@ function zelRender() {
   // Eventos da tabela
   document.querySelectorAll('#zelTableWrap .zs-select').forEach(sel => {
     sel.addEventListener('change', function() {
-      const id  = +this.dataset.id;
-      const row = (zelData[zelTab]||[]).find(r=>r.id===id);
-      if (row) { row.status = this.value; zelSave(); zelRender(); }
+      const id  = this.dataset.id;
+      const row = (zelData[zelTab]||[]).find(r=>String(r.id)===String(id));
+      if (row) {
+        row.status = this.value;
+        if (_zelFromSheet) zelSaveEdit(row.usina, zelTab, 'status', this.value);
+        zelSave(); zelRender();
+      }
     });
   });
   document.querySelectorAll('#zelTableWrap .zel-obs-input').forEach(inp => {
     inp.addEventListener('change', function() {
-      const id  = +this.dataset.id;
-      const row = (zelData[zelTab]||[]).find(r=>r.id===id);
-      if (row) { row.obs = this.value; zelSave(); }
+      const id  = this.dataset.id;
+      const row = (zelData[zelTab]||[]).find(r=>String(r.id)===String(id));
+      if (row) {
+        row.obs = this.value;
+        if (_zelFromSheet) zelSaveEdit(row.usina, zelTab, 'obs', this.value);
+        zelSave();
+      }
     });
   });
   document.querySelectorAll('#zelTableWrap [data-del]').forEach(btn => {
@@ -3132,6 +3466,11 @@ document.querySelectorAll('.zel-tab').forEach(tab => {
 /* ── Botões ── */
 document.getElementById('processosBtn').addEventListener('click', openZeladorias);
 document.getElementById('zelBack').addEventListener('click', closeZeladorias);
+document.getElementById('zelRefreshBtn').addEventListener('click', async () => {
+  await zelFetchSheet();
+  zelRenderFull();
+  showToast('Dados de zeladorias atualizados!', true);
+});
 document.getElementById('zelAddRow').addEventListener('click', zelAddRow);
 </script>
 </body>
