@@ -1031,9 +1031,45 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 [data-theme="light"] select, [data-theme="light"] input[type="text"] { color:var(--text); }
 [data-theme="light"] .modal { box-shadow:0 12px 48px rgba(0,0,0,.2); }
 
+
 /* ══════════════════════════════════════════
-   BOTÃO CONTROLE DE PROCESSOS
+   BOTÃO VERIFICAR RONDAS
 ══════════════════════════════════════════ */
+.rondas-btn {
+  display:none; align-items:center; gap:8px;
+  background:linear-gradient(135deg,rgba(91,155,213,.18),rgba(63,193,176,.12));
+  border:1px solid rgba(91,155,213,.45); color:#7DC8F0;
+  border-radius:8px; padding:9px 16px; font-size:12px; font-weight:700;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace;
+  transition:.2s; white-space:nowrap; letter-spacing:.04em;
+}
+.rondas-btn:hover { background:rgba(91,155,213,.28); border-color:#7DC8F0; box-shadow:0 0 16px rgba(91,155,213,.2); }
+.rondas-btn:disabled { opacity:.5; cursor:not-allowed; }
+.rondas-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+.rondas-btn.loading svg { animation:spin .7s linear infinite; }
+
+/* Modal de resultado das rondas */
+.rondas-overlay {
+  position:fixed; inset:0; background:rgba(8,12,18,.82); backdrop-filter:blur(3px);
+  display:none; align-items:center; justify-content:center; z-index:200; padding:24px;
+}
+.rondas-overlay.open { display:flex; }
+.rondas-modal {
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  max-width:480px; width:100%; padding:28px; box-shadow:var(--shadow);
+  border-top:4px solid #7DC8F0; animation:modalIn .2s cubic-bezier(.2,.8,.4,1);
+}
+.rondas-modal h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+.rondas-result-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid var(--border-soft);
+  font-family:'IBM Plex Mono',monospace; font-size:12px;
+}
+.rondas-result-row:last-child { border-bottom:none; }
+.rondas-result-num {
+  font-size:22px; font-weight:700; font-family:'IBM Plex Mono',monospace;
+}
+
 .processos-btn {
   display:none; align-items:center; gap:8px;
   background:linear-gradient(135deg,rgba(63,193,176,.18),rgba(34,197,94,.12));
@@ -1349,8 +1385,8 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
       <div class="ms-dropdown" id="ms-status-drop"></div>
     </div>
     <div class="filter-group search-group">
-      <label for="fSearch">Buscar equipamento, falha ou causa</label>
-      <input type="text" id="fSearch" placeholder="ex: tracker, igate, piranômetro…">
+      <label for="fSearch">Buscar equipamento, falha, causa, OS ou ticket</label>
+      <input type="text" id="fSearch" placeholder="ex: tracker, SOL-10842, OS 1596…">
     </div>
     <div class="filter-group date-group">
       <label for="fDateFrom">A partir de</label>
@@ -1386,6 +1422,11 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
       <button class="processos-btn" id="processosBtn">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Controle de Processos
+      </button>
+      <!-- VERIFICAR RONDAS (só admin/manager) -->
+      <button class="rondas-btn hidden" id="rondasBtn">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Verificar Rondas
       </button>
       <!-- VIEW TOGGLE -->
       <div class="view-toggle">
@@ -1533,6 +1574,15 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
     <!-- Tabela -->
     <div class="zel-table-wrap" id="zelTableWrap"></div>
 
+  </div>
+</div>
+
+<!-- Modal Verificar Rondas -->
+<div class="rondas-overlay" id="rondasOverlay">
+  <div class="rondas-modal">
+    <h3>Verificar Rondas — Resultado</h3>
+    <div id="rondasResult"></div>
+    <button class="btn-ghost" style="margin-top:20px;width:100%;" id="rondasCloseBtn">Fechar</button>
   </div>
 </div>
 
@@ -2077,6 +2127,8 @@ function initDashboard(session) {
   if (session.role === 'admin' || session.role === 'manager') {
     const btn = document.getElementById('processosBtn');
     if (btn) btn.style.display = 'inline-flex';
+    const btnR = document.getElementById('rondasBtn');
+    if (btnR) btnR.style.display = 'inline-flex';
   }
   fetchSheet();
 }
@@ -2105,6 +2157,7 @@ const GID      = '0';
    Exemplo: 'https://script.google.com/macros/s/ABC.../exec'
 ───────────────────────────────────────────────────── */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec'; // ← URL do Web App
+
 
 /* ═══════════════════════════════════════════════════
    SNAPSHOT LOCAL — inclui novo campo dataAbertura
@@ -2630,7 +2683,7 @@ function applyFilters() {
     if (selUsina.size   > 0 && !selUsina.has(d.usina))     return false;
     if (selStatus.size  > 0 && !selStatus.has(d.status))   return false;
     if (q) {
-      const hay = (d.equipamento+' '+d.falha+' '+d.causa+' '+d.impactados+' '+d.usina).toLowerCase();
+      const hay = (d.equipamento+' '+d.falha+' '+d.causa+' '+d.impactados+' '+d.usina+' '+d.ticketFabricante+' '+d.numeroOS).toLowerCase();
       if (!hay.includes(q)) return false;
     }
     if (activeCausa && categorizeCausa(d.causa) !== activeCausa) return false;
@@ -3280,8 +3333,83 @@ async function _addHistoryEntry() {
   }
 }
 
-/* Eventos do drawer */
-document.getElementById('drawerClose').addEventListener('click', closeModal);
+
+/* ══════════════════════════════════════════════════════
+   VERIFICAR RONDAS — busca mensagens recentes no servidor
+══════════════════════════════════════════════════════ */
+const RONDAS_URL = 'https://painel-falhas.onrender.com';
+
+async function verificarRondas() {
+  const btn = document.getElementById('rondasBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Buscando…`;
+
+  try {
+    const res = await fetch(`${RONDAS_URL}/rondas`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ horas: 24 }),
+    });
+
+    if (!res.ok) throw new Error(`Servidor retornou ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erro desconhecido');
+
+    const novos        = (data.novos || []).length;
+    const atualizados  = (data.atualizados || []).length;
+    const normalizados = (data.normalizados || []).length;
+    const ignorados    = data.ignorados || 0;
+
+    document.getElementById('rondasResult').innerHTML = `
+      <div class="rondas-result-row">
+        <span style="color:var(--text-dim)">Novas ocorrências criadas</span>
+        <span class="rondas-result-num" style="color:var(--amber)">${novos}</span>
+      </div>
+      <div class="rondas-result-row">
+        <span style="color:var(--text-dim)">Ocorrências atualizadas</span>
+        <span class="rondas-result-num" style="color:var(--teal)">${atualizados}</span>
+      </div>
+      <div class="rondas-result-row">
+        <span style="color:var(--text-dim)">Normalizadas / Concluídas</span>
+        <span class="rondas-result-num" style="color:var(--sla-ok)">${normalizados}</span>
+      </div>
+      <div class="rondas-result-row">
+        <span style="color:var(--text-faint)">Sem dados relevantes</span>
+        <span class="rondas-result-num" style="color:var(--text-faint)">${ignorados}</span>
+      </div>
+      ${novos + atualizados + normalizados > 0
+        ? `<div style="margin-top:14px;padding:10px 12px;background:rgba(63,193,176,.08);border:1px solid rgba(63,193,176,.25);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);">
+             Planilha atualizada — recarregando dados em 3s…
+           </div>`
+        : `<div style="margin-top:14px;padding:10px 12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);">
+             Nenhuma ronda nova encontrada nas últimas 24h
+           </div>`}`;
+
+    document.getElementById('rondasOverlay').classList.add('open');
+    if (novos + atualizados + normalizados > 0) setTimeout(() => fetchSheet(), 3000);
+
+  } catch(err) {
+    showToast(`Erro ao verificar rondas: ${err.message}`, false);
+    console.error('[Rondas]', err);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Verificar Rondas`;
+  }
+}
+
+try {
+  document.getElementById('rondasBtn').addEventListener('click', verificarRondas);
+  document.getElementById('rondasCloseBtn').addEventListener('click', () => {
+    document.getElementById('rondasOverlay').classList.remove('open');
+  });
+  document.getElementById('rondasOverlay').addEventListener('click', e => {
+    if (e.target.id === 'rondasOverlay') document.getElementById('rondasOverlay').classList.remove('open');
+  });
+} catch(e) { console.warn('[Rondas] setup failed:', e); }
+
+
 document.getElementById('drawerBackdrop').addEventListener('click', closeModal);
 document.getElementById('drawerPrev').addEventListener('click', () => _navigateDrawer(-1));
 document.getElementById('drawerNext').addEventListener('click', () => _navigateDrawer(1));
