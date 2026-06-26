@@ -966,6 +966,14 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
   color:var(--text); border-radius:8px; padding:9px 12px;
   font-size:13px; font-family:'IBM Plex Sans',sans-serif;
   outline:none; transition:.15s; resize:vertical;
+  -webkit-appearance:none; appearance:none;
+}
+/* Force dark bg on select options across browsers */
+.d-edit-select option {
+  background:var(--panel-alt); color:var(--text);
+}
+[data-theme="light"] .d-edit-select option {
+  background:#F5F8FB; color:#1A2533;
 }
 .d-edit-input:focus, .d-edit-textarea:focus, .d-edit-select:focus {
   border-color:var(--amber); background:rgba(242,169,59,.03);
@@ -1404,10 +1412,26 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
   <div class="table-wrap" id="tableWrap" style="display:none"></div>
 
   <footer>
-    <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:middle;margin-right:5px;opacity:.6"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    As informações contidas neste painel são de caráter confidencial e destinam-se exclusivamente a pessoas autorizadas.<br>
-    Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), é expressamente proibido o compartilhamento,<br>
-    reprodução ou divulgação destes dados a terceiros não autorizados.
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px;">
+      <div style="text-align:left;line-height:1.9;">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:middle;margin-right:5px;opacity:.6"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        As informações contidas neste painel são de caráter confidencial e destinam-se exclusivamente a pessoas autorizadas.<br>
+        Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), é expressamente proibido o compartilhamento,<br>
+        reprodução ou divulgação destes dados a terceiros não autorizados.
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;">
+        <img src="data:image/jpeg;base64,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AAAAAAAAAAAAAQzAABTwAAAAABTgAByghgCxQBgAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAATAjDBDRQAAggAAwigBTihghCwDTxCxDADThwAwASQQAAAAAAAAAAAAAAAAAQAAAAADgRjwBgQBQQCAByDzhSzDzBTTwjQjiTBizygAAAAAAAAAAAAAAAADgAAAAASDQiDDBABTQhAATQCBCQCCAABRAhAACCCDDSAAAAAAAAAAAAAAAADQgAABxwBAAAAggAAxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAQwQwAAAAADyAAiSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDCAAAAAAADTxQCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//xAAC/9oADAMBAAIAAwAAABDzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzTzzDzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzwDzBRzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxRSSyxTzzzzzzzzjzzzzzzzzzzzzzzzzzzzzzzzzzzzyAAAAAAAABDzxDzzzzjxxDzzzzzzzzwjzzzzzzzzzzzzzzzzzzzzzzzzzzzyzzzwjzzyxzzjDzziiiSDzjzDzzzzyxzzzzzzzzzzzzzzzzzzzzzzzzzzzTgzTzjzzzzzzzxzzyyiRTwSzixzjzzyjTzzzzzzzzzzzzzzzzzzzzzzzzySzzzyQxTzDTzzCzTzgwDBijzjSTiyRBDzQzjTzCDzzzzzzzzzzzzzzzzzyBzzzzzzBDBThCzxBTyzwiBSjjxhjDjjBTATyggzjRDz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"
+             alt="Assinatura Fred Alexandrino"
+             style="height:56px;width:auto;
+                    filter:invert(1) brightness(2);
+                    opacity:.85;
+                    mix-blend-mode:screen;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);text-align:center;line-height:1.5;">
+          Fred Alexandrino<br>
+          <span style="font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;">Eng. Eletricista · Supervisor de O&amp;M</span>
+        </div>
+      </div>
+    </div>
   </footer>
 </div>
 
@@ -1473,7 +1497,7 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
     <select class="zel-filter-select" id="zelFiltroStatus">
       <option value="">Todos os status</option>
       <option value="Agendado">Agendado</option>
-      <option value="Em andamento">Em andamento</option>
+      <option value="Em Andamento">Em Andamento</option>
       <option value="Concluído">Concluído</option>
       <option value="Atrasado">Atrasado</option>
       <option value="Pendente">Pendente</option>
@@ -2319,48 +2343,46 @@ function esc(s) {
    Boa Esperança do Sul 2 / II / IB / B  → "Boa Esperança do Sul 2"
    Adicione outros aliases abaixo conforme necessário.
 ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────
+   normalizeUsina — padroniza nomes de usinas
+   Regras:
+   · Boa Esperança do Sul: sufixos 1/I/1A/IA → "1"; 2/II/IB/B → "2"
+   · Ibaté: sufixos 1/I → "I"; 2/II → "II"  (algarismo romano)
+   · Qualquer outra usina com sufixo numérico (1,2,A,B) → I ou II
+     Ex: "Sol do Norte 1" → "Sol do Norte I"
+         "Canarana 2"     → "Canarana II"
+         "Matão 2"        → "Matão II"
+───────────────────────────────────────────────────── */
 function normalizeUsina(raw) {
   if (!raw) return raw;
   const s = raw.trim();
 
-  // ── Boa Esperança do Sul ─────────────────────────────
+  // ── Boa Esperança do Sul (sufixos numéricos → 1 ou 2) ─
   const BES = /^boa\s+espe[rn]an[çc]a\s+do\s+sul\s*/i;
   if (BES.test(s)) {
-    const suffix = s.replace(BES, '').trim().toUpperCase();
-    if (/^(1A?|IA?|A)$/i.test(suffix) || suffix === '1' || suffix === 'I') return 'Boa Esperança do Sul 1';
-    if (/^(2B?|IIB?|IB|B)$/i.test(suffix) || suffix === '2' || suffix === 'II') return 'Boa Esperança do Sul 2';
-    const capSuffix = suffix ? ' ' + suffix : '';
-    return 'Boa Esperança do Sul' + capSuffix;
+    const suf = s.replace(BES, '').trim().toUpperCase();
+    if (/^(1A?|IA?|A)$/.test(suf) || suf === '1' || suf === 'I') return 'Boa Esperança do Sul 1';
+    if (/^(2B?|IIB?|IB|B)$/.test(suf) || suf === '2' || suf === 'II') return 'Boa Esperança do Sul 2';
+    return 'Boa Esperança do Sul' + (suf ? ' ' + suf : '');
   }
 
-  // ── Ibaté: sempre usar numerais romanos I / II ────────
-  // Aceita: "Ibaté 1", "Ibaté I", "Ibate 1", etc.
-  const IBATE = /^ibat[eé]\s*/i;
-  if (IBATE.test(s)) {
-    const suffix = s.replace(IBATE, '').trim().toUpperCase();
-    if (suffix === '1' || suffix === 'I')  return 'Ibaté I';
-    if (suffix === '2' || suffix === 'II') return 'Ibaté II';
-    const capSuffix = suffix ? ' ' + suffix : '';
-    return 'Ibaté' + capSuffix;
-  }
-
-  // ── Regra genérica: qualquer usina com sufixo "1" ou "2" isolado
-  //    que já tenha versão romana → converte para I / II
-  //    Ex: "Matão 1" → mantém (sem par romano definido)
-  //    Adicione mais casos abaixo conforme necessário:
-  const NUMERAL_MAP = [
-    // [regex do nome base, '1'→, '2'→]
-    // Exemplo futuro: [/^canarana\s*/i, 'Canarana I', 'Canarana II'],
-  ];
-  for (const [re, r1, r2] of NUMERAL_MAP) {
-    if (re.test(s)) {
-      const suf = s.replace(re, '').trim().toUpperCase();
-      if (suf === '1' || suf === 'I')  return r1;
-      if (suf === '2' || suf === 'II') return r2;
+  // ── Regra genérica para TODAS as outras usinas ─────────
+  // Qualquer nome + sufixo isolado (1, 2, I, II, A, B) → converte para I ou II
+  // O sufixo deve ser a ÚLTIMA palavra, isolada.
+  const GENERIC = /^(.+?)\s+(1|2|i|ii|a|b)$/i;
+  const gm = s.match(GENERIC);
+  if (gm) {
+    const base = gm[1].trim();
+    const suf  = gm[2].toUpperCase();
+    // Mapeia para romano
+    const toRoman = { '1':'I', 'I':'I', 'A':'I', '2':'II', 'II':'II', 'B':'II' };
+    const roman = toRoman[suf];
+    if (roman) {
+      // Capitaliza primeira letra do nome base corretamente
+      return base + ' ' + roman;
     }
   }
 
-  // Nenhum alias encontrado → devolve original sem alteração
   return s;
 }
 
@@ -2945,10 +2967,16 @@ function _navigateDrawer(delta) {
 }
 
 /* ── STATUS options para o select de edição ── */
+// Status exatamente como na planilha
 const ALL_STATUSES = [
-  'Em Aberto','Em andamento','Aguardando Cliente',
-  'Aguardando Fabricante','Aguardando Equipamento',
-  'Concluído','Resolvido','Fechado',
+  'Em Aberto',
+  'Em Andamento',
+  'Aguardando Cliente',
+  'Aguardando Fabricante',
+  'Aguardando Equipamento',
+  'Concluído',
+  'Resolvido',
+  'Fechado',
 ];
 
 function _renderDrawer() {
@@ -3604,10 +3632,10 @@ const ZEL_TIPOS = {
   supressao: { label:'Supressão Vegetal',   color:'var(--sla-ok)',   key:'supressao' },
   poda:      { label:'Poda Química',        color:'var(--amber)',    key:'poda'      },
 };
-const ZEL_STATUS = ['Agendado','Em andamento','Concluído','Atrasado','Pendente'];
+const ZEL_STATUS = ['Agendado','Em Andamento','Concluído','Atrasado','Pendente'];
 const ZEL_STATUS_CLASS = {
   'Agendado':      'zs-agendado',
-  'Em andamento':  'zs-em-andamento',
+  'Em Andamento':  'zs-em-andamento',
   'Concluído':     'zs-concluido',
   'Atrasado':      'zs-atrasado',
   'Pendente':      'zs-pendente',
@@ -3663,7 +3691,7 @@ function zelNormalizeTipo(raw) {
 
 function zelNormalizeStatus(raw) {
   const v = (raw||'').toLowerCase().trim();
-  if (v.includes('andamento') || v.includes('execuc') || v.includes('progress')) return 'Em andamento';
+  if (v.includes('andamento') || v.includes('execuc') || v.includes('progress')) return 'Em Andamento';
   if (v.includes('conclu') || v.includes('realiz') || v.includes('done') || v.includes('feito')) return 'Concluído';
   if (v.includes('atras') || v.includes('vencid') || v.includes('overdue') || v.includes('atraso')) return 'Atrasado';
   if (v.includes('agend') || v.includes('program') || v.includes('scheduled')) return 'Agendado';
@@ -3970,9 +3998,9 @@ function zelSeedData() {
     }));
   }
   return {
-    limpeza:   makeRows(['Concluído','Em andamento','Agendado','Atrasado','Pendente','Agendado']),
-    supressao: makeRows(['Agendado','Concluído','Atrasado','Em andamento','Pendente','Concluído']),
-    poda:      makeRows(['Pendente','Agendado','Concluído','Em andamento','Atrasado','Agendado']),
+    limpeza:   makeRows(['Concluído','Em Andamento','Agendado','Atrasado','Pendente','Agendado']),
+    supressao: makeRows(['Agendado','Concluído','Atrasado','Em Andamento','Pendente','Concluído']),
+    poda:      makeRows(['Pendente','Agendado','Concluído','Em Andamento','Atrasado','Agendado']),
   };
 }
 
@@ -4025,11 +4053,11 @@ function zelRender() {
   const total    = allRows.length;
   const concl    = allRows.filter(r=>r.status==='Concluído').length;
   const atrasado = allRows.filter(r=>r.status==='Atrasado').length;
-  const agend    = allRows.filter(r=>r.status==='Agendado'||r.status==='Em andamento').length;
+  const agend    = allRows.filter(r=>r.status==='Agendado'||r.status==='Em Andamento').length;
   document.getElementById('zelKpis').innerHTML = [
     {num:total,    label:'Usinas programadas', color:'var(--teal)'},
     {num:concl,    label:'Concluídas',         color:'var(--sla-ok)'},
-    {num:agend,    label:'Em andamento / Agendadas', color:'var(--blue)'},
+    {num:agend,    label:'Em Andamento / Agendadas', color:'var(--blue)'},
     {num:atrasado, label:'Com atraso',         color:'var(--red)'},
   ].map(k=>`
     <div class="zel-kpi" style="--kc:${k.color}">
