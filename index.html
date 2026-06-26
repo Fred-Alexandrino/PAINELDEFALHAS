@@ -3349,7 +3349,7 @@ async function verificarRondas() {
     const res = await fetch(`${RONDAS_URL}/rondas`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ horas: 24 }),
+      body:    JSON.stringify({ horas: 6 }),
     });
 
     if (!res.ok) throw new Error(`Servidor retornou ${res.status}`);
@@ -3383,8 +3383,11 @@ async function verificarRondas() {
              Planilha atualizada — recarregando dados em 3s…
            </div>`
         : `<div style="margin-top:14px;padding:10px 12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);">
-             Nenhuma ronda nova encontrada nas últimas 24h
-           </div>`}`;
+             Nenhuma ronda nova encontrada nas últimas 6h
+           </div>`}
+      <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint);">
+        Informações duplicadas são ignoradas automaticamente.
+      </div>`;
 
     document.getElementById('rondasOverlay').classList.add('open');
     if (novos + atualizados + normalizados > 0) setTimeout(() => fetchSheet(), 3000);
@@ -3409,6 +3412,10 @@ try {
   });
 } catch(e) { console.warn('[Rondas] setup failed:', e); }
 
+// ── Drawer close button (X)
+try {
+  document.getElementById('drawerClose').addEventListener('click', closeModal);
+} catch(e) { console.warn('[Drawer] close button failed:', e); }
 
 document.getElementById('drawerBackdrop').addEventListener('click', closeModal);
 document.getElementById('drawerPrev').addEventListener('click', () => _navigateDrawer(-1));
