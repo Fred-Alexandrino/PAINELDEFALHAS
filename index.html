@@ -185,7 +185,10 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.015em;line-height:1.15;}
   border-radius:var(--radius); font-size:13px;
   font-family:'IBM Plex Mono',monospace; color:var(--red);
   animation: sla-pulse-border 2.5s infinite;
+  cursor:pointer; user-select:none;
 }
+.sla-banner:hover { background:rgba(226,84,61,.14); }
+.sla-banner.active-filter { background:rgba(226,84,61,.18); border-color:var(--red); }
 .sla-banner.visible { display:flex; }
 .sla-banner svg { width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
 @keyframes sla-pulse-border {
@@ -1306,7 +1309,8 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
   <!-- SLA Banner global -->
   <div class="sla-banner" id="slaBanner">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span id="slaBannerText"></span>
+    <span id="slaBannerText" style="flex:1"></span>
+    <span style="font-size:11px;opacity:.7;white-space:nowrap;">clique para filtrar ↗</span>
   </div>
 
   <div class="kpis" id="kpis"></div>
@@ -1836,20 +1840,35 @@ function getResponseDays(d) {
 }
 
 /**
- * SLA badge: vencido se equipe levou mais de BREACH_DAYS para responder.
- * Nota: se a equipe ainda não respondeu, não mostramos SLA vencido —
- * mostramos apenas o pill de idade para indicar tempo em aberto.
+ * SLA vencido = ocorrência aberta há mais de BREACH_DAYS dias
+ * E a equipe de campo AINDA NÃO deu nenhuma resposta no histórico.
+ *
+ * Se a equipe já respondeu (qualquer momento), o SLA está cumprido.
+ * Se a equipe ainda não respondeu mas está dentro do prazo, não está vencido.
  */
 function isSlaBreached(d) {
-  const days = getResponseDays(d);
-  if (days === null || days < 0) return false;
-  return days >= SLA_CONFIG.BREACH_DAYS;
+  const statusKey = (d.status || '').toLowerCase().trim();
+  // Encerrado → não conta
+  if (SLA_CONFIG.CLOSED_STATUSES.some(s => statusKey.includes(s))) return false;
+  // Se a equipe já respondeu → SLA cumprido, não está vencido
+  const responseDate = getResponseDate(d);
+  if (responseDate) return false;
+  // Equipe ainda não respondeu: verifica se passou o prazo
+  const ageDays = getFaultAgeDays(d);
+  if (ageDays === null || ageDays < 0) return false;
+  return ageDays >= SLA_CONFIG.BREACH_DAYS;
 }
 
 function isSlaWarning(d) {
-  const days = getResponseDays(d);
-  if (days === null || days < 0) return false;
-  return days >= SLA_CONFIG.WARN_DAYS && days < SLA_CONFIG.BREACH_DAYS;
+  const statusKey = (d.status || '').toLowerCase().trim();
+  if (SLA_CONFIG.CLOSED_STATUSES.some(s => statusKey.includes(s))) return false;
+  // Se a equipe já respondeu → sem aviso de SLA
+  const responseDate = getResponseDate(d);
+  if (responseDate) return false;
+  // Equipe ainda não respondeu: verifica se está próximo do prazo
+  const ageDays = getFaultAgeDays(d);
+  if (ageDays === null || ageDays < 0) return false;
+  return ageDays >= SLA_CONFIG.WARN_DAYS && ageDays < SLA_CONFIG.BREACH_DAYS;
 }
 
 /**
@@ -2086,7 +2105,8 @@ const SNAPSHOT = [
 let DATA     = [];
 let filtered = [];
 let sortKey  = 'id';
-let activeCausa = null;
+let activeCausa     = null;
+let activeSlaFilter = false; // filtro de SLA vencido ativado pelo banner
 
 /* ═══════════════════════════════════════════════════
    FETCH DE DADOS
@@ -2303,28 +2323,41 @@ function normalizeUsina(raw) {
   if (!raw) return raw;
   const s = raw.trim();
 
-  // Normaliza "Boa Esperança do Sul" em todas as grafias (com/sem acento, abreviações)
+  // ── Boa Esperança do Sul ─────────────────────────────
   const BES = /^boa\s+espe[rn]an[çc]a\s+do\s+sul\s*/i;
-
   if (BES.test(s)) {
-    // Extrai o sufixo após o nome base
     const suffix = s.replace(BES, '').trim().toUpperCase();
-
-    // Grupo 1: variações de "1" → sempre "Boa Esperança do Sul 1"
-    // Aceita: "1", "I", "1A", "IA", "A" (sozinho), vazio com eventual espaço
-    if (/^(1A?|IA?|A)$/i.test(suffix) || suffix === '1' || suffix === 'I') {
-      return 'Boa Esperança do Sul 1';
-    }
-
-    // Grupo 2: variações de "2" → sempre "Boa Esperança do Sul 2"
-    // Aceita: "2", "II", "IB", "2B", "B"
-    if (/^(2B?|IIB?|IB|B)$/i.test(suffix) || suffix === '2' || suffix === 'II') {
-      return 'Boa Esperança do Sul 2';
-    }
-
-    // Sufixo não reconhecido → devolve capitalizado no padrão
+    if (/^(1A?|IA?|A)$/i.test(suffix) || suffix === '1' || suffix === 'I') return 'Boa Esperança do Sul 1';
+    if (/^(2B?|IIB?|IB|B)$/i.test(suffix) || suffix === '2' || suffix === 'II') return 'Boa Esperança do Sul 2';
     const capSuffix = suffix ? ' ' + suffix : '';
     return 'Boa Esperança do Sul' + capSuffix;
+  }
+
+  // ── Ibaté: sempre usar numerais romanos I / II ────────
+  // Aceita: "Ibaté 1", "Ibaté I", "Ibate 1", etc.
+  const IBATE = /^ibat[eé]\s*/i;
+  if (IBATE.test(s)) {
+    const suffix = s.replace(IBATE, '').trim().toUpperCase();
+    if (suffix === '1' || suffix === 'I')  return 'Ibaté I';
+    if (suffix === '2' || suffix === 'II') return 'Ibaté II';
+    const capSuffix = suffix ? ' ' + suffix : '';
+    return 'Ibaté' + capSuffix;
+  }
+
+  // ── Regra genérica: qualquer usina com sufixo "1" ou "2" isolado
+  //    que já tenha versão romana → converte para I / II
+  //    Ex: "Matão 1" → mantém (sem par romano definido)
+  //    Adicione mais casos abaixo conforme necessário:
+  const NUMERAL_MAP = [
+    // [regex do nome base, '1'→, '2'→]
+    // Exemplo futuro: [/^canarana\s*/i, 'Canarana I', 'Canarana II'],
+  ];
+  for (const [re, r1, r2] of NUMERAL_MAP) {
+    if (re.test(s)) {
+      const suf = s.replace(re, '').trim().toUpperCase();
+      if (suf === '1' || suf === 'I')  return r1;
+      if (suf === '2' || suf === 'II') return r2;
+    }
   }
 
   // Nenhum alias encontrado → devolve original sem alteração
@@ -2579,6 +2612,7 @@ function applyFilters() {
       if (!hay.includes(q)) return false;
     }
     if (activeCausa && categorizeCausa(d.causa) !== activeCausa) return false;
+    if (activeSlaFilter && !isSlaBreached(d)) return false;
 
     // Filtro por data de abertura
     if (dateFrom || dateTo) {
@@ -2607,7 +2641,9 @@ function clearFilters() {
   document.getElementById('fSearch').value  = '';
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value   = '';
-  activeCausa = null;
+  activeCausa     = null;
+  activeSlaFilter = false;
+  document.getElementById('slaBanner').classList.remove('active-filter');
   populateFilters();
   applyFilters();
 }
@@ -2636,15 +2672,19 @@ function applySortAndRender() {
   });
   document.getElementById('totalBadge').textContent = `${DATA.length} registros na planilha`;
 
-  // SLA Banner global — baseado no tempo de resposta da equipe de campo
+  // SLA Banner — baseado no tempo de RESPOSTA da equipe de campo
   const breachList = filtered.filter(d => isSlaBreached(d));
   const slaBanner  = document.getElementById('slaBanner');
   if (breachList.length > 0) {
     slaBanner.classList.add('visible');
-    document.getElementById('slaBannerText').textContent =
-      `${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — equipe de campo levou mais de ${SLA_CONFIG.BREACH_DAYS} dias para atender`;
+    const txt = activeSlaFilter
+      ? `Filtrando ${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — sem resposta da equipe há mais de ${SLA_CONFIG.BREACH_DAYS} dias · clique para limpar`
+      : `${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — abertas há mais de ${SLA_CONFIG.BREACH_DAYS} dias sem resposta da equipe de campo`;
+    document.getElementById('slaBannerText').textContent = txt;
   } else {
     slaBanner.classList.remove('visible');
+    // Se o filtro estava ativo mas não há mais resultados, limpa
+    if (activeSlaFilter) { activeSlaFilter = false; slaBanner.classList.remove('active-filter'); }
   }
 
   // Legenda clientes
@@ -2962,13 +3002,13 @@ function _renderDrawer() {
 
     let slaLabel;
     if (isSlaBreached(d)) {
-      slaLabel = `⚠ SLA VENCIDO — equipe respondeu em ${responseDays} dias`;
+      slaLabel = `⚠ SLA VENCIDO — sem resposta da equipe há ${ageDays} dias`;
     } else if (isSlaWarning(d)) {
-      slaLabel = `· atenção — resposta em ${responseDays} dias`;
+      slaLabel = `· atenção — ${ageDays} dias sem resposta da equipe (prazo: ${SLA_CONFIG.BREACH_DAYS}d)`;
     } else if (responseDate) {
-      slaLabel = `· atendido em ${responseDays} dia${responseDays !== 1 ? 's' : ''} (${responseDate.toLocaleDateString('pt-BR')})`;
+      slaLabel = `· equipe respondeu em ${responseDays} dia${responseDays !== 1 ? 's' : ''} (${responseDate.toLocaleDateString('pt-BR')})`;
     } else {
-      slaLabel = ageDays >= 10 ? '· aguardando atendimento de campo' : '· recente';
+      slaLabel = ageDays >= 10 ? '· aguardando primeira resposta da equipe' : '· recente';
     }
 
     // Bloco de movimentação
@@ -3448,6 +3488,17 @@ document.getElementById('fDateFrom').addEventListener('change', applyFilters);
 document.getElementById('fDateTo').addEventListener('change', applyFilters);
 document.getElementById('clearBtn').addEventListener('click', clearFilters);
 document.getElementById('updateBtn').addEventListener('click', fetchSheet);
+
+// Banner SLA clicável — toggle filtro
+document.getElementById('slaBanner').addEventListener('click', () => {
+  activeSlaFilter = !activeSlaFilter;
+  document.getElementById('slaBanner').classList.toggle('active-filter', activeSlaFilter);
+  // Ao ativar, rola até os cards para ver os resultados
+  if (activeSlaFilter) {
+    document.getElementById('cardGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  applyFilters();
+});
 
 
 /* ═══════════════════════════════════════════════════
