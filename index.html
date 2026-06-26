@@ -1500,6 +1500,1922 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 </div>
 
 <script>
+/* ══════════════════════════════════════════════════════
+   LOGIN — executa PRIMEIRO, antes de qualquer outra coisa
+   Isso garante que o botão sempre funciona.
+══════════════════════════════════════════════════════ */
+(function setupLogin() {
+  const USERS = [
+    { user: 'admin',          pass: 'gridco2026',  role: 'admin'   },
+    { user: 'fredalexandrino',pass: 'Fred2004@',   role: 'manager' },
+    { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'THOPEN'   },
+    { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'RENOGRID' },
+  ];
+
+  function tryLogin() {
+    var u = document.getElementById('loginUser').value.trim().toLowerCase();
+    var p = document.getElementById('loginPass').value;
+    var found = null;
+    for (var i = 0; i < USERS.length; i++) {
+      if (USERS[i].user === u && USERS[i].pass === p) { found = USERS[i]; break; }
+    }
+    var errEl = document.getElementById('loginError');
+    if (!found) {
+      errEl.classList.add('show');
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginPass').focus();
+      return;
+    }
+    errEl.classList.remove('show');
+    document.getElementById('loginScreen').classList.add('hidden');
+    try { sessionStorage.setItem('om_role',    found.role); } catch(e){}
+    try { sessionStorage.setItem('om_cliente', found.cliente || ''); } catch(e){}
+    try { sessionStorage.setItem('om_user',    found.user || ''); } catch(e){}
+    // Chama initDashboard quando estiver disponível
+    if (typeof initDashboard === 'function') {
+      initDashboard(found);
+    } else {
+      // Aguarda o resto do script carregar
+      window._pendingSession = found;
+    }
+  }
+
+  // Registra listeners imediatamente
+  document.getElementById('loginSubmit').addEventListener('click', tryLogin);
+  document.getElementById('loginPass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryLogin();
+  });
+  document.getElementById('loginUser').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('loginPass').focus();
+  });
+
+  // Restaura sessão anterior
+  try {
+    var role    = sessionStorage.getItem('om_role');
+    var cliente = sessionStorage.getItem('om_cliente') || '';
+    var user    = sessionStorage.getItem('om_user') || '';
+    if (role) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      window._pendingSession = { role: role, cliente: cliente, user: user };
+    }
+  } catch(e) {}
+})();
+
+/* ═══════════════════════════════════════════════════
+   ① PWA — Manifest inline (sem arquivo externo)
+═══════════════════════════════════════════════════ */
+(function injectManifest() {
+  try {
+  const manifest = {
+    name: 'Painel O&M — Grid Co',
+    short_name: 'O&M Painel',
+    description: 'Acompanhamento de Falhas em Usinas',
+    start_url: window.location.pathname + window.location.search,
+    display: 'standalone',
+    background_color: '#0E1419',
+    theme_color: '#0E1419',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: 'data:image/svg+xml,' + encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+            <rect width="192" height="192" rx="40" fill="#0E1419"/>
+            <path d="M96 30 L150 55 L150 100 C150 135 96 162 96 162 C96 162 42 135 42 100 L42 55 Z"
+                  fill="none" stroke="#F2A93B" stroke-width="8" stroke-linejoin="round"/>
+            <circle cx="96" cy="100" r="18" fill="#F2A93B" opacity="0.9"/>
+            <line x1="96" y1="68" x2="96" y2="82" stroke="#F2A93B" stroke-width="8" stroke-linecap="round"/>
+          </svg>`),
+        sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable'
+      }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  document.getElementById('manifestLink').href = url;
+  } catch(e) { console.warn('[PWA] Manifest injection failed:', e.message); }
+})();
+
+/* ── PWA install prompt ── */
+let _pwaPrompt = null;
+try {
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _pwaPrompt = e;
+    const alreadyDismissed = sessionStorage.getItem('pwa_dismissed');
+    if (!alreadyDismissed) document.getElementById('pwaBanner').classList.add('visible');
+  });
+  document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
+    if (!_pwaPrompt) return;
+    _pwaPrompt.prompt();
+    const { outcome } = await _pwaPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('pwaBanner').classList.remove('visible');
+      showToast('App instalado com sucesso!', true);
+    }
+    _pwaPrompt = null;
+  });
+  document.getElementById('pwaDismissBtn').addEventListener('click', () => {
+    document.getElementById('pwaBanner').classList.remove('visible');
+    sessionStorage.setItem('pwa_dismissed', '1');
+  });
+} catch(e) { console.warn('[PWA] prompt setup failed:', e.message); }
+
+/* ═══════════════════════════════════════════════════
+   ② TEMA CLARO / ESCURO
+═══════════════════════════════════════════════════ */
+(function initTheme() {
+  try {
+    const saved   = localStorage.getItem('om_theme');
+    const prefer  = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    const current = saved || prefer;
+    applyTheme(current);
+  } catch(e) { console.warn('[Theme] init failed:', e.message); }
+})();
+
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('om_theme', t);
+  const label = document.getElementById('themeLabel');
+  if (label) label.textContent = t === 'light' ? '☀︎ Claro' : '☾ Escuro';
+  // Muda theme-color da barra do browser
+  const meta = document.getElementById('themeColorMeta');
+  if (meta) meta.content = t === 'light' ? '#F0F4F8' : '#0E1419';
+}
+
+try {
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+} catch(e) { console.warn('[Theme] toggle failed:', e.message); }
+
+/* ═══════════════════════════════════════════════════
+   ③ AUTO-REFRESH com COUNTDOWN
+═══════════════════════════════════════════════════ */
+const REFRESH_INTERVAL = 5 * 60; // segundos
+let _countdownSec  = REFRESH_INTERVAL;
+let _countdownTimer = null;
+
+function startCountdown() {
+  clearInterval(_countdownTimer);
+  _countdownSec = REFRESH_INTERVAL;
+  const wrap = document.getElementById('countdownWrap');
+  wrap.style.display = 'flex';
+
+  _countdownTimer = setInterval(() => {
+    _countdownSec--;
+    updateCountdownUI();
+    if (_countdownSec <= 0) {
+      clearInterval(_countdownTimer);
+      fetchSheet(); // auto-refresh
+    }
+  }, 1000);
+  updateCountdownUI();
+}
+
+function updateCountdownUI() {
+  const fill    = document.getElementById('countdownFill');
+  const text    = document.getElementById('countdownText');
+  const pct     = (_countdownSec / REFRESH_INTERVAL) * 100;
+  const minutes = Math.floor(_countdownSec / 60);
+  const secs    = _countdownSec % 60;
+
+  if (fill) {
+    fill.style.width = pct + '%';
+    // Cor muda conforme tempo restante
+    if (pct > 50)      fill.style.background = 'var(--teal)';
+    else if (pct > 20) fill.style.background = 'var(--amber)';
+    else               fill.style.background = 'var(--red)';
+  }
+  if (text) text.textContent = `${minutes}:${String(secs).padStart(2,'0')}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   ④ SLA — CONFIGURAÇÃO
+   Altere os valores abaixo para ajustar os limiares.
+   SLA_WARN_DAYS   → aviso amarelo nos cards
+   SLA_BREACH_DAYS → borda vermelha pulsante + banner
+   Status que NÃO contam SLA (já encerrados):
+═══════════════════════════════════════════════════ */
+const SLA_CONFIG = {
+  WARN_DAYS:   7,   // amarelo: aberto há mais de 7 dias
+  BREACH_DAYS: 14,  // vermelho pulsante: aberto há mais de 14 dias
+  CLOSED_STATUSES: ['concluído','concluido','resolvido','fechado','resolved','closed'],
+};
+
+/**
+ * Retorna a data de abertura de uma ocorrência.
+ * Prioridade:
+ *   1. Campo `dataAbertura` explícito da planilha (DD/MM/YYYY)
+ *   2. Primeira data encontrada no histórico (col L)
+ *      Formatos aceitos: DD/MM/YYYY, YYYY-MM-DD, DD/MM (sem ano — deduz pelo contexto)
+ *   3. null se não encontrar
+ */
+function getOpenDate(d) {
+  // 1. Campo explícito
+  if (d.dataAbertura) {
+    const parts = d.dataAbertura.split('/');
+    if (parts.length === 3) {
+      const dt = new Date(+parts[2], +parts[1]-1, +parts[0]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+  }
+
+  const hist = (d.historico || '').trim();
+  if (!hist) return null;
+
+  const today    = new Date();
+  const thisYear = today.getFullYear();
+
+  // Percorre cada linha — pega a PRIMEIRA data válida
+  const lines = hist.split(/[\r\n]+/);
+  for (const line of lines) {
+    const l = line.trim();
+    if (!l) continue;
+
+    // Formato completo DD/MM/YYYY (com ou sem hora depois)
+    let m = l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) {
+      const dt = new Date(+m[3], +m[2]-1, +m[1]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+
+    // Formato ISO YYYY-MM-DD
+    m = l.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      const dt = new Date(+m[1], +m[2]-1, +m[3]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+
+    // Formato DD/MM sem ano — padrão desta planilha: "05/12 - texto"
+    m = l.match(/^(\d{1,2})\/(\d{1,2})\s*[-–:]/);
+    if (m) {
+      const day = +m[1], month = +m[2];
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+        // Usa o ano que coloca a data no passado mais recente
+        let dt = new Date(thisYear, month - 1, day);
+        if (dt > today) dt = new Date(thisYear - 1, month - 1, day);
+        if (!isNaN(dt)) return dt;
+      }
+    }
+  }
+
+  // Último recurso: qualquer DD/MM no texto completo
+  const mShort = hist.match(/(\d{1,2})\/(\d{1,2})\s*[-–:]/);
+  if (mShort) {
+    const day = +mShort[1], month = +mShort[2];
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      let dt = new Date(thisYear, month - 1, day);
+      if (dt > today) dt = new Date(thisYear - 1, month - 1, day);
+      if (!isNaN(dt)) return dt;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Retorna dias de vida da falha (0 se não há data ou se já foi fechada).
+ */
+function getFaultAgeDays(d) {
+  const statusKey = (d.status || '').toLowerCase().trim();
+  if (SLA_CONFIG.CLOSED_STATUSES.some(s => statusKey.includes(s))) return -1; // encerrado
+  const opened = getOpenDate(d);
+  if (!opened) return null;
+  const now  = new Date();
+  const diff = Math.floor((now - opened) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
+/** Retorna classe CSS de SLA baseada nos dias */
+function getSlaClass(days) {
+  if (days === null || days === undefined) return 'age-none';
+  if (days < 0) return 'age-ok'; // encerrado
+  if (days >= SLA_CONFIG.BREACH_DAYS) return 'age-breach';
+  if (days >= SLA_CONFIG.WARN_DAYS)   return 'age-warning';
+  return 'age-ok';
+}
+
+/** Texto legível da idade */
+function agePillText(days) {
+  if (days === null) return 'Sem data';
+  if (days < 0)      return 'Concluído';
+  if (days === 0)    return 'Aberta hoje';
+  if (days === 1)    return 'Aberta há 1 dia';
+  return `Aberta há ${days} dias`;
+}
+
+/* ═══════════════════════════════════════════════════
+   CREDENCIAIS + SESSION (login já configurado acima)
+═══════════════════════════════════════════════════ */
+const USERS = [
+  { user: 'admin',          pass: 'gridco2026',  role: 'admin'   },
+  { user: 'fredalexandrino',pass: 'Fred2004@',   role: 'manager' },
+  { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'THOPEN'   },
+  { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'RENOGRID' },
+];
+
+let _currentSession = { role: 'viewer' };
+let _forcedCliente  = null;
+
+function initDashboard(session) {
+  _currentSession = session;
+  if (session.role === 'client' && session.cliente) _forcedCliente = session.cliente;
+  if (session.role === 'admin' || session.role === 'manager') {
+    const btn = document.getElementById('processosBtn');
+    if (btn) btn.style.display = 'inline-flex';
+  }
+  fetchSheet();
+}
+
+function canEdit() {
+  return _currentSession.role === 'admin' || _currentSession.role === 'manager';
+}
+
+// Processa sessão pendente (definida pelo bloco de login no topo)
+if (window._pendingSession) {
+  initDashboard(window._pendingSession);
+  window._pendingSession = null;
+}
+
+
+
+/* ═══════════════════════════════════════════════════
+   CONFIG PLANILHA
+═══════════════════════════════════════════════════ */
+const SHEET_ID = '1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs';
+const GID      = '0';
+
+/* ─────────────────────────────────────────────────────
+   URL DO APPS SCRIPT (escrita na planilha)
+   Cole aqui a URL gerada após implantar o Web App.
+   Exemplo: 'https://script.google.com/macros/s/ABC.../exec'
+───────────────────────────────────────────────────── */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec'; // ← URL do Web App
+
+/* ═══════════════════════════════════════════════════
+   SNAPSHOT LOCAL — inclui novo campo dataAbertura
+═══════════════════════════════════════════════════ */
+const SNAPSHOT = [
+  {id:"1",  dataAbertura:"17/06/2026", cliente:"THOPEN", usina:"Matão I",       equipamento:"Tracker 12",           falha:"Falha no Tracker 12",                                                                                   causa:"TCU com defeito na bateria (viciada/baixa irradiação)",                         impactados:"Tracker 12, TCU",                                         acao:"Realizar reset e avaliar abertura de chamado para bateria",                                                    status:"Em Aberto", historico:"17/06/2026 14:00 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"2",  dataAbertura:"17/06/2026", cliente:"THOPEN", usina:"Matão I",       equipamento:"EP4",                   falha:"Falha de comunicação do EP4",                                                                           causa:"Igate com problema (sem comunicar)",                                             impactados:"EP4, Igate",                                              acao:"Verificar integridade do Igate",                                                                               status:"Em Aberto", historico:"17/06/2026 14:00 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"3",  dataAbertura:"17/06/2026", cliente:"THOPEN", usina:"Topázio",       equipamento:"Nobreak G3 mini",       falha:"Falha de comunicação do nobreak G3 mini",                                                               causa:"Sem comunicação com o Igate (comunica com relé UPR e disjuntor)",               impactados:"Nobreak G3 mini, Igate, Relé UPR",                        acao:"Investigar falha específica de interface Nobreak-Igate",                                                       status:"Em Aberto", historico:"17/06/2026 14:00 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"4",  dataAbertura:"17/06/2026", cliente:"THOPEN", usina:"Sítio Bonfim",  equipamento:"Exaustores",            falha:"Parada de funcionamento (Exaustores)",                                                                  causa:"Falha interna no motor",                                                        impactados:"Exaustores e Componentes do QGBT",                        acao:"Deve ser realizada a compra",                                                                                  status:"Em Aberto", historico:"17/06/2026 15:26 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"5",  dataAbertura:"17/06/2026", cliente:"THOPEN", usina:"Sítio Bonfim",  equipamento:"Câmeras (CFTV)",        falha:"Câmeras pararam de funcionar (CFTV)",                                                                   causa:"Câmera está parada devido água que entrou no conector RJ45",                    impactados:"Câmeras (perda de 15% do monitoramento)",                 acao:"Esperando autorização para realizar a troca do conector RJ45",                                                 status:"Em Aberto", historico:"17/06/2026 15:26 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"6",  dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Piranometro POA",       falha:"Piranometro POA - equipamento parou de enviar informações para o fieldlogger",                          causa:"defeito interno",                                                               impactados:"estação solarimetrica",                                   acao:"equipamentos enviados para reparo na própria fabricante (Romiotto)",                                            status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"7",  dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Piranometro POARI",     falha:"Piranometro POARI - equipamento parou de enviar informações para o fieldlogger",                         causa:"defeito interno",                                                               impactados:"estação solarimetrica",                                   acao:"equipamentos enviados para reparo na própria fabricante (Romiotto)",                                            status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"8",  dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Motor Tracker 08",      falha:"Motor Tracker 08 - equipamento não estava funcionando, sem resposta no app suntrack",                   causa:"água dentro do motor",                                                          impactados:"Tracker 08 não acompanhava e a geração ficava menor",     acao:"manutenção realizada no motor. Retirada toda a água, passado limpa contato, motor secando ao sol.",            status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"9",  dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Motor Tracker 19",      falha:"Motor Tracker 19 - equipamento não estava funcionando, sem resposta no app suntrack",                   causa:"água dentro do motor",                                                          impactados:"Tracker 19 não acompanhava e a geração ficava menor",     acao:"manutenção realizada no motor. Retirada toda a água, passado limpa contato, motor secando ao sol.",            status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"10", dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Motor Tracker 29",      falha:"Motor Tracker 29 - equipamento não estava funcionando, sem resposta no app suntrack",                   causa:"água dentro do motor",                                                          impactados:"Tracker 29 não acompanhava e a geração ficava menor",     acao:"manutenção realizada no motor. Retirada toda a água, passado limpa contato, motor secando ao sol.",            status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""},
+  {id:"11", dataAbertura:"18/06/2026", cliente:"THOPEN", usina:"Poconé",        equipamento:"Motor/TCU Tracker 48",  falha:"Motor/TCU Tracker 48 - motor sem força para girar. TCU não respondia aos comandos do suntrack",          causa:"água dentro do motor. TCU com problema de conexão",                            impactados:"Tracker 48 não acompanhava e a geração ficava menor",     acao:"manutenção realizada no motor. Retirada toda a água, passado limpa contato. Ambos foram acionadas as garantias.", status:"Em Aberto", historico:"18/06/2026 09:20 - Registro inicial.", ticketFabricante:"", numeroOS:""}
+];
+
+/* ═══════════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════════ */
+let DATA     = [];
+let filtered = [];
+let sortKey  = 'id';
+let activeCausa = null;
+
+/* ═══════════════════════════════════════════════════
+   FETCH DE DADOS
+═══════════════════════════════════════════════════ */
+async function fetchSheet() {
+  const btn   = document.getElementById('updateBtn');
+  const badge = document.getElementById('sourceBadge');
+  const label = document.getElementById('sourceLabel');
+
+  // Para o countdown enquanto busca
+  clearInterval(_countdownTimer);
+  document.getElementById('countdownWrap').style.display = 'none';
+
+  btn.disabled = true;
+  btn.classList.add('spinning');
+  badge.className = 'source-badge loading';
+  label.textContent = 'buscando dados…';
+  showSkeletons();
+
+  let parsed = null;
+
+  // Dispara limpeza de filtros em paralelo
+  const CLEAR_URL = 'https://script.google.com/macros/s/AKfycbyiI0LvyPPa6nzLYOk2CiwyrtZS5yBtFBei-gD_pywBh5JYxL74vGx759lZ6jj26Hd4/exec';
+  fetch(CLEAR_URL, { method:'GET', mode:'no-cors' }).catch(() => {});
+
+  // Tentativa 1: gviz
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&headers=1&tq=select%20*&t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.text();
+    const jsonStr = raw.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+    const json = JSON.parse(jsonStr);
+    const rows = json.table.rows;
+    const cols = json.table.cols;
+
+    const idx = {};
+    cols.forEach((c, i) => {
+      const lbl = (c.label || '').toLowerCase().trim();
+      if (lbl === 'id')                                                         idx.id = i;
+      else if (lbl === 'cliente')                                               idx.cliente = i;
+      else if (lbl === 'usina')                                                 idx.usina = i;
+      else if (lbl === 'equipamento')                                           idx.equipamento = i;
+      else if (lbl.startsWith('falha'))                                         idx.falha = i;
+      else if (lbl.startsWith('causa'))                                         idx.causa = i;
+      else if (lbl.includes('impactado'))                                       idx.impactados = i;
+      else if (lbl.startsWith('ação') || lbl.startsWith('acao'))               idx.acao = i;
+      else if (lbl.includes('status'))                                          idx.status = i;
+      else if (lbl.includes('histórico') || lbl.includes('historico') || lbl.includes('hist') || lbl.includes('timeline') || lbl.includes('registro'))         idx.historico = i;
+      else if (lbl.includes('ticket'))                                          idx.ticket = i;
+      else if (lbl.includes('os') || lbl.includes('ordem'))                    idx.os = i;
+      // ── NOVO campo data_abertura
+      else if (lbl.includes('data') && lbl.includes('abertura'))               idx.dataAbertura = i;
+      else if (lbl === 'data_abertura' || lbl === 'dataabertura')              idx.dataAbertura = i;
+    });
+
+    const g = (r, i) => {
+      const cell = r.c?.[i];
+      if (!cell) return '';
+      const v = cell.v != null ? String(cell.v) : '';
+      const f = cell.f != null ? String(cell.f) : '';
+      return (f.length > v.length ? f : v).trim();
+    };
+
+    parsed = rows.map(r => ({
+      id:               g(r, idx.id           ?? 0),
+      dataAbertura:     idx.dataAbertura != null ? g(r, idx.dataAbertura) : '',
+      cliente:          g(r, idx.cliente       ?? 1),
+      usina:            normalizeUsina(g(r, idx.usina ?? 2)),
+      equipamento:      g(r, idx.equipamento   ?? 3),
+      falha:            g(r, idx.falha         ?? 4),
+      causa:            g(r, idx.causa         ?? 5),
+      impactados:       g(r, idx.impactados    ?? 6),
+      acao:             g(r, idx.acao          ?? 7),
+       --bg:#F0F4F8; --bg-grid:rgba(0,0,0,0.04);
+  --panel:#FFFFFF; --panel-alt:#F5F8FB;
+  --border:#D1DCE8; --border-soft:#E2EAF2;
+  --text:#1A2533; --text-dim:#4A6070; --text-faint:#8FA0AE;
+  --shadow:0 4px 20px rgba(0,0,0,.10);
+  --toggle-bg:#C8D8E8; --toggle-thumb:#FFFFFF;
+}
+[data-theme="light"] body {
+  background:
+    linear-gradient(var(--bg-grid) 1px,transparent 1px) 0 0/100% 28px,
+    linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px) 0 0/28px 100%,
+    var(--bg);
+}
+[data-theme="light"] .kpi::after { opacity:.5; }
+[data-theme="light"] .login-box { box-shadow:0 8px 40px rgba(0,0,0,.15); }
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px,transparent 1px) 0 0/100% 28px,
+    linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px) 0 0/28px 100%,
+    var(--bg);
+  color:var(--text); font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;
+  transition: background .3s ease, color .2s ease;
+}
+.wrap{width:100%;max-width:100%;margin:0 auto;padding:28px clamp(16px,3vw,48px) 72px;}
+
+/* ══════════════════════════════════════════
+   THEME TOGGLE
+══════════════════════════════════════════ */
+.theme-toggle {
+  display:flex; align-items:center; gap:8px;
+  background:var(--toggle-bg); border:1px solid var(--border);
+  border-radius:99px; padding:4px 10px 4px 6px;
+  cursor:pointer; user-select:none; transition:.2s;
+}
+.theme-toggle:hover { border-color:var(--amber); }
+.theme-toggle-track {
+  width:32px; height:18px; border-radius:99px;
+  background:var(--panel-alt); border:1px solid var(--border);
+  position:relative; transition:.25s;
+  flex:none;
+}
+.theme-toggle-thumb {
+  width:12px; height:12px; border-radius:50%;
+  background:var(--amber); position:absolute;
+  top:2px; left:2px; transition:.25s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="light"] .theme-toggle-thumb { left:16px; background:var(--amber); }
+.theme-toggle-label {
+  font-size:11px; font-family:'IBM Plex Mono',monospace;
+  color:var(--text-faint); white-space:nowrap;
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border-soft);}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;font-weight:600;}
+h1{font-size:26px;font-weight:700;letter-spacing:-.015em;line-height:1.15;}
+.sub{color:var(--text-dim);font-size:13px;margin-top:6px;}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+
+/* ══════════════════════════════════════════
+   SOURCE BADGE + COUNTDOWN
+══════════════════════════════════════════ */
+.source-badge{
+  display:flex; align-items:center; gap:8px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-faint);
+  background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:6px 12px;
+}
+.source-dot{width:7px;height:7px;border-radius:50%;background:var(--gray);flex:none;transition:.3s;}
+.source-badge.live .source-dot{background:var(--teal);animation:dotpulse 2s infinite;}
+.source-badge.error .source-dot{background:var(--red);}
+.source-badge.loading .source-dot{background:var(--amber);animation:dotpulse 1s infinite;}
+@keyframes dotpulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── Countdown bar ── */
+.countdown-wrap{
+  display:flex; align-items:center; gap:8px;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:8px; padding:6px 12px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-faint);
+}
+.countdown-bar-track{
+  width:80px; height:4px; background:var(--panel-alt);
+  border-radius:99px; overflow:hidden;
+}
+.countdown-bar-fill{
+  height:100%; border-radius:99px;
+  background:var(--teal);
+  transition:width 1s linear, background .5s;
+}
+#countdownText { color:var(--text-dim); font-weight:600; }
+
+/* ══════════════════════════════════════════
+   UPDATE BUTTON
+══════════════════════════════════════════ */
+.update-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(242,169,59,.1);border:1px solid rgba(242,169,59,.35);color:var(--amber);
+  border-radius:8px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;transition:.2s;white-space:nowrap;
+}
+.update-btn:hover:not(:disabled){background:rgba(242,169,59,.18);border-color:var(--amber);}
+.update-btn:disabled{opacity:.5;cursor:not-allowed;}
+.update-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;flex:none;transition:transform .6s;}
+.update-btn.spinning svg{animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.total-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);text-align:right;}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:999;
+  background:var(--panel);border-radius:10px;padding:12px 18px;
+  font-size:13px;font-family:'IBM Plex Mono',monospace;box-shadow:var(--shadow);
+  opacity:0;transform:translateY(8px);transition:.3s ease;pointer-events:none;
+  display:flex;align-items:center;gap:10px;border:1px solid var(--teal);color:var(--teal);
+}
+.toast.show{opacity:1;transform:none;}
+.toast.err{border-color:var(--red);color:var(--red);}
+.toast svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;flex:none;}
+
+/* ══════════════════════════════════════════
+   KPIs
+══════════════════════════════════════════ */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--kpi-color,var(--amber));}
+.kpi::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,var(--kpi-glow,rgba(242,169,59,.06)) 0%,transparent 70%);pointer-events:none;}
+.kpi .num{font-family:'IBM Plex Mono',monospace;font-size:34px;font-weight:700;line-height:1;}
+.kpi .label{font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.3;}
+.kpi .kicon{position:absolute;right:14px;top:50%;transform:translateY(-50%);opacity:.07;}
+.kpi .kicon svg{width:44px;height:44px;stroke:var(--kpi-color,var(--amber));fill:none;stroke-width:1.4;}
+
+/* ══════════════════════════════════════════
+   SLA BANNER (global)
+══════════════════════════════════════════ */
+.sla-banner {
+  display:none; align-items:center; gap:10px;
+  padding:10px 16px; margin-bottom:16px;
+  background:rgba(226,84,61,.08); border:1px solid rgba(226,84,61,.3);
+  border-radius:var(--radius); font-size:13px;
+  font-family:'IBM Plex Mono',monospace; color:var(--red);
+  animation: sla-pulse-border 2.5s infinite;
+}
+.sla-banner.visible { display:flex; }
+.sla-banner svg { width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+@keyframes sla-pulse-border {
+  0%,100% { border-color:rgba(226,84,61,.3); }
+  50%      { border-color:rgba(226,84,61,.7); }
+}
+
+/* ══════════════════════════════════════════
+   FILTERS
+══════════════════════════════════════════ */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;}
+.filter-group{display:flex;flex-direction:column;gap:5px;min-width:148px;}
+.filters label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+select,input[type="text"]{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;outline:none;transition:.15s;}
+select:focus,input[type="text"]:focus{border-color:var(--amber);background:rgba(242,169,59,.04);}
+.search-group{flex:1;min-width:200px;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:7px;padding:9px 14px;font-size:12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:.15s;white-space:nowrap;}
+.btn-ghost:hover{border-color:var(--red);color:var(--red);}
+.result-count{margin-left:auto;font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;align-self:flex-end;padding-bottom:2px;}
+
+/* ══════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════ */
+#loginScreen{
+  position:fixed;inset:0;z-index:9999;
+  background:
+    linear-gradient(var(--bg-grid) 1px,transparent 1px) 0 0/100% 28px,
+    linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px) 0 0/28px 100%,
+    var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+#loginScreen.hidden{display:none;}
+.login-box{
+  background:var(--panel);border:1px solid var(--border);border-radius:16px;
+  padding:40px 40px 36px;width:100%;max-width:400px;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+  animation:modalIn .25s cubic-bezier(.2,.8,.4,1);
+}
+.login-logo{width:48px;height:48px;border-radius:12px;margin:0 auto 20px;background:linear-gradient(135deg,rgba(242,169,59,.2),rgba(91,155,213,.15));border:1px solid rgba(242,169,59,.3);display:flex;align-items:center;justify-content:center;}
+.login-logo svg{width:24px;height:24px;stroke:var(--amber);fill:none;stroke-width:1.8;}
+.login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:12.5px;color:var(--text-dim);text-align:center;margin-bottom:28px;font-family:'IBM Plex Mono',monospace;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;font-weight:600;margin-bottom:6px;}
+.login-field input{width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:11px 14px;font-size:14px;font-family:'IBM Plex Sans',sans-serif;outline:none;transition:.15s;}
+.login-field input:focus{border-color:var(--amber);background:rgba(242,169,59,.04);}
+.login-error{font-size:12px;color:var(--red);font-family:'IBM Plex Mono',monospace;background:rgba(226,84,61,.08);border:1px solid rgba(226,84,61,.2);border-radius:7px;padding:8px 12px;margin-bottom:14px;display:none;align-items:center;gap:8px;}
+.login-error.show{display:flex;}
+.login-error svg{width:13px;height:13px;stroke:var(--red);fill:none;stroke-width:2;flex:none;}
+.login-submit{width:100%;background:linear-gradient(135deg,rgba(242,169,59,.2),rgba(242,169,59,.12));border:1px solid rgba(242,169,59,.45);color:var(--amber);border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;transition:.2s;margin-top:4px;}
+.login-submit:hover{background:rgba(242,169,59,.28);border-color:var(--amber);box-shadow:0 0 20px rgba(242,169,59,.2);}
+.login-submit:active{transform:scale(.98);}
+.login-footer{text-align:center;font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:20px;}
+
+/* ══════════════════════════════════════════
+   LEGENDA DE CLIENTES
+══════════════════════════════════════════ */
+.client-legend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:20px;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);}
+.legend-label{font-size:10.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;}
+.legend-item{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1px solid;font-size:12px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:.18s;user-select:none;}
+.legend-item:hover{filter:brightness(1.2);}
+.legend-item.selected{filter:brightness(1.15);box-shadow:0 0 0 2px currentColor;}
+.legend-item.dimmed{opacity:.35;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+
+/* ══════════════════════════════════════════
+   BOTÃO CHAMADOS
+══════════════════════════════════════════ */
+.chamados-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(91,155,213,.18),rgba(63,193,176,.12));border:1px solid rgba(91,155,213,.45);color:#7DC8F0;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:.2s;white-space:nowrap;letter-spacing:.04em;position:relative;overflow:hidden;}
+.chamados-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(91,155,213,.08),rgba(63,193,176,.06));opacity:0;transition:.2s;}
+.chamados-btn:hover{border-color:rgba(91,155,213,.8);color:#a8d8f8;box-shadow:0 0 16px rgba(91,155,213,.25);}
+.chamados-btn:hover::before{opacity:1;}
+.chamados-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+.chamados-badge{background:rgba(91,155,213,.25);border:1px solid rgba(91,155,213,.4);border-radius:99px;font-size:10px;font-weight:700;padding:1px 7px;font-family:'IBM Plex Mono',monospace;}
+
+/* ══════════════════════════════════════════
+   MODAL CHAMADOS
+══════════════════════════════════════════ */
+.ch-overlay{position:fixed;inset:0;background:rgba(8,12,18,.82);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:150;padding:24px;}
+.ch-overlay.open{display:flex;}
+.ch-modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:580px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.65);border-top:4px solid #5B9BD5;animation:modalIn .2s cubic-bezier(.2,.8,.4,1);}
+.ch-head{padding:20px 22px 14px;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:var(--panel);z-index:2;border-radius:10px 10px 0 0;}
+.ch-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.ch-title{display:flex;align-items:center;gap:10px;}
+.ch-title svg{width:18px;height:18px;stroke:#7DC8F0;fill:none;stroke-width:2;flex:none;}
+.ch-title h2{font-size:18px;margin:0;color:var(--text);}
+.ch-subtitle{font-size:12px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:5px;}
+.ch-body{padding:16px 22px 24px;}
+.ch-item{background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;}
+.ch-item:last-child{margin-bottom:0;}
+.ch-item:hover{background:rgba(91,155,213,.06);}
+.ch-ticket{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:#7DC8F0;min-width:90px;}
+.ch-info{flex:1;}
+.ch-equip{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.ch-meta{font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+.ch-status{flex:none;}
+.ch-empty{text-align:center;padding:40px 20px;color:var(--text-faint);font-size:13px;}
+.modal-close-btn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-faint);width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:.15s;}
+.modal-close-btn:hover{color:var(--text);}
+
+/* ══════════════════════════════════════════
+   MULTI-SELECT
+══════════════════════════════════════════ */
+.ms-wrap{position:relative;min-width:148px;}
+.ms-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;margin-bottom:5px;}
+.ms-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;user-select:none;transition:.15s;min-height:38px;width:100%;}
+.ms-trigger:hover,.ms-trigger.open{border-color:var(--amber);background:rgba(242,169,59,.04);}
+.ms-trigger-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;}
+.ms-trigger-text.active{color:var(--amber);font-weight:500;}
+.ms-arrow{width:12px;height:12px;stroke:var(--text-faint);fill:none;stroke-width:2;flex:none;transition:transform .2s;}
+.ms-trigger.open .ms-arrow{transform:rotate(180deg);}
+.ms-badge{background:var(--amber);color:#0E1419;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;flex:none;font-family:'IBM Plex Mono',monospace;}
+.ms-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;max-width:260px;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.45);z-index:200;max-height:220px;overflow-y:auto;display:none;}
+.ms-dropdown.open{display:block;animation:dropIn .15s ease;}
+@keyframes dropIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.ms-option{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--text);transition:.12s;border-bottom:1px solid var(--border-soft);}
+.ms-option:last-child{border-bottom:none;}
+.ms-option:hover{background:var(--panel-alt);}
+.ms-option.checked{background:rgba(242,169,59,.05);}
+.ms-option.all-opt{color:var(--text-dim);font-size:12px;border-bottom:1px solid var(--border);}
+.ms-check{width:15px;height:15px;border:1.5px solid var(--border);border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;transition:.12s;background:transparent;}
+.ms-option.checked .ms-check{background:var(--amber);border-color:var(--amber);}
+.ms-check svg{width:10px;height:10px;stroke:#0E1419;fill:none;stroke-width:2.5;opacity:0;}
+.ms-option.checked .ms-check svg{opacity:1;}
+
+/* ══════════════════════════════════════════
+   PANELS
+══════════════════════════════════════════ */
+.panels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:26px;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.panel-head h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.panel-total{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;border-radius:7px;padding:5px 6px;transition:.15s;}
+.bar-row:last-child{margin-bottom:0;}
+.bar-row:hover{background:var(--panel-alt);}
+.bar-row.selected{background:rgba(242,169,59,.06);outline:1px solid rgba(242,169,59,.3);}
+.bar-label{font-size:12.5px;width:115px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.bar-track{flex:1;height:6px;background:var(--panel-alt);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.bar-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-dim);width:22px;text-align:right;flex:none;}
+
+/* ══════════════════════════════════════════
+   GRID CONTROLS
+══════════════════════════════════════════ */
+.grid-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.grid-title{display:flex;align-items:baseline;gap:10px;}
+.grid-title h2{font-size:15px;color:var(--text);font-weight:600;}
+.grid-title span{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+.sort-group{display:flex;gap:6px;align-items:center;}
+.sort-label{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;}
+.sort-btn{background:var(--panel);border:1px solid var(--border);color:var(--text-dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:.15s;}
+.sort-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(242,169,59,.07);}
+
+/* ══════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════ */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px;}
+.card{
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px; cursor:pointer;
+  transition:.2s ease; border-bottom:3px solid var(--card-color,var(--gray));
+  display:flex; flex-direction:column;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--card-color,var(--border));box-shadow:var(--shadow),0 0 0 1px var(--card-color,transparent);}
+.card:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+/* SLA States */
+.card.sla-warning {
+  border-color: var(--sla-warn) !important;
+  box-shadow: 0 0 0 1px rgba(234,179,8,.2);
+}
+.card.sla-breach {
+  border-color: var(--sla-breach) !important;
+  animation: card-sla-pulse 2.5s infinite;
+}
+@keyframes card-sla-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(226,84,61,0); }
+  50%      { box-shadow: 0 0 0 4px rgba(226,84,61,.25); }
+}
+
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.tag-row{display:flex;align-items:center;gap:8px;}
+.icon-badge{width:34px;height:34px;border-radius:8px;background:var(--panel-alt);display:flex;align-items:center;justify-content:center;flex:none;border:1px solid var(--border-soft);}
+.icon-badge svg{width:17px;height:17px;stroke:var(--card-color,var(--amber));fill:none;stroke-width:1.6;}
+.id-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);}
+.usina-name{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.status-led{width:9px;height:9px;border-radius:50%;background:var(--card-color,var(--gray));flex:none;margin-top:4px;}
+.status-led.pulse{animation:ledpulse 2.4s infinite;}
+@keyframes ledpulse{0%{box-shadow:0 0 0 0 var(--card-glow,rgba(226,84,61,.6));}70%{box-shadow:0 0 0 7px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+.card .equip{font-size:14px;font-weight:600;margin:0 0 2px;color:var(--text);}
+.card .falha{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:8px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* ── IDADE DA FALHA ── */
+.age-row {
+  display:flex; align-items:center; gap:6px;
+  margin-bottom:10px;
+}
+.age-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+  padding:3px 9px; border-radius:99px;
+  letter-spacing:.02em;
+}
+.age-pill svg { width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.2;flex:none; }
+.age-pill.age-ok      { background:rgba(34,197,94,.1);    color:var(--sla-ok);    border:1px solid rgba(34,197,94,.25);    }
+.age-pill.age-warning { background:rgba(234,179,8,.1);    color:var(--sla-warn);  border:1px solid rgba(234,179,8,.25);    }
+.age-pill.age-breach  { background:rgba(226,84,61,.12);   color:var(--sla-breach);border:1px solid rgba(226,84,61,.3);     }
+.age-pill.age-none    { background:var(--panel-alt);       color:var(--text-faint);border:1px solid var(--border-soft);     }
+
+/* SLA badge dentro do card */
+.sla-badge-card {
+  display:none; font-family:'IBM Plex Mono',monospace; font-size:10px;
+  font-weight:700; letter-spacing:.04em; padding:2px 8px; border-radius:99px;
+  background:rgba(226,84,61,.15); color:var(--red); border:1px solid rgba(226,84,61,.35);
+}
+.card.sla-breach .sla-badge-card { display:inline-block; }
+
+.card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft);padding-top:10px;margin-top:auto;}
+.status-chip{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:5px;color:var(--card-color,var(--text-dim));border:1px solid;}
+.see-more{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:4px;}
+.see-more svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;}
+.card:hover .see-more{color:var(--amber);}
+.empty-state{text-align:center;padding:64px 20px;color:var(--text-faint);border:1px dashed var(--border);border-radius:var(--radius);grid-column:1/-1;}
+.empty-state strong{display:block;color:var(--text-dim);margin-bottom:8px;font-size:15px;}
+.reset-link{margin-top:12px;font-size:12px;cursor:pointer;color:var(--amber);font-family:'IBM Plex Mono',monospace;background:none;border:none;text-decoration:underline;}
+
+/* ══════════════════════════════════════════
+   VIEW TOGGLE (cards / tabela)
+══════════════════════════════════════════ */
+.view-toggle {
+  display:flex; gap:2px;
+  background:var(--panel-alt); border:1px solid var(--border);
+  border-radius:8px; padding:3px;
+}
+.view-btn {
+  display:flex; align-items:center; gap:6px;
+  background:transparent; border:none; color:var(--text-faint);
+  border-radius:6px; padding:6px 11px; font-size:11px; font-weight:600;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace;
+  transition:.15s; white-space:nowrap;
+}
+.view-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+.view-btn.active {
+  background:var(--panel); color:var(--amber);
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.view-btn:hover:not(.active) { color:var(--text); }
+
+/* ══════════════════════════════════════════
+   TABELA DE FALHAS
+══════════════════════════════════════════ */
+.table-wrap {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+  /* scroll horizontal em mobile */
+  overflow-x:auto;
+}
+.fault-table {
+  width:100%; border-collapse:collapse;
+  font-size:13px; min-width:860px;
+}
+
+/* cabeçalho */
+.fault-table thead tr {
+  background:var(--panel-alt);
+  border-bottom:2px solid var(--border);
+}
+.fault-table th {
+  padding:11px 14px; text-align:left;
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint);
+  white-space:nowrap; user-select:none;
+}
+.fault-table th.sortable { cursor:pointer; }
+.fault-table th.sortable:hover { color:var(--text-dim); }
+.fault-table th.th-sorted { color:var(--amber); }
+.th-sort-icon {
+  display:inline-flex; flex-direction:column; gap:1px;
+  vertical-align:middle; margin-left:5px; opacity:.5;
+}
+.th-sorted .th-sort-icon { opacity:1; }
+.th-sort-icon svg { width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:2.5; }
+
+/* linhas */
+.fault-table tbody tr {
+  border-bottom:1px solid var(--border-soft);
+  cursor:pointer; transition:.12s;
+}
+.fault-table tbody tr:last-child { border-bottom:none; }
+.fault-table tbody tr:hover { background:var(--panel-alt); }
+.fault-table tbody tr.tr-breach { border-left:3px solid var(--red); }
+.fault-table tbody tr.tr-warning { border-left:3px solid var(--sla-warn); }
+.fault-table tbody tr:not(.tr-breach):not(.tr-warning) { border-left:3px solid transparent; }
+
+.fault-table td { padding:11px 14px; vertical-align:middle; }
+
+/* col: ID */
+.td-id {
+  font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-faint);
+  font-weight:600; white-space:nowrap;
+}
+
+/* col: cliente + usina */
+.td-usina { white-space:nowrap; }
+.td-client-tag {
+  display:inline-block; font-size:10px; font-family:'IBM Plex Mono',monospace;
+  font-weight:700; padding:2px 7px; border-radius:4px; margin-bottom:4px;
+}
+.td-usina-name { font-size:12.5px; font-weight:600; color:var(--text); }
+
+/* col: equipamento */
+.td-equip {
+  font-size:13px; font-weight:600; color:var(--text); white-space:nowrap;
+}
+
+/* col: falha */
+.td-falha {
+  color:var(--text-dim); font-size:12.5px; line-height:1.45;
+  max-width:260px;
+}
+.td-falha-text {
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+/* col: status */
+.td-status { white-space:nowrap; }
+.td-status-chip {
+  display:inline-block; font-size:10px; font-family:'IBM Plex Mono',monospace;
+  text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:5px;
+  font-weight:700; border:1px solid; white-space:nowrap;
+}
+
+/* col: idade */
+.td-age { white-space:nowrap; }
+.td-age-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+  padding:3px 9px; border-radius:99px; letter-spacing:.02em;
+}
+.td-age-pill svg { width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.2;flex:none; }
+.td-age-pill.age-ok      { background:rgba(34,197,94,.1);    color:var(--sla-ok);    border:1px solid rgba(34,197,94,.25);  }
+.td-age-pill.age-warning { background:rgba(234,179,8,.1);    color:var(--sla-warn);  border:1px solid rgba(234,179,8,.25);  }
+.td-age-pill.age-breach  { background:rgba(226,84,61,.12);   color:var(--red);       border:1px solid rgba(226,84,61,.3);   }
+.td-age-pill.age-none    { background:var(--panel-alt);       color:var(--text-faint);border:1px solid var(--border-soft);  }
+
+/* col: ticket */
+.td-ticket {
+  font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+  color:var(--blue); font-weight:600; white-space:nowrap;
+}
+.td-ticket.empty { color:var(--text-faint); font-weight:400; font-style:italic; }
+
+/* col: ação (ver detalhes) */
+.td-action { text-align:center; }
+.td-see-btn {
+  background:transparent; border:1px solid var(--border); color:var(--text-faint);
+  border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; transition:.15s; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.td-see-btn svg { width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2; }
+.fault-table tbody tr:hover .td-see-btn { border-color:var(--amber); color:var(--amber); }
+
+/* paginação */
+.table-pagination {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 16px; border-top:1px solid var(--border-soft);
+  flex-wrap:wrap;
+}
+.page-info { font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; }
+.page-btns { display:flex; gap:4px; }
+.page-btn {
+  background:var(--panel-alt); border:1px solid var(--border); color:var(--text-dim);
+  border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; transition:.15s; min-width:34px; text-align:center;
+}
+.page-btn:hover:not(:disabled) { border-color:var(--amber); color:var(--amber); }
+.page-btn.active { border-color:var(--amber); color:var(--amber); background:rgba(242,169,59,.08); font-weight:700; }
+.page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+/* rows-per-page select */
+.rows-select {
+  background:var(--panel-alt); border:1px solid var(--border); color:var(--text-dim);
+  border-radius:6px; padding:5px 8px; font-size:11px;
+  font-family:'IBM Plex Mono',monospace; cursor:pointer; outline:none;
+}
+.rows-select:focus { border-color:var(--amber); }
+
+[data-theme="light"] .fault-table th { background:var(--panel-alt); }
+[data-theme="light"] .fault-table tbody tr:hover { background:#EEF4FA; }
+
+/* ══════════════════════════════════════════
+   MODO CLIENTE
+══════════════════════════════════════════ */
+.client-mode-banner{display:none;align-items:center;gap:12px;padding:11px 16px;margin-bottom:20px;border-radius:var(--radius);border:1px solid;}
+.client-mode-banner.visible{display:flex;}
+.client-mode-banner svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+.client-mode-banner span{font-size:13px;font-family:'IBM Plex Mono',monospace;}
+.client-mode-banner strong{font-weight:700;}
+
+/* ══════════════════════════════════════════
+   SKELETON
+══════════════════════════════════════════ */
+.skeleton{background:linear-gradient(90deg,var(--panel-alt) 25%,var(--border) 50%,var(--panel-alt) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skel-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;border-bottom:3px solid var(--border);}
+.skel-line{height:10px;margin-bottom:10px;}
+.skel-title{height:14px;width:70%;margin-bottom:8px;}
+.skel-sub{height:10px;width:45%;margin-bottom:14px;}
+.skel-foot{height:9px;width:55%;}
+
+/* ══════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(8,12,18,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:100;padding:24px;}
+.overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:660px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.6);border-top:4px solid var(--modal-color,var(--amber));animation:modalIn .2s cubic-bezier(.2,.8,.4,1);}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:none;}}
+.modal-head{padding:22px 24px 16px;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:var(--panel);z-index:2;border-radius:10px 10px 0 0;}
+.modal-top-bar{display:flex;justify-content:space-between;align-items:flex-start;}
+.modal-close{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-faint);width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:.15s;}
+.modal-close:hover{color:var(--text);}
+.modal-id{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+.modal-head h2{font-size:20px;margin-bottom:4px;line-height:1.2;}
+.modal-meta{font-size:13px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+.modal-body{padding:20px 24px 28px;}
+.field{margin-bottom:18px;}
+.field:last-child{margin-bottom:0;}
+.field h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-bottom:7px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.field h4::after{content:"";flex:1;height:1px;background:var(--border-soft);}
+.field p{font-size:13.5px;line-height:1.6;color:var(--text);}
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-size:12px;background:var(--panel-alt);border:1px solid var(--border-soft);border-radius:6px;padding:4px 10px;color:var(--text-dim);}
+.action-box{background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text);border-left:3px solid var(--modal-color,var(--amber));}
+.ticket-box{display:inline-flex;align-items:center;gap:9px;background:rgba(91,155,213,.08);border:1px solid rgba(91,155,213,.25);border-radius:7px;padding:9px 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);letter-spacing:.02em;min-height:38px;}
+.ticket-box svg{width:14px;height:14px;stroke:var(--blue);fill:none;stroke-width:2;flex:none;}
+.ticket-box.empty{background:transparent;border:1px dashed var(--border);color:var(--text-faint);font-size:12px;}
+.timeline{position:relative;padding-left:22px;}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;background:var(--border);}
+.tl-item{position:relative;padding-bottom:16px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-dot{position:absolute;left:-22px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--amber);border:2px solid var(--panel);}
+.tl-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--amber);margin-bottom:4px;font-weight:600;}
+.tl-text{font-size:13.5px;color:var(--text-dim);line-height:1.55;}
+
+/* Bloco de idade no modal */
+.age-modal-block {
+  display:flex; align-items:center; gap:12px;
+  background:var(--panel-alt); border:1px solid var(--border);
+  border-radius:8px; padding:12px 14px; margin-bottom:18px;
+}
+.age-modal-block .age-num {
+  font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:700;
+  line-height:1;
+}
+.age-modal-block .age-sub {
+  font-size:12px; color:var(--text-dim); margin-top:2px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.age-modal-block svg { width:20px;height:20px;fill:none;stroke-width:1.8;flex:none; }
+
+/* ══════════════════════════════════════════
+   DRAWER — painel lateral de detalhes
+══════════════════════════════════════════ */
+
+/* Backdrop semi-transparente (só mobile / telas pequenas) */
+.drawer-backdrop {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(8,12,18,.55); backdrop-filter:blur(2px);
+  opacity:0; pointer-events:none;
+  transition:opacity .28s ease;
+}
+.drawer-backdrop.open { opacity:1; pointer-events:all; }
+
+/* O painel em si */
+.drawer {
+  position:fixed; top:0; right:0; bottom:0; z-index:201;
+  width:min(520px, 100vw);
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-12px 0 48px rgba(0,0,0,.45);
+}
+.drawer.open { transform:translateX(0); }
+
+/* Faixa de cor do status no topo */
+.drawer-accent {
+  height:4px; flex:none;
+  background:var(--drawer-color, var(--amber));
+  transition:background .2s;
+}
+
+/* Cabeçalho fixo */
+.drawer-head {
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--border-soft);
+  flex:none;
+  background:var(--panel);
+}
+.drawer-head-top {
+  display:flex; align-items:flex-start;
+  justify-content:space-between; gap:12px; margin-bottom:10px;
+}
+.drawer-eyebrow {
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  color:var(--text-faint); letter-spacing:.08em;
+  text-transform:uppercase; margin-bottom:5px;
+}
+.drawer-head h2 {
+  font-size:18px; font-weight:700; line-height:1.2;
+  color:var(--text); margin:0;
+}
+.drawer-head-meta {
+  font-size:12.5px; color:var(--text-dim);
+  font-family:'IBM Plex Mono',monospace; margin-top:4px;
+}
+
+/* Botões do cabeçalho */
+.drawer-head-btns { display:flex; align-items:center; gap:6px; flex:none; }
+.drawer-icon-btn {
+  width:30px; height:30px; border-radius:8px; border:1px solid var(--border);
+  background:var(--panel-alt); color:var(--text-faint);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:.15s; flex:none;
+}
+.drawer-icon-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2; }
+.drawer-icon-btn:hover { color:var(--text); border-color:var(--text-dim); }
+.drawer-icon-btn.close:hover { color:var(--red); border-color:var(--red); }
+
+/* Navegação prev/next */
+.drawer-nav {
+  display:flex; align-items:center; gap:6px;
+  background:var(--panel-alt); border:1px solid var(--border);
+  border-radius:8px; padding:3px;
+}
+.drawer-nav-btn {
+  width:26px; height:26px; border-radius:6px; border:none;
+  background:transparent; color:var(--text-faint);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:.15s; flex:none;
+}
+.drawer-nav-btn svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2; }
+.drawer-nav-btn:hover:not(:disabled) { background:var(--panel); color:var(--amber); }
+.drawer-nav-btn:disabled { opacity:.3; cursor:not-allowed; }
+.drawer-nav-counter {
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  color:var(--text-faint); padding:0 4px; white-space:nowrap;
+}
+
+/* Conteúdo rolável */
+.drawer-body {
+  flex:1; overflow-y:auto; padding:18px 20px 32px;
+  scroll-behavior:smooth;
+}
+.drawer-body::-webkit-scrollbar { width:4px; }
+.drawer-body::-webkit-scrollbar-track { background:transparent; }
+.drawer-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+
+/* Bloco de idade no drawer */
+.drawer-age-block {
+  display:flex; align-items:center; gap:12px;
+  border-radius:10px; padding:13px 15px; margin-bottom:20px;
+  border:1px solid;
+}
+.drawer-age-block .age-num {
+  font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:700; line-height:1;
+}
+.drawer-age-block .age-sub {
+  font-size:12px; color:var(--text-dim); margin-top:3px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.drawer-age-block svg { width:22px;height:22px;fill:none;stroke-width:1.8;flex:none; }
+
+/* Seção genérica */
+.d-section { margin-bottom:20px; }
+.d-section:last-child { margin-bottom:0; }
+.d-label {
+  font-size:10px; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  text-transform:uppercase; letter-spacing:.1em; color:var(--text-faint);
+  margin-bottom:8px; display:flex; align-items:center; gap:8px;
+}
+.d-label::after { content:""; flex:1; height:1px; background:var(--border-soft); }
+.d-value { font-size:13.5px; line-height:1.6; color:var(--text); }
+
+/* Action box no drawer */
+.d-action-box {
+  background:var(--panel-alt); border:1px solid var(--border);
+  border-radius:8px; padding:12px 14px; font-size:13px;
+  line-height:1.65; color:var(--text);
+  border-left:3px solid var(--drawer-color, var(--amber));
+}
+
+/* Timeline no drawer */
+.d-timeline { position:relative; padding-left:20px; }
+.d-timeline::before {
+  content:""; position:absolute; left:5px; top:5px; bottom:5px;
+  width:1px; background:var(--border);
+}
+.d-tl-item { position:relative; padding-bottom:14px; }
+.d-tl-item:last-child { padding-bottom:0; }
+.d-tl-dot {
+  position:absolute; left:-20px; top:3px;
+  width:11px; height:11px; border-radius:50%;
+  background:var(--amber); border:2px solid var(--panel);
+}
+.d-tl-date {
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  color:var(--amber); margin-bottom:3px; font-weight:600;
+}
+.d-tl-text { font-size:13px; color:var(--text-dim); line-height:1.55; }
+
+/* Ticket boxes no drawer */
+.d-ticket-row { display:flex; gap:10px; flex-wrap:wrap; }
+.d-ticket-box {
+  display:inline-flex; align-items:center; gap:8px; flex:1; min-width:140px;
+  border-radius:8px; padding:9px 13px;
+  font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+  letter-spacing:.02em; border:1px solid;
+}
+.d-ticket-box svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+.d-ticket-box.t-blue  { background:rgba(91,155,213,.08); border-color:rgba(91,155,213,.25); color:var(--blue); }
+.d-ticket-box.t-teal  { background:rgba(63,193,176,.08); border-color:rgba(63,193,176,.25); color:var(--teal); }
+.d-ticket-box.t-empty { background:transparent; border-color:var(--border); color:var(--text-faint); border-style:dashed; font-style:italic; }
+.d-ticket-label {
+  font-size:9.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--text-faint); font-family:'IBM Plex Mono',monospace;
+  margin-bottom:4px; font-weight:700;
+}
+
+/* Card ativo (highlight) */
+.card.drawer-active {
+  border-color:var(--amber) !important;
+  box-shadow:0 0 0 2px rgba(242,169,59,.25), var(--shadow) !important;
+}
+.fault-table tbody tr.drawer-active {
+  background:rgba(242,169,59,.05) !important;
+  outline:2px solid rgba(242,169,59,.3);
+  outline-offset:-2px;
+}
+
+/* Ajuste do .wrap quando drawer está aberto (desktop) */
+@media(min-width:860px) {
+  body.drawer-open .wrap {
+    padding-right:calc(clamp(16px,3vw,48px) + min(520px,38vw));
+    transition:padding-right .3s cubic-bezier(.4,0,.2,1);
+  }
+  body:not(.drawer-open) .wrap {
+    padding-right:clamp(16px,3vw,48px);
+    transition:padding-right .3s cubic-bezier(.4,0,.2,1);
+  }
+  .drawer { width:min(520px,38vw); }
+  /* backdrop apenas em mobile */
+  .drawer-backdrop { display:none; }
+}
+@media(min-width:1600px) {
+  body.drawer-open .wrap { padding-right:calc(clamp(16px,3vw,48px) + 520px); }
+  .drawer { width:520px; }
+}
+@media(max-width:859px) {
+  .drawer { width:100vw; }
+}
+
+[data-theme="light"] .drawer { box-shadow:-8px 0 32px rgba(0,0,0,.15); }
+[data-theme="light"] .drawer-active.card { box-shadow:0 0 0 2px rgba(242,169,59,.3) !important; }
+
+/* ══════════════════════════════════════════
+   PWA INSTALL BANNER
+══════════════════════════════════════════ */
+.pwa-banner {
+  display:none; align-items:center; gap:12px; justify-content:space-between;
+  padding:12px 16px; margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(63,193,176,.1),rgba(91,155,213,.08));
+  border:1px solid rgba(63,193,176,.3); border-radius:var(--radius);
+}
+.pwa-banner.visible { display:flex; }
+.pwa-banner-left { display:flex; align-items:center; gap:10px; }
+.pwa-banner-left svg { width:18px;height:18px;stroke:var(--teal);fill:none;stroke-width:2;flex:none; }
+.pwa-banner-left span { font-size:13px; font-family:'IBM Plex Mono',monospace; color:var(--text-dim); }
+.pwa-banner-left strong { color:var(--teal); }
+.pwa-install-btn {
+  background:rgba(63,193,176,.15); border:1px solid rgba(63,193,176,.4);
+  color:var(--teal); border-radius:7px; padding:7px 14px;
+  font-size:12px; font-weight:700; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; transition:.2s; white-space:nowrap;
+}
+.pwa-install-btn:hover { background:rgba(63,193,176,.25); }
+.pwa-dismiss-btn {
+  background:transparent; border:none; color:var(--text-faint);
+  cursor:pointer; font-size:16px; padding:4px; line-height:1;
+}
+
+footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;line-height:1.9;background:var(--panel);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px 20px;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(min-width:1600px){.kpis{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:960px){.kpis{grid-template-columns:repeat(2,1fr);}.panels{grid-template-columns:1fr 1fr;}}
+@media(max-width:680px){.panels{grid-template-columns:1fr;}.kpis{grid-template-columns:1fr 1fr;}.wrap{padding:16px 14px 56px;}header{flex-direction:column;align-items:flex-start;}.header-right{align-items:flex-start;}}
+@media(prefers-reduced-motion:reduce){.status-led.pulse,.update-btn.spinning svg,.source-dot,.card.sla-breach{animation:none;}*{transition:none !important;}}
+
+/* ── Light theme tweaks ── */
+/* ══════════════════════════════════════════
+   MODO EDIÇÃO — campos inline no drawer
+══════════════════════════════════════════ */
+.edit-mode-banner {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px; margin-bottom:16px;
+  background:rgba(242,169,59,.08); border:1px solid rgba(242,169,59,.25);
+  border-radius:8px; font-size:11.5px; font-family:'IBM Plex Mono',monospace;
+  color:var(--amber);
+}
+.edit-mode-banner svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+
+.d-edit-field { margin-bottom:16px; }
+.d-edit-label {
+  font-size:9.5px; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  text-transform:uppercase; letter-spacing:.1em; color:var(--text-faint);
+  margin-bottom:6px; display:flex; align-items:center; gap:8px;
+}
+.d-edit-label::after { content:""; flex:1; height:1px; background:var(--border-soft); }
+
+.d-edit-input, .d-edit-textarea, .d-edit-select {
+  width:100%; background:var(--panel-alt); border:1px solid var(--border);
+  color:var(--text); border-radius:8px; padding:9px 12px;
+  font-size:13px; font-family:'IBM Plex Sans',sans-serif;
+  outline:none; transition:.15s; resize:vertical;
+}
+.d-edit-input:focus, .d-edit-textarea:focus, .d-edit-select:focus {
+  border-color:var(--amber); background:rgba(242,169,59,.03);
+  box-shadow:0 0 0 3px rgba(242,169,59,.1);
+}
+.d-edit-textarea { min-height:80px; line-height:1.55; }
+.d-edit-select { cursor:pointer; }
+
+/* Botões de ação no drawer */
+.drawer-action-bar {
+  display:flex; gap:8px; padding:14px 20px;
+  border-top:1px solid var(--border-soft);
+  background:var(--panel); flex:none;
+}
+.drawer-save-btn {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+  background:linear-gradient(135deg,rgba(242,169,59,.2),rgba(242,169,59,.1));
+  border:1px solid rgba(242,169,59,.45); color:var(--amber);
+  border-radius:8px; padding:10px; font-size:12px; font-weight:700;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace; transition:.2s;
+}
+.drawer-save-btn:hover { background:rgba(242,169,59,.3); }
+.drawer-save-btn:disabled { opacity:.4; cursor:not-allowed; }
+.drawer-save-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2; }
+
+.drawer-hist-btn {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(63,193,176,.08); border:1px solid rgba(63,193,176,.3); color:var(--teal);
+  border-radius:8px; padding:10px 14px; font-size:12px; font-weight:700;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace; transition:.2s; white-space:nowrap;
+}
+.drawer-hist-btn:hover { background:rgba(63,193,176,.18); }
+.drawer-hist-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2; }
+
+/* Saving spinner inline */
+.save-spinner {
+  display:inline-block; width:12px; height:12px;
+  border:2px solid currentColor; border-top-color:transparent;
+  border-radius:50%; animation:spin .6s linear infinite; flex:none;
+}
+
+/* Status select colorido */
+.d-status-select-wrap { position:relative; }
+.d-status-preview {
+  display:flex; align-items:center; gap:8px; margin-top:6px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+}
+.d-status-dot { width:8px;height:8px;border-radius:50%;flex:none; }
+
+[data-theme="light"] .d-edit-input,
+[data-theme="light"] .d-edit-textarea,
+[data-theme="light"] .d-edit-select { background:#F5F8FB; }
+
+[data-theme="light"] .card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12),0 0 0 1px var(--card-color,transparent); }
+[data-theme="light"] select, [data-theme="light"] input[type="text"] { color:var(--text); }
+[data-theme="light"] .modal { box-shadow:0 12px 48px rgba(0,0,0,.2); }
+
+/* ══════════════════════════════════════════
+   BOTÃO CONTROLE DE PROCESSOS
+══════════════════════════════════════════ */
+.processos-btn {
+  display:none; align-items:center; gap:8px;
+  background:linear-gradient(135deg,rgba(63,193,176,.18),rgba(34,197,94,.12));
+  border:1px solid rgba(63,193,176,.5); color:var(--teal);
+  border-radius:8px; padding:9px 16px; font-size:12px; font-weight:700;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace;
+  transition:.2s; white-space:nowrap; letter-spacing:.04em;
+}
+.processos-btn:hover { background:rgba(63,193,176,.28); border-color:var(--teal); box-shadow:0 0 16px rgba(63,193,176,.2); }
+.processos-btn svg { width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+
+/* ══════════════════════════════════════════
+   MODAL DE ZELADORIAS (tela cheia)
+══════════════════════════════════════════ */
+.zel-overlay {
+  position:fixed; inset:0; z-index:300;
+  background:var(--bg); display:none; flex-direction:column;
+  animation:fadeInFull .2s ease;
+}
+.zel-overlay.open { display:flex; }
+@keyframes fadeInFull { from{opacity:0;} to{opacity:1;} }
+
+/* Topbar da tela de zeladorias */
+.zel-topbar {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:14px 24px; border-bottom:1px solid var(--border);
+  background:var(--panel); flex:none; flex-wrap:wrap;
+}
+.zel-topbar-left { display:flex; align-items:center; gap:14px; }
+.zel-back-btn {
+  display:flex; align-items:center; gap:6px;
+  background:var(--panel-alt); border:1px solid var(--border); color:var(--text-faint);
+  border-radius:8px; padding:7px 12px; font-size:12px; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; transition:.15s;
+}
+.zel-back-btn:hover { color:var(--text); border-color:var(--text-dim); }
+.zel-back-btn svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2; }
+.zel-title-block { display:flex; flex-direction:column; }
+.zel-eyebrow { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+.zel-title { font-size:18px; font-weight:700; }
+.zel-topbar-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+/* Filtros da zelodoria */
+.zel-filters {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  padding:12px 24px; background:var(--panel-alt); border-bottom:1px solid var(--border); flex:none;
+}
+.zel-filter-select {
+  background:var(--panel); border:1px solid var(--border); color:var(--text);
+  border-radius:7px; padding:7px 10px; font-size:13px; font-family:'IBM Plex Sans',sans-serif;
+  outline:none; transition:.15s; cursor:pointer;
+}
+.zel-filter-select:focus { border-color:var(--teal); }
+.zel-search {
+  background:var(--panel); border:1px solid var(--border); color:var(--text);
+  border-radius:7px; padding:7px 10px; font-size:13px; font-family:'IBM Plex Sans',sans-serif;
+  outline:none; transition:.15s; flex:1; min-width:160px; max-width:280px;
+}
+.zel-search:focus { border-color:var(--teal); }
+
+/* Conteúdo rolável */
+.zel-content { flex:1; overflow-y:auto; padding:24px; }
+
+/* KPIs zelodoria */
+.zel-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+@media(max-width:900px){ .zel-kpis { grid-template-columns:repeat(2,1fr); } }
+
+.zel-kpi {
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 18px; position:relative; overflow:hidden;
+}
+.zel-kpi::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--kc,var(--teal)); }
+.zel-kpi .zk-num { font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:700; color:var(--kc,var(--teal)); }
+.zel-kpi .zk-label { font-size:12px; color:var(--text-dim); margin-top:6px; }
+
+/* Tabs de tipo de serviço */
+.zel-tabs {
+  display:flex; gap:4px; margin-bottom:20px;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:4px;
+}
+.zel-tab {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+  background:transparent; border:none; color:var(--text-faint);
+  border-radius:7px; padding:9px 14px; font-size:12px; font-weight:600;
+  cursor:pointer; font-family:'IBM Plex Mono',monospace; transition:.15s;
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.zel-tab svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+.zel-tab .zel-tab-badge {
+  background:var(--border); color:var(--text-faint); border-radius:99px;
+  font-size:10px; padding:1px 6px; font-weight:700;
+}
+.zel-tab.active { background:var(--panel-alt); color:var(--tab-color,var(--teal)); box-shadow:0 1px 4px rgba(0,0,0,.15); }
+.zel-tab.active .zel-tab-badge { background:var(--tab-color,var(--teal)); color:#0E1419; }
+.zel-tab:hover:not(.active) { color:var(--text); }
+
+/* Tabela de zelodoria */
+.zel-table-wrap {
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; overflow-x:auto;
+}
+.zel-table {
+  width:100%; border-collapse:collapse; font-size:13px; min-width:780px;
+}
+.zel-table thead tr {
+  background:var(--panel-alt); border-bottom:2px solid var(--border);
+}
+.zel-table th {
+  padding:10px 14px; text-align:left;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint);
+  white-space:nowrap;
+}
+.zel-table td { padding:12px 14px; vertical-align:middle; border-bottom:1px solid var(--border-soft); }
+.zel-table tbody tr:last-child td { border-bottom:none; }
+.zel-table tbody tr { transition:.12s; cursor:default; }
+.zel-table tbody tr:hover { background:var(--panel-alt); }
+
+/* Status chips de zelodoria */
+.zs-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:99px;
+  border:1px solid; white-space:nowrap; cursor:pointer; transition:.15s;
+}
+.zs-chip:hover { filter:brightness(1.15); }
+.zs-chip svg { width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2.5;flex:none; }
+.zs-agendado    { background:rgba(91,155,213,.12);  color:var(--blue);     border-color:rgba(91,155,213,.3);  }
+.zs-em-andamento{ background:rgba(234,179,8,.12);   color:var(--sla-warn); border-color:rgba(234,179,8,.3);   }
+.zs-concluido   { background:rgba(34,197,94,.12);   color:var(--sla-ok);   border-color:rgba(34,197,94,.3);   }
+.zs-atrasado    { background:rgba(226,84,61,.12);   color:var(--red);      border-color:rgba(226,84,61,.3);   animation:sla-pulse-border 2.5s infinite; }
+.zs-pendente    { background:rgba(107,119,128,.1);  color:var(--gray);     border-color:rgba(107,119,128,.25);}
+
+/* Status dropdown inline */
+.zs-select {
+  background:transparent; border:none; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; font-weight:700; text-transform:uppercase; cursor:pointer;
+  outline:none; color:inherit; padding:0 2px; appearance:none; -webkit-appearance:none;
+}
+
+/* Datas */
+.zel-date { font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim); }
+.zel-date.overdue { color:var(--red); font-weight:600; }
+
+/* Usina cell */
+.zel-usina-cell { font-size:13px; font-weight:600; color:var(--text); }
+.zel-cliente-tag {
+  display:inline-block; font-size:9.5px; font-family:'IBM Plex Mono',monospace;
+  font-weight:700; padding:1px 6px; border-radius:3px; margin-right:6px; vertical-align:middle;
+}
+
+/* Observações */
+.zel-obs-input {
+  background:transparent; border:none; border-bottom:1px dashed var(--border);
+  color:var(--text-dim); font-size:12px; font-family:'IBM Plex Sans',sans-serif;
+  width:100%; outline:none; padding:2px 4px; transition:.15s;
+}
+.zel-obs-input:focus { border-bottom-color:var(--teal); color:var(--text); background:var(--panel-alt); border-radius:4px 4px 0 0; }
+
+/* Botão add linha */
+.zel-add-btn {
+  display:flex; align-items:center; gap:7px;
+  background:rgba(63,193,176,.1); border:1px dashed rgba(63,193,176,.4); color:var(--teal);
+  border-radius:8px; padding:10px 16px; font-size:12px; font-weight:700; cursor:pointer;
+  font-family:'IBM Plex Mono',monospace; transition:.2s; width:100%; margin-top:10px;
+  justify-content:center;
+}
+.zel-add-btn:hover { background:rgba(63,193,176,.2); border-style:solid; }
+.zel-add-btn svg { width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2; }
+
+/* Empty state zelodoria */
+.zel-empty {
+  text-align:center; padding:56px 20px; color:var(--text-faint);
+  border:1px dashed var(--border); border-radius:var(--radius); margin-top:4px;
+}
+.zel-empty svg { width:36px;height:36px;stroke:var(--border);fill:none;stroke-width:1.4;margin-bottom:12px; }
+.zel-empty strong { display:block; color:var(--text-dim); font-size:14px; margin-bottom:6px; }
+
+/* Salvo badge */
+.save-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  color:var(--teal); opacity:0; transition:opacity .3s;
+}
+.save-badge.show { opacity:1; }
+.save-badge svg { width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2; }
+
+[data-theme="light"] .zel-overlay { background:var(--bg); }
+[data-theme="light"] .zel-table tbody tr:hover { background:#EEF4FA; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TELA DE LOGIN ═══════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div class="login-title">Painel O&amp;M</div>
+    <div class="login-sub">Acompanhamento de Falhas</div>
+
+    <div class="login-field">
+      <label for="loginUser">Usuário</label>
+      <input type="text" id="loginUser" placeholder="seu usuário" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label for="loginPass">Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <div class="login-error" id="loginError">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Usuário ou senha incorretos.
+    </div>
+
+    <button class="login-submit" id="loginSubmit">Entrar</button>
+    <div class="login-footer">Acesso restrito · Grid Co O&amp;M</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Operação &amp; Manutenção · Painel de Controle</p>
+      <h1>Acompanhamento de Falhas</h1>
+      <div class="sub">Visualização e controle de falhas nos ativos — clique em um card para ver o histórico</div>
+    </div>
+    <div class="header-right">
+      <!-- Theme toggle -->
+      <div class="theme-toggle" id="themeToggle" title="Alternar tema claro/escuro">
+        <div class="theme-toggle-track">
+          <div class="theme-toggle-thumb"></div>
+        </div>
+        <span class="theme-toggle-label" id="themeLabel">☾ Escuro</span>
+      </div>
+
+      <div class="source-badge" id="sourceBadge">
+        <div class="source-dot" id="sourceDot"></div>
+        <span id="sourceLabel">aguardando…</span>
+      </div>
+
+      <!-- Countdown bar -->
+      <div class="countdown-wrap" id="countdownWrap" style="display:none">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--text-faint);fill:none;stroke-width:2;flex:none;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div class="countdown-bar-track">
+          <div class="countdown-bar-fill" id="countdownFill" style="width:100%"></div>
+        </div>
+        <span id="countdownText">5:00</span>
+      </div>
+
+      <button class="update-btn" id="updateBtn">
+        <svg viewBox="0 0 24 24" id="updateIcon"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Atualizar dados
+      </button>
+      <div class="total-badge" id="totalBadge"></div>
+    </div>
+  </header>
+
+  <!-- PWA Install Banner -->
+  <div class="pwa-banner" id="pwaBanner">
+    <div class="pwa-banner-left">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+      <span>Instale o <strong>Painel O&M</strong> no seu celular para acesso rápido mesmo offline</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="pwa-install-btn" id="pwaInstallBtn">Instalar app</button>
+      <button class="pwa-dismiss-btn" id="pwaDismissBtn" title="Fechar">✕</button>
+    </div>
+  </div>
+
+  <!-- Banner cliente -->
+  <div class="client-mode-banner" id="clientModeBanner">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Visualização exclusiva para <strong id="clientModeLabel"></strong> — apenas suas usinas são exibidas</span>
+  </div>
+
+  <!-- SLA Banner global -->
+  <div class="sla-banner" id="slaBanner">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="slaBannerText"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="filters">
+    <div class="ms-wrap" id="ms-cliente">
+      <div class="ms-label">Cliente</div>
+      <div class="ms-trigger" id="ms-cliente-trigger">
+        <span class="ms-trigger-text" id="ms-cliente-text">Todos</span>
+        <svg class="ms-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-cliente-drop"></div>
+    </div>
+    <div class="ms-wrap" id="ms-usina">
+      <div class="ms-label">Usina</div>
+      <div class="ms-trigger" id="ms-usina-trigger">
+        <span class="ms-trigger-text" id="ms-usina-text">Todas</span>
+        <svg class="ms-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-usina-drop"></div>
+    </div>
+    <div class="ms-wrap" id="ms-status">
+      <div class="ms-label">Status</div>
+      <div class="ms-trigger" id="ms-status-trigger">
+        <span class="ms-trigger-text" id="ms-status-text">Todos</span>
+        <svg class="ms-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-status-drop"></div>
+    </div>
+    <div class="filter-group search-group">
+      <label for="fSearch">Buscar equipamento, falha ou causa</label>
+      <input type="text" id="fSearch" placeholder="ex: tracker, igate, piranômetro…">
+    </div>
+    <button class="btn-ghost" id="clearBtn">✕ Limpar</button>
+    <div class="result-count" id="resultCount"></div>
+  </div>
+
+  <div class="client-legend" id="clientLegend">
+    <span class="legend-label">Clientes:</span>
+  </div>
+
+  <div class="panels">
+    <div class="panel"><div class="panel-head"><h3>Falhas por usina</h3><span class="panel-total" id="usinaTotal"></span></div><div id="usinaBars"></div></div>
+    <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="statusTotal"></span></div><div id="statusBars"></div></div>
+    <div class="panel"><div class="panel-head"><h3>Por causa</h3><span class="panel-total" id="causaTotal"></span></div><div id="causaBars"></div></div>
+  </div>
+
+  <div class="grid-controls">
+    <div class="grid-title"><h2>Ativos com ocorrência</h2><span id="gridSub"></span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="chamados-btn" id="chamadosBtn">
+        <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        CHAMADOS
+        <span class="chamados-badge" id="chamadosBadge">0</span>
+      </button>
+      <!-- CONTROLE DE PROCESSOS (só admin/manager) -->
+      <button class="processos-btn" id="processosBtn">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Controle de Processos
+      </button>
+      <!-- VIEW TOGGLE -->
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewCards" title="Visualização em cards">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Cards
+        </button>
+        <button class="view-btn" id="viewTable" title="Visualização em tabela">
+          <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          Tabela
+        </button>
+      </div>
+      <div class="sort-group" id="sortGroup">
+        <span class="sort-label">ordenar:</span>
+        <button class="sort-btn active" data-sort="id">ID</button>
+        <button class="sort-btn" data-sort="usina">Usina</button>
+        <button class="sort-btn" data-sort="equip">Equipamento</button>
+        <button class="sort-btn" data-sort="age">Mais antigas</button>
+      </div>
+    </div>
+  </div>
+  <div class="card-grid" id="cardGrid"></div>
+  <div class="table-wrap" id="tableWrap" style="display:none"></div>
+
+  <footer>
+    <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:middle;margin-right:5px;opacity:.6"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    As informações contidas neste painel são de caráter confidencial e destinam-se exclusivamente a pessoas autorizadas.<br>
+    Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), é expressamente proibido o compartilhamento,<br>
+    reprodução ou divulgação destes dados a terceiros não autorizados.
+  </footer>
+</div>
+
+<!-- Modal Chamados -->
+<div class="ch-overlay" id="chOverlay">
+  <div class="ch-modal" id="chModal">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div>
+          <div class="ch-title">
+            <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            <h2>Chamados — TICKET FABRICANTE</h2>
+          </div>
+          <div class="ch-subtitle" id="chSubtitle"></div>
+        </div>
+        <button class="modal-close-btn" id="chClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="chBody"></div>
+  </div>
+</div>
+
+<!-- ═══════ ZELADORIAS — tela de controle de processos ═══════ -->
+<div class="zel-overlay" id="zelOverlay">
+
+  <!-- Topbar -->
+  <div class="zel-topbar">
+    <div class="zel-topbar-left">
+      <button class="zel-back-btn" id="zelBack">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar ao Painel
+      </button>
+      <div class="zel-title-block">
+        <span class="zel-eyebrow">Controle de Processos</span>
+        <span class="zel-title">Programação de Zeladorias</span>
+      </div>
+    </div>
+    <div class="zel-topbar-right">
+      <span class="save-badge" id="zelSaveBadge">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvo
+      </span>
+      <div class="source-badge" id="zelSourceBadge" style="font-size:10.5px;">
+        <div class="source-dot" id="zelSourceDot"></div>
+        <span id="zelSourceLabel">aguardando…</span>
+      </div>
+      <button class="update-btn" id="zelRefreshBtn" style="padding:7px 12px;font-size:11px;">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Atualizar
+      </button>
+      <button class="update-btn" id="zelAddRow" style="background:rgba(63,193,176,.1);border-color:rgba(63,193,176,.4);color:var(--teal);">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Usina
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="zel-filters">
+    <select class="zel-filter-select" id="zelFiltroCliente">
+      <option value="">Todos os clientes</option>
+    </select>
+    <select class="zel-filter-select" id="zelFiltroStatus">
+      <option value="">Todos os status</option>
+      <option value="Agendado">Agendado</option>
+      <option value="Em andamento">Em andamento</option>
+      <option value="Concluído">Concluído</option>
+      <option value="Atrasado">Atrasado</option>
+      <option value="Pendente">Pendente</option>
+    </select>
+    <input class="zel-search" type="text" id="zelSearch" placeholder="Buscar usina…">
+  </div>
+
+  <!-- Conteúdo -->
+  <div class="zel-content" id="zelContent">
+
+    <!-- KPIs -->
+    <div class="zel-kpis" id="zelKpis"></div>
+
+    <!-- Tabs por tipo de serviço -->
+    <div class="zel-tabs" id="zelTabs">
+      <button class="zel-tab active" data-tab="supressao" style="--tab-color:var(--sla-ok)">
+        <svg viewBox="0 0 24 24"><path d="M12 22V12"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M8 6l4-4 4 4"/><path d="M8 12l4-4 4 4"/></svg>
+        Roçada
+        <span class="zel-tab-badge" id="tabBadgeSupressao">0</span>
+      </button>
+      <button class="zel-tab" data-tab="poda" style="--tab-color:var(--amber)">
+        <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+        Poda Química
+        <span class="zel-tab-badge" id="tabBadgePoda">0</span>
+      </button>
+      <button class="zel-tab" data-tab="limpeza" style="--tab-color:var(--blue)">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Lavagem dos Módulos
+        <span class="zel-tab-badge" id="tabBadgeLimpeza">0</span>
+      </button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="zel-table-wrap" id="zelTableWrap"></div>
+
+  </div>
+</div>
+
+<!-- ═══════ DRAWER — painel lateral de detalhes ═══════ -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="drawer" id="drawer" role="complementary" aria-label="Detalhes da ocorrência">
+  <div class="drawer-accent" id="drawerAccent"></div>
+  <div class="drawer-head" id="drawerHead">
+    <div class="drawer-head-top">
+      <div style="flex:1;min-width:0;">
+        <div class="drawer-eyebrow" id="drawerEyebrow"></div>
+        <h2 id="drawerTitle"></h2>
+        <div class="drawer-head-meta" id="drawerMeta"></div>
+      </div>
+      <div class="drawer-head-btns">
+        <!-- Navegação prev / next -->
+        <div class="drawer-nav">
+          <button class="drawer-nav-btn" id="drawerPrev" title="Anterior">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="drawer-nav-counter" id="drawerCounter">1 / 1</span>
+          <button class="drawer-nav-btn" id="drawerNext" title="Próximo">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <!-- Fechar -->
+        <button class="drawer-icon-btn close" id="drawerClose" title="Fechar (Esc)">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-action-bar" id="drawerActionBar" style="display:none">
+    <button class="drawer-hist-btn" id="drawerHistBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Adicionar ao histórico
+    </button>
+    <button class="drawer-save-btn" id="drawerSaveBtn">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Salvar na planilha
+    </button>
+  </div>
+</aside>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" id="toastIcon"></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
 /* ═══════════════════════════════════════════════════
    ① PWA — Manifest inline (sem arquivo externo)
 ═══════════════════════════════════════════════════ */
