@@ -404,6 +404,41 @@ select:focus,input[type="text"]:focus{border-color:var(--amber);background:rgba(
 }
 .card.sla-breach .sla-badge-card { display:inline-block; }
 
+/* Sem movimentação há mais de 5 dias */
+.stale-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:700;
+  padding:3px 9px; border-radius:99px; letter-spacing:.02em;
+  background:rgba(107,119,128,.12); color:#9BAAB8;
+  border:1px solid rgba(107,119,128,.3);
+  animation: stale-pulse 3s infinite;
+}
+.stale-pill svg { width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2;flex:none; }
+@keyframes stale-pulse {
+  0%,100% { opacity:1; border-color:rgba(107,119,128,.3); }
+  50%      { opacity:.7; border-color:rgba(107,119,128,.6); }
+}
+/* Borda cinza no card parado */
+.card.card-stale {
+  border-left-color: #536070 !important;
+}
+.card.sla-breach.card-stale { /* SLA tem prioridade */ border-left-color: var(--sla-breach) !important; }
+
+/* Linha da tabela parada */
+.fault-table tbody tr.tr-stale td:first-child {
+  border-left:3px solid #536070;
+}
+
+/* Pill na tabela */
+.td-stale-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700;
+  padding:2px 7px; border-radius:99px;
+  background:rgba(107,119,128,.1); color:#8FA0AE;
+  border:1px solid rgba(107,119,128,.25); white-space:nowrap;
+}
+.td-stale-pill svg { width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2.5;flex:none; }
+
 .card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft);padding-top:10px;margin-top:auto;}
 .status-chip{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:5px;color:var(--card-color,var(--text-dim));border:1px solid;}
 .see-more{font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:4px;}
@@ -891,6 +926,18 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.update-btn.spinning svg,.source-dot,.card.sla-breach{animation:none;}*{transition:none !important;}}
 
 /* ── Light theme tweaks ── */
+/* ── Filtro de período ── */
+.filter-group.date-group { min-width:130px; }
+.date-input {
+  background:var(--panel-alt); border:1px solid var(--border); color:var(--text);
+  border-radius:7px; padding:7px 10px; font-size:12px;
+  font-family:'IBM Plex Mono',monospace; outline:none; transition:.15s;
+  width:100%; cursor:pointer;
+}
+.date-input:focus { border-color:var(--amber); background:rgba(242,169,59,.04); }
+.date-input::-webkit-calendar-picker-indicator { filter:invert(0.6); cursor:pointer; }
+[data-theme="light"] .date-input::-webkit-calendar-picker-indicator { filter:none; }
+[data-theme="light"] .date-input { color:var(--text); }
 /* ══════════════════════════════════════════
    MODO EDIÇÃO — campos inline no drawer
 ══════════════════════════════════════════ */
@@ -1293,6 +1340,14 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
       <label for="fSearch">Buscar equipamento, falha ou causa</label>
       <input type="text" id="fSearch" placeholder="ex: tracker, igate, piranômetro…">
     </div>
+    <div class="filter-group date-group">
+      <label for="fDateFrom">A partir de</label>
+      <input type="date" class="date-input" id="fDateFrom" title="Data de abertura — início do período">
+    </div>
+    <div class="filter-group date-group">
+      <label for="fDateTo">Até</label>
+      <input type="date" class="date-input" id="fDateTo" title="Data de abertura — fim do período">
+    </div>
     <button class="btn-ghost" id="clearBtn">✕ Limpar</button>
     <div class="result-count" id="resultCount"></div>
   </div>
@@ -1337,6 +1392,7 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
         <button class="sort-btn" data-sort="usina">Usina</button>
         <button class="sort-btn" data-sort="equip">Equipamento</button>
         <button class="sort-btn" data-sort="age">Mais antigas</button>
+        <button class="sort-btn" data-sort="recent">Mais recentes</button>
       </div>
     </div>
   </div>
@@ -1697,10 +1753,162 @@ function updateCountdownUI() {
    Status que NÃO contam SLA (já encerrados):
 ═══════════════════════════════════════════════════ */
 const SLA_CONFIG = {
-  WARN_DAYS:   7,   // amarelo: aberto há mais de 7 dias
-  BREACH_DAYS: 14,  // vermelho pulsante: aberto há mais de 14 dias
+  WARN_DAYS:    7,   // pill amarelo: aberto há mais de 7 dias sem resposta de campo
+  BREACH_DAYS: 14,  // SLA badge + pulsante: equipe de campo não respondeu em 14 dias
   CLOSED_STATUSES: ['concluído','concluido','resolvido','fechado','resolved','closed'],
 };
+
+/**
+ * Retorna a data em que a equipe de campo ATENDEU a ocorrência.
+ * Lógica: percorre o histórico e retorna a data da SEGUNDA entrada
+ * (a primeira é o registro inicial; a segunda indica que alguém agiu).
+ * Se houver só uma entrada, a equipe ainda não respondeu → retorna null.
+ */
+function getResponseDate(d) {
+  const hist = (d.historico || '').trim();
+  if (!hist) return null;
+
+  const today    = new Date();
+  const thisYear = today.getFullYear();
+
+  function parseLineDate(l) {
+    // DD/MM/YYYY
+    let m = l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) {
+      const dt = new Date(+m[3], +m[2]-1, +m[1]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+    // ISO YYYY-MM-DD
+    m = l.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      const dt = new Date(+m[1], +m[2]-1, +m[3]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+    // DD/MM sem ano
+    m = l.match(/^(\d{1,2})\/(\d{1,2})\s*[-\u2013:]/);
+    if (m) {
+      const day = +m[1], month = +m[2];
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+        let dt = new Date(thisYear, month - 1, day);
+        if (dt > today) dt = new Date(thisYear - 1, month - 1, day);
+        return dt;
+      }
+    }
+    return null;
+  }
+
+  const lines = hist.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+
+  // Agrupa entradas por data — datas únicas
+  const dateDates = [];
+  for (const line of lines) {
+    const dt = parseLineDate(line);
+    if (dt) {
+      // Adiciona se for data diferente da última
+      const last = dateDates[dateDates.length - 1];
+      if (!last || dt.getTime() !== last.getTime()) {
+        dateDates.push(dt);
+      }
+    }
+  }
+
+  // Se só há uma data (ou zero), equipe ainda não respondeu
+  if (dateDates.length < 2) return null;
+
+  // Retorna a segunda data distinta = primeira ação da equipe
+  return dateDates[1];
+}
+
+/**
+ * Retorna dias entre abertura e RESPOSTA da equipe de campo.
+ * null = equipe ainda não respondeu (conta como sem SLA ainda)
+ * -1   = já encerrado
+ */
+function getResponseDays(d) {
+  const statusKey = (d.status || '').toLowerCase().trim();
+  if (SLA_CONFIG.CLOSED_STATUSES.some(s => statusKey.includes(s))) return -1;
+  const opened   = getOpenDate(d);
+  const response = getResponseDate(d);
+  if (!opened) return null;
+  if (!response) return null; // ainda aguardando resposta — não conta SLA ainda
+  const diff = Math.floor((response - opened) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
+/**
+ * SLA badge: vencido se equipe levou mais de BREACH_DAYS para responder.
+ * Nota: se a equipe ainda não respondeu, não mostramos SLA vencido —
+ * mostramos apenas o pill de idade para indicar tempo em aberto.
+ */
+function isSlaBreached(d) {
+  const days = getResponseDays(d);
+  if (days === null || days < 0) return false;
+  return days >= SLA_CONFIG.BREACH_DAYS;
+}
+
+function isSlaWarning(d) {
+  const days = getResponseDays(d);
+  if (days === null || days < 0) return false;
+  return days >= SLA_CONFIG.WARN_DAYS && days < SLA_CONFIG.BREACH_DAYS;
+}
+
+/**
+ * Retorna a data da ÚLTIMA entrada no histórico da ocorrência.
+ * Percorre todas as linhas e pega a data mais recente encontrada.
+ */
+function getLastActivityDate(d) {
+  const hist = (d.historico || '').trim();
+  if (!hist) return null;
+
+  const today    = new Date();
+  const thisYear = today.getFullYear();
+
+  function parseDateFromLine(l) {
+    let m = l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) {
+      const dt = new Date(+m[3], +m[2]-1, +m[1]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+    m = l.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      const dt = new Date(+m[1], +m[2]-1, +m[3]);
+      if (!isNaN(dt) && dt.getFullYear() > 2000) return dt;
+    }
+    m = l.match(/^(\d{1,2})\/(\d{1,2})\s*[-\u2013:]/);
+    if (m) {
+      const day = +m[1], month = +m[2];
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+        let dt = new Date(thisYear, month - 1, day);
+        if (dt > today) dt = new Date(thisYear - 1, month - 1, day);
+        return dt;
+      }
+    }
+    return null;
+  }
+
+  const lines = hist.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+  let lastDate = null;
+  for (const line of lines) {
+    const dt = parseDateFromLine(line);
+    if (dt && (!lastDate || dt > lastDate)) lastDate = dt;
+  }
+  return lastDate;
+}
+
+/**
+ * Dias desde a última movimentação no histórico.
+ * null = sem histórico ou ocorrência encerrada.
+ */
+function getStaleDays(d) {
+  const statusKey = (d.status || '').toLowerCase().trim();
+  if (SLA_CONFIG.CLOSED_STATUSES.some(s => statusKey.includes(s))) return null;
+  const last = getLastActivityDate(d);
+  if (!last) return null;
+  const now  = new Date();
+  return Math.floor((now - last) / (1000 * 60 * 60 * 24));
+}
+
+const STALE_DAYS = 5; // dias sem movimentação para considerar parado
 
 /**
  * Retorna a data de abertura de uma ocorrência.
@@ -1786,12 +1994,15 @@ function getFaultAgeDays(d) {
   return Math.max(0, diff);
 }
 
-/** Retorna classe CSS de SLA baseada nos dias */
+/**
+ * Classe CSS do pill de IDADE (baseado em tempo em aberto).
+ * Destaca visualmente ocorrências antigas independente do SLA.
+ */
 function getSlaClass(days) {
   if (days === null || days === undefined) return 'age-none';
-  if (days < 0) return 'age-ok'; // encerrado
-  if (days >= SLA_CONFIG.BREACH_DAYS) return 'age-breach';
-  if (days >= SLA_CONFIG.WARN_DAYS)   return 'age-warning';
+  if (days < 0)  return 'age-ok';      // encerrado
+  if (days >= 30) return 'age-breach'; // mais de 30 dias em aberto = alerta visual
+  if (days >= 10) return 'age-warning';// mais de 10 dias = aviso
   return 'age-ok';
 }
 
@@ -2355,7 +2566,10 @@ function populateFilters() {
 }
 
 function applyFilters() {
-  const q = document.getElementById('fSearch').value.trim().toLowerCase();
+  const q        = document.getElementById('fSearch').value.trim().toLowerCase();
+  const dateFrom = document.getElementById('fDateFrom').value; // YYYY-MM-DD
+  const dateTo   = document.getElementById('fDateTo').value;
+
   filtered = DATA.filter(d => {
     if (selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
     if (selUsina.size   > 0 && !selUsina.has(d.usina))     return false;
@@ -2365,6 +2579,23 @@ function applyFilters() {
       if (!hay.includes(q)) return false;
     }
     if (activeCausa && categorizeCausa(d.causa) !== activeCausa) return false;
+
+    // Filtro por data de abertura
+    if (dateFrom || dateTo) {
+      const opened = getOpenDate(d);
+      if (!opened) return !dateFrom; // sem data: exclui só se houver filtro de início
+      const op = opened.getTime();
+      if (dateFrom) {
+        const [yf, mf, df] = dateFrom.split('-').map(Number);
+        if (op < new Date(yf, mf-1, df).getTime()) return false;
+      }
+      if (dateTo) {
+        const [yt, mt, dt] = dateTo.split('-').map(Number);
+        // inclui o dia final inteiro (até meia-noite do dia seguinte)
+        if (op >= new Date(yt, mt-1, dt+1).getTime()) return false;
+      }
+    }
+
     return true;
   });
   applySortAndRender();
@@ -2373,7 +2604,9 @@ function applyFilters() {
 function clearFilters() {
   selCliente.clear(); selUsina.clear(); selStatus.clear();
   msCliente.updateTrigger(); msUsina.updateTrigger(); msStatus.updateTrigger();
-  document.getElementById('fSearch').value = '';
+  document.getElementById('fSearch').value  = '';
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value   = '';
   activeCausa = null;
   populateFilters();
   applyFilters();
@@ -2384,28 +2617,32 @@ function clearFilters() {
 ═══════════════════════════════════════════════════ */
 function applySortAndRender() {
   const sorted = [...filtered].sort((a, b) => {
-    if (sortKey === 'id')    return +a.id - +b.id;
-    if (sortKey === 'usina') return a.usina.localeCompare(b.usina);
-    if (sortKey === 'equip') return a.equipamento.localeCompare(b.equipamento);
-    if (sortKey === 'age')   {
+    if (sortKey === 'id')     return +a.id - +b.id;
+    if (sortKey === 'usina')  return a.usina.localeCompare(b.usina);
+    if (sortKey === 'equip')  return a.equipamento.localeCompare(b.equipamento);
+    if (sortKey === 'age')    {
       const da = getFaultAgeDays(a) ?? -999;
       const db = getFaultAgeDays(b) ?? -999;
       return db - da; // mais antigas primeiro
+    }
+    if (sortKey === 'recent') {
+      // mais recentes primeiro (menor age = mais novo)
+      const da = getOpenDate(a); const db = getOpenDate(b);
+      const ta = da ? da.getTime() : 0;
+      const tb = db ? db.getTime() : 0;
+      return tb - ta;
     }
     return 0;
   });
   document.getElementById('totalBadge').textContent = `${DATA.length} registros na planilha`;
 
-  // SLA Banner global
-  const breachList = filtered.filter(d => {
-    const age = getFaultAgeDays(d);
-    return age !== null && age >= SLA_CONFIG.BREACH_DAYS;
-  });
-  const slaBanner = document.getElementById('slaBanner');
+  // SLA Banner global — baseado no tempo de resposta da equipe de campo
+  const breachList = filtered.filter(d => isSlaBreached(d));
+  const slaBanner  = document.getElementById('slaBanner');
   if (breachList.length > 0) {
     slaBanner.classList.add('visible');
     document.getElementById('slaBannerText').textContent =
-      `${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido (mais de ${SLA_CONFIG.BREACH_DAYS} dias em aberto) — atenção imediata necessária`;
+      `${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — equipe de campo levou mais de ${SLA_CONFIG.BREACH_DAYS} dias para atender`;
   } else {
     slaBanner.classList.remove('visible');
   }
@@ -2460,16 +2697,16 @@ function renderKPIs() {
   const abertos  = filtered.filter(d => d.status.toLowerCase().includes('aberto')).length;
   const usinas   = new Set(filtered.map(d => d.usina)).size;
   // KPI SLA: falhas com breach
-  const slaBreach = filtered.filter(d => {
-    const age = getFaultAgeDays(d);
-    return age !== null && age >= SLA_CONFIG.BREACH_DAYS;
-  }).length;
+  // SLA: baseado no tempo de resposta da equipe de campo
+  const slaBreach = filtered.filter(d => isSlaBreached(d)).length;
+
+  const staleCount = filtered.filter(d => { const s = getStaleDays(d); return s !== null && s >= STALE_DAYS; }).length;
 
   document.getElementById('kpis').innerHTML = [
-    {num:tot,       label:'Falhas filtradas',       color:'var(--amber)', glow:'rgba(242,169,59,.08)',  icon:`<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
-    {num:abertos,   label:'Em aberto',              color:'var(--red)',   glow:'rgba(226,84,61,.08)',   icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`},
-    {num:usinas,    label:'Usinas com ocorrência',  color:'var(--blue)',  glow:'rgba(91,155,213,.08)',  icon:`<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`},
-    {num:slaBreach, label:`SLA vencido (+${SLA_CONFIG.BREACH_DAYS}d)`,  color:'var(--red)',   glow:'rgba(226,84,61,.1)',   icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`},
+    {num:tot,        label:'Falhas filtradas',         color:'var(--amber)', glow:'rgba(242,169,59,.08)', icon:`<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`},
+    {num:abertos,    label:'Em aberto',                color:'var(--red)',   glow:'rgba(226,84,61,.08)',  icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`},
+    {num:slaBreach,  label:`SLA vencido (+${SLA_CONFIG.BREACH_DAYS}d)`, color:'var(--red)', glow:'rgba(226,84,61,.1)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`},
+    {num:staleCount, label:`Paradas (+${STALE_DAYS}d sem registro)`, color:'var(--gray)', glow:'rgba(107,119,128,.08)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`},
   ].map(k => `
     <div class="kpi" style="--kpi-color:${k.color};--kpi-glow:${k.glow}">
       <div class="num">${String(k.num).padStart(2,'0')}</div>
@@ -2556,10 +2793,12 @@ function renderCards(sorted) {
     const slaClass = getSlaClass(ageDays);
     const ageText  = agePillText(ageDays);
 
-    // Classe do card baseada em SLA
+    // Borda do card: SLA vencido (resposta da equipe) = pulsante vermelho
+    //               Ocorrência antiga (+10 dias) = borda amarela
     let cardSlaClass = '';
-    if (ageDays !== null && ageDays >= SLA_CONFIG.BREACH_DAYS) cardSlaClass = 'sla-breach';
-    else if (ageDays !== null && ageDays >= SLA_CONFIG.WARN_DAYS) cardSlaClass = 'sla-warning';
+    if (isSlaBreached(d))                               cardSlaClass = 'sla-breach';
+    else if (isSlaWarning(d))                           cardSlaClass = 'sla-warning';
+    else if (ageDays !== null && ageDays >= 10)         cardSlaClass = 'sla-warning';
 
     // Ícone do pill
     const ageIcon = slaClass === 'age-breach'
@@ -2568,7 +2807,18 @@ function renderCards(sorted) {
       ? `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
       : `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 
-    return `<div class="card ${cardSlaClass}" tabindex="0" role="button"
+    // Stale: sem movimentação
+    const staleDays  = getStaleDays(d);
+    const isStale    = staleDays !== null && staleDays >= STALE_DAYS;
+    const staleClass = isStale && !cardSlaClass ? 'card-stale' : '';
+    const stalePillHtml = isStale
+      ? `<span class="stale-pill">
+           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+           Parado há ${staleDays} dia${staleDays !== 1 ? 's' : ''}
+         </span>`
+      : '';
+
+    return `<div class="card ${cardSlaClass} ${staleClass}" tabindex="0" role="button"
       aria-label="${esc(d.equipamento)} — ${esc(d.usina)}"
       style="--card-color:${cc.color};--card-glow:${cc.glow}"
       data-id="${esc(d.id)}">
@@ -2589,15 +2839,13 @@ function renderCards(sorted) {
       </div>
       <p class="equip">${esc(d.equipamento)}</p>
       <p class="falha">${esc(d.falha)}</p>
-
-      
       <div class="age-row">
         <span class="age-pill ${slaClass}">
           ${ageIcon}
           ${esc(ageText)}
         </span>
+        ${stalePillHtml}
       </div>
-
       <div class="card-foot">
         <span class="status-chip" style="background:${statusBg(d.status)};border-color:${statusBorder(d.status)};color:${sc}">${esc(d.status)}</span>
         <span class="see-more">histórico <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
@@ -2703,18 +2951,45 @@ function _renderDrawer() {
   // Mostra/oculta barra de ações
   document.getElementById('drawerActionBar').style.display = editing ? 'flex' : 'none';
 
-  // Bloco de idade
+  // Bloco de idade + SLA de resposta + stale
   let ageHtml = '';
   if (ageDays !== null && ageDays >= 0) {
-    const slaLabel   = slaClass === 'age-breach' ? '⚠ SLA VENCIDO'
-                     : slaClass === 'age-warning' ? '· atenção' : '· dentro do prazo';
-    const openedLabel = opened ? `Aberta em ${opened.toLocaleDateString('pt-BR')}` : 'Data estimada';
+    const responseDate = getResponseDate(d);
+    const responseDays = getResponseDays(d);
+    const staleDaysD   = getStaleDays(d);
+    const lastActivity = getLastActivityDate(d);
+    const openedLabel  = opened ? `Aberta em ${opened.toLocaleDateString('pt-BR')}` : 'Data estimada';
+
+    let slaLabel;
+    if (isSlaBreached(d)) {
+      slaLabel = `⚠ SLA VENCIDO — equipe respondeu em ${responseDays} dias`;
+    } else if (isSlaWarning(d)) {
+      slaLabel = `· atenção — resposta em ${responseDays} dias`;
+    } else if (responseDate) {
+      slaLabel = `· atendido em ${responseDays} dia${responseDays !== 1 ? 's' : ''} (${responseDate.toLocaleDateString('pt-BR')})`;
+    } else {
+      slaLabel = ageDays >= 10 ? '· aguardando atendimento de campo' : '· recente';
+    }
+
+    // Bloco de movimentação
+    const staleHtml = (staleDaysD !== null && staleDaysD >= STALE_DAYS) ? `
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(83,96,112,.08);border:1px solid rgba(83,96,112,.25);border-radius:8px;padding:10px 13px;margin-top:10px;">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#8FA0AE;fill:none;stroke-width:2;flex:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#8FA0AE;">Sem movimentação há ${staleDaysD} dia${staleDaysD !== 1 ? 's' : ''}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);margin-top:2px;">
+            Última entrada: ${lastActivity ? lastActivity.toLocaleDateString('pt-BR') : 'desconhecida'}
+          </div>
+        </div>
+      </div>` : '';
+
     ageHtml = `
       <div class="drawer-age-block" style="border-color:${ageColor}33;background:${ageColor}0D;">
         <svg viewBox="0 0 24 24" style="stroke:${ageColor}"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <div>
-          <div class="age-num" style="color:${ageColor}">${ageDays} dia${ageDays !== 1 ? 's' : ''}</div>
+        <div style="flex:1;">
+          <div class="age-num" style="color:${ageColor}">${ageDays} dia${ageDays !== 1 ? 's' : ''} em aberto</div>
           <div class="age-sub">${esc(openedLabel)} ${esc(slaLabel)}</div>
+          ${staleHtml}
         </div>
       </div>`;
   }
@@ -3052,8 +3327,8 @@ function renderTable(data) {
     var ageDays  = getFaultAgeDays(d);
     var slaClass = getSlaClass(ageDays);
     var ageText  = agePillText(ageDays);
-    var trClass  = (ageDays !== null && ageDays >= SLA_CONFIG.BREACH_DAYS) ? 'tr-breach'
-                 : (ageDays !== null && ageDays >= SLA_CONFIG.WARN_DAYS)   ? 'tr-warning' : '';
+    var trClass  = isSlaBreached(d) ? 'tr-breach'
+                 : (isSlaWarning(d) || (ageDays !== null && ageDays >= 10)) ? 'tr-warning' : '';
 
     var ageIcon = (slaClass === 'age-breach')
       ? '<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
@@ -3073,7 +3348,22 @@ function renderTable(data) {
       + '<td class="td-equip">' + esc(d.equipamento) + '</td>'
       + '<td class="td-falha"><div class="td-falha-text" title="' + esc(d.falha) + '">' + esc(d.falha) + '</div></td>'
       + '<td class="td-status"><span class="td-status-chip" style="background:' + statusBg(d.status) + ';border-color:' + statusBorder(d.status) + ';color:' + sc + '">' + esc(d.status) + '</span></td>'
-      + '<td class="td-age"><span class="td-age-pill ' + slaClass + '">' + ageIcon + esc(ageText) + '</span></td>'
+      // stale pill for table
+      var staleDays2 = getStaleDays(d);
+      var stalePillTd = (staleDays2 !== null && staleDays2 >= STALE_DAYS)
+        ? '<span class="td-stale-pill" style="margin-left:5px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' + staleDays2 + 'd parado</span>'
+        : '';
+
+      return '<tr class="' + trClass + '" data-id="' + esc(d.id) + '" tabindex="0">'
+      + '<td class="td-id">#' + d.id.padStart(2,'0') + '</td>'
+      + '<td class="td-usina">'
+        + '<span class="td-client-tag" style="background:' + cc.color + '22;color:' + cc.color + ';border:1px solid ' + cc.color + '44;">' + esc(d.cliente) + '</span>'
+        + '<div class="td-usina-name">' + esc(d.usina) + '</div>'
+      + '</td>'
+      + '<td class="td-equip">' + esc(d.equipamento) + '</td>'
+      + '<td class="td-falha"><div class="td-falha-text" title="' + esc(d.falha) + '">' + esc(d.falha) + '</div></td>'
+      + '<td class="td-status"><span class="td-status-chip" style="background:' + statusBg(d.status) + ';border-color:' + statusBorder(d.status) + ';color:' + sc + '">' + esc(d.status) + '</span></td>'
+      + '<td class="td-age"><span class="td-age-pill ' + slaClass + '">' + ageIcon + esc(ageText) + '</span>' + stalePillTd + '</td>'
       + '<td class="' + ticketCls + '">' + ticketHTML + '</td>'
       + '<td class="td-action"><button class="td-see-btn" data-id="' + esc(d.id) + '">Ver <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></td>'
       + '</tr>';
@@ -3154,6 +3444,8 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
    LISTENERS
 ═══════════════════════════════════════════════════ */
 document.getElementById('fSearch').addEventListener('input', applyFilters);
+document.getElementById('fDateFrom').addEventListener('change', applyFilters);
+document.getElementById('fDateTo').addEventListener('change', applyFilters);
 document.getElementById('clearBtn').addEventListener('click', clearFilters);
 document.getElementById('updateBtn').addEventListener('click', fetchSheet);
 
