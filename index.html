@@ -1095,8 +1095,7 @@ function isDesligamento(d) {
   // Detecta desligamento explícito
   if (/desligad[ao]|desligamento/.test(campos)) return true;
   // Detecta impacto total de geração
-  if (/gera[çc][aã]o\s*total|gera[çc][aã]o\s*zero|100\s*%\s*de\s*gera|impacto\s*total/.test(campos)) return true;
-  // Detecta "usina desligada" ou "UFV desligada" no campo falha
+  if (/gera.ao\s*total|gera.ao\s*zero|100\s*%|impacto\s*total/.test(campos)) return true;
   if (/usina\s*desligad|ufv\s*desligad/.test(campos)) return true;
   return false;
 }
@@ -1439,7 +1438,7 @@ function renderKPIs() {
   document.getElementById('kpis').innerHTML=[
     {num:tot,       label:'Falhas filtradas',              color:'var(--amber)', glow:'rgba(242,169,59,.08)', icon:`<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, cls:''},
     {num:abertos,   label:'Em aberto',                     color:'var(--red)',   glow:'rgba(226,84,61,.08)',  icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`, cls:''},
-    {num:slaBreach, label:\`SLA vencido (+\${SLA_CONFIG.BREACH_DAYS}d)\`, color:'var(--red)', glow:'rgba(226,84,61,.1)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, cls:''},
+    {num:slaBreach, label:`SLA vencido (+${SLA_CONFIG.BREACH_DAYS}d)`, color:'var(--red)', glow:'rgba(226,84,61,.1)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, cls:''},
     {num:desligCount,label:'Usinas desligadas',            color:'#FF4444',      glow:'rgba(255,68,68,.12)',  icon:`<svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`, cls:'kpi-deslig'},
   ].map(k=>`<div class="kpi ${k.cls}" style="--kpi-color:${k.color};--kpi-glow:${k.glow}" ${k.cls?'id="kpiDeslig" title="Clique para filtrar desligamentos"':''}><div class="num">${String(k.num).padStart(2,'0')}</div><div class="label">${k.label}</div><div class="kicon">${k.icon}</div></div>`).join('');
 
