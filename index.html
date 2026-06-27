@@ -607,6 +607,19 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 [data-theme="light"] .zel-table tbody tr:hover{background:#EEF4FA;}
 [data-theme="light"] .d-edit-input,[data-theme="light"] .d-edit-textarea,[data-theme="light"] .d-edit-select{background:#F5F8FB;}
 
+/* ══ NOTIFICAÇÕES ══ */
+.notif-btn {
+  display:inline-flex; align-items:center; gap:7px;
+  background:rgba(63,193,176,.1); border:1px solid rgba(63,193,176,.3);
+  color:var(--teal); border-radius:8px; padding:6px 12px;
+  font-size:11px; font-weight:700; cursor:pointer;
+  font-family:'Geist Mono',monospace; transition:.2s; white-space:nowrap;
+}
+.notif-btn:hover { background:rgba(63,193,176,.2); }
+.notif-btn.enabled { background:rgba(63,193,176,.18); border-color:var(--teal); }
+.notif-btn.disabled { opacity:.5; cursor:not-allowed; }
+.notif-btn svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
+
 /* ══ ASSINATURA ══ */
 .assinatura-img {
   height: 52px;
@@ -779,6 +792,10 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
         <div class="countdown-bar-track"><div class="countdown-bar-fill" id="countdownFill" style="width:100%"></div></div>
         <span id="countdownText">5:00</span>
       </div>
+      <button class="notif-btn" id="notifBtn" title="Ativar notificações push">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notifBtnLabel">Notificações</span>
+      </button>
       <button class="update-btn" id="updateBtn">
         <svg viewBox="0 0 24 24" id="updateIcon"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         Atualizar dados
@@ -1993,6 +2010,105 @@ document.getElementById('processosBtn').addEventListener('click',openZeladorias)
 document.getElementById('zelBack').addEventListener('click',closeZeladorias);
 document.getElementById('zelRefreshBtn').addEventListener('click',async()=>{await zelFetchSheet();zelRenderFull();showToast('Dados de zeladorias atualizados!',true);});
 document.getElementById('zelAddRow').addEventListener('click',zelAddRow);
+
+/* ══ NOTIFICAÇÕES PUSH ══ */
+const VAPID_PUBLIC_KEY = 'BPU55JogEEcV6GlCUONmzkVam8Tt9a0DuX3FYfn_ltgKc8p1fahQiE8v5RGECnMkSYEXMyUzOYBtslhUdiOJ6Jk';
+const PUSH_SUBSCRIBE_URL = 'https://whatsapp-painel-falhas.onrender.com/push/subscribe';
+
+let _swRegistration = null;
+
+// Converte base64url para Uint8Array (necessário para VAPID)
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function initPush() {
+  const btn = document.getElementById('notifBtn');
+  const label = document.getElementById('notifBtnLabel');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (btn) { btn.classList.add('disabled'); btn.title = 'Seu navegador não suporta notificações push'; }
+    return;
+  }
+
+  try {
+    // Registra o Service Worker
+    _swRegistration = await navigator.serviceWorker.register(
+      'https://fred-alexandrino.github.io/PAINELDEFALHAS/sw.js',
+      { scope: '/PAINELDEFALHAS/' }
+    );
+    console.log('[Push] Service Worker registrado');
+
+    // Verifica se já tem subscription ativa
+    const existing = await _swRegistration.pushManager.getSubscription();
+    if (existing) {
+      if (btn) { btn.classList.add('enabled'); if(label) label.textContent = 'Notificações ativas'; }
+      console.log('[Push] Subscription existente encontrada');
+      return;
+    }
+
+    // Botão para ativar
+    if (btn) {
+      btn.addEventListener('click', ativarNotificacoes);
+    }
+  } catch(e) {
+    console.error('[Push] Erro ao registrar SW:', e);
+  }
+}
+
+async function ativarNotificacoes() {
+  const btn = document.getElementById('notifBtn');
+  const label = document.getElementById('notifBtnLabel');
+  if (!_swRegistration) return;
+
+  try {
+    // Pede permissão
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('Permissão de notificação negada.', false);
+      return;
+    }
+
+    // Cria subscription
+    const subscription = await _swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+
+    // Envia subscription para o app.py salvar
+    const res = await fetch(PUSH_SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: subscription.toJSON() }),
+    });
+
+    if (res.ok) {
+      if (btn) { btn.classList.add('enabled'); }
+      if (label) label.textContent = 'Notificações ativas';
+      showToast('Notificações ativadas! 🔔', true);
+      console.log('[Push] Subscription registrada no servidor');
+    } else {
+      throw new Error('Servidor retornou ' + res.status);
+    }
+  } catch(e) {
+    console.error('[Push] Erro:', e);
+    showToast('Erro ao ativar notificações: ' + e.message, false);
+  }
+}
+
+// Inicia push após login
+const _origInitDashboard = initDashboard;
+function initDashboard(session) {
+  _origInitDashboard(session);
+  // Só admin e manager recebem notificações
+  if (session.role === 'admin' || session.role === 'manager') {
+    setTimeout(initPush, 2000);
+  }
+}
 
 /* ══ INICIALIZAÇÃO FINAL ══
    Processado AQUI — depois de todas as funções estarem definidas,
