@@ -1739,7 +1739,7 @@ function _renderDrawer() {
   const editing=canEdit();
   document.getElementById('drawerAccent').style.background=color;
   document.getElementById('drawer').style.setProperty('--drawer-color',color);
-  document.getElementById('drawerEyebrow').innerHTML=`Ativo Nº${d.id.padStart(2,'0')} &nbsp;·&nbsp; <span style="color:${cc.color}">${esc(d.cliente)}</span>`;
+  document.getElementById('drawerEyebrow').innerHTML=`<span style="color:${cc.color}">${esc(d.cliente)}</span>`;
   document.getElementById('drawerTitle').textContent=d.equipamento;
   document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${color}">${esc(d.status)}</span>`;
   const total=_drawerList.length;
