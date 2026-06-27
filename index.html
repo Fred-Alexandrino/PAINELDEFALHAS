@@ -1402,16 +1402,14 @@ function clearFilters() {
 function applySortAndRender() {
   // Desligamentos sempre sobem para o topo, independente da ordenação
   const sorted=[...filtered].sort((a,b)=>{
-    const da=isDesligamento(a)?1:0, db=isDesligamento(b)?1:0;
-    if(da!==db) return db-da; // desligamentos primeiro
-    {
+    const aDeslig=isDesligamento(a)?1:0, bDeslig=isDesligamento(b)?1:0;
+    if(aDeslig!==bDeslig) return bDeslig-aDeslig;
     if(sortKey==='id')return +a.id-+b.id;
     if(sortKey==='usina')return a.usina.localeCompare(b.usina);
     if(sortKey==='equip')return a.equipamento.localeCompare(b.equipamento);
     if(sortKey==='age'){const da=getFaultAgeDays(a)??-999;const db=getFaultAgeDays(b)??-999;return db-da;}
     if(sortKey==='recent'){const da2=getOpenDate(a);const db2=getOpenDate(b);const ta=da2?da2.getTime():0;const tb=db2?db2.getTime():0;return tb-ta;}
     return 0;
-    }
   });
   document.getElementById('totalBadge').textContent=`${DATA.length} registros na planilha`;
   const breachList=filtered.filter(d=>isSlaBreached(d));
