@@ -1483,11 +1483,11 @@ function buildMultiSelect(cfg) {
     // "Todas/Todos" — marca TODOS os itens individualmente
     drop.querySelector('.all-opt').addEventListener('click',e=>{
       e.stopPropagation();
-      if(allChecked||todosChecked){
-        // Se já estão todos marcados, desmarca tudo
+      if(todosChecked){
+        // Todos marcados individualmente → desmarca tudo (volta ao padrão)
         cfg.set.clear();
       } else {
-        // Marca todos individualmente
+        // Estado padrão (vazio) ou parcialmente marcado → marca todos individualmente
         options.forEach(v=>cfg.set.add(v));
       }
       updateTrigger();renderDrop(options);cfg.onchange();
