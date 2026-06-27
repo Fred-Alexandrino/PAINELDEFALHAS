@@ -907,6 +907,17 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" id="toastIcon"></svg><span id="toastMsg"></span></div>
 
 <script>
+/* ══ ERRO GLOBAL — captura qualquer erro JS ══ */
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('loginError').textContent = 'Erro JS linha ' + line + ': ' + msg;
+  document.getElementById('loginError').style.display = 'flex';
+  document.getElementById('loginError').classList.add('show');
+  console.error('JS ERROR:', msg, 'linha:', line, err);
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('Promise rejected:', e.reason);
+});
 /* ══ LOGIN ══ */
 (function setupLogin() {
   const USERS = [
@@ -1091,12 +1102,23 @@ let activeDesligFilter = false;
 function isDesligamento(d) {
   const statusKey = (d.status || '').toLowerCase();
   if (['concluído','concluido','resolvido','fechado'].some(s => statusKey.includes(s))) return false;
-  const campos = ((d.falha||'') + ' ' + (d.causa||'') + ' ' + (d.acao||'') + ' ' + (d.impactados||'')).toLowerCase();
-  // Detecta desligamento explícito
-  if (/desligad[ao]|desligamento/.test(campos)) return true;
-  // Detecta impacto total de geração
-  if (/gera.ao\s*total|gera.ao\s*zero|100\s*%|impacto\s*total/.test(campos)) return true;
-  if (/usina\s*desligad|ufv\s*desligad/.test(campos)) return true;
+
+  // Analisa apenas falha e causa — não o campo ação
+  const falha = (d.falha || '').toLowerCase();
+  const causa = (d.causa || '').toLowerCase();
+  const fc = falha + ' ' + causa;
+
+  // Regra 1: usina/UFV + desligada/parada (próximos, em qualquer ordem)
+  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao])/.test(fc)) return true;
+  if (/(?:desligad[ao]|parad[ao])\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(fc)) return true;
+
+  // Regra 2: desligamento + da usina/da UFV
+  if (/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/.test(fc)) return true;
+
+  // Regra 3: transformador + da usina + desligado (o "da usina" é obrigatório)
+  if (/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(fc)) return true;
+  if (/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(fc)) return true;
+
   return false;
 }
 
