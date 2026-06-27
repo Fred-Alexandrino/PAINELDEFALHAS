@@ -243,6 +243,8 @@ select:focus,input[type="text"]:focus{border-color:var(--amber);background:rgba(
 .ms-option:hover{background:var(--panel-alt);}
 .ms-option.checked{background:rgba(242,169,59,.05);}
 .ms-option.all-opt{color:var(--text-dim);font-size:12px;border-bottom:1px solid var(--border);}
+.ms-deselect-all{padding:7px 12px;font-size:11px;font-family:'Geist Mono',monospace;color:var(--red);cursor:pointer;border-bottom:1px solid var(--border);margin-bottom:2px;opacity:.8;}
+.ms-deselect-all:hover{opacity:1;background:rgba(226,84,61,.08);}
 .ms-check{width:15px;height:15px;border:1.5px solid var(--border);border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;transition:.12s;background:transparent;}
 .ms-option.checked .ms-check{background:var(--amber);border-color:var(--amber);}
 .ms-check svg{width:10px;height:10px;stroke:#0E1419;fill:none;stroke-width:2.5;opacity:0;}
@@ -1229,20 +1231,24 @@ let _forcedCliente = null;
 function initDashboard(session) {
   _currentSession = session;
   if (session.role==='client' && session.cliente) _forcedCliente = session.cliente;
-  if (session.role==='admin' || session.role==='manager') {
+  if (session.role==='manager') {
+    // Manager: acesso completo — Verificar Rondas, Chamados, Controle de Processos
     const btn = document.getElementById('processosBtn'); if (btn) btn.style.display = 'inline-flex';
     const btnR = document.getElementById('rondasBtn'); if (btnR) btnR.style.display = 'inline-flex';
     const btnC = document.getElementById('chamadosBtn'); if (btnC) btnC.style.display = 'inline-flex';
-    // Mostra a barra de ações
     const ab = document.getElementById('actionBar'); if (ab) ab.style.display = 'flex';
+  } else if (session.role==='admin') {
+    // Admin: somente visualização — sem barra de ações, sem botões de intervenção
+    // (pode apenas dar refresh via botão "Atualizar dados" no header)
+    const ab = document.getElementById('actionBar'); if (ab) ab.style.display = 'none';
   } else {
-    // Para clientes, mostra apenas chamados na barra de ações
+    // Clientes: apenas chamados
     const btnC = document.getElementById('chamadosBtn'); if (btnC) btnC.style.display = 'inline-flex';
     const ab = document.getElementById('actionBar'); if (ab) ab.style.display = 'flex';
   }
   fetchSheet();
 }
-function canEdit() { return _currentSession.role==='admin' || _currentSession.role==='manager'; }
+function canEdit() { return _currentSession.role==='manager'; } // admin: só visualização
 /* ══ CONFIG ══ */
 const SHEET_ID = '1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs';
 const GID = '0';
@@ -1466,8 +1472,30 @@ function buildMultiSelect(cfg) {
   function updateTrigger() { const n=cfg.set.size; textEl.innerHTML=''; if(n===0){textEl.textContent=cfg.allLabel;textEl.classList.remove('active');trigger.querySelector('.ms-badge')?.remove();}else{const first=[...cfg.set][0];textEl.textContent=n===1?first:`${first} +${n-1}`;textEl.classList.add('active');let badge=trigger.querySelector('.ms-badge');if(!badge){badge=document.createElement('span');badge.className='ms-badge';trigger.insertBefore(badge,trigger.querySelector('.ms-arrow'));}badge.textContent=n;} }
   function renderDrop(options) {
     const allChecked=cfg.set.size===0;
-    drop.innerHTML=`<div class="ms-option all-opt${allChecked?' checked':''}"><div class="ms-check"><svg viewBox="0 0 12 9"><polyline points="1 4 4.5 8 11 1"/></svg></div><span>${cfg.allLabel}</span></div>`+options.map(v=>`<div class="ms-option${cfg.set.has(v)?' checked':''}" data-val="${esc(v)}"><div class="ms-check"><svg viewBox="0 0 12 9"><polyline points="1 4 4.5 8 11 1"/></svg></div><span>${esc(v)}</span></div>`).join('');
-    drop.querySelector('.all-opt').addEventListener('click',e=>{e.stopPropagation();cfg.set.clear();updateTrigger();renderDrop(options);cfg.onchange();});
+    const todosChecked=options.every(v=>cfg.set.has(v));
+    // Botão "Desmarcar todos" — aparece quando há itens selecionados
+    const desmarcarBtn = cfg.set.size > 0
+      ? `<div class="ms-deselect-all" id="${cfg.dropId}-deselect">✕ Desmarcar todos</div>`
+      : '';
+    drop.innerHTML=desmarcarBtn+
+      `<div class="ms-option all-opt${allChecked||todosChecked?' checked':''}"><div class="ms-check"><svg viewBox="0 0 12 9"><polyline points="1 4 4.5 8 11 1"/></svg></div><span>${cfg.allLabel}</span></div>`+
+      options.map(v=>`<div class="ms-option${cfg.set.has(v)?' checked':''}" data-val="${esc(v)}"><div class="ms-check"><svg viewBox="0 0 12 9"><polyline points="1 4 4.5 8 11 1"/></svg></div><span>${esc(v)}</span></div>`).join('');
+    // "Todas/Todos" — marca TODOS os itens individualmente
+    drop.querySelector('.all-opt').addEventListener('click',e=>{
+      e.stopPropagation();
+      if(allChecked||todosChecked){
+        // Se já estão todos marcados, desmarca tudo
+        cfg.set.clear();
+      } else {
+        // Marca todos individualmente
+        options.forEach(v=>cfg.set.add(v));
+      }
+      updateTrigger();renderDrop(options);cfg.onchange();
+    });
+    // Botão "Desmarcar todos"
+    const desBtn=drop.querySelector(`#${cfg.dropId}-deselect`);
+    if(desBtn) desBtn.addEventListener('click',e=>{e.stopPropagation();cfg.set.clear();updateTrigger();renderDrop(options);cfg.onchange();});
+    // Opções individuais
     drop.querySelectorAll('.ms-option[data-val]').forEach(opt=>{opt.addEventListener('click',e=>{e.stopPropagation();const v=opt.dataset.val;cfg.set.has(v)?cfg.set.delete(v):cfg.set.add(v);updateTrigger();renderDrop(options);cfg.onchange();});});
   }
   trigger.addEventListener('click',e=>{e.stopPropagation();const isOpen=drop.classList.contains('open');closeAllDropdowns();if(!isOpen){drop.classList.add('open');trigger.classList.add('open');}});
