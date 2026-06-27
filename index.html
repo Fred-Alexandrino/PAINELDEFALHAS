@@ -782,6 +782,7 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
       <div class="sub">Visualização e controle de falhas nos ativos — clique em um card para ver o histórico</div>
     </div>
     <div class="header-right">
+      <button onclick="sessionStorage.clear();location.reload();" style="background:transparent;border:1px solid var(--border);color:var(--text-faint);border-radius:7px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'Geist Mono',monospace;" title="Sair">⎋ Sair</button>
       <div class="theme-toggle" id="themeToggle" title="Alternar tema claro/escuro">
         <div class="theme-toggle-track"><div class="theme-toggle-thumb"></div></div>
         <span class="theme-toggle-label" id="themeLabel">☾ Escuro</span>
@@ -1264,6 +1265,10 @@ function initDashboard(session) {
     const ab = document.getElementById('actionBar'); if (ab) ab.style.display = 'flex';
   }
   fetchSheet();
+  // Inicia push após login (apenas admin e manager)
+  if (session.role === 'admin' || session.role === 'manager') {
+    setTimeout(initPush, 2000);
+  }
 }
 function canEdit() { return _currentSession.role==='manager'; } // admin: só visualização
 /* ══ CONFIG ══ */
@@ -2100,15 +2105,7 @@ async function ativarNotificacoes() {
   }
 }
 
-// Inicia push após login
-const _origInitDashboard = initDashboard;
-function initDashboard(session) {
-  _origInitDashboard(session);
-  // Só admin e manager recebem notificações
-  if (session.role === 'admin' || session.role === 'manager') {
-    setTimeout(initPush, 2000);
-  }
-}
+// Push é iniciado diretamente no initDashboard abaixo
 
 /* ══ INICIALIZAÇÃO FINAL ══
    Processado AQUI — depois de todas as funções estarem definidas,
