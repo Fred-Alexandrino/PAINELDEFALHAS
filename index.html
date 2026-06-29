@@ -872,14 +872,25 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 /* ══ NOTIFICAÇÕES ══ */
 .notif-btn {
   display:inline-flex; align-items:center; gap:7px;
-  background:rgba(63,193,176,.1); border:1px solid rgba(63,193,176,.3);
+  background:rgba(63,193,176,.08); border:1px solid rgba(63,193,176,.25);
   color:var(--teal); border-radius:8px; padding:6px 12px;
   font-size:11px; font-weight:700; cursor:pointer;
   font-family:'Geist Mono',monospace; transition:.2s; white-space:nowrap;
+  position:relative;
 }
-.notif-btn:hover { background:rgba(63,193,176,.2); }
-.notif-btn.enabled { background:rgba(63,193,176,.18); border-color:var(--teal); }
-.notif-btn.disabled { opacity:.5; cursor:not-allowed; }
+.notif-btn:hover { background:rgba(63,193,176,.18); border-color:var(--teal); }
+/* Ativas: fundo sólido teal */
+.notif-btn.enabled {
+  background:rgba(63,193,176,.2); border-color:var(--teal);
+  box-shadow:0 0 0 1px rgba(63,193,176,.15);
+}
+/* Hover quando ativas: mostra "Desativar" */
+.notif-btn.enabled:hover {
+  background:rgba(226,84,61,.12); border-color:rgba(226,84,61,.4);
+  color:var(--red);
+}
+.notif-btn.enabled:hover #notifBtnLabel::before { content:'Desativar '; }
+.notif-btn.disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
 .notif-btn svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none; }
 
 /* ══ ASSINATURA ══ */
@@ -2565,79 +2576,99 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function initPush() {
-  const btn = document.getElementById('notifBtn');
+  const btn   = document.getElementById('notifBtn');
   const label = document.getElementById('notifBtnLabel');
+
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    if (btn) { btn.classList.add('disabled'); btn.title = 'Seu navegador não suporta notificações push'; }
+    if (btn) { btn.classList.add('disabled'); btn.title = 'Navegador não suporta push'; }
     return;
   }
 
   try {
-    // Registra o Service Worker
     _swRegistration = await navigator.serviceWorker.register(
       'https://fred-alexandrino.github.io/PAINELDEFALHAS/sw.js',
       { scope: '/PAINELDEFALHAS/' }
     );
-    console.log('[Push] Service Worker registrado');
 
-    // Verifica se já tem subscription ativa
-    const existing = await _swRegistration.pushManager.getSubscription();
-    if (existing) {
-      if (btn) { btn.classList.add('enabled'); if(label) label.textContent = 'Notificações ativas'; }
-      console.log('[Push] Subscription existente encontrada');
-      return;
-    }
+    // Atualiza UI conforme estado atual e adiciona listener de toggle
+    await _atualizarEstadoNotif();
+    if (btn) btn.addEventListener('click', _toggleNotificacoes);
 
-    // Botão para ativar
-    if (btn) {
-      btn.addEventListener('click', ativarNotificacoes);
-    }
   } catch(e) {
     console.error('[Push] Erro ao registrar SW:', e);
   }
 }
 
-async function ativarNotificacoes() {
-  const btn = document.getElementById('notifBtn');
+async function _atualizarEstadoNotif() {
+  const btn   = document.getElementById('notifBtn');
   const label = document.getElementById('notifBtnLabel');
   if (!_swRegistration) return;
 
+  const sub = await _swRegistration.pushManager.getSubscription();
+  const ativa = !!sub;
+
+  if (btn) {
+    btn.classList.toggle('enabled', ativa);
+    btn.title = ativa ? 'Clique para desativar notificações' : 'Clique para ativar notificações';
+  }
+  if (label) label.textContent = ativa ? 'Notificações ativas' : 'Notificações';
+}
+
+async function _toggleNotificacoes() {
+  const btn   = document.getElementById('notifBtn');
+  const label = document.getElementById('notifBtnLabel');
+  if (!_swRegistration) return;
+
+  // Verifica estado atual
+  const sub = await _swRegistration.pushManager.getSubscription();
+
+  if (sub) {
+    // ── DESATIVAR ──────────────────────────────────────────────
+    try {
+      await sub.unsubscribe();
+      if (btn)   { btn.classList.remove('enabled'); btn.title = 'Clique para ativar notificações'; }
+      if (label) label.textContent = 'Notificações';
+      showToast('Notificações desativadas.', true);
+      console.log('[Push] Subscription removida');
+    } catch(e) {
+      showToast('Erro ao desativar: ' + e.message, false);
+    }
+    return;
+  }
+
+  // ── ATIVAR ─────────────────────────────────────────────────
   try {
-    // Pede permissão
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       showToast('Permissão de notificação negada.', false);
       return;
     }
 
-    // Cria subscription
-    const subscription = await _swRegistration.pushManager.subscribe({
+    const newSub = await _swRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
-    // Envia subscription para o app.py salvar
     const res = await fetch(PUSH_SUBSCRIBE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: subscription.toJSON() }),
+      body: JSON.stringify({ subscription: newSub.toJSON() }),
     });
 
     if (res.ok) {
-      if (btn) { btn.classList.add('enabled'); }
+      if (btn)   { btn.classList.add('enabled'); btn.title = 'Clique para desativar notificações'; }
       if (label) label.textContent = 'Notificações ativas';
       showToast('Notificações ativadas! 🔔', true);
-      console.log('[Push] Subscription registrada no servidor');
     } else {
       throw new Error('Servidor retornou ' + res.status);
     }
   } catch(e) {
-    console.error('[Push] Erro:', e);
+    console.error('[Push] Erro ao ativar:', e);
     showToast('Erro ao ativar notificações: ' + e.message, false);
   }
 }
 
-// Push é iniciado diretamente no initDashboard abaixo
+// Push iniciado no initDashboard
 
 /* ══ INICIALIZAÇÃO FINAL ══
    Processado AQUI — depois de todas as funções estarem definidas,
