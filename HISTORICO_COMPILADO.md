@@ -11,13 +11,11 @@
 | `index.html` | `Fred-Alexandrino/PAINELDEFALHAS` | 2687 |
 | `sw.js` | `Fred-Alexandrino/PAINELDEFALHAS` | 134 |
 
-> Todos publicados diretamente via API do GitHub (sem precisar fazer push manual).
+> Todos publicados diretamente via API do GitHub — sem push manual.
 
 ---
 
 ## COMO PUBLICAR ARQUIVOS DIRETAMENTE NO GITHUB
-
-Para publicar sem abrir o GitHub, use o script abaixo com um token pessoal:
 
 ```python
 import requests, base64
@@ -28,8 +26,7 @@ HEADERS = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github.
 def get_sha(repo, path):
     r = requests.get(
         f"https://api.github.com/repos/Fred-Alexandrino/{repo}/contents/{path}",
-        headers=HEADERS
-    )
+        headers=HEADERS)
     return r.json().get("sha") if r.status_code == 200 else None
 
 def push_file(repo, path, local_path, message):
@@ -40,25 +37,21 @@ def push_file(repo, path, local_path, message):
     if sha: payload["sha"] = sha
     r = requests.put(
         f"https://api.github.com/repos/Fred-Alexandrino/{repo}/contents/{path}",
-        headers=HEADERS, json=payload
-    )
+        headers=HEADERS, json=payload)
     return r.status_code
 
-# Exemplos de uso:
-push_file("painel-falhas",   "app.py",     "/caminho/app.py",     "fix: descrição")
-push_file("PAINELDEFALHAS",  "index.html", "/caminho/index.html", "feat: descrição")
-push_file("PAINELDEFALHAS",  "sw.js",      "/caminho/sw.js",      "feat: descrição")
+# Uso:
+push_file("painel-falhas",  "app.py",     "/caminho/app.py",     "fix: descrição")
+push_file("PAINELDEFALHAS", "index.html", "/caminho/index.html", "feat: descrição")
+push_file("PAINELDEFALHAS", "sw.js",      "/caminho/sw.js",      "feat: descrição")
 ```
 
-**Como gerar o token:**
-1. github.com → foto → **Settings** → **Developer settings**
-2. **Personal access tokens** → **Tokens (classic)**
-3. **Generate new token** → marque ✅ `repo` → **Generate**
-4. Copie o token (`ghp_...`) — aparece só uma vez
+**Gerar token:** github.com → foto → Settings → Developer settings →
+Personal access tokens → Tokens (classic) → Generate → marque ✅ `repo` → copie (`ghp_...`)
 
 ---
 
-## TODAS AS CORREÇÕES E FEATURES IMPLEMENTADAS
+## TODAS AS CORREÇÕES E FEATURES
 
 ### app.py
 
@@ -95,47 +88,48 @@ Status só é escrito em **3 pontos** em todo o código:
 | 2 | Cards de mensagem com scroll | Altura fixa + scroll independente por card |
 | 3 | Última mensagem em destaque | Borda teal, label "↑ mais recente", aberta por padrão |
 | 4 | Badge processado/pendente | `✅ processado` ou `⏳ pendente` por mensagem |
-| 5 | Botão 🔔 toggle | Ativa e desativa notificações (hover vermelho ao desativar) |
+| 5 | Botão 🔔 toggle | Ativa e desativa notificações |
 | 6 | Ordenar "Registradas recentemente" | ID decrescente = última linha da planilha primeiro |
-| 7 | Barras pulsantes | "Em Aberto" e "Abrir Chamado" pulsam no painel Por Status |
-| 8 | Status idênticos à planilha | 14 status com cores e paleta completa |
+| 7 | Barras pulsantes | "Em Aberto" (laranja) e "Abrir Chamado" (âmbar) pulsam |
+| 8 | Status idênticos à planilha | 12 status com cores distintas |
+| 9 | Vermelho exclusivo para desligamentos | Laranja/âmbar para urgência, vermelho só para usinas desligadas |
 
 ---
 
-## LISTA COMPLETA DE STATUS
+## LISTA DE STATUS (12 — idênticos à planilha)
 
 | Status | Cor | Pulsa | Aba |
 |--------|-----|-------|-----|
-| Em Aberto | Vermelho `#E2543D` | ✅ sim | Ativas |
-| Pausado | Cinza `#64748B` | não | Ativas |
-| Aguardando Cliente | Roxo `#A855F7` | não | Ativas |
-| Aguardando Fabricante | Laranja `#FB923C` | não | Ativas |
-| Aguardando Equipamento | Âmbar `#F59E0B` | não | Ativas |
-| Em Andamento | Amarelo `#EAB308` | não | Ativas |
-| Corrigir Ronda - COS | Azul claro `#60A5FA` | não | Ativas |
-| Abrir Chamado | Vermelho vivo `#FF4444` | ✅ sim | Ativas |
-| Solicitar OS | Lilás `#C084FC` | não | Ativas |
-| Análise de Performance | Ciano `#38BDF8` | não | Ativas |
-| Análise Engenharia | Índigo `#818CF8` | não | Ativas |
-| Concluído | Verde `#22C55E` | não | Histórico |
-| Resolvido | Verde escuro `#10B981` | não | Histórico |
-| Fechado | Cinza `#6B7780` | não | Histórico |
+| Em Aberto | 🟠 Laranja `#F97316` | ✅ | Ativas |
+| Pausado | ⚫ Cinza `#64748B` | — | Ativas |
+| Aguardando Cliente | 🟣 Roxo `#A855F7` | — | Ativas |
+| Aguardando Fabricante | 🟧 Laranja claro `#FB923C` | — | Ativas |
+| Aguardando Equipamento | 🟡 Âmbar `#F59E0B` | — | Ativas |
+| Em Andamento | 🩵 Teal `#3FC1B0` | — | Ativas |
+| Corrigir Ronda - COS | 🔵 Azul `#60A5FA` | — | Ativas |
+| Abrir Chamado | 🟡 Âmbar vivo `#FBBF24` | ✅ | Ativas |
+| Solicitar OS | 💜 Lilás `#C084FC` | — | Ativas |
+| Análise de Performance | 🩵 Ciano `#38BDF8` | — | Ativas |
+| Análise Engenharia | 💙 Índigo `#818CF8` | — | Ativas |
+| Concluído | 🟢 Verde `#22C55E` | — | Histórico |
 
 ---
 
 ## ESTRUTURA DO app.py
 
 ### Endpoints Flask
+
 | Endpoint | Descrição |
 |----------|-----------|
-| `POST /webhook` | Recebe mensagens em tempo real |
+| `POST /webhook` | Recebe mensagens em tempo real do server.js |
 | `POST /rondas` | Reprocessa últimas 6h + limpeza log |
-| `POST /rondas/grupos` | Histórico visual por grupo |
+| `POST /rondas/grupos` | Histórico visual por grupo (somente leitura) |
 | `POST /push/subscribe` | Registra dispositivo VAPID |
-| `GET /health` | Status (UptimeRobot) |
-| `GET /limpar-duplicatas?secret=falhas2026` | Limpeza manual |
+| `GET /health` | Status do servidor (UptimeRobot) |
+| `GET /limpar-duplicatas?secret=falhas2026` | Limpeza manual de duplicatas |
 
 ### Funções principais
+
 | Função | Descrição |
 |--------|-----------|
 | `eh_ronda_status_ok()` | Detecta ronda sem falha → ignora |
@@ -147,6 +141,33 @@ Status só é escrito em **3 pontos** em todo o código:
 | `processar_texto(texto, origem)` | Orquestra tudo |
 | `limpar_log_antigo()` | Remove linhas > 5 dias |
 | `ler_log_historico()` | Lê todas as msgs (inclui processadas) |
+
+### Formatos de mensagem suportados
+
+**COS Grid (bullets ·)**
+```
+🔴Usina: Araputanga
+· Problemas: Usina desligada
+· Descrição dos Problemas: Atuação das proteções 27/59  → CAUSA
+· Impacto: Usina toda                                   → EQUIP. IMPACTADOS
+· Equipe Acionada: @driano                              → status = Em Andamento
+· Nº da OS: 8576
+```
+
+**Original (emojis + asteriscos)**
+```
+🔴 DESVIO: Boa Esperança do Sul 1
+* Problema: Tracker 2 com defeito interno
+* Equipe Acionada: sim, Rodolfo
+* Nº da OS: 981
+```
+
+**Ronda diária OK → IGNORADA (não cria ocorrência)**
+```
+RONDA DIÁRIA - 29/06/2026
+2. Ocorrências durante o turno: Sem Ocorrência.
+3. Ocorrências pendentes: Sem Ocorrência.
+```
 
 ---
 
@@ -213,6 +234,16 @@ Status só é escrito em **3 pontos** em todo o código:
 | COS Sudeste | `120363423533840348@g.us` |
 | COS Norte | `120363421052607450@g.us` |
 
+### Catálogo de usinas (24)
+
+| Cliente | Usinas |
+|---------|--------|
+| RENOGRID | Nova Xavantina I/II, Colíder I/II, Nobres, Elias Fausto, Crateús |
+| THOPEN | Boa Esperança do Sul I/II, Ibaté I/II, Matão 1, Matão II-Topázio, Sítio Bonfim, Poconé, Canarana I/II, Ribeirão Cascalheira |
+| 2C | Araputanga, Sete Lagoas |
+| GD Energy | Guajirú, Sol do Norte I/II |
+| Alves Lima | ABC Morada Nova |
+
 ---
 
 ## STATUS ATUAL (29/06/2026)
@@ -220,15 +251,17 @@ Status só é escrito em **3 pontos** em todo o código:
 ### ✅ Funcionando
 - WhatsApp conectado (10 grupos)
 - Parse dos 2 formatos + ronda diária OK ignorada
-- Status imutável em updates
+- Status imutável em updates (só muda na criação/normalização)
 - Deduplicação em 4 níveis
 - "Aguardando Fabricante" detectado automaticamente
 - Log com limpeza automática > 5 dias
 - Modal rondas em tela cheia com sidebar
-- 14 status idênticos à planilha com cores próprias
-- "Em Aberto" e "Abrir Chamado" pulsam nas barras
-- Ordenar por "Registradas recentemente" (ID desc)
-- Botão 🔔 toggle ativar/desativar
+- 12 status idênticos à planilha com cores distintas
+- "Em Aberto" (laranja) e "Abrir Chamado" (âmbar) pulsam
+- Vermelho exclusivo para desligamentos
+- Ordenar por "Registradas recentemente" (ID decrescente)
+- Botão 🔔 toggle ativar/desativar notificações
+- sw.js com cache offline
 - Publicação direta no GitHub via API
 
 ### ⚠ Pendente
