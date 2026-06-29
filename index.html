@@ -594,7 +594,8 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 /* Lista de mensagens com scroll */
 .rondas-msgs-list{
   flex:1;overflow-y:auto;padding:14px 18px;
-  display:flex;flex-direction:column;gap:12px;
+  display:flex;flex-direction:column;gap:10px;
+  /* sem overflow:hidden — cada card tem seu próprio scroll */
 }
 .rondas-msgs-list::-webkit-scrollbar{width:5px;}
 .rondas-msgs-list::-webkit-scrollbar-track{background:transparent;}
@@ -607,7 +608,17 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
   border-radius:10px;overflow:hidden;
   transition:border-color .15s;
 }
-.ronda-msg-card:hover{border-color:var(--border-soft);}
+.ronda-msg-card:hover{border-color:rgba(125,200,240,.25);}
+/* Card mais recente — destaque */
+.ronda-msg-card.latest{
+  border-color:rgba(63,193,176,.35);
+  box-shadow:0 0 0 1px rgba(63,193,176,.12);
+}
+.ronda-msg-card.latest .ronda-msg-card-head{
+  background:rgba(63,193,176,.07);
+  border-bottom-color:rgba(63,193,176,.2);
+}
+.ronda-msg-card.latest .ronda-msg-ts{color:var(--teal);}
 .ronda-msg-card-head{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 12px;border-bottom:1px solid var(--border-soft);
@@ -630,19 +641,29 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 .ronda-msg-toggle-icon svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s;}
 .ronda-msg-toggle-icon.open svg{transform:rotate(180deg);}
 
-/* Corpo da mensagem — sempre visível com scroll */
+/* Corpo da mensagem — altura fixa com scroll */
 .ronda-msg-body{
-  padding:12px 14px;
+  padding:0 14px;
   font-size:12.5px;color:var(--text);
   white-space:pre-wrap;word-break:break-word;line-height:1.65;
-  max-height:0;overflow:hidden;
-  transition:max-height .3s cubic-bezier(.4,0,.2,1);
+  height:0;overflow:hidden;
+  transition:height .25s cubic-bezier(.4,0,.2,1), padding .25s;
 }
 .ronda-msg-body.open{
-  max-height:600px;overflow-y:auto;
+  /* altura padrão para mensagens antigas/menores */
+  height:120px;
+  overflow-y:auto;
+  padding:12px 14px;
 }
-.ronda-msg-body.open::-webkit-scrollbar{width:4px;}
-.ronda-msg-body.open::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+/* Última mensagem (mais recente) — destaque maior */
+.ronda-msg-card.latest .ronda-msg-body.open{
+  height:240px;
+}
+/* Scrollbar */
+.ronda-msg-body::-webkit-scrollbar{width:4px;}
+.ronda-msg-body::-webkit-scrollbar-track{background:transparent;}
+.ronda-msg-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+.ronda-msg-body::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
 
 /* Estado vazio */
 .rondas-empty{
@@ -2299,8 +2320,11 @@ function selecionarGrupoRonda(gid) {
     return;
   }
 
-  // Renderiza cards de mensagem — todos expandidos por padrão
+  // Renderiza cards de mensagem
+  // O backend retorna do mais antigo para o mais novo → último índice = mais recente
+  const ultimoIdx = msgs.length - 1;
   lista.innerHTML = msgs.map((m, mi) => {
+    const isLatest = mi === ultimoIdx;
     const procBadge = m.processado
       ? `<span class="ronda-msg-badge proc">✅ processado</span>`
       : `<span class="ronda-msg-badge pend">⏳ pendente</span>`;
@@ -2308,29 +2332,42 @@ function selecionarGrupoRonda(gid) {
       ? `<span class="ronda-msg-ts">${esc(m.timestamp)}</span>`
       : '';
     const texto = esc(m.texto || '');
-    return `<div class="ronda-msg-card">
+    // Card mais recente: aberto por padrão. Antigos: fechados por padrão
+    const bodyOpen = isLatest ? 'open' : '';
+    const iconOpen = isLatest ? 'open' : '';
+    const latestClass = isLatest ? 'latest' : '';
+    const latestLabel = isLatest
+      ? `<span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--teal);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-left:4px;">↑ mais recente</span>`
+      : '';
+    return `<div class="ronda-msg-card ${latestClass}">
       <div class="ronda-msg-card-head" data-card="${gid}-${mi}">
-        ${ts}
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          ${ts}${latestLabel}
+        </div>
         ${procBadge}
-        <button class="ronda-msg-toggle-icon open" data-card="${gid}-${mi}" title="Recolher">
-          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        <button class="ronda-msg-toggle-icon ${iconOpen}" data-card="${gid}-${mi}" title="${isLatest?'Recolher':'Expandir'}">
+          <svg viewBox="0 0 24 24"><polyline points="${isLatest?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg>
         </button>
       </div>
-      <div class="ronda-msg-body open" id="rmb-${gid.replace(/[^a-z0-9]/gi,'-')}-${mi}">${texto}</div>
+      <div class="ronda-msg-body ${bodyOpen}" id="rmb-${gid.replace(/[^a-z0-9]/gi,'-')}-${mi}">${texto}</div>
     </div>`;
   }).join('');
 
   // Toggle de cada card
   lista.querySelectorAll('.ronda-msg-card-head').forEach(head => {
     head.addEventListener('click', () => {
-      const cardId = head.dataset.card;
-      const safeId = cardId.replace(/[^a-z0-9]/gi,'-');
-      const body = lista.querySelector(`#rmb-${safeId}`);
+      const [gidPart, miPart] = head.dataset.card.split(/(?<=\D)(?=\d+$)/);
+      // reconstrói o id do body: rmb-{gid_safe}-{mi}
+      const card = head.closest('.ronda-msg-card');
+      const body = card?.querySelector('.ronda-msg-body');
       const icon = head.querySelector('.ronda-msg-toggle-icon');
       if(!body) return;
       const isOpen = body.classList.toggle('open');
       icon?.classList.toggle('open', isOpen);
-      icon && (icon.title = isOpen ? 'Recolher' : 'Expandir');
+      if(icon) {
+        icon.title = isOpen ? 'Recolher' : 'Expandir';
+        icon.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="${isOpen?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg>`;
+      }
     });
   });
 
