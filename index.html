@@ -2086,7 +2086,7 @@ function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _d
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.body.classList.add('drawer-open');document.getElementById('drawerBody').scrollTop=0; }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.body.classList.remove('drawer-open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
-const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','Análise de Performance','Análise Engenharia','Resolvido','Fechado'];
+const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','Análise de Performance','Análise Engenharia'];
 
 function _renderDrawer() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
