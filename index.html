@@ -1751,16 +1751,23 @@ function normalizeUsina(raw) {
 }
 
 const STATUS_PALETTE = {
-  'em aberto':           {color:'#E2543D', glow:'rgba(226,84,61,.55)',  pulse:true},
-  'abrir chamado':       {color:'#FF4444', glow:'rgba(255,68,68,.7)',   pulse:true},
-  'aguardando cliente':  {color:'#A855F7', glow:'rgba(168,85,247,.55)', pulse:false},
-  'aguardando fabricante':{color:'#FB923C',glow:'rgba(251,146,60,.55)', pulse:false},
-  'aguardando equipamento':{color:'#F59E0B',glow:'rgba(245,158,11,.55)',pulse:false},
-  'em andamento':        {color:'#EAB308', glow:'rgba(234,179,8,.55)',  pulse:false},
-  'concluído':           {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
-  'concluido':           {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
-  'resolvido':           {color:'#10B981', glow:'rgba(16,185,129,.55)', pulse:false},
-  'fechado':             {color:'#6B7780', glow:'rgba(107,119,128,.55)',pulse:false},
+  'em aberto':              {color:'#E2543D', glow:'rgba(226,84,61,.55)',  pulse:true},
+  'abrir chamado':          {color:'#FF4444', glow:'rgba(255,68,68,.7)',   pulse:true},
+  'pausado':                {color:'#64748B', glow:'rgba(100,116,139,.55)',pulse:false},
+  'aguardando cliente':     {color:'#A855F7', glow:'rgba(168,85,247,.55)', pulse:false},
+  'aguardando fabricante':  {color:'#FB923C', glow:'rgba(251,146,60,.55)', pulse:false},
+  'aguardando equipamento': {color:'#F59E0B', glow:'rgba(245,158,11,.55)', pulse:false},
+  'em andamento':           {color:'#EAB308', glow:'rgba(234,179,8,.55)',  pulse:false},
+  'corrigir ronda - cos':   {color:'#60A5FA', glow:'rgba(96,165,250,.55)', pulse:false},
+  'solicitar os':           {color:'#C084FC', glow:'rgba(192,132,252,.55)',pulse:false},
+  'análise de performance': {color:'#38BDF8', glow:'rgba(56,189,248,.55)', pulse:false},
+  'analise de performance': {color:'#38BDF8', glow:'rgba(56,189,248,.55)', pulse:false},
+  'análise engenharia':     {color:'#818CF8', glow:'rgba(129,140,248,.55)',pulse:false},
+  'analise engenharia':     {color:'#818CF8', glow:'rgba(129,140,248,.55)',pulse:false},
+  'concluído':              {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
+  'concluido':              {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
+  'resolvido':              {color:'#10B981', glow:'rgba(16,185,129,.55)', pulse:false},
+  'fechado':                {color:'#6B7780', glow:'rgba(107,119,128,.55)',pulse:false},
 };
 const STATUS_AUTO = [{color:'#3FC1B0',glow:'rgba(63,193,176,.55)'},{color:'#60A5FA',glow:'rgba(96,165,250,.55)'},{color:'#F472B6',glow:'rgba(244,114,182,.55)'}];
 const _statusColorCache = {}; let _statusAutoIdx = 0;
@@ -2075,7 +2082,7 @@ function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _d
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.body.classList.add('drawer-open');document.getElementById('drawerBody').scrollTop=0; }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.body.classList.remove('drawer-open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
-const ALL_STATUSES=['Em Aberto','Em Andamento','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Corrigir Ronda - COS','Concluído','Resolvido','Fechado'];
+const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','Análise de Performance','Análise Engenharia','Resolvido','Fechado'];
 
 function _renderDrawer() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
