@@ -517,10 +517,150 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 .rondas-btn:disabled{opacity:.5;cursor:not-allowed;}
 .rondas-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
 .rondas-btn.loading svg{animation:spin .7s linear infinite;}
-.rondas-overlay{position:fixed;inset:0;background:rgba(8,12,18,.82);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:200;padding:24px;}
+/* ══ MODAL RONDAS — tela cheia com painel lateral ══ */
+.rondas-overlay{position:fixed;inset:0;background:rgba(8,12,18,.88);backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:center;z-index:200;}
 .rondas-overlay.open{display:flex;}
-.rondas-modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:28px;box-shadow:var(--shadow);border-top:4px solid #7DC8F0;animation:modalIn .2s cubic-bezier(.2,.8,.4,1);}
-.rondas-modal h3{font-size:16px;font-weight:700;margin-bottom:16px;}
+
+/* Modal principal: ocupa quase toda a tela */
+.rondas-modal{
+  display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:0;width:100%;max-width:100%;
+  box-shadow:var(--shadow);
+  animation:modalIn .2s cubic-bezier(.2,.8,.4,1);
+  overflow:hidden;
+}
+@media(min-width:640px){
+  .rondas-overlay{padding:20px;}
+  .rondas-modal{border-radius:16px;max-width:1100px;max-height:calc(100vh - 40px);}
+}
+
+/* Cabeçalho do modal */
+.rondas-modal-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  background:var(--panel);flex:none;
+}
+.rondas-modal-head h3{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;}
+.rondas-modal-head h3 svg{width:16px;height:16px;stroke:#7DC8F0;fill:none;stroke-width:2;flex:none;}
+.rondas-modal-close{
+  background:var(--panel-alt);border:1px solid var(--border);
+  color:var(--text-faint);width:30px;height:30px;border-radius:8px;
+  font-size:16px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex:none;transition:.15s;
+}
+.rondas-modal-close:hover{color:var(--red);border-color:var(--red);}
+
+/* Layout de 2 colunas: sidebar grupos + área de mensagens */
+.rondas-body{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+/* Sidebar: lista de grupos */
+.rondas-sidebar{
+  width:220px;flex:none;
+  border-right:1px solid var(--border);
+  overflow-y:auto;background:var(--panel-alt);
+}
+@media(max-width:639px){.rondas-sidebar{width:130px;}}
+.rondas-sidebar::-webkit-scrollbar{width:3px;}
+.rondas-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+.rondas-grupo-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;cursor:pointer;
+  border-bottom:1px solid var(--border-soft);
+  transition:.15s;position:relative;
+}
+.rondas-grupo-item:hover{background:var(--panel);}
+.rondas-grupo-item.active{background:var(--panel);border-left:3px solid #7DC8F0;}
+.rondas-grupo-item.active .rg-nome{color:#7DC8F0;}
+.rg-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--text-faint);}
+.rg-dot.has-msgs{background:var(--teal);}
+.rg-dot.has-pendentes{background:var(--amber);animation:dotpulse 2s infinite;}
+.rg-info{flex:1;min-width:0;}
+.rg-nome{font-size:11.5px;font-weight:600;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rg-count{font-family:'Geist Mono',monospace;font-size:10px;color:var(--text-faint);margin-top:2px;}
+
+/* Área principal: mensagens do grupo selecionado */
+.rondas-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+.rondas-main-head{
+  padding:12px 18px;border-bottom:1px solid var(--border);
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--panel);
+}
+.rondas-main-titulo{font-size:13px;font-weight:700;color:#7DC8F0;}
+.rondas-main-sub{font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;margin-top:2px;}
+
+/* Lista de mensagens com scroll */
+.rondas-msgs-list{
+  flex:1;overflow-y:auto;padding:14px 18px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.rondas-msgs-list::-webkit-scrollbar{width:5px;}
+.rondas-msgs-list::-webkit-scrollbar-track{background:transparent;}
+.rondas-msgs-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+.rondas-msgs-list::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
+
+/* Card de mensagem individual */
+.ronda-msg-card{
+  background:var(--panel-alt);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+  transition:border-color .15s;
+}
+.ronda-msg-card:hover{border-color:var(--border-soft);}
+.ronda-msg-card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px solid var(--border-soft);
+  background:rgba(0,0,0,.12);cursor:pointer;user-select:none;
+}
+.ronda-msg-card-head:hover{background:rgba(0,0,0,.2);}
+.ronda-msg-ts{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--text-faint);}
+.ronda-msg-badge{
+  font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:700;
+  padding:2px 8px;border-radius:99px;
+}
+.ronda-msg-badge.proc{background:rgba(63,193,176,.12);color:var(--teal);border:1px solid rgba(63,193,176,.3);}
+.ronda-msg-badge.pend{background:rgba(234,179,8,.08);color:var(--sla-warn);border:1px solid rgba(234,179,8,.25);}
+.ronda-msg-toggle-icon{
+  width:20px;height:20px;border-radius:5px;
+  background:transparent;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-faint);transition:.15s;flex:none;
+}
+.ronda-msg-toggle-icon svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s;}
+.ronda-msg-toggle-icon.open svg{transform:rotate(180deg);}
+
+/* Corpo da mensagem — sempre visível com scroll */
+.ronda-msg-body{
+  padding:12px 14px;
+  font-size:12.5px;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;line-height:1.65;
+  max-height:0;overflow:hidden;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1);
+}
+.ronda-msg-body.open{
+  max-height:600px;overflow-y:auto;
+}
+.ronda-msg-body.open::-webkit-scrollbar{width:4px;}
+.ronda-msg-body.open::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+/* Estado vazio */
+.rondas-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;color:var(--text-faint);gap:10px;padding:40px;
+  text-align:center;
+}
+.rondas-empty svg{width:36px;height:36px;stroke:var(--border);fill:none;stroke-width:1.4;}
+.rondas-empty span{font-size:13px;}
+
+/* Rodapé */
+.rondas-modal-footer{
+  display:flex;gap:8px;padding:12px 18px;
+  border-top:1px solid var(--border);flex:none;
+  background:var(--panel);flex-wrap:wrap;
+}
+
+/* Chips de resultado (tela inicial) */
 .rondas-result-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-soft);font-family:'Geist Mono',monospace;font-size:12px;cursor:pointer;border-radius:6px;transition:.15s;padding-left:6px;padding-right:6px;}
 .rondas-result-row:last-child{border-bottom:none;}
 .rondas-result-row.clickable:hover{background:var(--panel-alt);}
@@ -529,45 +669,9 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 .rondas-item-list.open{display:flex;}
 .rondas-item-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;font-family:'Geist Mono',monospace;font-size:11px;background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:.15s;}
 .rondas-item-chip:hover{border-color:var(--amber);color:var(--amber);}
-.rondas-modal-footer{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
-.ronda-msg-preview{
-  font-size:11px;color:var(--text-dim);
-  border-top:1px solid var(--border-soft);
-  padding-top:6px;margin-top:6px;
-  white-space:pre-wrap;word-break:break-word;
-  max-height:56px;overflow:hidden;
-  cursor:pointer;position:relative;
-  transition:max-height .35s cubic-bezier(.4,0,.2,1);
-  border-radius:4px;
-}
-.ronda-msg-preview.expanded{
-  max-height:320px;
-  overflow-y:auto;
-  overflow-x:hidden;
-  cursor:default;
-  padding-right:6px;
-}
-/* Scrollbar estilizada dentro da preview expandida */
-.ronda-msg-preview.expanded::-webkit-scrollbar{width:4px;}
-.ronda-msg-preview.expanded::-webkit-scrollbar-track{background:transparent;}
-.ronda-msg-preview.expanded::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
-.ronda-msg-preview.expanded::-webkit-scrollbar-thumb:hover{background:var(--text-faint);}
-/* Gradiente de "tem mais" só quando recolhido */
-.ronda-msg-preview::after{
-  content:"";position:absolute;bottom:0;left:0;right:0;
-  height:22px;
-  background:linear-gradient(transparent,var(--panel-alt));
-  pointer-events:none;transition:opacity .2s;
-}
-.ronda-msg-preview.expanded::after{display:none;}
-.ronda-msg-toggle{
-  display:inline-flex;align-items:center;gap:4px;
-  font-family:'Geist Mono',monospace;font-size:10px;
-  color:var(--teal);cursor:pointer;margin-top:4px;
-  background:none;border:none;padding:0;
-}
-.ronda-msg-toggle svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s;}
-.ronda-msg-toggle.expanded svg{transform:rotate(180deg);}
+/* Manter rondas-msg antigo (compatibilidade com tela de resultado) */
+.ronda-msg-preview{display:none;}
+.ronda-msg-toggle{display:none;}
 .rondas-log-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(91,155,213,.08);border:1px solid rgba(91,155,213,.25);color:var(--blue);border-radius:8px;padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;text-decoration:none;white-space:nowrap;}
 .rondas-log-btn:hover{background:rgba(91,155,213,.18);}
 .rondas-log-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
@@ -1120,10 +1224,57 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
 
 <!-- Modal Verificar Rondas -->
 <div class="rondas-overlay" id="rondasOverlay">
-  <div class="rondas-modal">
-    <h3>Verificar Rondas — Resultado</h3>
-    <div id="rondasResult"></div>
-    <button class="btn-ghost" style="margin-top:20px;width:100%;" id="rondasCloseBtn">Fechar</button>
+  <div class="rondas-modal" id="rondasModal">
+
+    <!-- Cabeçalho -->
+    <div class="rondas-modal-head">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span id="rondasModalTitulo">Verificar Rondas</span>
+      </h3>
+      <button class="rondas-modal-close" id="rondasCloseBtn" title="Fechar">✕</button>
+    </div>
+
+    <!-- Corpo: resultado OU visualizador por grupo -->
+    <div id="rondasResult" style="padding:24px;overflow-y:auto;flex:1;"></div>
+
+    <!-- Corpo: layout 2 colunas (grupos) — oculto por padrão -->
+    <div class="rondas-body" id="rondasBodyGrupos" style="display:none;">
+      <!-- Sidebar de grupos -->
+      <div class="rondas-sidebar" id="rondasSidebar"></div>
+      <!-- Área de mensagens -->
+      <div class="rondas-main">
+        <div class="rondas-main-head">
+          <div>
+            <div class="rondas-main-titulo" id="rondasGrupoTitulo">Selecione um grupo</div>
+            <div class="rondas-main-sub" id="rondasGrupoSub"></div>
+          </div>
+          <button class="rondas-log-btn" onclick="verificarRondas()" style="white-space:nowrap;">
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Resultado
+          </button>
+        </div>
+        <div class="rondas-msgs-list" id="rondasMsgsList">
+          <div class="rondas-empty">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Selecione um grupo na lista</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="rondas-modal-footer" id="rondasFooter">
+      <a class="rondas-log-btn" href="https://docs.google.com/spreadsheets/d/1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs/edit#gid=0" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Ver Log de Mensagens
+      </a>
+      <button class="rondas-log-btn" id="btnBuscarGrupos" style="background:rgba(242,169,59,.08);border-color:rgba(242,169,59,.25);color:var(--amber);">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Últimas rondas por grupo
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -1979,6 +2130,11 @@ async function verificarRondas() {
         }).join('')+`</div>`;
     }
 
+    // Reseta para modo resultado (esconde 2 colunas se estava aberto)
+    document.getElementById('rondasBodyGrupos').style.display = 'none';
+    document.getElementById('rondasResult').style.display = '';
+    document.getElementById('rondasModalTitulo').textContent = 'Verificar Rondas';
+
     document.getElementById('rondasResult').innerHTML=`
       <div class="rondas-result-row clickable" id="rr-novos">
         <span style="color:var(--text-dim)">Novas ocorrências criadas</span>
@@ -2004,16 +2160,7 @@ async function verificarRondas() {
         :`<div style="margin-top:12px;padding:10px 12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);">Nenhuma ronda nova encontrada nas últimas 6h</div>`
       }
       <div style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--text-faint);">Informações duplicadas são ignoradas automaticamente.</div>
-      <div class="rondas-modal-footer">
-        <a class="rondas-log-btn" href="https://docs.google.com/spreadsheets/d/1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs/edit#gid=0" target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          Ver Log de Mensagens
-        </a>
-        <button class="rondas-log-btn" id="btnBuscarGrupos" style="background:rgba(242,169,59,.08);border-color:rgba(242,169,59,.25);color:var(--amber);">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Últimas rondas por grupo
-        </button>
-      </div>`;
+    `;
 
     // Chips clicáveis — abre drawer do card correspondente
     document.querySelectorAll('.rondas-item-chip').forEach(chip=>{
@@ -2059,9 +2206,13 @@ const GRUPOS_NOMES = {
   '120363421052607450@g.us': 'COS Norte',
 };
 
+/* Estado dos grupos carregados */
+let _rondasGruposData = [];
+let _rondasGrupoAtivo = null;
+
 async function buscarRondasPorGrupo() {
   const btn = document.getElementById('btnBuscarGrupos');
-  if(btn){ btn.textContent='Buscando…'; btn.style.opacity='.6'; btn.disabled=true; }
+  if(btn){ btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;animation:spin .7s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Buscando…`; btn.style.opacity='.6'; btn.disabled=true; }
 
   try {
     const res = await fetch(`${RONDAS_URL}/rondas/grupos`, {
@@ -2071,73 +2222,120 @@ async function buscarRondasPorGrupo() {
     });
     if(!res.ok) throw new Error(`Servidor retornou ${res.status}`);
     const data = await res.json();
+    _rondasGruposData = data.grupos || [];
 
-    // Monta modal com últimas mensagens de cada grupo
-    const grupos = data.grupos || [];
-    const html = grupos.length === 0
-      ? `<div style="color:var(--text-faint);font-size:12px;font-family:'Geist Mono',monospace;text-align:center;padding:20px;">Nenhuma mensagem encontrada nas últimas 24h</div>`
-      : grupos.map(g => {
-          const nome = GRUPOS_NOMES[g.id] || g.id;
-          const msgs = (g.mensagens || []).slice(0, 3);
-          const cor = g.total > 0 ? 'var(--teal)' : 'var(--text-faint)';
-          return `
-            <div style="margin-bottom:14px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-family:'Geist Mono',monospace;font-size:11px;font-weight:700;color:${cor};">${esc(nome)}</span>
-                <span style="font-family:'Geist Mono',monospace;font-size:10px;color:var(--text-faint);">${g.total||0} msgs / 24h</span>
-              </div>
-              ${msgs.length > 0
-                ? msgs.map((m,mi)=>{
-                  const msgId = `ronda-msg-${g.id.replace(/[^a-z0-9]/gi,'-')}-${mi}`;
-                  const textoCompleto = esc(m.texto||'');
-                  const longo = (m.texto||'').length > 100;
-                  const tsLabel = m.timestamp ? `<span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--text-faint);margin-right:6px;">${esc(m.timestamp)}</span>` : '';
-                  const procBadge = m.processado
-                    ? `<span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--teal);opacity:.7;">✅ processado</span>`
-                    : `<span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--text-faint);opacity:.6;">• pendente</span>`;
-                  const headerLine = `<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">${tsLabel}${procBadge}</div>`;
-                  return headerLine
-                    + `<div class="ronda-msg-preview" id="${msgId}" data-full="${textoCompleto}">${textoCompleto}</div>`
-                    + (longo ? `<button class="ronda-msg-toggle" data-target="${msgId}"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>ver completo</button>` : '');
-                }).join('<div style="height:8px;border-bottom:1px solid var(--border-soft);margin:6px 0 8px;"></div>')
-                : `<div style="font-size:11px;color:var(--text-faint);">Sem mensagens recentes</div>`
-              }
-            </div>`;
-        }).join('');
+    // Mostra layout de 2 colunas
+    document.getElementById('rondasResult').style.display = 'none';
+    document.getElementById('rondasBodyGrupos').style.display = 'flex';
+    document.getElementById('rondasModalTitulo').textContent = 'Rondas — Últimas 24h';
 
-    document.getElementById('rondasResult').innerHTML = `
-      <h4 style="font-size:13px;margin-bottom:12px;color:var(--text-dim);font-family:'Geist Mono',monospace;">Últimas 24h por grupo de monitoramento</h4>
-      ${html}
-      <div class="rondas-modal-footer">
-        <button class="rondas-log-btn" onclick="verificarRondas()">
-          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-          Voltar ao resultado
-        </button>
-      </div>`;
+    // Monta sidebar
+    renderRondasSidebar();
 
-    // Listeners de expandir/recolher mensagem
-    document.querySelectorAll('.ronda-msg-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = document.getElementById(btn.dataset.target);
-        if (!target) return;
-        const expanded = target.classList.toggle('expanded');
-        btn.classList.toggle('expanded', expanded);
-        btn.innerHTML = expanded
-          ? `<svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;"><polyline points="18 15 12 9 6 15"/></svg>recolher`
-          : `<svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;"><polyline points="6 9 12 15 18 9"/></svg>ver completo`;
-      });
-      // Clicar na mensagem (recolhida) expande — mas quando expandida não fecha (usa scroll)
-      const target = document.getElementById(btn.dataset.target);
-      if (target) target.addEventListener('click', () => {
-        if (!target.classList.contains('expanded')) btn.click();
-      });
-    });
+    // Seleciona o primeiro grupo com mensagens automaticamente
+    const comMsgs = _rondasGruposData.find(g => g.total > 0);
+    if(comMsgs) selecionarGrupoRonda(comMsgs.id);
+    else selecionarGrupoRonda(_rondasGruposData[0]?.id);
 
   } catch(err) {
     showToast('Erro ao buscar grupos: ' + err.message, false);
   } finally {
-    if(btn){ btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Últimas rondas por grupo`; btn.style.opacity='1'; btn.disabled=false; }
+    if(btn){
+      btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Últimas rondas por grupo`;
+      btn.style.opacity='1'; btn.disabled=false;
+    }
   }
+}
+
+function renderRondasSidebar() {
+  const sidebar = document.getElementById('rondasSidebar');
+  if(!sidebar) return;
+
+  sidebar.innerHTML = _rondasGruposData.map(g => {
+    const nome = GRUPOS_NOMES[g.id] || g.id;
+    const temMsgs = (g.total||0) > 0;
+    const temPendente = (g.mensagens||[]).some(m => !m.processado);
+    const dotCls = temPendente ? 'has-pendentes' : temMsgs ? 'has-msgs' : '';
+    return `<div class="rondas-grupo-item" data-gid="${esc(g.id)}" title="${esc(nome)}">
+      <div class="rg-dot ${dotCls}"></div>
+      <div class="rg-info">
+        <div class="rg-nome">${esc(nome)}</div>
+        <div class="rg-count">${g.total||0} msgs</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  sidebar.querySelectorAll('.rondas-grupo-item').forEach(el => {
+    el.addEventListener('click', () => selecionarGrupoRonda(el.dataset.gid));
+  });
+}
+
+function selecionarGrupoRonda(gid) {
+  if(!gid) return;
+  _rondasGrupoAtivo = gid;
+
+  // Atualiza sidebar
+  document.querySelectorAll('.rondas-grupo-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.gid === gid);
+  });
+
+  const grupo = _rondasGruposData.find(g => g.id === gid);
+  if(!grupo) return;
+
+  const nome = GRUPOS_NOMES[gid] || gid;
+  document.getElementById('rondasGrupoTitulo').textContent = nome;
+  document.getElementById('rondasGrupoSub').textContent =
+    `${grupo.total||0} mensagem(s) nas últimas 24h`;
+
+  const lista = document.getElementById('rondasMsgsList');
+  if(!lista) return;
+
+  const msgs = grupo.mensagens || [];
+  if(msgs.length === 0) {
+    lista.innerHTML = `<div class="rondas-empty">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Nenhuma mensagem nas últimas 24h</span>
+    </div>`;
+    return;
+  }
+
+  // Renderiza cards de mensagem — todos expandidos por padrão
+  lista.innerHTML = msgs.map((m, mi) => {
+    const procBadge = m.processado
+      ? `<span class="ronda-msg-badge proc">✅ processado</span>`
+      : `<span class="ronda-msg-badge pend">⏳ pendente</span>`;
+    const ts = m.timestamp
+      ? `<span class="ronda-msg-ts">${esc(m.timestamp)}</span>`
+      : '';
+    const texto = esc(m.texto || '');
+    return `<div class="ronda-msg-card">
+      <div class="ronda-msg-card-head" data-card="${gid}-${mi}">
+        ${ts}
+        ${procBadge}
+        <button class="ronda-msg-toggle-icon open" data-card="${gid}-${mi}" title="Recolher">
+          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+      </div>
+      <div class="ronda-msg-body open" id="rmb-${gid.replace(/[^a-z0-9]/gi,'-')}-${mi}">${texto}</div>
+    </div>`;
+  }).join('');
+
+  // Toggle de cada card
+  lista.querySelectorAll('.ronda-msg-card-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const cardId = head.dataset.card;
+      const safeId = cardId.replace(/[^a-z0-9]/gi,'-');
+      const body = lista.querySelector(`#rmb-${safeId}`);
+      const icon = head.querySelector('.ronda-msg-toggle-icon');
+      if(!body) return;
+      const isOpen = body.classList.toggle('open');
+      icon?.classList.toggle('open', isOpen);
+      icon && (icon.title = isOpen ? 'Recolher' : 'Expandir');
+    });
+  });
+
+  // Scroll para o topo
+  lista.scrollTop = 0;
 }
 
 try { document.getElementById('rondasBtn').addEventListener('click',verificarRondas); document.getElementById('rondasCloseBtn').addEventListener('click',()=>document.getElementById('rondasOverlay').classList.remove('open')); document.getElementById('rondasOverlay').addEventListener('click',e=>{if(e.target.id==='rondasOverlay')document.getElementById('rondasOverlay').classList.remove('open');}); } catch(e){}
