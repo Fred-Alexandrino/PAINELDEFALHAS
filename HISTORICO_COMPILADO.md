@@ -3,169 +3,150 @@
 
 ---
 
-## ARQUIVOS PUBLICADOS
+## ARQUIVOS DESTA SESSÃO
 
-| Arquivo | Repositório | Linhas | Publicado via |
-|---------|-------------|--------|---------------|
-| `app.py` | `Fred-Alexandrino/painel-falhas` | 2173 | API GitHub ✅ |
-| `index.html` | `Fred-Alexandrino/PAINELDEFALHAS` | 2687 | API GitHub ✅ |
-| `sw.js` | `Fred-Alexandrino/PAINELDEFALHAS` | 134 | API GitHub ✅ |
+| Arquivo | Repositório | Linhas |
+|---------|-------------|--------|
+| `app.py` | `Fred-Alexandrino/painel-falhas` | 2173 |
+| `index.html` | `Fred-Alexandrino/PAINELDEFALHAS` | 2687 |
+| `sw.js` | `Fred-Alexandrino/PAINELDEFALHAS` | 134 |
+
+> Todos publicados diretamente via API do GitHub (sem precisar fazer push manual).
+
+---
+
+## COMO PUBLICAR ARQUIVOS DIRETAMENTE NO GITHUB
+
+Para publicar sem abrir o GitHub, use o script abaixo com um token pessoal:
+
+```python
+import requests, base64
+
+TOKEN = "ghp_SEU_TOKEN_AQUI"
+HEADERS = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github.v3+json"}
+
+def get_sha(repo, path):
+    r = requests.get(
+        f"https://api.github.com/repos/Fred-Alexandrino/{repo}/contents/{path}",
+        headers=HEADERS
+    )
+    return r.json().get("sha") if r.status_code == 200 else None
+
+def push_file(repo, path, local_path, message):
+    with open(local_path, "rb") as f:
+        content = base64.b64encode(f.read()).decode()
+    sha = get_sha(repo, path)
+    payload = {"message": message, "content": content}
+    if sha: payload["sha"] = sha
+    r = requests.put(
+        f"https://api.github.com/repos/Fred-Alexandrino/{repo}/contents/{path}",
+        headers=HEADERS, json=payload
+    )
+    return r.status_code
+
+# Exemplos de uso:
+push_file("painel-falhas",   "app.py",     "/caminho/app.py",     "fix: descrição")
+push_file("PAINELDEFALHAS",  "index.html", "/caminho/index.html", "feat: descrição")
+push_file("PAINELDEFALHAS",  "sw.js",      "/caminho/sw.js",      "feat: descrição")
+```
+
+**Como gerar o token:**
+1. github.com → foto → **Settings** → **Developer settings**
+2. **Personal access tokens** → **Tokens (classic)**
+3. **Generate new token** → marque ✅ `repo` → **Generate**
+4. Copie o token (`ghp_...`) — aparece só uma vez
 
 ---
 
 ## TODAS AS CORREÇÕES E FEATURES IMPLEMENTADAS
 
-### app.py — Correções
+### app.py
 
 | # | Problema | Solução | Função |
 |---|----------|---------|--------|
 | 1 | Causa vazia — Descrição dos Problemas não gravada | `causa = descricao` no parse COS Grid | `parse_bloco_cos_grid()` |
 | 2 | Status "Em Aberto" com equipe acionada | Equipe preenchida → `Em Andamento` | `parse_bloco_cos_grid()` |
-| 3 | Normalização criando 8+ duplicatas (Araputanga) | Busca em concluídas antes de criar nova | `processar_texto()` |
+| 3 | Normalização criando 8+ duplicatas | Busca em concluídas antes de criar nova | `processar_texto()` |
 | 4 | Switch deferida OS 981 ≠ Tracker 2 OS 981 | OS + Usina = mesma ocorrência | `buscar_por_fingerprint()` |
 | 5 | Reincidência criando nova linha | Reabre concluída há ≤ 7 dias | `buscar_por_fingerprint()` |
-| 6 | Mensagens de grupo alterando status de ocorrências | Status NUNCA alterado em updates — só na criação e normalização | `atualizar_ocorrencia()` |
-| 7 | Chamado fabricante + campo normal sem status correto | Detecta e define "Aguardando Fabricante" | `detectar_aguardando_fabricante()` |
-| 8 | Ronda diária "Sem Ocorrência" criando registro | `eh_ronda_status_ok()` filtra antes de processar | `webhook` + `/rondas` |
-| 9 | Ibaté I / INV-03 / OS 7937 duplicado | Normaliza OS antes de comparar (`_norm_os`) | `buscar_por_fingerprint()` |
-| 10 | Histórico com "Garantia" repetido sem contexto | `acao_resumida` mapeado para texto descritivo | `extrair_atualizacoes_por_ativo()` |
-| 11 | Log de mensagens crescendo indefinidamente | Limpeza automática > 5 dias | `limpar_log_antigo()` |
-| 12 | `/rondas/grupos` não mostrava mensagens processadas | Nova `ler_log_historico()` inclui todas | `rondas_por_grupo()` |
+| 6 | Mensagens de grupo alterando status | Status NUNCA alterado em updates | `atualizar_ocorrencia()` |
+| 7 | Chamado fabricante + campo normal | Detecta → "Aguardando Fabricante" | `detectar_aguardando_fabricante()` |
+| 8 | Ronda diária "Sem Ocorrência" criando registro | `eh_ronda_status_ok()` filtra antes | `webhook` + `/rondas` |
+| 9 | Ibaté I / INV-03 / OS 7937 duplicado | Normaliza OS antes de comparar | `_norm_os()` |
+| 10 | Histórico com "Garantia" repetido | `acao_resumida` com texto descritivo | `extrair_atualizacoes_por_ativo()` |
+| 11 | Log crescendo indefinidamente | Limpeza automática > 5 dias | `limpar_log_antigo()` |
+| 12 | `/rondas/grupos` não mostrava processadas | Nova `ler_log_historico()` | `rondas_por_grupo()` |
 
 ### Regra de status (definitiva)
 
-O status de uma ocorrência **só é escrito em 2 lugares em todo o código:**
+Status só é escrito em **3 pontos** em todo o código:
 
 | Onde | Status | Condição |
 |------|--------|----------|
-| `gravar_nova_ocorrencia()` | Status do parse (Em Aberto / Em Andamento) | Somente na **criação** |
-| `normalizar_ocorrencia()` | `Concluído` | Somente quando chega ✅ NORMALIZADO |
-| `atualizar_ocorrencia()` | `Aguardando Fabricante` | Somente se chamado + campo normal detectados |
+| `gravar_nova_ocorrencia()` | Status do parse | Somente na **criação** |
+| `normalizar_ocorrencia()` | `Concluído` | Somente quando ✅ NORMALIZADO |
+| `atualizar_ocorrencia()` | `Aguardando Fabricante` | Chamado + campo normal detectados |
 
-Qualquer outra mensagem que chegue (webhook ou ronda) e encontre ocorrência existente → acrescenta no histórico/ação, **status intocado**.
-
----
-
-### index.html — Features e melhorias
+### index.html
 
 | # | Feature | Descrição |
 |---|---------|-----------|
-| 1 | Modal rondas em tela cheia | Layout 2 colunas: sidebar de grupos + área de mensagens |
-| 2 | Sidebar de grupos | Ponto colorido: teal (processado), âmbar pulsante (pendente), cinza (vazio) |
-| 3 | Cards de mensagem com scroll | Altura fixa + `overflow-y:auto` independente por card |
-| 4 | Última mensagem com destaque | Borda teal, label "↑ mais recente", aberta por padrão; antigas fechadas |
-| 5 | Badge processado/pendente | `✅ processado` ou `⏳ pendente` por mensagem |
-| 6 | Timestamp por mensagem | Horário visível no cabeçalho de cada card |
-| 7 | Botão 🔔 toggle | Ativa e desativa notificações (hover vermelho "Desativar" quando ativo) |
-| 8 | Ordenar por "Registradas recentemente" | ID decrescente = última linha da planilha primeiro |
-| 9 | Renomeado "Mais recentes" → "Por data ocorrência" | Evita confusão com o novo botão de registro |
+| 1 | Modal rondas em tela cheia | Sidebar de grupos + área de mensagens navegável |
+| 2 | Cards de mensagem com scroll | Altura fixa + scroll independente por card |
+| 3 | Última mensagem em destaque | Borda teal, label "↑ mais recente", aberta por padrão |
+| 4 | Badge processado/pendente | `✅ processado` ou `⏳ pendente` por mensagem |
+| 5 | Botão 🔔 toggle | Ativa e desativa notificações (hover vermelho ao desativar) |
+| 6 | Ordenar "Registradas recentemente" | ID decrescente = última linha da planilha primeiro |
+| 7 | Barras pulsantes | "Em Aberto" e "Abrir Chamado" pulsam no painel Por Status |
+| 8 | Status idênticos à planilha | 14 status com cores e paleta completa |
 
 ---
 
-## ESTRUTURA DO app.py — FUNÇÕES PRINCIPAIS
+## LISTA COMPLETA DE STATUS
 
-### Google Sheets
-- `get_gc()` — autenticação com service account
-- `get_log_sheet()` — acessa aba "Log de Mensagens"
-- `gravar_log_mensagem()` — grava mensagem recebida no log
-- `ler_log_mensagens()` — lê mensagens NÃO processadas (para /rondas)
-- `ler_log_historico()` — lê TODAS as mensagens (para visualização histórica)
-- `marcar_processado()` — marca linha com ✅
-- `limpar_log_antigo()` — remove linhas > 5 dias automaticamente
+| Status | Cor | Pulsa | Aba |
+|--------|-----|-------|-----|
+| Em Aberto | Vermelho `#E2543D` | ✅ sim | Ativas |
+| Pausado | Cinza `#64748B` | não | Ativas |
+| Aguardando Cliente | Roxo `#A855F7` | não | Ativas |
+| Aguardando Fabricante | Laranja `#FB923C` | não | Ativas |
+| Aguardando Equipamento | Âmbar `#F59E0B` | não | Ativas |
+| Em Andamento | Amarelo `#EAB308` | não | Ativas |
+| Corrigir Ronda - COS | Azul claro `#60A5FA` | não | Ativas |
+| Abrir Chamado | Vermelho vivo `#FF4444` | ✅ sim | Ativas |
+| Solicitar OS | Lilás `#C084FC` | não | Ativas |
+| Análise de Performance | Ciano `#38BDF8` | não | Ativas |
+| Análise Engenharia | Índigo `#818CF8` | não | Ativas |
+| Concluído | Verde `#22C55E` | não | Histórico |
+| Resolvido | Verde escuro `#10B981` | não | Histórico |
+| Fechado | Cinza `#6B7780` | não | Histórico |
 
-### Catálogo de usinas (24 usinas)
-- `canonizar_usina()` — resolve qualquer variação → nome oficial
-- `inferir_cliente()` — retorna cliente dado a usina canônica
-- `usina_permitida()` — verifica se usina está no catálogo
+---
 
-### Detecção de estado
-- `eh_ronda_status_ok()` — detecta ronda diária sem falha → ignora (não cria ocorrência)
-- `detectar_aguardando_fabricante()` — chamado + campo normal → "Aguardando Fabricante"
-- `eh_normalizacao()` — detecta ✅ NORMALIZADO
-- `detectar_status_emoji()` — 🔴🟡🟢 → status
-
-### Parse de mensagens
-- `parse_bloco_cos_grid()` — formato COS Grid (🔴 + bullets ·)
-- `parse_bloco()` — formato original (emojis 🔴🟡🟢 + *)
-- `extrair_atualizacoes_por_ativo()` — extrai por equipamento das rondas
-- `separar_blocos()` — divide texto com múltiplos blocos
-
-### Deduplicação (4 níveis)
-- `buscar_por_fingerprint()`:
-  1. OS + Usina (mais forte — independente do equipamento)
-  2. Usina + tipo/número do equipamento
-  3. Fingerprint de palavras-chave
-  4. Reincidência ≤ 7 dias → reabre ocorrência concluída
-
-### Operações na planilha
-- `atualizar_ocorrencia()` — acrescenta histórico/ação; **NUNCA altera status**
-- `normalizar_ocorrencia()` — fecha ocorrência → Concluído
-- `gravar_nova_ocorrencia()` — cria nova linha com status do parse
-- `processar_texto(texto, origem)` — orquestra tudo
+## ESTRUTURA DO app.py
 
 ### Endpoints Flask
 | Endpoint | Descrição |
 |----------|-----------|
-| `POST /webhook` | Recebe mensagens em tempo real do server.js |
-| `POST /rondas` | Reprocessa últimas 6h + limpeza automática do log |
-| `POST /rondas/grupos` | Histórico visual por grupo (somente leitura) |
+| `POST /webhook` | Recebe mensagens em tempo real |
+| `POST /rondas` | Reprocessa últimas 6h + limpeza log |
+| `POST /rondas/grupos` | Histórico visual por grupo |
 | `POST /push/subscribe` | Registra dispositivo VAPID |
-| `POST /push/test` | Testa notificação push |
-| `GET /health` | Status do servidor (UptimeRobot) |
+| `GET /health` | Status (UptimeRobot) |
 | `GET /limpar-duplicatas?secret=falhas2026` | Limpeza manual |
-| `POST /test` | Debug de parse sem gravar |
 
----
-
-## FORMATOS DE MENSAGEM SUPORTADOS
-
-### COS Grid (bullets ·)
-```
-🔴Usina: Araputanga
-· Problemas: Usina desligada
-· Descrição dos Problemas: Atuação das proteções 27/59  → CAUSA
-· Impacto: Usina toda                                   → EQUIP. IMPACTADOS
-· Ação: Técnico acionado
-· Equipe Acionada: @driano                              → status = Em Andamento
-· Nº da OS: 8576
-```
-
-### Original (emojis + asteriscos)
-```
-🔴 DESVIO: Boa Esperança do Sul 1
-* Problema: Tracker 2 com defeito interno
-* Ação: Acionamento de garantia
-* Equipe Acionada: sim, Rodolfo
-* Nº da OS: 981
-```
-
-### Normalização
-```
-✅ NORMALIZADO: Araputanga
-· Fim da Ocorrência: 29/06/2026 - 08:30
-· Nº da OS: 8576
-```
-
-### Ronda diária OK → IGNORADA
-```
-RONDA DIÁRIA - 29/06/2026
-⚠ Status operacional da usina Alves Lima:
-1. Status Atual: ✅ABC Morada Nova OK.
-2. Ocorrências durante o turno: Sem Ocorrência.
-3. Ocorrências pendentes: Sem Ocorrência.
-```
-
----
-
-## CATÁLOGO DE USINAS (24 usinas)
-
-| Cliente | Usinas |
-|---------|--------|
-| RENOGRID | Nova Xavantina I/II, Colíder I/II, Nobres, Elias Fausto, Crateús |
-| THOPEN | Boa Esperança do Sul I/II, Ibaté I/II, Matão 1, Matão II-Topázio, Sítio Bonfim, Poconé, Canarana I/II, Ribeirão Cascalheira |
-| 2C | Araputanga, Sete Lagoas |
-| GD Energy | Guajirú, Sol do Norte I/II |
-| Alves Lima | ABC Morada Nova |
+### Funções principais
+| Função | Descrição |
+|--------|-----------|
+| `eh_ronda_status_ok()` | Detecta ronda sem falha → ignora |
+| `detectar_aguardando_fabricante()` | Chamado + campo normal → status |
+| `buscar_por_fingerprint()` | Deduplicação 4 níveis |
+| `atualizar_ocorrencia()` | Acrescenta histórico; NUNCA altera status |
+| `normalizar_ocorrencia()` | Fecha ocorrência → Concluído |
+| `gravar_nova_ocorrencia()` | Cria linha com status do parse |
+| `processar_texto(texto, origem)` | Orquestra tudo |
+| `limpar_log_antigo()` | Remove linhas > 5 dias |
+| `ler_log_historico()` | Lê todas as msgs (inclui processadas) |
 
 ---
 
@@ -199,8 +180,8 @@ RONDA DIÁRIA - 29/06/2026
 |---------|-------|--------|
 | `fredalexandrino` | `Fred2004@` | manager — acesso completo |
 | `admin` | `gridco2026` | admin — somente visualização |
-| `thopen` | `thopen2026` | client — só usinas THOPEN |
-| `renogrid` | `reno2026` | client — só usinas RENOGRID |
+| `thopen` | `thopen2026` | client — só THOPEN |
+| `renogrid` | `reno2026` | client — só RENOGRID |
 
 ### URLs importantes
 
@@ -213,7 +194,7 @@ RONDA DIÁRIA - 29/06/2026
 | Planilha | `https://docs.google.com/spreadsheets/d/1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs` |
 | Apps Script | `https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec` |
 
-### UptimeRobot — 2 monitores (intervalo: 5 min)
+### UptimeRobot (intervalo: 5 min)
 - `https://whatsapp-painel-falhas.onrender.com/health`
 - `https://wppconnect-painel.onrender.com/health`
 
@@ -238,27 +219,16 @@ RONDA DIÁRIA - 29/06/2026
 
 ### ✅ Funcionando
 - WhatsApp conectado (10 grupos)
-- Monitoramento em tempo real
-- Parse dos 2 formatos de mensagem
-- 24 usinas no catálogo canônico
+- Parse dos 2 formatos + ronda diária OK ignorada
+- Status imutável em updates
 - Deduplicação em 4 níveis
-- Status imutável em updates (só muda na criação/normalização)
-- Rondas "Sem Ocorrência" ignoradas
 - "Aguardando Fabricante" detectado automaticamente
-- Histórico descritivo por tipo de evento
 - Log com limpeza automática > 5 dias
-- Modal "Últimas rondas" em tela cheia com sidebar
-- Cards com scroll independente + última mensagem em destaque
-- Botão 🔔 toggle ativar/desativar notificações
-- Ordenar por "Registradas recentemente" (ID decrescente)
-- Abas Ativas/Histórico
-- Banner + KPI desligamentos
-- Admin = somente visualização
-- Filtros multiselect
-- Drawer com edição (manager)
-- Mobile responsivo
-- sw.js com cache offline
-- UptimeRobot mantendo serviços ativos
+- Modal rondas em tela cheia com sidebar
+- 14 status idênticos à planilha com cores próprias
+- "Em Aberto" e "Abrir Chamado" pulsam nas barras
+- Ordenar por "Registradas recentemente" (ID desc)
+- Botão 🔔 toggle ativar/desativar
 - Publicação direta no GitHub via API
 
 ### ⚠ Pendente
