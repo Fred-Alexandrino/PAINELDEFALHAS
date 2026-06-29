@@ -1182,10 +1182,11 @@ footer{margin-top:36px;text-align:center;font-size:11px;color:var(--text-faint);
       <div class="sort-group" id="sortGroup">
         <span class="sort-label">ordenar:</span>
         <button class="sort-btn active" data-sort="id">ID</button>
+        <button class="sort-btn" data-sort="newest">Registradas recentemente</button>
         <button class="sort-btn" data-sort="usina">Usina</button>
         <button class="sort-btn" data-sort="equip">Equipamento</button>
         <button class="sort-btn" data-sort="age">Mais antigas</button>
-        <button class="sort-btn" data-sort="recent">Mais recentes</button>
+        <button class="sort-btn" data-sort="recent">Por data ocorrência</button>
       </div>
     </div>
   </div>
@@ -1916,6 +1917,8 @@ function applySortAndRender() {
     const aDeslig=isDesligamento(a)?1:0, bDeslig=isDesligamento(b)?1:0;
     if(aDeslig!==bDeslig) return bDeslig-aDeslig;
     if(sortKey==='id')return +a.id-+b.id;
+    // "Registradas recentemente" = maior ID primeiro (última linha da planilha = mais novo)
+    if(sortKey==='newest')return +b.id-+a.id;
     if(sortKey==='usina')return a.usina.localeCompare(b.usina);
     if(sortKey==='equip')return a.equipamento.localeCompare(b.equipamento);
     if(sortKey==='age'){const da=getFaultAgeDays(a)??-999;const db=getFaultAgeDays(b)??-999;return db-da;}
@@ -2404,7 +2407,7 @@ function setViewMode(mode){viewMode=mode;document.getElementById('viewCards').cl
 
 /* ══ TABELA ══ */
 const TABLE_COLS=[{key:'id',label:'ID',sortable:true,width:'56px'},{key:'usina',label:'Cliente / Usina',sortable:true,width:'155px'},{key:'equip',label:'Equipamento',sortable:true,width:'165px'},{key:'falha',label:'Falha',sortable:false,width:''},{key:'status',label:'Status',sortable:true,width:'140px'},{key:'age',label:'Idade',sortable:true,width:'130px'},{key:'ticket',label:'Ticket',sortable:false,width:'110px'},{key:'det',label:'',sortable:false,width:'72px'}];
-function sortTableData(data){return[...data].sort(function(a,b){var va,vb;if(tableSortKey==='id'){va=+a.id;vb=+b.id;}else if(tableSortKey==='usina'){va=a.usina;vb=b.usina;}else if(tableSortKey==='equip'){va=a.equipamento;vb=b.equipamento;}else if(tableSortKey==='status'){va=a.status;vb=b.status;}else if(tableSortKey==='age'){va=getFaultAgeDays(a);if(va===null)va=-999;vb=getFaultAgeDays(b);if(vb===null)vb=-999;}else return 0;if(typeof va==='string')return va.localeCompare(vb)*tableSortDir;return(va-vb)*tableSortDir;});}
+function sortTableData(data){return[...data].sort(function(a,b){var va,vb;if(tableSortKey==='id'){va=+a.id;vb=+b.id;}else if(tableSortKey==='newest'){return +b.id-+a.id;}else if(tableSortKey==='usina'){va=a.usina;vb=b.usina;}else if(tableSortKey==='equip'){va=a.equipamento;vb=b.equipamento;}else if(tableSortKey==='status'){va=a.status;vb=b.status;}else if(tableSortKey==='age'){va=getFaultAgeDays(a);if(va===null)va=-999;vb=getFaultAgeDays(b);if(vb===null)vb=-999;}else return 0;if(typeof va==='string')return va.localeCompare(vb)*tableSortDir;return(va-vb)*tableSortDir;});}
 function renderTable(data){
   var wrap=document.getElementById('tableWrap');
   if(!data||data.length===0){wrap.innerHTML='<div class="empty-state" style="grid-column:unset"><strong>Nenhum ativo encontrado</strong>Não há registros para os filtros selecionados.<br><button class="reset-link" id="emptyReset2">Limpar filtros</button></div>';var er=document.getElementById('emptyReset2');if(er)er.addEventListener('click',clearFilters);return;}
