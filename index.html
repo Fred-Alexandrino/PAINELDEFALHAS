@@ -261,6 +261,11 @@ select:focus,input[type="text"]:focus{border-color:var(--amber);background:rgba(
 .bar-label{font-size:12.5px;width:115px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
 .bar-track{flex:1;height:6px;background:var(--panel-alt);border-radius:4px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.bar-fill.pulse-bar{animation:barPulse 1.8s ease-in-out infinite;}
+@keyframes barPulse{
+  0%,100%{opacity:1;filter:brightness(1);}
+  50%{opacity:.65;filter:brightness(1.35);}
+}
 .bar-count{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--text-dim);width:22px;text-align:right;flex:none;}
 .grid-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
 .grid-title{display:flex;align-items:baseline;gap:10px;}
@@ -1745,7 +1750,18 @@ function normalizeUsina(raw) {
   return s;
 }
 
-const STATUS_PALETTE = { 'em aberto':{color:'#E2543D',glow:'rgba(226,84,61,.55)'}, 'aguardando cliente':{color:'#A855F7',glow:'rgba(168,85,247,.55)'}, 'aguardando fabricante':{color:'#FB923C',glow:'rgba(251,146,60,.55)'}, 'em andamento':{color:'#EAB308',glow:'rgba(234,179,8,.55)'}, 'concluído':{color:'#22C55E',glow:'rgba(34,197,94,.55)'}, 'concluido':{color:'#22C55E',glow:'rgba(34,197,94,.55)'}, 'resolvido':{color:'#10B981',glow:'rgba(16,185,129,.55)'}, 'fechado':{color:'#6B7780',glow:'rgba(107,119,128,.55)'} };
+const STATUS_PALETTE = {
+  'em aberto':           {color:'#E2543D', glow:'rgba(226,84,61,.55)',  pulse:true},
+  'abrir chamado':       {color:'#FF4444', glow:'rgba(255,68,68,.7)',   pulse:true},
+  'aguardando cliente':  {color:'#A855F7', glow:'rgba(168,85,247,.55)', pulse:false},
+  'aguardando fabricante':{color:'#FB923C',glow:'rgba(251,146,60,.55)', pulse:false},
+  'aguardando equipamento':{color:'#F59E0B',glow:'rgba(245,158,11,.55)',pulse:false},
+  'em andamento':        {color:'#EAB308', glow:'rgba(234,179,8,.55)',  pulse:false},
+  'concluído':           {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
+  'concluido':           {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
+  'resolvido':           {color:'#10B981', glow:'rgba(16,185,129,.55)', pulse:false},
+  'fechado':             {color:'#6B7780', glow:'rgba(107,119,128,.55)',pulse:false},
+};
 const STATUS_AUTO = [{color:'#3FC1B0',glow:'rgba(63,193,176,.55)'},{color:'#60A5FA',glow:'rgba(96,165,250,.55)'},{color:'#F472B6',glow:'rgba(244,114,182,.55)'}];
 const _statusColorCache = {}; let _statusAutoIdx = 0;
 function getStatusPalette(s) { const key=(s||'').toLowerCase().trim(); if(STATUS_PALETTE[key])return STATUS_PALETTE[key]; for(const[k,v]of Object.entries(STATUS_PALETTE)){if(key.includes(k)||k.includes(key))return v;} if(!_statusColorCache[key]){_statusColorCache[key]=STATUS_AUTO[_statusAutoIdx%STATUS_AUTO.length];_statusAutoIdx++;} return _statusColorCache[key]; }
@@ -1992,7 +2008,16 @@ function toggleDesligFilter() {
 function makeBar(id, entries, totalId) {
   const max=Math.max(1,...entries.map(e=>e[1]));
   document.getElementById(totalId).textContent=`${entries.length} tipo${entries.length!==1?'s':''}`;
-  document.getElementById(id).innerHTML=entries.length===0?`<div style="color:var(--text-faint);font-size:12px;">Sem dados.</div>`:entries.map(([label,count,color])=>`<div class="bar-row" data-group="${esc(label)}"><div class="bar-label" title="${esc(label)}">${esc(label)}</div><div class="bar-track"><div class="bar-fill" style="width:${(count/max)*100}%;background:${color||'var(--amber)'}"></div></div><div class="bar-count">${count}</div></div>`).join('');
+  document.getElementById(id).innerHTML=entries.length===0
+  ?`<div style="color:var(--text-faint);font-size:12px;">Sem dados.</div>`
+  :entries.map(([label,count,color,pulse])=>{
+    const pulseClass = pulse ? 'pulse-bar' : '';
+    return `<div class="bar-row" data-group="${esc(label)}">
+      <div class="bar-label" title="${esc(label)}">${esc(label)}</div>
+      <div class="bar-track"><div class="bar-fill ${pulseClass}" style="width:${(count/max)*100}%;background:${color||'var(--amber)'}"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`;
+  }).join('');
 }
 function renderBreakdowns() {
   const uMap={},sMap={},cMap={},usinaClient={};
@@ -2003,7 +2028,10 @@ function renderBreakdowns() {
   filteredAtivas.forEach(d=>{uMap[d.usina]=(uMap[d.usina]||0)+1;usinaClient[d.usina]=d.cliente;});
   filtered.forEach(d=>{sMap[d.status]=(sMap[d.status]||0)+1;const c=categorizeCausa(d.causa);cMap[c]=(cMap[c]||0)+1;});
   makeBar('usinaBars',Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,clientColor(usinaClient[k]).color]),'usinaTotal');
-  makeBar('statusBars',Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,statusColor(k)]),'statusTotal');
+  makeBar('statusBars',Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+    const pal = getStatusPalette(k);
+    return [k, v, pal.color, pal.pulse || false];
+  }),'statusTotal');
   makeBar('causaBars',Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'var(--blue)']),'causaTotal');
   document.querySelectorAll('#usinaBars .bar-row').forEach(r=>r.addEventListener('click',()=>{const v=r.dataset.group;selUsina.has(v)?selUsina.delete(v):selUsina.add(v);msUsina.updateTrigger();msUsina.renderDrop([...new Set(DATA.map(d=>d.usina))].sort());applyFilters();}));
   document.querySelectorAll('#statusBars .bar-row').forEach(r=>r.addEventListener('click',()=>{const v=r.dataset.group;selStatus.has(v)?selStatus.delete(v):selStatus.add(v);msStatus.updateTrigger();msStatus.renderDrop([...new Set(DATA.map(d=>d.status))].sort());applyFilters();}));
