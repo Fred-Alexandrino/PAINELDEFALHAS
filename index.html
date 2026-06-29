@@ -1751,19 +1751,23 @@ function normalizeUsina(raw) {
 }
 
 const STATUS_PALETTE = {
-  'em aberto':              {color:'#E2543D', glow:'rgba(226,84,61,.55)',  pulse:true},
-  'abrir chamado':          {color:'#FF4444', glow:'rgba(255,68,68,.7)',   pulse:true},
-  'pausado':                {color:'#64748B', glow:'rgba(100,116,139,.55)',pulse:false},
+  // Urgentes — laranja vibrante pulsante (≠ vermelho dos desligamentos)
+  'em aberto':              {color:'#F97316', glow:'rgba(249,115,22,.6)',  pulse:true},
+  'abrir chamado':          {color:'#FBBF24', glow:'rgba(251,191,36,.6)',  pulse:true},
+  // Espera
+  'pausado':                {color:'#64748B', glow:'rgba(100,116,139,.5)', pulse:false},
   'aguardando cliente':     {color:'#A855F7', glow:'rgba(168,85,247,.55)', pulse:false},
   'aguardando fabricante':  {color:'#FB923C', glow:'rgba(251,146,60,.55)', pulse:false},
   'aguardando equipamento': {color:'#F59E0B', glow:'rgba(245,158,11,.55)', pulse:false},
-  'em andamento':           {color:'#EAB308', glow:'rgba(234,179,8,.55)',  pulse:false},
+  // Ação
+  'em andamento':           {color:'#3FC1B0', glow:'rgba(63,193,176,.55)', pulse:false},
   'corrigir ronda - cos':   {color:'#60A5FA', glow:'rgba(96,165,250,.55)', pulse:false},
   'solicitar os':           {color:'#C084FC', glow:'rgba(192,132,252,.55)',pulse:false},
   'análise de performance': {color:'#38BDF8', glow:'rgba(56,189,248,.55)', pulse:false},
   'analise de performance': {color:'#38BDF8', glow:'rgba(56,189,248,.55)', pulse:false},
   'análise engenharia':     {color:'#818CF8', glow:'rgba(129,140,248,.55)',pulse:false},
   'analise engenharia':     {color:'#818CF8', glow:'rgba(129,140,248,.55)',pulse:false},
+  // Fechados
   'concluído':              {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
   'concluido':              {color:'#22C55E', glow:'rgba(34,197,94,.55)',  pulse:false},
   'resolvido':              {color:'#10B981', glow:'rgba(16,185,129,.55)', pulse:false},
