@@ -187,6 +187,7 @@ body{
   padding-right:26px;
 }
 .sb-select:focus{border-color:var(--amber);}
+.sb-select option{color:#1A1F26;background:#FFFFFF;}
 [data-theme="light"] .sb-select option{background:#F4F8FC;}
 
 /* Input de busca */
@@ -527,6 +528,7 @@ body{
 .page-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(242,169,59,.08);font-weight:700;}
 .page-btn:disabled{opacity:.35;cursor:not-allowed;}
 .rows-select{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);border-radius:5px;padding:4px 7px;font-size:10.5px;font-family:'Geist Mono',monospace;cursor:pointer;outline:none;}
+.rows-select option,.zs-select option,select option{color:#1A1F26;background:#FFFFFF;}
 
 /* ══════════════════════════════════════════════════════════
    DRAWER LATERAL
@@ -590,6 +592,7 @@ body{
 .d-edit-label::after{content:"";flex:1;height:1px;background:var(--border-soft);}
 .d-edit-input,.d-edit-textarea,.d-edit-select{width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;font-size:12.5px;font-family:'Geist',sans-serif;outline:none;transition:.15s;resize:vertical;}
 .d-edit-select{-webkit-appearance:none;cursor:pointer;}
+.d-edit-select option{color:#1A1F26;background:#FFFFFF;}
 .d-edit-input:focus,.d-edit-textarea:focus,.d-edit-select:focus{border-color:var(--amber);background:rgba(242,169,59,.03);}
 .d-edit-textarea{min-height:74px;line-height:1.55;}
 .d-status-preview{display:flex;align-items:center;gap:7px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:11px;}
@@ -599,9 +602,13 @@ body{
 .drawer-save-btn:hover{background:rgba(242,169,59,.28);}
 .drawer-save-btn:disabled{opacity:.4;cursor:not-allowed;}
 .drawer-save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;}
-.drawer-hist-btn{display:flex;align-items:center;gap:5px;background:rgba(63,193,176,.08);border:1px solid rgba(63,193,176,.3);color:var(--teal);border-radius:7px;padding:9px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;white-space:nowrap;}
+.drawer-hist-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(63,193,176,.08);border:1px solid rgba(63,193,176,.3);color:var(--teal);border-radius:7px;padding:9px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;white-space:nowrap;}
 .drawer-hist-btn:hover{background:rgba(63,193,176,.18);}
 .drawer-hist-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
+.drawer-os-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(91,155,213,.08);border:1px solid rgba(91,155,213,.3);color:#5B9BD5;border-radius:7px;padding:9px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;white-space:nowrap;}
+.drawer-os-btn:hover{background:rgba(91,155,213,.18);}
+.drawer-os-btn:disabled{opacity:.4;cursor:not-allowed;}
+.drawer-os-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
 .save-spinner{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
 .td-stale-pill{display:inline-flex;align-items:center;gap:3px;font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:99px;background:rgba(107,119,128,.1);color:#8FA0AE;border:1px solid rgba(107,119,128,.25);}
 .td-stale-pill svg{width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:2.5;}
@@ -1205,6 +1212,32 @@ body{
   </div>
 </div>
 
+<!-- Modal Solicitar OS -->
+<div class="ch-overlay" id="osOverlay">
+  <div class="ch-modal" style="max-width:620px;border-top-color:#5B9BD5;">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg><h2>Solicitar OS</h2></div><div class="ch-subtitle">Texto gerado a partir do contexto da falha — copie e cole na plataforma de OS</div></div>
+        <button class="modal-close-btn" id="osModalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="osModalBody">
+      <div id="osModalLoading" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Gerando texto da OS…
+      </div>
+      <div id="osModalResult" style="display:none;">
+        <textarea id="osModalText" readonly style="width:100%;min-height:280px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12.5px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;white-space:pre-wrap;"></textarea>
+        <button id="osModalCopyBtn" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar texto
+        </button>
+      </div>
+      <div id="osModalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Rondas -->
 <div class="rondas-overlay" id="rondasOverlay">
   <div class="rondas-modal" id="rondasModal">
@@ -1256,6 +1289,7 @@ body{
   <div class="drawer-body" id="drawerBody"></div>
   <div class="drawer-action-bar" id="drawerActionBar" style="display:none">
     <button class="drawer-hist-btn" id="drawerHistBtn"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Adicionar histórico</button>
+    <button class="drawer-os-btn" id="drawerOsBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
     <button class="drawer-save-btn" id="drawerSaveBtn"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvar na planilha</button>
   </div>
 </aside>
@@ -2001,10 +2035,34 @@ document.getElementById('sbClearBtn')?.addEventListener('click', clearFilters);
 ══════════════════════════════════════════════════════════ */
 function _parseDateBR(str) {
   if (!str) return null;
-  const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  const s = String(str).trim();
+
+  // Formato gviz do Google Sheets para células de Data: "Date(2026,5,30)"
+  // Nota: o mês no gviz é 0-based (5 = junho), igual ao construtor nativo de Date do JS.
+  const mGviz = s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
+  if (mGviz) {
+    const dt = new Date(+mGviz[1], +mGviz[2], +mGviz[3], +(mGviz[4]||0), +(mGviz[5]||0), +(mGviz[6]||0));
+    return isNaN(dt) ? null : dt;
+  }
+
+  // Formato brasileiro: DD/MM/AAAA (com ou sem horário)
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!m) return null;
   const dt = new Date(+m[3], +m[2]-1, +m[1]);
   return isNaN(dt) ? null : dt;
+}
+
+// Formata qualquer valor de data (gviz "Date(...)" ou já em DD/MM/AAAA) para
+// exibição legível nos campos de input do drawer. Usado para nunca mostrar
+// o texto bruto do protocolo gviz na tela.
+function _fmtDateForInput(str) {
+  if (!str) return '';
+  const dt = _parseDateBR(str);
+  if (!dt) return String(str); // não reconhecido — mostra como veio, não quebra
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 function getT1Days(d) {
   const abertura = getOpenDate(d);
@@ -2611,11 +2669,11 @@ function _renderDrawer() {
     // Campos editáveis T1-T4
     const t1t4Fields = `<div class="d-edit-field"><div class="d-edit-label">Datas — Tempo Ativo O&amp;M</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Abertura</label><input class="d-edit-input" id="edit_data_abertura" type="text" placeholder="DD/MM/AAAA HH:MM" value="${esc(d.dataAbertura||'')}"></div>
-        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">1ª ação</label><input class="d-edit-input" id="edit_data_primeira_acao" type="text" placeholder="DD/MM/AAAA" value="${esc(d.dataPrimeiraAcao||'')}"></div>
-        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Encaminhamento (OS)</label><input class="d-edit-input" id="edit_data_encaminhamento" type="text" placeholder="DD/MM/AAAA" value="${esc(d.dataEncaminhamento||'')}"></div>
-        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Retorno fabricante</label><input class="d-edit-input" id="edit_data_retorno_externo" type="text" placeholder="DD/MM/AAAA" value="${esc(d.dataRetornoExterno||'')}"></div>
-        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Fechamento</label><input class="d-edit-input" id="edit_data_fechamento" type="text" placeholder="DD/MM/AAAA" value="${esc(d.dataFechamento||'')}"></div>
+        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Abertura</label><input class="d-edit-input" id="edit_data_abertura" type="text" placeholder="DD/MM/AAAA HH:MM" value="${esc(_fmtDateForInput(d.dataAbertura))}"></div>
+        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">1ª ação</label><input class="d-edit-input" id="edit_data_primeira_acao" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataPrimeiraAcao))}"></div>
+        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Encaminhamento (OS)</label><input class="d-edit-input" id="edit_data_encaminhamento" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataEncaminhamento))}"></div>
+        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Retorno fabricante</label><input class="d-edit-input" id="edit_data_retorno_externo" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataRetornoExterno))}"></div>
+        <div><label style="font-size:10px;color:var(--text-faint);display:block;margin-bottom:4px;">Fechamento</label><input class="d-edit-input" id="edit_data_fechamento" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataFechamento))}"></div>
       </div>
       <div style="font-size:10px;color:var(--text-faint);margin-top:6px;">Preenchimento manual sempre prevalece sobre detecção automática.</div>
     </div>`;
@@ -2637,7 +2695,16 @@ async function _saveDrawerToSheet() {
   const fields={status:document.getElementById('edit_status')?.value,falha:document.getElementById('edit_falha')?.value,causa:document.getElementById('edit_causa')?.value,impactados:document.getElementById('edit_impactados')?.value,acao:document.getElementById('edit_acao')?.value,ticketFabricante:document.getElementById('edit_ticket')?.value,numeroOS:document.getElementById('edit_os')?.value,dataAbertura:document.getElementById('edit_data_abertura')?.value,dataPrimeiraAcao:document.getElementById('edit_data_primeira_acao')?.value,dataEncaminhamento:document.getElementById('edit_data_encaminhamento')?.value,dataRetornoExterno:document.getElementById('edit_data_retorno_externo')?.value,dataFechamento:document.getElementById('edit_data_fechamento')?.value};
   const editor=_currentSession.user||_currentSession.role||'dashboard';
   const changed=[];
-  for(const[field,value]of Object.entries(fields)){if(value===undefined)continue;const original=d[field]||'';if(value.trim()===original.trim())continue;changed.push({field,value:value.trim()});}
+  const dateFieldsSet=new Set(['dataAbertura','dataPrimeiraAcao','dataEncaminhamento','dataRetornoExterno','dataFechamento']);
+  for(const[field,value]of Object.entries(fields)){
+    if(value===undefined)continue;
+    const originalRaw=d[field]||'';
+    // Campos de data: normaliza ambos os lados para DD/MM/AAAA antes de comparar,
+    // já que o valor original pode vir cru do gviz (ex: "Date(2026,5,30)").
+    const original=dateFieldsSet.has(field)?_fmtDateForInput(originalRaw):originalRaw;
+    if(value.trim()===String(original).trim())continue;
+    changed.push({field,value:value.trim()});
+  }
   if(changed.length===0){showToast('Nenhuma alteração detectada.',true);btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;return;}
   const errors=[];
   for(const{field,value}of changed){try{await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,field,value,editor})});d[field]=value;}catch(err){errors.push(field);}}
@@ -2660,6 +2727,89 @@ async function _addHistoryEntry() {
   showToast('Entrada adicionada ao histórico!',true);_renderDrawer();}
   catch(err){showToast('Erro ao adicionar ao histórico.',false);}
 }
+
+/* ══ SOLICITAR OS — gera texto de abertura de OS via IA, contextualizado ══ */
+async function _solicitarOS() {
+  const d=_drawerList[_drawerIndex]; if(!d)return;
+
+  const overlay=document.getElementById('osOverlay');
+  const loading=document.getElementById('osModalLoading');
+  const result=document.getElementById('osModalResult');
+  const errorBox=document.getElementById('osModalError');
+  overlay.style.display='flex';
+  loading.style.display='flex';
+  result.style.display='none';
+  errorBox.style.display='none';
+
+  const systemPrompt = `Você é um engenheiro de O&M (operação e manutenção) de usinas solares, redigindo solicitações de Ordem de Serviço (OS) técnica para equipe de campo.
+
+Gere SEMPRE a saída EXATAMENTE neste formato, sem nenhum texto antes ou depois:
+
+Título:
+<uma linha, objetiva, descrevendo o diagnóstico/inspeção necessária para o equipamento e a falha específica>
+
+Comentários:
+
+* <item 1 do checklist técnico>
+* <item 2 do checklist técnico>
+* <item 3 do checklist técnico>
+* <item 4 ou mais itens, conforme necessário — geralmente entre 4 e 6 itens>
+
+Regras:
+- O checklist deve ser ESPECÍFICO ao tipo de equipamento (inversor, tracker, motor, TCU, câmera/CFTV, nobreak, transformador, chave seccionadora, piranômetro, etc.) e à causa da falha informada — nunca genérico.
+- Use linguagem técnica de campo, direta, em formato de instrução (verbos no infinitivo: verificar, conferir, inspecionar, avaliar, registrar, medir, testar).
+- Considere o histórico cronológico para não repetir verificações já feitas, e para direcionar o checklist ao que ainda falta investigar/resolver.
+- Considere os equipamentos impactados para garantir que o checklist cubra todos eles quando relevante.
+- O título deve mencionar o equipamento/local específico (ex: tracker, inversor, identificação) quando essa informação estiver disponível.
+- Nunca inclua explicações, saudações, ou qualquer texto fora do formato Título/Comentários especificado.`;
+
+  const contexto = `Equipamento: ${d.equipamento || 'não informado'}
+Usina: ${d.usina || 'não informado'}
+Falha: ${d.falha || 'não informado'}
+Causa: ${d.causa || 'não informado'}
+Equipamentos impactados: ${d.impactados || 'não informado'}
+Ações já realizadas: ${d.acao || 'nenhuma registrada'}
+Histórico cronológico:
+${d.historico || 'sem histórico registrado'}`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: [{ role: "user", content: contexto }],
+      })
+    });
+    const data = await response.json();
+    const textBlock = (data.content || []).find(c => c.type === 'text');
+    const texto = textBlock ? textBlock.text.trim() : '';
+    if (!texto) throw new Error('Resposta vazia da IA.');
+
+    document.getElementById('osModalText').value = texto;
+    loading.style.display='none';
+    result.style.display='block';
+  } catch (err) {
+    loading.style.display='none';
+    errorBox.style.display='block';
+    errorBox.textContent = 'Erro ao gerar texto da OS: ' + (err.message || 'falha desconhecida.');
+  }
+}
+
+document.getElementById('osModalClose')?.addEventListener('click', () => { document.getElementById('osOverlay').style.display='none'; });
+document.getElementById('osOverlay')?.addEventListener('click', e => { if(e.target.id==='osOverlay') document.getElementById('osOverlay').style.display='none'; });
+document.getElementById('osModalCopyBtn')?.addEventListener('click', () => {
+  const textarea = document.getElementById('osModalText');
+  textarea.select();
+  navigator.clipboard?.writeText(textarea.value).then(() => {
+    showToast('Texto copiado!', true);
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('Texto copiado!', true);
+  });
+});
 
 
 /* ══ VERIFICAR RONDAS ══
@@ -2987,6 +3137,7 @@ document.getElementById('drawerPrev').addEventListener('click',()=>_navigateDraw
 document.getElementById('drawerNext').addEventListener('click',()=>_navigateDrawer(1));
 document.getElementById('drawerSaveBtn').addEventListener('click',_saveDrawerToSheet);
 document.getElementById('drawerHistBtn').addEventListener('click',_addHistoryEntry);
+document.getElementById('drawerOsBtn').addEventListener('click',_solicitarOS);
 document.addEventListener('keydown',e=>{const drawerOpen=document.getElementById('drawer').classList.contains('open');if(e.key==='Escape'){closeModal();closeChamados();}if(!drawerOpen)return;if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();_navigateDrawer(-1);}if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();_navigateDrawer(1);}});
 
 /* ══ VIEW MODE ══ */
