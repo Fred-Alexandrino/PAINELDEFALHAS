@@ -307,6 +307,36 @@ body{
 }
 .sb-clear-btn:hover{border-color:var(--red);color:var(--red);}
 
+/* Ações rápidas na sidebar */
+.sb-quick-actions{padding:12px 10px 8px;border-top:1px solid var(--border);flex:none;}
+.sb-section-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);font-family:'Geist Mono',monospace;font-weight:700;margin-bottom:8px;}
+.sb-os-box{margin-bottom:8px;}
+.sb-os-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#ededed;border-radius:7px;padding:8px 10px;font-size:12px;font-family:'Geist',sans-serif;resize:none;outline:none;transition:border-color .15s;line-height:1.4;}
+.sb-os-input:focus{border-color:rgba(255,255,255,0.18);}
+.sb-os-input::placeholder{color:#555;}
+.sb-os-btn-gen{width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;border-radius:7px;padding:8px;font-size:11.5px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;}
+.sb-os-btn-gen:hover{background:rgba(255,255,255,0.1);color:#ededed;}
+.sb-os-btn-gen svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+.sb-action-btn{width:100%;display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);color:#F5A623;border-radius:7px;padding:9px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-bottom:6px;}
+.sb-action-btn:hover{background:rgba(245,166,35,.14);border-color:rgba(245,166,35,.35);}
+.sb-action-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
+
+/* Modal de Nova Ocorrência e OS rápida — reutiliza ch-overlay */
+.nova-oc-field{margin-bottom:12px;}
+.nova-oc-field label{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:#666;font-family:'Geist Mono',monospace;font-weight:700;margin-bottom:5px;}
+.nova-oc-input,.nova-oc-select,.nova-oc-textarea{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
+  color:#ededed;border-radius:7px;padding:9px 11px;
+  font-size:13px;font-family:'Geist',sans-serif;outline:none;transition:border-color .15s;
+}
+.nova-oc-input:focus,.nova-oc-select:focus,.nova-oc-textarea:focus{border-color:rgba(255,255,255,0.22);}
+.nova-oc-textarea{resize:vertical;min-height:72px;line-height:1.5;}
+.nova-oc-select option{background:#1a1a1a;color:#ededed;}
+.nova-oc-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.nova-oc-submit{width:100%;background:#fff;border:none;color:#000;border-radius:8px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-top:4px;}
+.nova-oc-submit:hover{background:#e8e8e8;}
+.nova-oc-submit:disabled{opacity:.5;cursor:not-allowed;}
+
 /* Zona 4 — Footer do sidebar */
 .sb-footer{
   padding:12px 14px;border-top:1px solid var(--border-soft);
@@ -1140,7 +1170,27 @@ body{
       <button class="sb-clear-btn" id="sbClearBtn">✕ Limpar filtros</button>
     </div>
 
-    <!-- Zona 4: Footer -->
+    <!-- Zona 4: Ações rápidas -->
+    <div class="sb-quick-actions">
+      <div class="sb-section-label">AÇÕES RÁPIDAS</div>
+
+      <!-- Campo de OS genérica -->
+      <div class="sb-os-box">
+        <textarea id="sbOsInput" class="sb-os-input" placeholder="Descreva o problema para gerar OS…" rows="3"></textarea>
+        <button class="sb-os-btn-gen" onclick="_gerarOSRapida()">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          Gerar texto OS
+        </button>
+      </div>
+
+      <!-- Nova ocorrência -->
+      <button class="sb-action-btn" onclick="_openNovaOcorrencia()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Nova ocorrência
+      </button>
+    </div>
+
+    <!-- Zona 5: Footer -->
     <div class="sb-footer">
       <div class="sb-avatar" id="sbAvatar">FA</div>
       <div class="sb-user">
@@ -1458,6 +1508,81 @@ body{
         </button>
       </div>
       <div id="osModalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Ocorrência -->
+<div class="ch-overlay" id="novaOcOverlay">
+  <div class="ch-modal" style="max-width:540px;border-top-color:var(--amber);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><h2>Nova Ocorrência</h2></div><div class="ch-subtitle">Registrar nova falha diretamente no painel</div></div>
+        <button class="modal-close-btn" id="novaOcClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Cliente</label>
+          <select class="nova-oc-select" id="novaOcCliente"></select>
+        </div>
+        <div class="nova-oc-field">
+          <label>Usina</label>
+          <select class="nova-oc-select" id="novaOcUsina"></select>
+        </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Equipamento</label>
+        <input class="nova-oc-input" id="novaOcEquip" placeholder="Ex: INV-03, Tracker 12, RSU…">
+      </div>
+      <div class="nova-oc-field">
+        <label>Falha</label>
+        <textarea class="nova-oc-textarea" id="novaOcFalha" placeholder="Descreva a falha identificada…" rows="2"></textarea>
+      </div>
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Causa</label>
+          <input class="nova-oc-input" id="novaOcCausa" placeholder="Causa identificada…">
+        </div>
+        <div class="nova-oc-field">
+          <label>Status inicial</label>
+          <select class="nova-oc-select" id="novaOcStatus">
+            <option value="Em Aberto">Em Aberto</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Aguardando Fabricante">Aguardando Fabricante</option>
+            <option value="Aguardando Cliente">Aguardando Cliente</option>
+            <option value="Abrir chamado">Abrir chamado</option>
+          </select>
+        </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Ação realizada</label>
+        <textarea class="nova-oc-textarea" id="novaOcAcao" placeholder="Ação tomada até o momento…" rows="2"></textarea>
+      </div>
+      <div id="novaOcErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
+      <button class="nova-oc-submit" id="novaOcSubmit" onclick="_submeterNovaOcorrencia()">
+        Registrar ocorrência
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal OS Rápida (sidebar) -->
+<div class="ch-overlay" id="osRapidaOverlay">
+  <div class="ch-modal" style="max-width:580px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h2>Solicitação de OS</h2></div><div class="ch-subtitle">Texto gerado a partir da descrição — copie e cole na plataforma</div></div>
+        <button class="modal-close-btn" id="osRapidaClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <textarea id="osRapidaText" readonly style="width:100%;min-height:260px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+      <button onclick="_copiarOsRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar texto
+      </button>
     </div>
   </div>
 </div>
@@ -3064,9 +3189,17 @@ async function _saveDrawerToSheet() {
   if(changed.length===0){_isSaving=false;showToast('Nenhuma alteração detectada.',true);if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}return;}
   const errors=[];
   const SAVE_URL = 'https://whatsapp-painel-falhas.onrender.com/atualizar-campo';
+
+  async function _fetchWithTimeout(url, opts, ms=12000) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), ms);
+    try { return await fetch(url, {...opts, signal: ctrl.signal}); }
+    finally { clearTimeout(tid); }
+  }
+
   for(const{field,value}of changed){
     try{
-      const resp = await fetch(SAVE_URL, {
+      const resp = await _fetchWithTimeout(SAVE_URL, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id:d.id,field,value,editor})
@@ -3075,8 +3208,14 @@ async function _saveDrawerToSheet() {
       if(!result.ok) throw new Error(result.error||'Erro desconhecido');
       d[field]=value;
     }catch(err){
-      log.error && log.error(err);
-      errors.push(field);
+      // Fallback: Apps Script
+      try {
+        const payload = JSON.stringify({id:d.id,field,value,editor});
+        navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
+        d[field]=value; // otimista
+      } catch(e2) {
+        errors.push(field);
+      }
     }
   }
   const newColor=statusColor(d.status);
@@ -3104,20 +3243,36 @@ async function _addHistoryEntry() {
 
   _isAddingHist = true;
   const editor=_currentSession.user||_currentSession.role||'dashboard';
+  const hCtrl = new AbortController();
+  const hTid = setTimeout(() => hCtrl.abort(), 12000);
   try{
-    const hResp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor})
-    });
-    const hResult = await hResp.json();
-    if(!hResult.ok && !hResult.dedup) throw new Error(hResult.error||'Erro ao salvar histórico');
-    const now=new Date();
-    const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
-    showToast('Entrada adicionada ao histórico!',true);
-    _renderDrawer();
+    let hSaved = false;
+    try {
+      const hResp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor}),
+        signal: hCtrl.signal
+      });
+      clearTimeout(hTid);
+      const hResult = await hResp.json();
+      if(hResult.ok || hResult.dedup) hSaved = true;
+    } catch(e) {
+      clearTimeout(hTid);
+      // Fallback: Apps Script
+      const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor});
+      navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
+      hSaved = true; // otimista
+    }
+    if(hSaved) {
+      const now=new Date();
+      const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
+      showToast('Entrada adicionada ao histórico!',true);
+      _renderDrawer();
+    }
   }catch(err){
+    clearTimeout(hTid);
     showToast('Erro ao adicionar ao histórico.',false);
   }finally{
     _isAddingHist = false;
@@ -3629,6 +3784,76 @@ Comentários:
 * Monitorar SCADA por pelo menos 30 minutos após reinicialização verificando Performance Ratio e ausência de novos alarmes.
 * Se alarmes persistirem: isolar novamente o equipamento e solicitar inspeção técnica detalhada.
 * Registrar no log: diagnóstico da falha, ação tomada e resultado da reinicialização.`;
+  }
+
+  // ── 13. VISITA TÉCNICA SEMANAL / RONDA DIÁRIA ────────────────────────
+  if (tem('ronda','ronda diária','ronda diaria','visita técnica','visita tecnica','inspeção diária','inspecao diaria','relatório diário','relatorio diario','checklist')) {
+    return `Título:
+Visita técnica semanal — ronda e inspeção geral da usina ${usinaOrig}
+
+Comentários:
+
+* Verificar status do computador de monitoramento e confirmar que o sistema SCADA/supervisório está operacional e com dados atualizados.
+* Inspecionar o sistema de CFTV: verificar se todas as câmeras estão com sinal, imagem nítida e gravação funcionando; registrar câmeras com problema.
+* Verificar o medidor de irradiação (piranômetro): comparar leitura com condições climáticas do dia e confirmar comunicação com o sistema de monitoramento.
+* Inspecionar os SKIDs: verificar estado dos exaustores (funcionamento, ruídos anormais, temperatura), ventilação interna e ausência de alarmes.
+* Verificar todos os trackers: identificar trackers parados, com erro de comunicação TCU/NCU ou fora da posição correta; registrar quantidade e identificação.
+* Verificar inversores: confirmar que todos estão em operação, sem alarmes ativos; registrar código e horário de eventuais falhas.
+* Verificar otimizadores/otimizadores sem comunicação: registrar quantidade e identificação dos afetados.
+* Inspecionar visualmente a área da usina: verificar presença de vegetação com risco de incêndio, acúmulo de resíduos, danos em módulos ou estruturas.
+* Verificar nível de óleo dos transformadores e inspecionar por sinais de vazamento ou aquecimento anormal.
+* Registrar todas as ocorrências encontradas, com fotos, e comunicar ao COS as que exigem intervenção imediata.`;
+  }
+
+  // ── 14. EXAUSTOR PARADO / VENTILAÇÃO ─────────────────────────────────
+  if (tem('exaustor','ventilação','ventilacao','qgbt parado','exaustor parado','exaustor do qgbt')) {
+    return `Título:
+Inspeção e correção de exaustores parados no ${equipOrig}
+
+Comentários:
+
+* Obter autorização do COS e registrar a intervenção antes de iniciar.
+* Verificar no sistema de monitoramento se há alarmes de temperatura elevada no QGBT/SKID associado aos exaustores parados.
+* Inspecionar visualmente os exaustores: verificar estado físico, rolamentos, hélice, fiação de alimentação e contactoras de acionamento.
+* Confirmar alimentação elétrica dos exaustores com multímetro; verificar fusíveis, disjuntores e contactoras no painel de controle.
+* Substituir contactoras queimadas se identificadas como causa da falha, com peças de mesma especificação.
+* Testar o acionamento de cada exaustor após intervenção e confirmar operação normal (rotação, vazão de ar, temperatura interna).
+* Limpar filtros, grades e dutos de ventilação acumulados com poeira ou resíduos.
+* Monitorar temperatura interna do QGBT/SKID por 30 minutos após a normalização e registrar fotos e evidências.`;
+  }
+
+  // ── 15. VEGETAÇÃO COM RISCO DE INCÊNDIO ──────────────────────────────
+  if (tem('vegetação seca','vegetacao seca','risco de incêndio','risco de incendio','material seco','capim seco')) {
+    return `Título:
+Controle de vegetação seca com risco de incêndio — usina ${usinaOrig}
+
+Comentários:
+
+* Comunicar ao COS e ao supervisor a situação identificada; registrar área afetada com fotos antes de qualquer intervenção.
+* Avaliar extensão e proximidade da vegetação seca em relação a equipamentos, cabos e estruturas da usina.
+* Acionar equipe de roçagem/controle vegetal com equipamentos adequados (roçadeiras, trituradores) e EPIs obrigatórios.
+* Acompanhar execução garantindo que a intervenção permaneça restrita às áreas indicadas, sem danos a cabos, módulos ou estruturas.
+* Verificar ausência de fontes de ignição na área durante toda a atividade (faíscas de equipamentos, cigarros).
+* Confirmar que extintores CO₂ e de pó seco estão disponíveis e acessíveis na área de trabalho como precaução.
+* Após conclusão, inspecionar a área para garantir que não há resíduos secos acumulados próximos a equipamentos energizados.
+* Registrar área coberta, horário de início e término, responsáveis e resultado da intervenção com fotos.`;
+  }
+
+  // ── 16. TCU SEM COMUNICAÇÃO / TRACKER PARADO POR COMUNICAÇÃO ─────────
+  if (tem('tcu sem comunicação','tcu sem comunicacao','tracker parado tcu','tracker parado comunicação','tcu offline')) {
+    return `Título:
+Diagnóstico de falha de comunicação na TCU do ${equipOrig} — tracker parado
+
+Comentários:
+
+* Obter autorização do COS e registrar a ocorrência informando: localização do tracker, identificação da TCU e horário da falha.
+* Verificar no sistema de monitoramento (SunOp/SCADA) os alarmes ativos da TCU e confirmar se outros trackers da mesma cadeia estão afetados.
+* Inspecionar fisicamente a TCU: verificar alimentação elétrica, estado dos conectores, cabos de comunicação e nível de carga da bateria interna.
+* Verificar integridade dos cabos de rede/comunicação desde a TCU até o switch ou NCU mais próximo; substituir cabo danificado se encontrado.
+* Conectar computador via software específico do fabricante para verificar status, configurações e log de erros da TCU.
+* Executar reset da TCU conforme procedimento do fabricante; aguardar inicialização e confirmar reconexão com a NCU no sistema de monitoramento.
+* Testar acionamento manual e automático do tracker após restauração; confirmar que está rastreando corretamente.
+* Monitorar estabilidade da comunicação por 30 minutos e registrar todas as ações realizadas.`;
   }
 
   // ── FALLBACK GENÉRICO ──────────────────────────────────────────────────
@@ -4248,6 +4473,112 @@ async function _toggleNotificacoes() {
   } catch(e) {
     console.error('[Push] Erro ao ativar:', e);
     showToast('Erro ao ativar notificações: ' + e.message, false);
+  }
+}
+
+/* ══ OS RÁPIDA (sidebar) ══ */
+function _gerarOSRapida() {
+  const txt = (document.getElementById('sbOsInput')?.value || '').trim();
+  if (!txt) { showToast('Descreva o problema antes de gerar.', false); return; }
+
+  // Usa a mesma biblioteca de templates, criando um objeto sintético
+  const pseudo = {
+    equipamento: txt,
+    falha: txt,
+    causa: txt,
+    acao: '',
+    historico: '',
+    impactados: '',
+    usina: '',
+  };
+  const resultado = _gerarTextoOS(pseudo);
+
+  document.getElementById('osRapidaText').value = resultado;
+  document.getElementById('osRapidaOverlay').style.display = 'flex';
+}
+
+function _copiarOsRapida() {
+  const ta = document.getElementById('osRapidaText');
+  if (!ta) return;
+  navigator.clipboard?.writeText(ta.value).then(() => showToast('Texto copiado!', true))
+    .catch(() => { ta.select(); document.execCommand('copy'); showToast('Texto copiado!', true); });
+}
+
+document.getElementById('osRapidaClose')?.addEventListener('click', () => { document.getElementById('osRapidaOverlay').style.display = 'none'; });
+document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(e.target.id==='osRapidaOverlay') document.getElementById('osRapidaOverlay').style.display='none'; });
+
+/* ══ NOVA OCORRÊNCIA ══ */
+function _openNovaOcorrencia() {
+  // Popula clientes e usinas
+  const clientes = [...new Set(DATA.map(d => d.cliente))].sort();
+  const selCli = document.getElementById('novaOcCliente');
+  if (selCli) {
+    selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    selCli.onchange = () => {
+      const cli = selCli.value;
+      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
+      const selU = document.getElementById('novaOcUsina');
+      if (selU) selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    };
+    selCli.dispatchEvent(new Event('change'));
+  }
+  // Limpa campos
+  ['novaOcEquip','novaOcFalha','novaOcCausa','novaOcAcao'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('novaOcStatus').value = 'Em Aberto';
+  const errEl = document.getElementById('novaOcErr'); if(errEl) errEl.style.display='none';
+  document.getElementById('novaOcOverlay').style.display = 'flex';
+}
+
+document.getElementById('novaOcClose')?.addEventListener('click', () => { document.getElementById('novaOcOverlay').style.display = 'none'; });
+document.getElementById('novaOcOverlay')?.addEventListener('click', e => { if(e.target.id==='novaOcOverlay') document.getElementById('novaOcOverlay').style.display='none'; });
+
+let _isSubmittingOc = false;
+async function _submeterNovaOcorrencia() {
+  if (_isSubmittingOc) return;
+  const cliente  = document.getElementById('novaOcCliente')?.value?.trim() || '';
+  const usina    = document.getElementById('novaOcUsina')?.value?.trim() || '';
+  const equip    = document.getElementById('novaOcEquip')?.value?.trim() || '';
+  const falha    = document.getElementById('novaOcFalha')?.value?.trim() || '';
+  const causa    = document.getElementById('novaOcCausa')?.value?.trim() || '';
+  const status   = document.getElementById('novaOcStatus')?.value?.trim() || 'Em Aberto';
+  const acao     = document.getElementById('novaOcAcao')?.value?.trim() || '';
+  const errEl    = document.getElementById('novaOcErr');
+  const btn      = document.getElementById('novaOcSubmit');
+
+  if (!equip || !falha) {
+    if(errEl){errEl.textContent='Equipamento e Falha são obrigatórios.';errEl.style.display='block';}
+    return;
+  }
+  if(errEl) errEl.style.display='none';
+  _isSubmittingOc = true;
+  if(btn){btn.disabled=true;btn.textContent='Registrando…';}
+
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const historico = `${hoje.slice(0,5)} - Registro inicial.`;
+  const payload = { cliente, usina, equipamento:equip, falha, causa, acao, status, historico, editor, source:'dashboard' };
+
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 12000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/nova-ocorrencia', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao registrar');
+    showToast('Ocorrência registrada! Atualizando…', true);
+    document.getElementById('novaOcOverlay').style.display = 'none';
+    setTimeout(() => document.getElementById('updateBtn')?.click(), 2000);
+  } catch(err) {
+    if(errEl){errEl.textContent='Erro ao registrar: ' + (err.message||'falha desconhecida.');errEl.style.display='block';}
+  } finally {
+    _isSubmittingOc = false;
+    if(btn){btn.disabled=false;btn.textContent='Registrar ocorrência';}
   }
 }
 
