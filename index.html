@@ -3199,21 +3199,26 @@ async function _saveDrawerToSheet() {
 
   for(const{field,value}of changed){
     try{
+      console.log('[Salvar] Enviando:', {id:d.id, field, value: value.slice(0,40)});
       const resp = await _fetchWithTimeout(SAVE_URL, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id:d.id,field,value,editor})
       });
       const result = await resp.json();
+      console.log('[Salvar] Resposta:', resp.status, result);
       if(!result.ok) throw new Error(result.error||'Erro desconhecido');
       d[field]=value;
     }catch(err){
+      console.warn('[Salvar] Render falhou, tentando Apps Script:', err.message);
       // Fallback: Apps Script
       try {
         const payload = JSON.stringify({id:d.id,field,value,editor});
         navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
         d[field]=value; // otimista
+        console.log('[Salvar] Fallback Apps Script enviado');
       } catch(e2) {
+        console.error('[Salvar] Falha total:', e2);
         errors.push(field);
       }
     }
