@@ -4423,6 +4423,7 @@ document.getElementById('zelAddRow')?.addEventListener('click',zelAddRow);
 /* ══ NOTIFICAÇÕES PUSH ══ */
 const VAPID_PUBLIC_KEY = 'BPU55JogEEcV6GlCUONmzkVam8Tt9a0DuX3FYfn_ltgKc8p1fahQiE8v5RGECnMkSYEXMyUzOYBtslhUdiOJ6Jk';
 const PUSH_SUBSCRIBE_URL = 'https://whatsapp-painel-falhas.onrender.com/push/subscribe';
+const PUSH_UNSUBSCRIBE_URL = 'https://whatsapp-painel-falhas.onrender.com/push/unsubscribe';
 
 let _swRegistration = null;
 
@@ -4464,6 +4465,14 @@ async function _atualizarEstadoNotif() {
     btn.title = ativa ? 'Clique para desativar notificações' : 'Clique para ativar notificações';
   }
   if (label) label.textContent = ativa ? 'Notificações ativas' : 'Notificações';
+  // Re-sincroniza com o backend (o servidor pode ter perdido o registro num reinício)
+  if (sub) {
+    fetch(PUSH_SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    }).catch(() => {});
+  }
 }
 
 async function _toggleNotificacoes() {
@@ -4473,7 +4482,13 @@ async function _toggleNotificacoes() {
   const sub = await _swRegistration.pushManager.getSubscription();
   if (sub) {
     try {
+      const endpoint = sub.endpoint;
       await sub.unsubscribe();
+      fetch(PUSH_UNSUBSCRIBE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      }).catch(() => {});
       if (btn) { btn.classList.remove('enabled'); btn.title = 'Clique para ativar notificações'; }
       if (label) label.textContent = 'Notificações';
       showToast('Notificações desativadas.', true);
