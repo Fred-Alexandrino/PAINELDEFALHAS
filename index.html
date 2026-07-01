@@ -1090,7 +1090,7 @@ body{
 
       <span class="sb-filter-label">Clientes</span>
       <div class="sb-chips" id="sbChipsCliente"></div>
-      <button class="sb-toggle-all-btn" id="sbToggleAllClientes" onclick="_toggleAllClientes()">Marcar todos</button>
+      <!-- seleção múltipla via chips, sem botão "Marcar todos" -->
 
       <span class="sb-filter-label">Usina</span>
       <div class="cb-dropdown" id="cbDropdownUsina">
@@ -2213,52 +2213,55 @@ function _renderCbDropdown(tipo) {
     </div>`).join('')}`;
 
   listEl.querySelectorAll('.cb-item').forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', e => {
+      e.stopPropagation(); // não fecha o dropdown ao clicar em item
       const val = item.dataset.val;
       if(val==='__all__') {
+        // toggle: se todos marcados, desmarca todos; senão marca todos
         if(allSelected) sel.clear();
         else opts.forEach(o=>sel.add(o));
       } else {
         if(sel.has(val)) sel.delete(val); else sel.add(val);
       }
-      _renderCbDropdown(tipo);
-      // Atualiza label do trigger
-      if(labelEl) {
-        if(sel.size===0 || sel.size===opts.length) {
-          labelEl.textContent = tipo==='Usina'?'Todas':'Todos';
-          sel.clear();
-        } else if(sel.size===1) {
-          labelEl.textContent = [...sel][0];
-        } else {
-          labelEl.textContent = `${sel.size} selecionados`;
-        }
-      }
+      _renderCbDropdown(tipo); // recria lista com estado atualizado
+      _updateCbLabel(tipo);
       applyFilters();
     });
   });
 
   // Atualiza label
-  if(labelEl) {
-    if(sel.size===0) labelEl.textContent = tipo==='Usina'?'Todas':'Todos';
-    else if(sel.size===1) labelEl.textContent = [...sel][0];
-    else labelEl.textContent = `${sel.size} selecionados`;
+  _updateCbLabel(tipo);
+}
+
+function _updateCbLabel(tipo) {
+  const sel   = tipo==='Usina' ? selUsinaValues : selStatusValues;
+  const opts  = tipo==='Usina' ? _cbUsinaOpts : _cbStatusOpts;
+  const labelEl = document.getElementById(`cbLabel${tipo}`);
+  if(!labelEl) return;
+  if(sel.size===0 || sel.size===opts.length) {
+    labelEl.textContent = tipo==='Usina'?'Todas':'Todos';
+    if(sel.size===opts.length) {} // mantém marcado mas label "Todas"
+  } else if(sel.size===1) {
+    labelEl.textContent = [...sel][0];
+  } else {
+    labelEl.textContent = `${sel.size} selecionados`;
   }
 }
 
 function _toggleCbDropdown(tipo) {
-  const listEl = document.getElementById(`cbList${tipo}`);
-  const triggerEl = document.getElementById(`cbTrigger${tipo}`);
+  const listEl = document.getElementById('cbList'+tipo);
+  const triggerEl = document.getElementById('cbTrigger'+tipo);
   if(!listEl) return;
   const isOpen = listEl.style.display !== 'none';
-  // Fecha todos
+  // Fecha todos primeiro
   ['Usina','Status'].forEach(t=>{
-    document.getElementById(`cbList${t}`)?.style.setProperty('display','none');
-    document.getElementById(`cbTrigger${t}`)?.classList.remove('open');
+    document.getElementById('cbList'+t)?.style.setProperty('display','none');
+    document.getElementById('cbTrigger'+t)?.classList.remove('open');
   });
   if(!isOpen) {
+    _renderCbDropdown(tipo); // renderiza ANTES de mostrar para ter conteúdo correto
     listEl.style.display='block';
     triggerEl?.classList.add('open');
-    _renderCbDropdown(tipo);
   }
 }
 
