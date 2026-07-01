@@ -222,18 +222,60 @@ body{
 
 /* Select compacto */
 .sb-select{
-  width:100%;background:var(--panel-alt);border:1px solid var(--border);
-  color:var(--text);border-radius:7px;padding:7px 9px;
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  color:#ededed;border-radius:7px;padding:7px 9px;
   font-size:12px;font-family:'Geist',sans-serif;
   outline:none;cursor:pointer;margin-bottom:6px;
   -webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%23445566' fill='none' stroke-width='2'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%23888' fill='none' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;background-size:12px;
   padding-right:26px;
 }
-.sb-select:focus{border-color:var(--amber);}
-.sb-select option{color:var(--text);background:var(--panel);}
-[data-theme="light"] .sb-select option{color:#1A1F26;background:#F4F8FC;}
+.sb-select:focus{border-color:rgba(255,255,255,0.2);}
+.sb-select option{color:#ededed;background:#1a1a1a;}
+
+/* Custom checkbox dropdown */
+.cb-dropdown{position:relative;margin-bottom:8px;}
+.cb-trigger{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  color:#ededed;border-radius:7px;padding:7px 9px;
+  font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;
+  transition:border-color .15s;text-align:left;
+}
+.cb-trigger:hover{border-color:rgba(255,255,255,0.15);}
+.cb-trigger.open{border-color:rgba(255,255,255,0.2);border-bottom-left-radius:0;border-bottom-right-radius:0;}
+.cb-trigger svg{width:12px;height:12px;stroke:#888;fill:none;stroke-width:2;flex:none;transition:transform .15s;}
+.cb-trigger.open svg{transform:rotate(180deg);}
+.cb-trigger span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ededed;}
+.cb-list{
+  position:absolute;left:0;right:0;top:100%;
+  background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);
+  border-top:none;border-radius:0 0 7px 7px;
+  max-height:200px;overflow-y:auto;z-index:200;
+}
+.cb-list::-webkit-scrollbar{width:4px;}
+.cb-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:99px;}
+.cb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;cursor:pointer;
+  font-size:12.5px;color:#ccc;
+  transition:background .1s;
+}
+.cb-item:hover{background:rgba(255,255,255,0.06);}
+.cb-item.all-item{font-weight:600;color:#ededed;border-bottom:1px solid rgba(255,255,255,0.07);}
+.cb-item.selected{color:#ededed;}
+.cb-checkbox{
+  width:14px;height:14px;border-radius:3px;flex:none;
+  border:1.5px solid rgba(255,255,255,0.2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .1s;background:transparent;
+}
+.cb-item.selected .cb-checkbox{
+  background:var(--amber);border-color:var(--amber);
+}
+.cb-checkbox svg{width:9px;height:9px;stroke:#000;fill:none;stroke-width:3;display:none;}
+.cb-item.selected .cb-checkbox svg{display:block;}
 
 /* Input de busca */
 .sb-search{
@@ -661,15 +703,15 @@ body{
 .d-edit-textarea{min-height:74px;line-height:1.55;}
 .d-status-preview{display:flex;align-items:center;gap:7px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:11px;}
 .d-status-dot{width:8px;height:8px;border-radius:50%;flex:none;}
-.drawer-action-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--panel);flex:none;}
-.drawer-save-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#000;border-radius:8px;padding:10px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;}
+.drawer-action-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.07);background:#111;flex:none;}
+.drawer-save-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#fff;border:none;color:#000;border-radius:8px;padding:10px 6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;min-width:0;}
 .drawer-save-btn:hover{background:rgba(242,169,59,.28);}
 .drawer-save-btn:disabled{opacity:.4;cursor:not-allowed;}
 .drawer-save-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;}
-.drawer-hist-btn{display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(63,193,176,.08);border:1px solid rgba(63,193,176,.25);color:var(--teal);border-radius:8px;padding:10px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
+.drawer-hist-btn{display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#888;border-radius:8px;padding:10px 6px;font-size:11px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;min-width:0;}
 .drawer-hist-btn:hover{background:rgba(63,193,176,.18);}
 .drawer-hist-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
-.drawer-os-btn{display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);color:#60A5FA;border-radius:8px;padding:10px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
+.drawer-os-btn{display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#888;border-radius:8px;padding:10px 6px;font-size:11px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;min-width:0;}
 .drawer-os-btn:hover{background:rgba(91,155,213,.18);}
 .drawer-os-btn:disabled{opacity:.4;cursor:not-allowed;}
 .drawer-os-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
@@ -1051,15 +1093,21 @@ body{
       <button class="sb-toggle-all-btn" id="sbToggleAllClientes" onclick="_toggleAllClientes()">Marcar todos</button>
 
       <span class="sb-filter-label">Usina</span>
-      <div style="position:relative;display:flex;align-items:center;gap:6px;">
-        <select class="sb-select" id="sbSelUsina" style="flex:1;"><option value="">Todas</option></select>
-        <span class="filter-badge" id="usinaBadge" style="display:none;"></span>
+      <div class="cb-dropdown" id="cbDropdownUsina">
+        <button class="cb-trigger" id="cbTriggerUsina" onclick="_toggleCbDropdown('Usina')">
+          <span id="cbLabelUsina">Todas</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListUsina" style="display:none;"></div>
       </div>
 
       <span class="sb-filter-label">Status</span>
-      <div style="position:relative;display:flex;align-items:center;gap:6px;">
-        <select class="sb-select" id="sbSelStatus" style="flex:1;"><option value="">Todos</option></select>
-        <span class="filter-badge" id="statusBadge" style="display:none;"></span>
+      <div class="cb-dropdown" id="cbDropdownStatus">
+        <button class="cb-trigger" id="cbTriggerStatus" onclick="_toggleCbDropdown('Status')">
+          <span id="cbLabelStatus">Todos</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListStatus" style="display:none;"></div>
       </div>
 
       <span class="sb-filter-label">Sem ação há</span>
@@ -2070,7 +2118,9 @@ function showSkeletons() { document.getElementById('cardGrid').innerHTML=Array(6
    Sem ação há: novo filtro por dias sem atividade
 ══════════════════════════════════════════════════════════ */
 const selCliente = new Set();   // mantém Set para lógica de cores/legendas
-let selUsinaValue = '';          // agora single-select
+let selUsinaValue = '';
+let selUsinaValues = new Set();
+let selStatusValues = new Set();
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
@@ -2125,36 +2175,109 @@ function _toggleAllClientes() {
   applyFilters();
 }
 
-function populateFilters() {
-  // Respeita o(s) cliente(s) selecionado(s) nos chips: a lista de usinas
-  // disponível no dropdown deve refletir só as usinas daquele(s) cliente(s).
-  const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
-  const usinas = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
-  const statuses = [...new Set(DATA.map(d => d.status))].sort();
+// Dados para os dropdowns customizados
+let _cbUsinaOpts = [];
+let _cbStatusOpts = [];
 
-  const selU = document.getElementById('sbSelUsina');
-  const selS = document.getElementById('sbSelStatus');
-  if (selU) {
-    const cur = selU.value;
-    selU.innerHTML = '<option value="">Todas</option>' + usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    // Se a usina anteriormente selecionada não pertence mais ao(s) cliente(s)
-    // ativo(s), limpa a seleção em vez de deixar um valor "fantasma".
-    if (usinas.includes(cur)) { selU.value = cur; } else { selU.value = ''; selUsinaValue = ''; }
-  }
-  if (selS) {
-    const cur = selS.value;
-    selS.innerHTML = '<option value="">Todos</option>' + statuses.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-    if (statuses.includes(cur)) selS.value = cur;
-  }
+function populateFilters() {
+  const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
+  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
+  _cbStatusOpts = [...new Set(DATA.map(d => d.status))].sort();
+
+  // Remove usinas selecionadas que não existem mais no filtro de cliente
+  for(const u of selUsinaValues){ if(!_cbUsinaOpts.includes(u)) selUsinaValues.delete(u); }
+
+  _renderCbDropdown('Usina');
+  _renderCbDropdown('Status');
   renderClienteChips();
 }
+
+function _renderCbDropdown(tipo) {
+  const opts = tipo==='Usina' ? _cbUsinaOpts : _cbStatusOpts;
+  const sel  = tipo==='Usina' ? selUsinaValues : selStatusValues;
+  const listEl = document.getElementById(`cbList${tipo}`);
+  const labelEl = document.getElementById(`cbLabel${tipo}`);
+  if(!listEl) return;
+
+  const allSelected = opts.length>0 && opts.every(o=>sel.has(o));
+
+  listEl.innerHTML = `
+    <div class="cb-item all-item ${allSelected?'selected':''}" data-val="__all__">
+      <div class="cb-checkbox"><svg viewBox="0 0 10 8"><polyline points="1,4 3.5,7 9,1"/></svg></div>
+      <span>${tipo==='Usina'?'Todas as usinas':'Todos os status'}</span>
+    </div>
+    ${opts.map(o=>`
+    <div class="cb-item ${sel.has(o)?'selected':''}" data-val="${esc(o)}">
+      <div class="cb-checkbox"><svg viewBox="0 0 10 8"><polyline points="1,4 3.5,7 9,1"/></svg></div>
+      <span>${esc(o)}</span>
+    </div>`).join('')}`;
+
+  listEl.querySelectorAll('.cb-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const val = item.dataset.val;
+      if(val==='__all__') {
+        if(allSelected) sel.clear();
+        else opts.forEach(o=>sel.add(o));
+      } else {
+        if(sel.has(val)) sel.delete(val); else sel.add(val);
+      }
+      _renderCbDropdown(tipo);
+      // Atualiza label do trigger
+      if(labelEl) {
+        if(sel.size===0 || sel.size===opts.length) {
+          labelEl.textContent = tipo==='Usina'?'Todas':'Todos';
+          sel.clear();
+        } else if(sel.size===1) {
+          labelEl.textContent = [...sel][0];
+        } else {
+          labelEl.textContent = `${sel.size} selecionados`;
+        }
+      }
+      applyFilters();
+    });
+  });
+
+  // Atualiza label
+  if(labelEl) {
+    if(sel.size===0) labelEl.textContent = tipo==='Usina'?'Todas':'Todos';
+    else if(sel.size===1) labelEl.textContent = [...sel][0];
+    else labelEl.textContent = `${sel.size} selecionados`;
+  }
+}
+
+function _toggleCbDropdown(tipo) {
+  const listEl = document.getElementById(`cbList${tipo}`);
+  const triggerEl = document.getElementById(`cbTrigger${tipo}`);
+  if(!listEl) return;
+  const isOpen = listEl.style.display !== 'none';
+  // Fecha todos
+  ['Usina','Status'].forEach(t=>{
+    document.getElementById(`cbList${t}`)?.style.setProperty('display','none');
+    document.getElementById(`cbTrigger${t}`)?.classList.remove('open');
+  });
+  if(!isOpen) {
+    listEl.style.display='block';
+    triggerEl?.classList.add('open');
+    _renderCbDropdown(tipo);
+  }
+}
+
+// Fecha dropdowns ao clicar fora
+document.addEventListener('click', e => {
+  if(!e.target.closest('.cb-dropdown')) {
+    ['Usina','Status'].forEach(t=>{
+      document.getElementById(`cbList${t}`)?.style.setProperty('display','none');
+      document.getElementById(`cbTrigger${t}`)?.classList.remove('open');
+    });
+  }
+});
 
 function applyFilters() {
   const q = document.getElementById('sbSearch')?.value.trim().toLowerCase() || '';
   const dateFrom = document.getElementById('sbDateFrom')?.value || '';
   const dateTo = document.getElementById('sbDateTo')?.value || '';
-  selUsinaValue = document.getElementById('sbSelUsina')?.value || '';
-  selStatusValue = document.getElementById('sbSelStatus')?.value || '';
+  selUsinaValue = selUsinaValues.size===1?[...selUsinaValues][0]:'';
+  selStatusValue = selStatusValues.size===1?[...selStatusValues][0]:'';
   selStaleValue = document.getElementById('sbSelStale')?.value || '';
 
   const dataAtivas = DATA.filter(d => !isConcluido(d));
@@ -2182,8 +2305,8 @@ function applyFilters() {
 
   filtered = dataBase.filter(d => {
     if (selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
-    if (selUsinaValue && d.usina !== selUsinaValue) return false;
-    if (selStatusValue && d.status !== selStatusValue) return false;
+    if (selUsinaValues.size>0 && !selUsinaValues.has(d.usina)) return false;
+    if (selStatusValues.size>0 && !selStatusValues.has(d.status)) return false;
     if (q) {
       const hay = (d.equipamento+' '+d.falha+' '+d.causa+' '+d.impactados+' '+d.usina+' '+d.ticketFabricante+' '+d.numeroOS).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -2211,10 +2334,9 @@ function applyFilters() {
 
 function clearFilters() {
   selCliente.clear();
-  document.getElementById('sbSelUsina').value = '';
-  document.getElementById('sbSelStatus').value = '';
-  const ub=document.getElementById('usinaBadge'); if(ub)ub.style.display='none';
-  const sb=document.getElementById('statusBadge'); if(sb)sb.style.display='none';
+  selUsinaValues.clear(); selStatusValues.clear();
+  selUsinaValue=''; selStatusValue='';
+  _renderCbDropdown('Usina'); _renderCbDropdown('Status');
   document.getElementById('sbSelStale').value = '';
   document.getElementById('sbSearch').value = '';
   document.getElementById('sbDateFrom').value = '';
@@ -2226,18 +2348,7 @@ function clearFilters() {
   applyFilters();
 }
 
-document.getElementById('sbSelUsina')?.addEventListener('change', function() {
-  const v = this.value;
-  const badge = document.getElementById('usinaBadge');
-  if (badge) { if(v){badge.textContent=v;badge.style.display='inline-flex';}else{badge.style.display='none';} }
-  applyFilters();
-});
-document.getElementById('sbSelStatus')?.addEventListener('change', function() {
-  const v = this.value;
-  const badge = document.getElementById('statusBadge');
-  if (badge) { if(v){badge.textContent=v;badge.style.display='inline-flex';}else{badge.style.display='none';} }
-  applyFilters();
-});
+// Filtros usina/status agora usam cb-dropdown customizado — listeners em _renderCbDropdown
 document.getElementById('sbSelStale')?.addEventListener('change', applyFilters);
 document.getElementById('sbSearch')?.addEventListener('input', applyFilters);
 document.getElementById('sbDateFrom')?.addEventListener('change', applyFilters);
@@ -2935,7 +3046,17 @@ async function _saveDrawerToSheet() {
   }
   if(changed.length===0){showToast('Nenhuma alteração detectada.',true);btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;return;}
   const errors=[];
-  for(const{field,value}of changed){try{await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,field,value,editor})});d[field]=value;}catch(err){errors.push(field);}}
+  for(const{field,value}of changed){
+    try{
+      await fetch(APPS_SCRIPT_URL,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({id:d.id,field,value,editor})
+      });
+      d[field]=value;
+    }catch(err){errors.push(field);}
+  }
   const newColor=statusColor(d.status);
   document.getElementById('drawerAccent').style.background=newColor;
   document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${newColor}">${esc(d.status)}</span>`;
@@ -2949,7 +3070,7 @@ async function _addHistoryEntry() {
   if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
   const entry=prompt('Nova entrada no histórico:');if(!entry||!entry.trim())return;
   const editor=_currentSession.user||_currentSession.role||'dashboard';
-  try{await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor})});
+  try{await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor})});
   const now=new Date();const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
   showToast('Entrada adicionada ao histórico!',true);_renderDrawer();}
