@@ -3030,10 +3030,15 @@ function _renderDrawer() {
   }
 }
 
+let _isSaving = false; // trava global — evita duplo envio
+
 async function _saveDrawerToSheet() {
+  if(_isSaving) return; // ignora clique se já estiver salvando
   const d=_drawerList[_drawerIndex]; if(!d||!canEdit())return;
   if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
-  const btn=document.getElementById('drawerSaveBtn');btn.disabled=true;btn.innerHTML=`<span class="save-spinner"></span> Salvando…`;
+  _isSaving = true;
+  const btn=document.getElementById('drawerSaveBtn');
+  if(btn){btn.disabled=true;btn.innerHTML=`<span class="save-spinner"></span> Salvando…`;}
   const fields={status:document.getElementById('edit_status')?.value,falha:document.getElementById('edit_falha')?.value,causa:document.getElementById('edit_causa')?.value,impactados:document.getElementById('edit_impactados')?.value,acao:document.getElementById('edit_acao')?.value,ticketFabricante:document.getElementById('edit_ticket')?.value,numeroOS:document.getElementById('edit_os')?.value,dataAbertura:document.getElementById('edit_data_abertura')?.value,dataPrimeiraAcao:document.getElementById('edit_data_primeira_acao')?.value,dataEncaminhamento:document.getElementById('edit_data_encaminhamento')?.value,dataRetornoExterno:document.getElementById('edit_data_retorno_externo')?.value,dataFechamento:document.getElementById('edit_data_fechamento')?.value};
   const editor=_currentSession.user||_currentSession.role||'dashboard';
   const changed=[];
@@ -3047,7 +3052,7 @@ async function _saveDrawerToSheet() {
     if(value.trim()===String(original).trim())continue;
     changed.push({field,value:value.trim()});
   }
-  if(changed.length===0){showToast('Nenhuma alteração detectada.',true);btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;return;}
+  if(changed.length===0){_isSaving=false;showToast('Nenhuma alteração detectada.',true);if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}return;}
   const errors=[];
   for(const{field,value}of changed){
     try{
@@ -3064,25 +3069,42 @@ async function _saveDrawerToSheet() {
   const newColor=statusColor(d.status);
   document.getElementById('drawerAccent').style.background=newColor;
   document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${newColor}">${esc(d.status)}</span>`;
-  btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;
+  _isSaving = false;
+  if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}
   if(errors.length===0){showToast(`${changed.length} campo${changed.length>1?'s':''} salvo${changed.length>1?'s':''}!`,true);_renderDrawer();applySortAndRender();}
-  else showToast(`Erro ao salvar: ${errors.join(', ')}`,false);
+  else{_isSaving=false;showToast(`Erro ao salvar: ${errors.join(', ')}`,false);}
 }
 
+let _isAddingHist = false;
+
 async function _addHistoryEntry() {
+  if(_isAddingHist) return; // evita duplo envio
   const d=_drawerList[_drawerIndex]; if(!d||!canEdit())return;
   if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
   const entry=prompt('Nova entrada no histórico:');if(!entry||!entry.trim())return;
+
+  // Deduplicação: não envia se a última entrada já contém o mesmo texto
+  const lastHist = (d.historico||'').split('\n').pop()||'';
+  if(lastHist.includes(entry.trim())){
+    showToast('Entrada já existe no histórico.',false);return;
+  }
+
+  _isAddingHist = true;
   const editor=_currentSession.user||_currentSession.role||'dashboard';
   try{
     const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor});
     navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
-    // pequeno delay para garantir que o beacon foi enviado antes de renderizar
-    await new Promise(r=>setTimeout(r,300));
-  const now=new Date();const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
-  showToast('Entrada adicionada ao histórico!',true);_renderDrawer();}
-  catch(err){showToast('Erro ao adicionar ao histórico.',false);}
+    await new Promise(r=>setTimeout(r,400));
+    const now=new Date();
+    const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
+    showToast('Entrada adicionada ao histórico!',true);
+    _renderDrawer();
+  }catch(err){
+    showToast('Erro ao adicionar ao histórico.',false);
+  }finally{
+    _isAddingHist = false;
+  }
 }
 
 /* ══ SOLICITAR OS — gera texto de abertura de OS via IA, contextualizado ══ */
