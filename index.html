@@ -3051,12 +3051,13 @@ async function _saveDrawerToSheet() {
   const errors=[];
   for(const{field,value}of changed){
     try{
-      await fetch(APPS_SCRIPT_URL,{
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({id:d.id,field,value,editor})
-      });
+      const payload = JSON.stringify({id:d.id,field,value,editor});
+      // sendBeacon: envia como text/plain sem preflight CORS — Apps Script lê via e.postData.contents
+      const ok = navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
+      if(!ok) {
+        // fallback: fetch com no-cors
+        await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:payload});
+      }
       d[field]=value;
     }catch(err){errors.push(field);}
   }
@@ -3073,7 +3074,11 @@ async function _addHistoryEntry() {
   if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
   const entry=prompt('Nova entrada no histórico:');if(!entry||!entry.trim())return;
   const editor=_currentSession.user||_currentSession.role||'dashboard';
-  try{await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor})});
+  try{
+    const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor});
+    navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
+    // pequeno delay para garantir que o beacon foi enviado antes de renderizar
+    await new Promise(r=>setTimeout(r,300));
   const now=new Date();const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
   showToast('Entrada adicionada ao histórico!',true);_renderDrawer();}
