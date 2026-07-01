@@ -948,11 +948,21 @@ body{
 
 @media(max-width:768px){
 
-  /* Layout base: body e appShell tomam 100% da viewport */
-  body{height:100dvh;height:100vh;overflow:hidden;}
-  #appShell{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+  /* Layout base */
+  body{
+    height:100dvh;height:100vh;
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  #appShell{
+    flex:1;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    /* Espaço para o bottom nav fixo (60px) */
+    padding-bottom:60px;
+  }
 
-  /* Sidebar: escondida fora da tela, vira overlay ao abrir */
+  /* Sidebar: overlay fora da tela */
   :root{--sidebar-w:0px;}
   .sidebar{
     display:flex;position:fixed;
@@ -965,18 +975,16 @@ body{
   .sidebar.open{left:0;}
   .sb-mobile-overlay{display:block;}
 
-  /* Main area: ocupa o espaço restante entre topbar e bottom nav */
+  /* Main area: sem padding-bottom aqui (já está no appShell) */
   .main-area{
     flex:1;
     display:flex;
     flex-direction:column;
     overflow:hidden;
     width:100%;
-    /* Reserva espaço para o bottom nav fixo */
-    padding-bottom:60px;
   }
 
-  /* Topbar: compacta, 1 linha */
+  /* Topbar: 1 linha compacta */
   .topbar{
     flex:none;
     padding:0 14px;
@@ -990,19 +998,19 @@ body{
     display:flex;flex:1;
     align-items:center;
     justify-content:space-between;
-    padding:0;
-    gap:8px;
+    padding:0;gap:8px;
   }
   .topbar-row2{display:none !important;}
   .sb-toggle-btn{display:none !important;}
 
-  /* Main content: scroll vertical dentro da área */
+  /* Main content: SCROLL AQUI — ocupa todo espaço restante */
   .main-content{
     flex:1;
+    min-height:0;          /* essencial para flex + overflow funcionar */
     overflow-y:auto;
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
-    padding:12px 12px 16px;
+    padding:12px 12px 20px;
   }
 
   /* KPIs: 2 colunas, menores */
