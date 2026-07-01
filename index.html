@@ -368,6 +368,7 @@ body{
   flex:1;overflow-y:auto;overflow-x:hidden;
   padding:14px 12px 80px;
   -webkit-overflow-scrolling:touch;
+  position:relative;z-index:1;
 }
 .main-content::-webkit-scrollbar{width:5px;}
 .main-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
@@ -877,7 +878,11 @@ body{
   .topbar{padding:0 14px;}
   .main-content{padding:14px 14px 64px;}
   .kpis{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .kpi .num{font-size:30px;}
+  .kpi{padding:14px 14px 12px;}
   .panels{grid-template-columns:1fr;}
+  .panel{padding:12px;}
+  .panel-bars{max-height:140px;}
   .card-grid{grid-template-columns:1fr;gap:6px;}
   .topbar-count{display:none;}
 }
@@ -1654,8 +1659,8 @@ function switchNav(nav) {
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
-  // Atualiza bottom nav
-  document.querySelectorAll('.bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
+  // Atualiza bottom nav (pode ser null se ainda não renderizou)
+  document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
   const section = document.getElementById('sec-' + nav);
   if (section) section.classList.add('active');
@@ -1670,15 +1675,18 @@ function switchNav(nav) {
 document.querySelectorAll('.sb-nav-item:not(.disabled)').forEach(el => {
   el.addEventListener('click', () => switchNav(el.dataset.nav));
 });
-// Bottom nav: itens de seção
-document.querySelectorAll('.bn-item[data-nav]').forEach(el => {
-  el.addEventListener('click', () => switchNav(el.dataset.nav));
-});
-// Bottom nav: botão Menu abre a sidebar
-document.getElementById('bnMenuBtn')?.addEventListener('click', () => {
-  // No mobile sem sidebar, abre um sheet/drawer de menu
-  openMobileSidebar();
-});
+// Bottom nav: registra listeners depois que o DOM carrega completamente
+function _initBottomNav() {
+  document.querySelectorAll('.bn-item[data-nav]').forEach(el => {
+    el.addEventListener('click', () => switchNav(el.dataset.nav));
+  });
+  document.getElementById('bnMenuBtn')?.addEventListener('click', openMobileSidebar);
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initBottomNav);
+} else {
+  _initBottomNav();
+}
 
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
 function openMobileSidebar() {
