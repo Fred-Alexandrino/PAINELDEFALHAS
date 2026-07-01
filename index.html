@@ -531,10 +531,14 @@ body{
 .panel-bars{max-height:174px;overflow-y:auto;padding-right:4px;margin-right:-4px;}
 .panel-bars::-webkit-scrollbar{width:4px;}
 .panel-bars::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
-.bar-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);transition:opacity .15s;}
+.bar-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s,border-radius .12s;border-radius:5px;}
 .bar-row:last-child{border-bottom:none;}
-.bar-row:hover{opacity:.8;}
-.bar-row.selected{opacity:1;}
+.bar-row:hover{background:rgba(255,255,255,0.05);}
+.bar-row.selected{background:rgba(245,166,35,.08);border-radius:5px;}
+.bar-row.selected .bar-label{color:#F5A623;font-weight:500;}
+.bar-row.selected .bar-count{color:#F5A623;}
+.bar-row-hint{font-size:9px;color:var(--text-faint);margin-left:auto;opacity:0;transition:opacity .12s;font-family:'Geist Mono',monospace;}
+.bar-row:hover .bar-row-hint{opacity:1;}
 .bar-label{font-size:12.5px;flex:0 0 auto;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ededed;font-weight:400;}
 .bar-track{flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;min-width:40px;}
 .bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
@@ -1125,10 +1129,9 @@ body{
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         MTTR
       </div>
-      <div class="sb-nav-item disabled" data-nav="eficiencia" title="Em desenvolvimento">
+      <div class="sb-nav-item" data-nav="eficiencia">
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Eficiência O&amp;M
-        <span class="sb-nav-badge" style="color:var(--amber);border-color:rgba(242,169,59,.3);background:rgba(242,169,59,.1);">em breve</span>
       </div>
     </nav>
 
@@ -1448,15 +1451,8 @@ body{
 
       <!-- ── SEÇÃO: EFICIÊNCIA O&M (placeholder) ───────────── -->
       <section class="content-section" id="sec-eficiencia">
-        <div class="placeholder-section">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <h2>Eficiência O&amp;M</h2>
-          <p>Análise de performance da equipe: MTTR, tempo ativo, decomposição T1–T4 por categoria de falha.</p>
-          <span class="placeholder-badge">
-            <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Em desenvolvimento
-          </span>
-        </div>
+        <div class="kpis" style="margin-bottom:24px;" id="efKpis"></div>
+        <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
       </section>
 
     </div><!-- /main-content -->
@@ -1881,7 +1877,7 @@ const NAV_TITLES = {
 };
 
 function switchNav(nav) {
-  if (nav === 'eficiencia') { showToast('Eficiência O&M — em desenvolvimento', true); return; }
+  if (nav === 'eficiencia') { renderEficiencia(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -2994,24 +2990,45 @@ function renderBreakdowns() {
   }),'statusTotal');
   makeBar('causaBars',Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.14)']),'causaTotal');
 
-  // Usina: clica na barra → define no select de usina (single-select)
-  document.querySelectorAll('#usinaBars .bar-row').forEach(r=>r.addEventListener('click',()=>{
-    const v=r.dataset.group;
-    const sel = document.getElementById('sbSelUsina');
-    if (sel) sel.value = (sel.value === v) ? '' : v;
+  // ── Barras como filtros ────────────────────────────────────────────────
+  // Usina: toggle — clica para filtrar, clica de novo para limpar
+  document.querySelectorAll('#usinaBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    if (selUsinaValues.has(v) && selUsinaValues.size === 1) {
+      selUsinaValues.clear(); // clicou no único selecionado — limpa
+    } else {
+      selUsinaValues.clear();
+      selUsinaValues.add(v); // seleciona só esta usina
+    }
+    _updateCbLabel('Usina');
+    _renderCbDropdown('Usina');
     applyFilters();
   }));
-  // Status: clica na barra → define no select de status (single-select)
-  document.querySelectorAll('#statusBars .bar-row').forEach(r=>r.addEventListener('click',()=>{
-    const v=r.dataset.group;
-    const sel = document.getElementById('sbSelStatus');
-    if (sel) sel.value = (sel.value === v) ? '' : v;
+
+  // Status: toggle igual
+  document.querySelectorAll('#statusBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    if (selStatusValues.has(v) && selStatusValues.size === 1) {
+      selStatusValues.clear();
+    } else {
+      selStatusValues.clear();
+      selStatusValues.add(v);
+    }
+    _updateCbLabel('Status');
+    _renderCbDropdown('Status');
     applyFilters();
   }));
-  document.querySelectorAll('#causaBars .bar-row').forEach(r=>r.addEventListener('click',()=>{activeCausa=activeCausa===r.dataset.group?null:r.dataset.group;applyFilters();}));
-  document.querySelectorAll('#usinaBars .bar-row').forEach(r=>r.classList.toggle('selected',r.dataset.group===selUsinaValue));
-  document.querySelectorAll('#statusBars .bar-row').forEach(r=>r.classList.toggle('selected',r.dataset.group===selStatusValue));
-  document.querySelectorAll('#causaBars .bar-row').forEach(r=>r.classList.toggle('selected',r.dataset.group===activeCausa));
+
+  // Causa: toggle (variável activeCausa)
+  document.querySelectorAll('#causaBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    activeCausa = activeCausa === r.dataset.group ? null : r.dataset.group;
+    applyFilters();
+  }));
+
+  // Highlight das barras selecionadas
+  document.querySelectorAll('#usinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
+  document.querySelectorAll('#statusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
+  document.querySelectorAll('#causaBars .bar-row').forEach(r => r.classList.toggle('selected', r.dataset.group === activeCausa));
 }
 
 /* ══ CARDS — com barra de envelhecimento (200d max) ══ */
@@ -4593,6 +4610,134 @@ async function _submeterNovaOcorrencia() {
     _isSubmittingOc = false;
     if(btn){btn.disabled=false;btn.textContent='Registrar ocorrência';}
   }
+}
+
+/* ══ EFICIÊNCIA O&M ══ */
+function renderEficiencia() {
+  const kpisEl  = document.getElementById('efKpis');
+  const panelsEl = document.getElementById('efPanels');
+  if (!kpisEl || !panelsEl) return;
+
+  const agora = new Date();
+  const seteDias = new Date(agora - 7*24*3600*1000);
+
+  // ── Métricas globais ──────────────────────────────────────────────────
+  const todas = DATA; // inclui ativas e histórico
+  const ativas = todas.filter(d => !['Concluído','Concluido'].includes(d.status));
+  const concluidas = todas.filter(d => ['Concluído','Concluido'].includes(d.status));
+
+  // MTTR: média T1+T2+T4 das ocorrências concluídas com T1 preenchido
+  let somaT = 0, countT = 0;
+  concluidas.forEach(d => {
+    const t1 = parseFloat(d.t1) || 0;
+    const t2 = parseFloat(d.t2) || 0;
+    const t4 = parseFloat(d.t4) || 0;
+    const total = t1 + t2 + t4;
+    if (total > 0) { somaT += total; countT++; }
+  });
+  const mttr = countT > 0 ? (somaT / countT).toFixed(1) : '—';
+
+  // T3 médio (tempo aguardando fabricante)
+  let somaT3 = 0, countT3 = 0;
+  todas.forEach(d => {
+    const t3 = parseFloat(d.t3) || 0;
+    if (t3 > 0) { somaT3 += t3; countT3++; }
+  });
+  const avgT3 = countT3 > 0 ? (somaT3/countT3).toFixed(1) : '—';
+
+  // Backlog: ocorrências abertas há mais de 30 dias
+  const backlog = ativas.filter(d => {
+    const ab = new Date(d.dataAbertura?.split('/').reverse().join('-'));
+    return !isNaN(ab) && (agora - ab) > 30*24*3600*1000;
+  }).length;
+
+  // Taxa de resolução (7d)
+  const resol7d = concluidas.filter(d => {
+    const ab = new Date(d.dataAbertura?.split('/').reverse().join('-'));
+    return !isNaN(ab) && ab >= seteDias;
+  }).length;
+
+  // Distribuição T1 (tempo resposta equipe) por faixa
+  const t1Dist = {'< 1d':0,'1–3d':0,'3–7d':0,'> 7d':0};
+  todas.forEach(d => {
+    const t1 = parseFloat(d.t1) || 0;
+    if (t1 === 0) return;
+    if (t1 < 1) t1Dist['< 1d']++;
+    else if (t1 <= 3) t1Dist['1–3d']++;
+    else if (t1 <= 7) t1Dist['3–7d']++;
+    else t1Dist['> 7d']++;
+  });
+
+  // Distribuição por categoria de falha
+  const catMap = {};
+  todas.forEach(d => {
+    const cat = d.causa || 'Não informado';
+    catMap[cat] = (catMap[cat]||0) + 1;
+  });
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  kpisEl.innerHTML = [
+    {num: mttr === '—' ? '—' : `${mttr}d`, label: 'MTTR Médio', sub: 'T1+T2+T4'},
+    {num: avgT3 === '—' ? '—' : `${avgT3}d`, label: 'Espera Fabricante', sub: 'T3 médio'},
+    {num: ativas.length, label: 'Ocorrências Ativas', sub: 'Em aberto'},
+    {num: backlog, label: 'Backlog +30d', sub: 'Abertas há mais de 30 dias'},
+    {num: resol7d, label: 'Resolvidas (7d)', sub: 'Últimos 7 dias'},
+    {num: countT, label: 'Com dados T1-T4', sub: 'Base de cálculo'},
+  ].map(k => `<div class="kpi">
+    <div class="num">${k.num}</div>
+    <div class="label">${k.label}</div>
+    <div class="sub-label">${k.sub}</div>
+  </div>`).join('');
+
+  // ── Painéis ────────────────────────────────────────────────────────────
+  const maxT1 = Math.max(...Object.values(t1Dist), 1);
+  const t1BarsHtml = Object.entries(t1Dist).map(([k, v]) => `
+    <div class="bar-row">
+      <span class="bar-label">${k}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxT1*100).toFixed(0)}%;background:rgba(255,255,255,0.3)"></div></div>
+      <span class="bar-count">${v}</span>
+    </div>`).join('');
+
+  const catSorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxCat = catSorted[0]?.[1] || 1;
+  const catBarsHtml = catSorted.map(([k,v]) => `
+    <div class="bar-row">
+      <span class="bar-label">${k.length>22?k.slice(0,20)+'…':k}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxCat*100).toFixed(0)}%;background:rgba(255,255,255,0.2)"></div></div>
+      <span class="bar-count">${v}</span>
+    </div>`).join('');
+
+  // T1-T4 decomposição média em barras
+  const t1avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t1)||0),0)/countT).toFixed(1) : 0;
+  const t2avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t2)||0),0)/countT).toFixed(1) : 0;
+  const t3avg = countT3 > 0 ? avgT3 : 0;
+  const t4avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t4)||0),0)/countT).toFixed(1) : 0;
+  const tMax = Math.max(t1avg, t2avg, t3avg, t4avg, 1);
+  const decomp = [
+    {label:'T1 · Resposta equipe', val:t1avg, color:'#60A5FA'},
+    {label:'T2 · Resolução interna', val:t2avg, color:'#F59E0B'},
+    {label:'T3 · Aguardando fabricante', val:t3avg, color:'#EF4444'},
+    {label:'T4 · Retorno ao normal', val:t4avg, color:'#22C55E'},
+  ].map(t => `
+    <div class="bar-row">
+      <span class="bar-label" style="color:${t.color}">${t.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(t.val/tMax*100).toFixed(0)}%;background:${t.color}88"></div></div>
+      <span class="bar-count" style="color:${t.color}">${t.val}d</span>
+    </div>`).join('');
+
+  panelsEl.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Decomposição T1–T4 (média)</h3></div>
+      <div class="panel-bars">${decomp}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Tempo de 1ª resposta (T1)</h3></div>
+      <div class="panel-bars">${t1BarsHtml}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Por causa / categoria</h3></div>
+      <div class="panel-bars">${catBarsHtml}</div>
+    </div>`;
 }
 
 /* ══ INICIALIZAÇÃO FINAL ══ */
