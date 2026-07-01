@@ -37,7 +37,7 @@
   --red:#EF4444;
   --blue:#60A5FA;
   --sidebar-w:220px;
-  --topbar-h:52px;
+  --topbar-h:auto;
   --radius:8px;
   --shadow:none;
   --sla-ok:#22C55E; --sla-warn:#F59E0B; --sla-breach:#EF4444;
@@ -63,36 +63,85 @@ body{
 /* ══════════════════════════════════════════════════════════
    LOGIN
 ══════════════════════════════════════════════════════════ */
+/* ── LOGIN REDESIGN — estilo Vercel ─────────────────────────────────────── */
 #loginScreen{
   position:fixed;inset:0;z-index:9999;
-  background:
-    linear-gradient(var(--bg-grid) 1px,transparent 1px) 0 0/100% 28px,
-    linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px) 0 0/28px 100%,
-    var(--bg);
-  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
 }
 #loginScreen.hidden{display:none;}
-.login-box{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:16px;padding:40px;width:100%;max-width:380px;
-  box-shadow:0 24px 64px rgba(0,0,0,.6);
+/* Logo animada no topo */
+.login-brand{
+  display:flex;flex-direction:column;align-items:center;
+  margin-bottom:48px;
 }
-.login-logo{width:48px;height:48px;border-radius:12px;margin:0 auto 20px;
-  background:linear-gradient(135deg,rgba(242,169,59,.2),rgba(91,155,213,.15));
-  border:1px solid rgba(242,169,59,.3);display:flex;align-items:center;justify-content:center;}
-.login-logo svg{width:24px;height:24px;stroke:var(--amber);fill:none;stroke-width:1.8;}
-.login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:4px;}
-.login-sub{font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:28px;font-family:'Geist Mono',monospace;}
-.login-field{margin-bottom:14px;}
-.login-field label{display:block;font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;font-family:'Geist Mono',monospace;margin-bottom:6px;}
-.login-field input{width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:.15s;}
-.login-field input:focus{border-color:var(--amber);}
-.login-error{font-size:12px;color:var(--red);font-family:'Geist Mono',monospace;background:rgba(226,84,61,.08);border:1px solid rgba(226,84,61,.2);border-radius:7px;padding:8px 12px;margin-bottom:12px;display:none;align-items:center;gap:8px;}
+.login-brand-icon{
+  width:56px;height:56px;border-radius:16px;
+  background:#F5A623;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;
+  box-shadow:0 0 40px rgba(245,166,35,.25);
+}
+.login-brand-icon svg{width:28px;height:28px;stroke:#000;fill:none;stroke-width:2.2;}
+.login-brand-name{
+  font-size:22px;font-weight:800;color:var(--text);
+  letter-spacing:-0.03em;line-height:1;
+}
+.login-brand-sub{
+  font-size:12px;color:var(--text-faint);
+  font-family:'Geist Mono',monospace;
+  margin-top:6px;letter-spacing:.04em;
+}
+/* Formulário — sem box, apenas campos flutuantes */
+.login-box{
+  width:100%;max-width:320px;
+}
+.login-title{display:none;}
+.login-sub{display:none;}
+.login-field{margin-bottom:12px;}
+.login-field label{
+  display:block;font-size:10px;color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:.1em;
+  font-family:'Geist Mono',monospace;font-weight:700;
+  margin-bottom:6px;
+}
+.login-field input{
+  width:100%;
+  background:transparent;
+  border:none;border-bottom:1px solid var(--border-strong);
+  color:var(--text);
+  padding:10px 0;font-size:16px;font-weight:500;
+  font-family:'Geist',sans-serif;outline:none;
+  transition:border-color .15s;
+  border-radius:0;
+}
+.login-field input::placeholder{color:var(--text-faint);}
+.login-field input:focus{border-bottom-color:var(--amber);}
+.login-error{
+  font-size:11.5px;color:var(--red);
+  font-family:'Geist Mono',monospace;
+  margin-bottom:12px;display:none;
+  align-items:center;gap:8px;
+}
 .login-error.show{display:flex;}
 .login-error svg{width:13px;height:13px;stroke:var(--red);fill:none;stroke-width:2;flex:none;}
-.login-submit{width:100%;background:linear-gradient(135deg,rgba(242,169,59,.2),rgba(242,169,59,.1));border:1px solid rgba(242,169,59,.45);color:var(--amber);border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;margin-top:4px;}
-.login-submit:hover{background:rgba(242,169,59,.25);}
-.login-footer{text-align:center;font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;margin-top:16px;}
+.login-submit{
+  width:100%;
+  background:var(--amber);
+  border:none;color:#000;
+  border-radius:8px;padding:13px;
+  font-size:14px;font-weight:800;
+  cursor:pointer;font-family:'Geist',sans-serif;
+  transition:.15s;margin-top:20px;
+  letter-spacing:-0.01em;
+}
+.login-submit:hover{background:#e09400;}
+.login-footer{
+  text-align:center;font-size:10.5px;
+  color:var(--text-faint);font-family:'Geist Mono',monospace;
+  margin-top:20px;
+}
 
 /* ══════════════════════════════════════════════════════════
    LAYOUT PRINCIPAL — SIDEBAR + MAIN
@@ -267,12 +316,15 @@ body{
 
 /* TOPBAR */
 .topbar{
-  height:var(--topbar-h);flex:none;
+  flex:none;
   background:var(--bg);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;gap:12px;
+  padding:10px 16px;gap:0;
+  display:flex;flex-direction:column;
 }
-.topbar-left{display:flex;align-items:center;gap:10px;}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;min-height:36px;}
+.topbar-row2{display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.topbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+.topbar-right{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
 .topbar-live{
   display:flex;align-items:center;gap:6px;
   font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);
@@ -317,8 +369,8 @@ body{
 
 /* CONTEÚDO COM SCROLL */
 .main-content{
-  flex:1;overflow-y:auto;
-  padding:20px 24px 64px;
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:14px 12px 72px;
 }
 .main-content::-webkit-scrollbar{width:5px;}
 .main-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
@@ -829,9 +881,9 @@ body{
   .main-area{width:100%;}
   .topbar{padding:0 14px;}
   .main-content{padding:14px 14px 64px;}
-  .kpis{grid-template-columns:repeat(2,1fr);}
+  .kpis{grid-template-columns:repeat(2,1fr);gap:6px;}
   .panels{grid-template-columns:1fr;}
-  .card-grid{grid-template-columns:1fr;}
+  .card-grid{grid-template-columns:1fr;gap:8px;}
   .topbar-count{display:none;}
 }
 .sb-mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299;}
@@ -856,10 +908,14 @@ body{
 
 <!-- ── LOGIN ───────────────────────────────────────────────── -->
 <div id="loginScreen">
+  <div class="login-brand">
+    <div class="login-brand-icon">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div class="login-brand-name">Painel O&M</div>
+    <div class="login-brand-sub">Grid Co · Acompanhamento de Falhas</div>
+  </div>
   <div class="login-box">
-    <div class="login-logo"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-    <div class="login-title">Painel O&amp;M</div>
-    <div class="login-sub">Grid Co · Acompanhamento de Falhas</div>
     <div class="login-field"><label for="loginUser">Usuário</label><input type="text" id="loginUser" placeholder="seu usuário" autocomplete="username"></div>
     <div class="login-field"><label for="loginPass">Senha</label><input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"></div>
     <div class="login-error" id="loginError"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Usuário ou senha incorretos.</div>
@@ -970,30 +1026,38 @@ body{
 
     <!-- TOPBAR -->
     <div class="topbar">
-      <div class="topbar-left">
-        <button class="sb-toggle-btn" id="sbToggleBtn">
-          <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div class="topbar-live">
-          <div class="topbar-live-dot" id="sourceDot"></div>
-          <span id="sourceLabel">aguardando…</span>
+      <!-- Linha 1: hamburger + título + status -->
+      <div class="topbar-row1">
+        <div class="topbar-left">
+          <button class="sb-toggle-btn" id="sbToggleBtn">
+            <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="topbar-section-title" id="topbarTitle">Painel de falhas</div>
         </div>
-        <div class="topbar-section-title" id="topbarTitle">Painel de falhas</div>
-        <div class="topbar-clock" id="topbarClock"></div>
+        <div class="topbar-live" style="flex:none;">
+          <div class="topbar-live-dot" id="sourceDot"></div>
+          <span id="sourceLabel" style="white-space:nowrap;">ao vivo</span>
+        </div>
       </div>
-      <div class="topbar-right">
-        <span class="topbar-count" id="totalBadge"></span>
-        <button class="tb-btn tb-btn-notif" id="notifBtn" title="Notificações">
-          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="notifBtnLabel">Notificações</span>
-        </button>
-        <button class="tb-btn tb-btn-refresh" id="updateBtn">
-          <svg viewBox="0 0 24 24" id="updateIcon"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-          Atualizar
-        </button>
-        <button class="tb-btn tb-theme" id="themeToggle" title="Tema">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        </button>
+      <!-- Linha 2: clock + badge + botões -->
+      <div class="topbar-row2">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+          <div class="topbar-clock" id="topbarClock"></div>
+          <span class="topbar-count" id="totalBadge"></span>
+        </div>
+        <div class="topbar-right">
+          <button class="tb-btn tb-btn-notif" id="notifBtn" title="Notificações">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notifBtnLabel">Notif.</span>
+          </button>
+          <button class="tb-btn tb-btn-refresh" id="updateBtn">
+            <svg viewBox="0 0 24 24" id="updateIcon"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Atualizar
+          </button>
+          <button class="tb-btn tb-theme" id="themeToggle" title="Tema">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+        </div>
       </div>
     </div>
 
