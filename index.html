@@ -977,7 +977,6 @@ body{
     transition:left .25s cubic-bezier(.4,0,.2,1);
   }
   .sidebar.open{left:0;}
-  .sb-mobile-overlay{display:block;}
 
   /* Main area: sem padding-bottom aqui (já está no appShell) */
   .main-area{
@@ -4623,45 +4622,39 @@ function renderEficiencia() {
 
   // ── Métricas globais ──────────────────────────────────────────────────
   const todas = DATA; // inclui ativas e histórico
-  const ativas = todas.filter(d => !['Concluído','Concluido'].includes(d.status));
-  const concluidas = todas.filter(d => ['Concluído','Concluido'].includes(d.status));
+  const ativas = todas.filter(d => !isConcluido(d));
+  const concluidas = todas.filter(d => isConcluido(d));
 
-  // MTTR: média T1+T2+T4 das ocorrências concluídas com T1 preenchido
-  let somaT = 0, countT = 0;
-  concluidas.forEach(d => {
-    const t1 = parseFloat(d.t1) || 0;
-    const t2 = parseFloat(d.t2) || 0;
-    const t4 = parseFloat(d.t4) || 0;
-    const total = t1 + t2 + t4;
-    if (total > 0) { somaT += total; countT++; }
-  });
-  const mttr = countT > 0 ? (somaT / countT).toFixed(1) : '—';
+  // MTTR: média T1+T2+T4 das ocorrências concluídas (mesma lógica da tela Falhas)
+  const mttrVal = getMTTR(concluidas);
+  const mttr = mttrVal !== null ? mttrVal.toFixed(1) : '—';
+  const countT = concluidas.filter(d => getTempoAtivoOM(d) !== null).length;
 
   // T3 médio (tempo aguardando fabricante)
   let somaT3 = 0, countT3 = 0;
   todas.forEach(d => {
-    const t3 = parseFloat(d.t3) || 0;
-    if (t3 > 0) { somaT3 += t3; countT3++; }
+    const t3 = getT3Days(d);
+    if (t3 !== null) { somaT3 += t3; countT3++; }
   });
   const avgT3 = countT3 > 0 ? (somaT3/countT3).toFixed(1) : '—';
 
   // Backlog: ocorrências abertas há mais de 30 dias
   const backlog = ativas.filter(d => {
-    const ab = new Date(d.dataAbertura?.split('/').reverse().join('-'));
-    return !isNaN(ab) && (agora - ab) > 30*24*3600*1000;
+    const ab = getOpenDate(d);
+    return ab && (agora - ab) > 30*24*3600*1000;
   }).length;
 
-  // Taxa de resolução (7d)
+  // Resolvidas (7d): fechadas nos últimos 7 dias (mesma lógica da tela Falhas)
   const resol7d = concluidas.filter(d => {
-    const ab = new Date(d.dataAbertura?.split('/').reverse().join('-'));
-    return !isNaN(ab) && ab >= seteDias;
+    const fech = _parseFechamentoDate(d);
+    return fech && fech >= seteDias;
   }).length;
 
   // Distribuição T1 (tempo resposta equipe) por faixa
   const t1Dist = {'< 1d':0,'1–3d':0,'3–7d':0,'> 7d':0};
   todas.forEach(d => {
-    const t1 = parseFloat(d.t1) || 0;
-    if (t1 === 0) return;
+    const t1 = getT1Days(d);
+    if (t1 === null) return;
     if (t1 < 1) t1Dist['< 1d']++;
     else if (t1 <= 3) t1Dist['1–3d']++;
     else if (t1 <= 7) t1Dist['3–7d']++;
@@ -4707,11 +4700,14 @@ function renderEficiencia() {
       <span class="bar-count">${v}</span>
     </div>`).join('');
 
-  // T1-T4 decomposição média em barras
-  const t1avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t1)||0),0)/countT).toFixed(1) : 0;
-  const t2avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t2)||0),0)/countT).toFixed(1) : 0;
+  // T1-T4 decomposição média em barras (sobre ocorrências concluídas)
+  const t1s = concluidas.map(d=>getT1Days(d)).filter(v=>v!==null);
+  const t2s = concluidas.map(d=>getT2Days(d)).filter(v=>v!==null);
+  const t4s = concluidas.map(d=>getT4Days(d)).filter(v=>v!==null);
+  const t1avg = t1s.length ? (t1s.reduce((a,b)=>a+b,0)/t1s.length).toFixed(1) : 0;
+  const t2avg = t2s.length ? (t2s.reduce((a,b)=>a+b,0)/t2s.length).toFixed(1) : 0;
   const t3avg = countT3 > 0 ? avgT3 : 0;
-  const t4avg = countT > 0 ? (todas.reduce((s,d)=>s+(parseFloat(d.t4)||0),0)/countT).toFixed(1) : 0;
+  const t4avg = t4s.length ? (t4s.reduce((a,b)=>a+b,0)/t4s.length).toFixed(1) : 0;
   const tMax = Math.max(t1avg, t2avg, t3avg, t4avg, 1);
   const decomp = [
     {label:'T1 · Resposta equipe', val:t1avg, color:'#60A5FA'},
