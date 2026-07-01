@@ -58,6 +58,8 @@ body{
   color:var(--text);
   -webkit-font-smoothing:antialiased;
   display:flex;
+  overflow:hidden;
+  max-width:100vw;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -322,7 +324,7 @@ body{
   display:flex;flex-direction:column;
 }
 .topbar-row1{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;min-height:36px;}
-.topbar-row2{display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.topbar-row2{display:flex;align-items:center;width:100%;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-wrap:nowrap;}
 .topbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
 .topbar-right{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
 .topbar-live{
@@ -478,8 +480,8 @@ body{
 .bar-row:hover{background:var(--panel-alt);}
 .bar-row.selected{background:rgba(242,169,59,.06);outline:1px solid rgba(242,169,59,.3);}
 .bar-label{font-size:11.5px;width:105px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
-.bar-track{flex:1;height:5px;background:var(--panel-alt);border-radius:4px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.bar-track{flex:1;height:4px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease;}
 .bar-fill.pulse-bar{animation:barPulse 1.8s ease-in-out infinite;}
 @keyframes barPulse{0%,100%{opacity:1;filter:brightness(1);}50%{opacity:.65;filter:brightness(1.35);}}
 .bar-count{font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-dim);width:20px;text-align:right;flex:none;}
@@ -498,8 +500,7 @@ body{
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:var(--text-faint);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist Mono',monospace;transition:.15s;white-space:nowrap;}
 .view-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
 .view-btn.active{background:var(--panel);color:var(--amber);box-shadow:0 1px 4px rgba(0,0,0,.2);}
-.sort-group{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
-.sort-group::-webkit-scrollbar{display:none;}
+.sort-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap;overflow-x:hidden;margin-bottom:10px;}
 .sort-label{font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;white-space:nowrap;}
 .sort-btn{background:var(--panel);border:1px solid var(--border);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:10.5px;cursor:pointer;font-family:'Geist Mono',monospace;transition:.15s;white-space:nowrap;flex:none;}
 .sort-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(242,169,59,.07);}
@@ -518,19 +519,19 @@ body{
   border-radius:var(--radius);padding:18px 16px 14px;cursor:pointer;
   transition:border-color .15s,background .15s;
   display:flex;flex-direction:column;
-  border-left:2px solid var(--card-color,transparent);
+  border-left:none;
 }
 .card:hover{border-color:var(--border-strong);background:var(--panel-alt);}
-.card.sla-breach{border-color:var(--sla-breach)!important;animation:card-sla-pulse 2.5s infinite;}
-.card.sla-warning{border-color:var(--sla-warn)!important;}
-@keyframes card-sla-pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,84,61,0);}50%{box-shadow:0 0 0 4px rgba(226,84,61,.2);}}
-.card.card-desligamento{border-color:#FF4444!important;border-width:2px!important;animation:deslig-pulse 2s infinite;}
-@keyframes deslig-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,.1);}50%{box-shadow:0 0 0 3px rgba(255,68,68,.25);}}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.card.sla-breach{border-color:rgba(239,68,68,.4)!important;border-left:2px solid var(--red)!important;}
+.card.sla-warning{border-color:rgba(245,158,11,.3)!important;border-left:2px solid var(--sla-warn)!important;}
+.card.card-desligamento{border-color:rgba(239,68,68,.5)!important;border-left:2px solid var(--red)!important;}
+@keyframes card-sla-pulse{0%,100%{opacity:1;}50%{opacity:.85;}}
+@keyframes deslig-pulse{0%,100%{opacity:1;}50%{opacity:.85;}}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
 .tag-row{display:flex;align-items:center;gap:7px;}
 .icon-badge{width:30px;height:30px;border-radius:7px;background:var(--panel-alt);display:flex;align-items:center;justify-content:center;flex:none;border:1px solid var(--border-soft);}
 .icon-badge svg{width:15px;height:15px;stroke:var(--card-color,var(--amber));fill:none;stroke-width:1.6;}
-.usina-name{font-size:10px;color:var(--text-faint);margin-top:1px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.usina-name{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .status-led{width:8px;height:8px;border-radius:50%;background:var(--card-color,#6B7780);flex:none;margin-top:3px;}
 .status-led.pulse{animation:ledpulse 2.4s infinite;}
 @keyframes ledpulse{0%{box-shadow:0 0 0 0 var(--card-glow,rgba(226,84,61,.6));}70%{box-shadow:0 0 0 6px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
@@ -538,7 +539,7 @@ body{
 .card .falha{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 /* Barra de envelhecimento */
 .age-bar-wrap{margin-bottom:8px;}
-.age-bar-track{height:3px;background:var(--panel-alt);border-radius:99px;overflow:hidden;}
+.age-bar-track{height:2px;background:var(--border);border-radius:99px;overflow:hidden;}
 .age-bar-fill{height:100%;border-radius:99px;transition:width .4s ease;}
 .age-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
 .age-pill{display:inline-flex;align-items:center;gap:4px;font-family:'Geist Mono',monospace;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;}
@@ -553,7 +554,7 @@ body{
 .stale-pill svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.2;}
 @keyframes stale-pulse{0%,100%{opacity:1;border-color:rgba(107,119,128,.3);}50%{opacity:.7;border-color:rgba(107,119,128,.6);}}
 .card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft);padding-top:9px;margin-top:auto;}
-.status-chip{font-size:9.5px;font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:4px;color:var(--card-color,var(--text-dim));border:1px solid;}
+.status-chip{font-size:9.5px;font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:4px;border:1px solid;}
 .see-more{font-size:10.5px;color:var(--text-faint);font-family:'Geist Mono',monospace;display:flex;align-items:center;gap:3px;}
 .see-more svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
 .card:hover .see-more{color:var(--amber);}
@@ -1041,10 +1042,8 @@ body{
       </div>
       <!-- Linha 2: clock + badge + botões -->
       <div class="topbar-row2">
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-          <div class="topbar-clock" id="topbarClock"></div>
-          <span class="topbar-count" id="totalBadge"></span>
-        </div>
+        <div class="topbar-clock" id="topbarClock"></div>
+        <span class="topbar-count" id="totalBadge"></span>
         <div class="topbar-right">
           <button class="tb-btn tb-btn-notif" id="notifBtn" title="Notificações">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -1115,21 +1114,22 @@ body{
             </div>
             <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="gridSub"></span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <div class="view-toggle">
-              <button class="view-btn active" id="viewCards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
-              <button class="view-btn" id="viewTable"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Tabela</button>
-            </div>
-            <div class="sort-group" id="sortGroup">
-              <span class="sort-label">ordenar:</span>
-              <button class="sort-btn active" data-sort="id">ID</button>
-              <button class="sort-btn" data-sort="newest">Mais recentes</button>
-              <button class="sort-btn" data-sort="usina">Usina</button>
-              <button class="sort-btn" data-sort="equip">Equipamento</button>
-              <button class="sort-btn" data-sort="age">Mais antigas</button>
-              <button class="sort-btn" data-sort="recent">Por data</button>
-            </div>
+          <div class="view-toggle">
+            <button class="view-btn active" id="viewCards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
+            <button class="view-btn" id="viewTable"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Tabela</button>
           </div>
+        </div>
+        <!-- Sort em linha própria, com flex-wrap para nunca vazar -->
+        <div class="sort-group" id="sortGroup">
+          <span class="sort-label">Ordenar:</span>
+          <button class="sort-btn active" data-sort="id">ID</button>
+          <button class="sort-btn" data-sort="newest">Mais recentes</button>
+          <button class="sort-btn" data-sort="usina">Usina</button>
+          <button class="sort-btn" data-sort="equip">Equip.</button>
+          <button class="sort-btn" data-sort="age">Mais antigas</button>
+          <button class="sort-btn" data-sort="recent">Por data</button>
+        </div>
+        <div style="display:none"><!-- fechamento fictício --></div>
         </div>
 
         <div class="card-grid" id="cardGrid"></div>
@@ -2631,12 +2631,13 @@ function renderBreakdowns() {
     : filtered;
   filteredAtivas.forEach(d=>{uMap[d.usina]=(uMap[d.usina]||0)+1;usinaClient[d.usina]=d.cliente;});
   filtered.forEach(d=>{sMap[d.status]=(sMap[d.status]||0)+1;const c=categorizeCausa(d.causa);cMap[c]=(cMap[c]||0)+1;});
-  makeBar('usinaBars',Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,clientColor(usinaClient[k]).color]),'usinaTotal');
+  makeBar('usinaBars',Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']),'usinaTotal');
   makeBar('statusBars',Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
     const pal = getStatusPalette(k);
-    return [k, v, pal.color, pal.pulse || false];
+    // cor do status mas com 70% de opacidade — diferencia sem gritar
+    return [k, v, pal.color + 'BB', pal.pulse || false];
   }),'statusTotal');
-  makeBar('causaBars',Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'var(--blue)']),'causaTotal');
+  makeBar('causaBars',Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.14)']),'causaTotal');
 
   // Usina: clica na barra → define no select de usina (single-select)
   document.querySelectorAll('#usinaBars .bar-row').forEach(r=>r.addEventListener('click',()=>{
@@ -2684,8 +2685,13 @@ function renderCards(sorted) {
       ageBarHtml = `<div class="age-bar-wrap"><div class="age-bar-track"><div class="age-bar-fill" style="width:${pct}%;background:${ageColor}"></div></div></div>`;
     }
 
-    return `<div class="card ${cardSlaClass} ${staleClass} ${cardDesligClass}" tabindex="0" role="button" aria-label="${esc(d.equipamento)} — ${esc(d.usina)}" style="--card-color:${cc.color};--card-glow:${cc.glow}" data-id="${esc(d.id)}">
-      <div class="card-top"><div class="tag-row"><div class="icon-badge">${iconFor(d.equipamento)}</div><div><div class="usina-name">${esc(d.usina)}</div><div style="margin-top:3px;"><span style="font-size:10px;font-family:'Geist Mono',monospace;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:4px;background:${cc.color}22;color:${cc.color};border:1px solid ${cc.color}44;">${esc(d.cliente)}</span></div></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;"><div class="status-led ${isOpen?'pulse':''}" style="--card-color:${sc};--card-glow:${statusGlow(d.status)}"></div><span class="sla-badge-card">SLA</span></div></div>
+    return `<div class="card ${cardSlaClass} ${staleClass} ${cardDesligClass}" tabindex="0" role="button" aria-label="${esc(d.equipamento)} — ${esc(d.usina)}" data-id="${esc(d.id)}">
+      <div class="card-top">
+        <div>
+          <div class="usina-name">${esc(d.usina)} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(d.cliente)}</div>
+        </div>
+        <span class="sla-badge-card">SLA</span>
+      </div>
       <p class="equip">${esc(d.equipamento)}</p><p class="falha">${esc(d.falha)}</p>
       ${ageBarHtml}
       <div class="age-row"><span class="age-pill ${slaClass}">${ageIcon}${esc(ageText)}</span>${stalePillHtml}${isDeslig ? `<span class="deslig-badge"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>DESLIGADA</span>` : ''}</div>
