@@ -3203,7 +3203,7 @@ async function _saveDrawerToSheet() {
       const resp = await _fetchWithTimeout(SAVE_URL, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id:d.id,field,value,editor})
+        body: JSON.stringify({id:d.id,field,value,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''})
       });
       const result = await resp.json();
       console.log('[Salvar] Resposta:', resp.status, result);
@@ -3213,7 +3213,7 @@ async function _saveDrawerToSheet() {
       console.warn('[Salvar] Render falhou, tentando Apps Script:', err.message);
       // Fallback: Apps Script
       try {
-        const payload = JSON.stringify({id:d.id,field,value,editor});
+        const payload = JSON.stringify({id:d.id,field,value,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''});
         navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
         d[field]=value; // otimista
         console.log('[Salvar] Fallback Apps Script enviado');
@@ -3256,7 +3256,7 @@ async function _addHistoryEntry() {
       const hResp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor}),
+        body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''}),
         signal: hCtrl.signal
       });
       clearTimeout(hTid);
@@ -3265,7 +3265,7 @@ async function _addHistoryEntry() {
     } catch(e) {
       clearTimeout(hTid);
       // Fallback: Apps Script
-      const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor});
+      const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''});
       navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
       hSaved = true; // otimista
     }
