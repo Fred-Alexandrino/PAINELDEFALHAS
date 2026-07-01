@@ -3064,17 +3064,21 @@ async function _saveDrawerToSheet() {
   }
   if(changed.length===0){_isSaving=false;showToast('Nenhuma alteração detectada.',true);if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}return;}
   const errors=[];
+  const SAVE_URL = 'https://whatsapp-painel-falhas.onrender.com/atualizar-campo';
   for(const{field,value}of changed){
     try{
-      const payload = JSON.stringify({id:d.id,field,value,editor});
-      // sendBeacon: envia como text/plain sem preflight CORS — Apps Script lê via e.postData.contents
-      const ok = navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
-      if(!ok) {
-        // fallback: fetch com no-cors
-        await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:payload});
-      }
+      const resp = await fetch(SAVE_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id:d.id,field,value,editor})
+      });
+      const result = await resp.json();
+      if(!result.ok) throw new Error(result.error||'Erro desconhecido');
       d[field]=value;
-    }catch(err){errors.push(field);}
+    }catch(err){
+      log.error && log.error(err);
+      errors.push(field);
+    }
   }
   const newColor=statusColor(d.status);
   document.getElementById('drawerAccent').style.background=newColor;
@@ -3102,9 +3106,13 @@ async function _addHistoryEntry() {
   _isAddingHist = true;
   const editor=_currentSession.user||_currentSession.role||'dashboard';
   try{
-    const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor});
-    navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
-    await new Promise(r=>setTimeout(r,400));
+    const hResp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor})
+    });
+    const hResult = await hResp.json();
+    if(!hResult.ok && !hResult.dedup) throw new Error(hResult.error||'Erro ao salvar histórico');
     const now=new Date();
     const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
