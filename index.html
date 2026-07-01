@@ -703,17 +703,16 @@ body{
 .d-edit-textarea{min-height:74px;line-height:1.55;}
 .d-status-preview{display:flex;align-items:center;gap:7px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:11px;}
 .d-status-dot{width:8px;height:8px;border-radius:50%;flex:none;}
-.drawer-action-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:12px 14px;border-top:1px solid rgba(255,255,255,0.07);background:#111;flex:none;}
-/* Base comum para os 3 botões */
+.drawer-action-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 16px;border-top:1px solid rgba(255,255,255,0.07);background:#111;flex:none;}
+/* Base comum para os 3 botões — ocupa toda a largura */
 .drawer-hist-btn,.drawer-os-btn,.drawer-save-btn{
-  display:flex;align-items:center;justify-content:center;gap:5px;
-  border-radius:7px;padding:9px 4px;
-  font-size:10.5px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:8px;padding:12px 8px;
+  font-size:13px;font-weight:500;cursor:pointer;
   font-family:'Geist',sans-serif;transition:.15s;
-  white-space:nowrap;overflow:hidden;min-width:0;
-  text-overflow:ellipsis;
+  white-space:nowrap;min-width:0;width:100%;
 }
-.drawer-hist-btn svg,.drawer-os-btn svg,.drawer-save-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+.drawer-hist-btn svg,.drawer-os-btn svg,.drawer-save-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
 /* Histórico — neutro */
 .drawer-hist-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;}
 .drawer-hist-btn:hover{background:rgba(255,255,255,0.09);color:#ededed;}
@@ -1515,7 +1514,7 @@ body{
   <div class="drawer-action-bar" id="drawerActionBar" style="display:none">
     <button class="drawer-hist-btn" id="drawerHistBtn"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Histórico</button>
     <button class="drawer-os-btn" id="drawerOsBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
-    <button class="drawer-save-btn" id="drawerSaveBtn"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvar</button>
+    <button class="drawer-save-btn" id="drawerSaveBtn"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvar na planilha</button>
   </div>
 </aside>
 
@@ -3137,351 +3136,515 @@ function _gerarTextoOS(d) {
   const equipOrig= (d.equipamento  || 'equipamento');
   const usinaOrig= (d.usina        || 'usina');
 
-  const tem = (...termos) => termos.some(t => equip.includes(t) || falha.includes(t) || causa.includes(t) || hist.includes(t) || acao.includes(t));
+  const tem = (...ts) => ts.some(t => equip.includes(t)||falha.includes(t)||causa.includes(t)||hist.includes(t)||acao.includes(t));
 
-  // ── 1. Inversor ─────────────────────────────────────────────────────────
-  if (tem('inv-', 'inversor')) {
-    if (tem('string zerada', 'strings zerada', 'string zero', 'strings zero', 'sem corrente', 'sem geração')) {
-      return `Título:\nInspeção técnica do ${equipOrig} para diagnóstico de strings sem geração (${impactos || 'strings afetadas'})
+  // ── 1. INVERSORES ───────────────────────────────────────────────────────
+  if (tem('inv-','inversor')) {
+
+    if (tem('string zerada','strings zerada','sem corrente','string sem','strings sem','pv sem')) {
+      return `Título:
+Inspeção técnica do ${equipOrig} — diagnóstico de strings sem geração (${impactos||'strings afetadas'})
 
 Comentários:
 
-* Verificar no supervisório e localmente os alarmes ativos, correntes por string, tensões de entrada e desempenho dos MPPTs do ${equipOrig}.
-* Medir as tensões de circuito aberto (Voc) de cada string afetada e comparar com os valores esperados para o arranjo.
-* Inspecionar conectores MC4, cabos CC, bornes, fusíveis e possíveis sinais de mau contato, aquecimento ou ruptura.
-* Avaliar possível falha de isolação, inversão de polaridade, desconexão ou interrupção no circuito das strings zeradas.
-* Registrar medições, fotos, código de falha e diagnóstico conclusivo, com recomendação de correção.`;
+* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer intervenção.
+* Verificar no SCADA os alarmes ativos, correntes por string e desempenho dos MPPTs do ${equipOrig}.
+* Medir tensão de circuito aberto (Voc) de cada string afetada e comparar com valor esperado para o arranjo.
+* Inspecionar conectores MC4, cabos CC, bornes, fusíveis e blocos de proteção por sinais de mau contato, ruptura ou aquecimento.
+* Avaliar possível falha de isolação, inversão de polaridade ou interrupção no circuito das strings.
+* Confirmar ausência de tensão com multímetro (método H-C-H: Energizado–Desenergizado–Energizado) antes de qualquer intervenção física.
+* Registrar medições, fotos, código de falha e diagnóstico conclusivo para definição de correção.`;
     }
-    if (tem('baixa isolação', 'baixa isolacao', 'resistência de isolamento', 'resistencia de isolamento', 'isolação', 'isolacao')) {
-      return `Título:\nInspeção de ${equipOrig} com baixa resistência de isolamento nas strings
+
+    if (tem('baixa isolação','baixa isolacao','resistência de isolamento','isolação')) {
+      return `Título:
+Inspeção do ${equipOrig} com baixa resistência de isolamento — localização do circuito afetado
 
 Comentários:
 
-* Verificar o alarme de baixa isolação no ${equipOrig} e identificar a string com a ocorrência da falha.
-* Realizar teste de resistência de isolamento com megôhmetro, string por string, para localizar o circuito afetado.
-* Inspecionar cabos, conectores MC4, caixas de passagem e pontos com possível entrada de umidade ou dano mecânico.
-* Conferir aterramento dos módulos, estrutura e inversor.
+* Obter autorização do COS e preencher APR/PT antes de iniciar.
+* Identificar a string com alarme de baixa isolação no ${equipOrig} via SCADA.
+* Realizar medição de resistência de isolamento com megôhmetro, string por string, para localizar o ponto com falha.
+* Inspecionar cabos, conectores MC4, caixas de passagem e pontos com possível entrada de umidade ou dano físico.
+* Confirmar aterramento dos módulos, estrutura e do próprio inversor.
+* Realizar termografia para identificar pontos de aquecimento anormal nas conexões e módulos.
 * Registrar medições, fotos e diagnóstico final para definição da correção necessária.`;
     }
-    if (tem('baixa performance', 'baixo rendimento', 'potência reduzida', 'potencia reduzida', 'baixa potência', 'baixa potencia')) {
-      return `Título:\nInspeção de ${equipOrig} com baixa performance — verificação de strings, MPPTs e conexões CC
+
+    if (tem('baixa performance','baixo rendimento','potência reduzida','baixa potência','desempenho')) {
+      return `Título:
+Inspeção do ${equipOrig} — diagnóstico de baixa performance em strings e MPPTs
 
 Comentários:
 
-* Verificar no supervisório e localmente os alarmes ativos, correntes por string, tensões de entrada e desempenho dos MPPTs do ${equipOrig}.
-* Inspecionar conectores, cabos CC, bornes, fusíveis e possíveis sinais de mau contato, aquecimento ou corrosão nas strings associadas.
-* Realizar testes individuais nas strings com medição de tensão, corrente e resistência de isolamento para identificar desvios entre circuitos.
-* Conferir se há incompatibilidade entre strings paralelizadas, diferença de quantidade de módulos, sombreamento ou anomalias em campo que afetem a corrente.
-* Registrar medições, fotos, código de falha e diagnóstico conclusivo, com recomendação de correção.`;
+* Obter autorização do COS e preencher APR/PT antes de iniciar.
+* Verificar no SCADA correntes por string, tensões CC de entrada e desempenho dos MPPTs do ${equipOrig}.
+* Inspecionar conectores MC4, cabos CC, bornes, fusíveis por sinais de mau contato, aquecimento ou corrosão.
+* Realizar medições individuais nas strings (tensão, corrente e resistência de isolamento) para identificar desvios.
+* Executar inspeção termográfica nos módulos, strings e conexões para detecção de hotspots conforme POP 9.
+* Verificar se há incompatibilidade entre strings paralelizadas, módulos sombreados ou estruturas danificadas.
+* Registrar medições, fotos, código de falha e recomendar correção específica.`;
     }
-    if (tem('garantia', 'rma', 'fabricante')) {
-      return `Título:\nInspeção técnica do ${equipOrig} para acionamento de garantia junto ao fabricante
+
+    if (tem('falha de comunicação','perda de comunicação','comunicação','scada','rs485','modbus','rede')) {
+      return `Título:
+Diagnóstico e restauração de comunicação do ${equipOrig} com o SCADA
 
 Comentários:
 
-* Coletar dados do ${equipOrig}: modelo, número de série, data de instalação, horas de operação e histórico de alarmes via display ou portal de monitoramento.
+* Obter autorização do COS antes de iniciar conforme POP 15.
+* Verificar no SCADA quais dispositivos estão com falha de comunicação e registrar o horário e sequência dos eventos.
+* Inspecionar fisicamente cabos Ethernet/serial, conectores RJ-45 e conversores de mídia na cadeia de comunicação do ${equipOrig}.
+* Verificar status dos LEDs de conectividade nos switches e roteadores associados; reiniciar equipamentos suspeitos.
+* Testar comunicação com o inversor via software específico do fabricante (RS485/Modbus) e confirmar endereço de rede.
+* Verificar e atualizar firmware do inversor se necessário para corrigir bugs de comunicação.
+* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log de operações.`;
+    }
+
+    if (tem('reset','reinicialização','reinicializacao','travado','falha interna')) {
+      return `Título:
+Reinicialização do ${equipOrig} após falha operacional — restauração conforme POP
+
+Comentários:
+
+* Obter autorização formal do COS antes de qualquer manobra conforme POP Reinicialização.
+* Verificar no SCADA o código de alarme, equipamentos afetados, horário e sequência dos eventos.
+* Confirmar que as condições operacionais estão normalizadas: rede estável, sem sobrecargas e sem danos físicos visíveis.
+* Tentar reinicialização remota via SCADA; aguardar inicialização e monitorar parâmetros de tensão e corrente.
+* Caso remoto não seja possível: pressionar reset ou religar pelo painel local conforme manual do fabricante, aplicando LOTO antes da intervenção.
+* Confirmar com o COS que o ${equipOrig} retornou à operação normal e que não há novos alarmes.
+* Registrar no log: diagnóstico, ação tomada e resultado.`;
+    }
+
+    if (tem('garantia','rma','fabricante','acionamento de garantia')) {
+      return `Título:
+Inspeção do ${equipOrig} para levantamento técnico e acionamento de garantia junto ao fabricante
+
+Comentários:
+
+* Coletar dados de identificação do ${equipOrig}: modelo, número de série, data de instalação, horas de operação e histórico de alarmes.
 * Realizar testes elétricos: medir tensão/corrente CC e CA, eficiência de conversão e comparar com especificações técnicas do manual.
-* Inspecionar componentes internos por sinais de superaquecimento, corrosão ou dano visível; verificar bornes e conexões.
-* Testar proteções e comunicação conforme protocolos de garantia do fabricante.
-* Registrar relatório fotográfico detalhado, medições tabuladas e acionar formalmente a garantia se defeito coberto for identificado.`;
+* Inspecionar internamente por sinais de superaquecimento, corrosão ou dano visível; verificar bornes e conexões.
+* Executar termografia nos componentes internos e conexões externas para evidenciar o defeito.
+* Registrar relatório fotográfico detalhado e medições tabuladas conforme exigido pelo fabricante para abertura de garantia.
+* Acionar formalmente a garantia com toda a documentação e aguardar retorno do fabricante.`;
     }
-    if (tem('substituição', 'substituicao', 'troca', 'sobressalente')) {
-      return `Título:\nSubstituição do ${equipOrig} com defeito por unidade sobressalente
+
+    if (tem('substituição','substituicao','troca','sobressalente')) {
+      return `Título:
+Substituição do ${equipOrig} defeituoso por unidade sobressalente
 
 Comentários:
 
-* Desenergizar o circuito CC e CA, aplicar bloqueio/etiquetagem e confirmar ausência de tensão antes da remoção.
-* Identificar modelo, potência, tensão nominal e corrente do inversor sobressalente para garantir compatibilidade com a instalação existente.
-* Remover o inversor defeituoso, fixar o sobressalente no mesmo padrão de montagem e reconectar cabos CC, CA, comunicação e aterramento.
-* Realizar parametrização inicial, inspeção de polaridade e testes funcionais de partida, geração e comunicação com o monitoramento.
-* Registrar evidências fotográficas, números de série do equipamento retirado e do sobressalente instalado, além de relatório de causa raiz.`;
+* Solicitar autorização do COS e preencher APR/PT antes de iniciar conforme POP 3.
+* Desligar o ${equipOrig} remotamente via SCADA; em caso de falha remota, desligar localmente pelo painel conforme POP 3.4.3.
+* Desenergizar circuito CC (disjuntor de entrada) e CA (disjuntor de saída), confirmar ausência de tensão com multímetro (H-C-H) e aguardar 10 minutos para descarga dos capacitores.
+* Aplicar LOTO nos disjuntores CC e CA com cadeado e etiqueta "NÃO LIGAR — EM MANUTENÇÃO".
+* Verificar compatibilidade do inversor sobressalente (modelo, potência, tensão nominal) antes de instalar.
+* Remover o inversor defeituoso e instalar o sobressalente, reconectando cabos CC, CA, comunicação e aterramento conforme esquema original.
+* Realizar parametrização inicial, inspeção de polaridade e testes funcionais de partida, geração e comunicação com SCADA.
+* Registrar números de série do equipamento retirado e do instalado, e comunicar o COS.`;
     }
-    if (tem('reset', 'fábrica', 'fabrica', 'parametrização', 'parametrizacao')) {
-      return `Título:\nReset de fábrica e reparametrização do ${equipOrig}
 
-Comentários:
-
-* Desenergizar o equipamento e confirmar o modelo exato do inversor antes da intervenção.
-* Realizar backup dos parâmetros atuais, se necessário, para evitar perda de configuração útil.
-* Executar o reset de fábrica conforme manual do fabricante ou procedimento validado para o modelo instalado.
-* Reprogramar comandos, referências, limites e sentidos de rotação conforme a aplicação.
-* Testar partida, parada e alarmes, registrando evidências da restauração e da nova parametrização.`;
-    }
     // genérico inversor
-    return `Título:\nInspeção técnica do ${equipOrig} para diagnóstico de falha operacional
+    return `Título:
+Inspeção técnica do ${equipOrig} — diagnóstico de falha operacional na usina ${usinaOrig}
 
 Comentários:
 
-* Verificar o status geral e os alarmes ativos do ${equipOrig} no supervisório e localmente.
-* Conferir as tensões CC e CA, correntes por MPPT/string e fator de potência do equipamento.
-* Inspecionar conectores, cabos, bornes e possíveis falhas em strings e conexões elétricas associadas.
+* Obter autorização do COS e preencher APR/PT antes de iniciar conforme POP 3.
+* Verificar status geral e alarmes ativos do ${equipOrig} no SCADA; registrar código de alarme, horário e sequência dos eventos.
+* Confirmar ausência de tensão com multímetro (H-C-H) antes de qualquer intervenção física; aplicar LOTO se necessário.
+* Conferir tensões CC e CA, correntes por MPPT/string e fator de potência do equipamento.
+* Inspecionar conectores MC4, cabos, bornes e possíveis falhas em strings e conexões associadas.
 * Avaliar resistência de isolamento e condições gerais de operação do equipamento.
-* Registrar os valores medidos, fotos e evidências para análise técnica e definição de correção.`;
+* Registrar valores medidos, fotos e evidências para análise técnica e definição de correção.`;
   }
 
-  // ── 2. Tracker / TCU ────────────────────────────────────────────────────
-  if (tem('tracker', 'tcu', 'ncu')) {
-    if (tem('tcu') && tem('parado', 'falha', 'problema')) {
-      return `Título:\nInspeção de TCU do tracker parado — verificação de alimentação, comunicação e estado de emergência
+  // ── 2. TRACKER / TCU / NCU ─────────────────────────────────────────────
+  if (tem('tracker','tcu','ncu','rastreador')) {
+
+    if (tem('motor','escovas','escova','rolamento')) {
+      return `Título:
+Inspeção e manutenção do motor/escovas do ${equipOrig} — verificação mecânica e elétrica
 
 Comentários:
 
-* Verificar no supervisório e na TCU os alarmes ativos, estado de emergência e modo de operação.
-* Inspecionar alimentação elétrica, fusíveis, conectores, cabos e bateria da TCU para confirmar tensão e carga suficientes.
-* Conferir comunicação com a NCU e demais TCUs, bem como possíveis falhas de sincronismo ou perda de sinal.
-* Testar liberação de emergência e realizar reset da TCU quando aplicável, conforme procedimento do fabricante.
-* Registrar evidências, código de falha, posição do tracker, fotos e recomendação de correção para retorno da operação.`;
+* Obter autorização do COS e preencher APR/PT; acionar ao COS informando localização e tempo estimado conforme POP Trackers 4.1.
+* Aplicar LOTO no sistema de acionamento do tracker antes de qualquer intervenção mecânica ou elétrica.
+* Inspecionar visualmente as escovas do motor: verificar desgaste, trincas, quebras, sujeira, assentamento e porta-escovas.
+* Verificar molas, conexões e sinais de aquecimento ou carbonização no conjunto de escovas.
+* Realizar testes elétricos e funcionais no motor: continuidade, resistência de isolamento e resposta durante acionamento.
+* Avaliar se o estado das escovas interfere no torque, partida ou movimentação do tracker; substituir se necessário.
+* Verificar alinhamento, folgas e lubrificação da transmissão mecânica conforme especificações do fabricante.
+* Registrar fotos, medições e recomendação de ajuste, limpeza ou substituição do conjunto.`;
     }
-    if (tem('motor', 'escova')) {
-      return `Título:\nInspeção e manutenção dos motores do tracker — verificação de escovas, rolamentos e acionamento
+
+    if (tem('comunicação','comunicacao','falha de comunicação','perda de comunicação','scada')) {
+      return `Título:
+Diagnóstico de falha de comunicação do ${equipOrig} com o sistema de controle
 
 Comentários:
 
-* Inspecionar visualmente as escovas do motor do tracker, verificando desgaste, trincas, quebras, sujeira e assentamento inadequado.
-* Conferir porta-escovas, molas, conexões e sinais de aquecimento ou carbonização no conjunto.
-* Realizar testes elétricos e funcionais nas escovas e no motor para verificar continuidade, contato e resposta durante o acionamento.
-* Avaliar se o estado das escovas está interferindo no torque, partida ou movimentação do tracker.
-* Registrar fotos, medições, condição das escovas e recomendação para ajuste, limpeza ou substituição do conjunto.`;
+* Obter autorização do COS e registrar a intervenção no sistema conforme POP Trackers.
+* Verificar no SunOp/SCADA os alarmes ativos e identificar quais TCUs/NCUs estão com falha de comunicação.
+* Inspecionar fisicamente cabos de comunicação, conectores e roteadores na cadeia de rede do tracker.
+* Verificar status dos LEDs de conectividade nos switches; reiniciar equipamentos suspeitos conforme POP 15.
+* Testar comunicação com a TCU via software específico do fabricante e verificar endereçamento de rede.
+* Verificar alimentação elétrica, fusíveis e bateria da TCU para confirmar tensão e carga suficientes.
+* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log.`;
     }
-    if (tem('garantia')) {
-      return `Título:\nInspeção da TCU para levantamento de informações e abertura de garantia junto ao fabricante
+
+    if (tem('parado','travado','bloqueado','emergência','emergencia')) {
+      return `Título:
+Inspeção do ${equipOrig} parado/bloqueado — diagnóstico mecânico, elétrico e de controle
 
 Comentários:
 
-* Verificar o status operacional e os alarmes da TCU.
-* Levantar as informações de identificação do equipamento: etiqueta, número de série, número MAC e demais dados de rastreabilidade.
-* Registrar evidências técnicas da falha apresentada, com fotos e histórico de alarmes.
-* Consolidar as informações necessárias para abertura do processo de garantia junto ao fabricante.
-* Acompanhar o encaminhamento do caso até a definição da solução.`;
+* Obter autorização do COS antes de qualquer intervenção no sistema tracker conforme POP Trackers 4.1.
+* Verificar no SunOp/SCADA os alarmes ativos, estado de emergência e modo de operação do tracker.
+* Inspecionar alimentação elétrica da TCU: verificar fusíveis, conectores, cabos e nível de carga da bateria.
+* Verificar comunicação entre NCU e TCUs e possível perda de sincronismo na cadeia.
+* Inspecionar mecanicamente: alinhamento estrutural, deformações, obstrução física ou dano nos componentes móveis.
+* Verificar sensor de ângulo e encoder; testar acionamento manual conforme procedimento do fabricante.
+* Testar liberação de emergência e realizar reset da TCU quando aplicável.
+* Registrar código de falha, posição do tracker, fotos e recomendação de correção.`;
     }
+
+    if (tem('garantia','rma','fabricante')) {
+      return `Título:
+Inspeção da TCU do ${equipOrig} para levantamento de informações e abertura de garantia
+
+Comentários:
+
+* Verificar status operacional e alarmes da TCU/NCU no sistema de monitoramento.
+* Levantar dados de identificação: etiqueta, número de série, número MAC, firmware instalado.
+* Registrar evidências técnicas da falha com fotos e histórico de alarmes exportado do sistema.
+* Realizar testes básicos de alimentação, comunicação e resposta da TCU conforme manual do fabricante.
+* Consolidar documentação necessária para abertura formal do processo de garantia.
+* Encaminhar ao fabricante e acompanhar até definição da solução.`;
+    }
+
     // genérico tracker
-    return `Título:\nInspeção técnica do tracker — verificação mecânica, elétrica e de controle
+    return `Título:
+Inspeção técnica do ${equipOrig} — verificação mecânica, elétrica e de controle
 
 Comentários:
 
-* Verificar alimentação elétrica, fusíveis, disjuntores e sinais de comando do tracker.
+* Obter autorização do COS e preencher APR/PT conforme POP Trackers 4.1.
+* Verificar alimentação elétrica, fusíveis, disjuntores e sinais de comando da TCU/NCU do ${equipOrig}.
 * Inspecionar motor, redutor, encoder, sensores de posição e cabos de comunicação por falha ou desconexão.
-* Conferir travamento mecânico, desalinhamento estrutural, folgas, empeno ou obstrução no movimento.
-* Testar acionamento manual e automático, registrando o ponto exato em que ocorre a parada.
+* Verificar mecanicamente: alinhamento, folgas, empeno, lubrificação e obstrução no movimento.
+* Testar acionamento manual e automático, registrando o ponto em que ocorre a anomalia.
+* Realizar termografia nas conexões elétricas e no motor para identificar pontos de aquecimento.
 * Registrar evidências fotográficas, código de falha, medições e necessidade de manutenção corretiva.`;
   }
 
-  // ── 3. Transformador ────────────────────────────────────────────────────
+  // ── 3. FUSÍVEIS / DISJUNTORES ─────────────────────────────────────────
+  if (tem('fusível','fusivel','fusiveis','fusíveis','disjuntor','disjuntores','qd cc','string box')) {
+
+    return `Título:
+Substituição de fusíveis/disjuntores danificados em ${equipOrig} — usina ${usinaOrig}
+
+Comentários:
+
+* Obter autorização do COS para desligamento do circuito afetado conforme POP 14.
+* Monitorar no SCADA os alarmes relacionados e identificar localização exata dos componentes (string box, QD CC, QGBT).
+* Inspecionar visualmente os fusíveis e disjuntores: verificar sinais de queima, manchas, ruptura e possível causa (sobrecarga ou curto).
+* Confirmar ausência de tensão com multímetro (H-C-H) e aplicar LOTO no circuito com cadeado e etiqueta "NÃO OPERAR".
+* Remover componente danificado e instalar fusível/disjuntor novo com especificações idênticas ao original (tensão e corrente nominal).
+* Verificar firmeza das conexões, aperto dos bornes e ausência de folgas ou mau contato.
+* Solicitar ao COS energização após instalação; testar continuidade, tensão e corrente; monitorar por 30 minutos.
+* Realizar descarte adequado dos componentes substituídos conforme normas ambientais.`;
+  }
+
+  // ── 4. TRANSFORMADOR ───────────────────────────────────────────────────
   if (tem('transform')) {
-    if (tem('vazamento', 'óleo', 'oleo', 'bucha')) {
-      return `Título:\nManutenção corretiva do transformador com vazamento de óleo — vedação e abastecimento
+
+    if (tem('vazamento','óleo','oleo','bucha')) {
+      return `Título:
+Inspeção e vedação do transformador ${equipOrig} — vazamento de óleo nas buchas
 
 Comentários:
 
-* Inspecionar visualmente os pontos de vazamento nas buchas e na saída dos cabos.
-* Realizar limpeza da área antes de qualquer intervenção.
-* Aplicar vedação provisória de forma uniforme nos pontos identificados, conforme procedimento do fabricante.
-* Verificar se o vazamento foi contido após a intervenção.
-* Registrar fotos, evidências e informar a necessidade de reparo definitivo com datas e responsáveis.`;
+* Notificar o COS e registrar a ocorrência antes de qualquer intervenção.
+* Inspecionar visualmente os pontos de vazamento nas buchas e na saída dos cabos do transformador.
+* Realizar limpeza da área afetada antes de qualquer intervenção para avaliação precisa do volume de vazamento.
+* Aplicar vedação nos pontos identificados conforme procedimento e materiais aprovados pelo fabricante.
+* Verificar se o vazamento foi contido após a intervenção; monitorar por período mínimo de 30 minutos.
+* Avaliar necessidade de substituição das buchas e programar reparo definitivo com fornecedor.
+* Registrar fotos, evidências, volume estimado de óleo e informar necessidade de acompanhamento.`;
     }
-    if (tem('termografia', 'termográfica', 'termografica', 'ponto quente', 'aquecimento')) {
-      return `Título:\nInspeção termográfica do transformador — verificação de pontos de aquecimento anormal
+
+    if (tem('termografia','termográfica','termografica','ponto quente','aquecimento')) {
+      return `Título:
+Inspeção termográfica do transformador ${equipOrig} — identificação de pontos quentes
 
 Comentários:
 
-* Realizar a inspeção com o transformador em operação e área devidamente isolada, utilizando câmera termográfica calibrada.
-* Verificar temperaturas em conexões, buchas, terminais, carcaça, radiadores e pontos equivalentes entre fases para identificar desvios térmicos.
-* Comparar as imagens térmicas com as condições normais de operação e registrar qualquer diferença acima do padrão esperado.
-* Anotar carga, corrente, tensão, ambiente e horário da inspeção para contextualizar os termogramas obtidos.
-* Emitir relatório com imagens, pontos quentes, severidade da anomalia e recomendação de manutenção corretiva ou preventiva.`;
+* Realizar a inspeção com o transformador energizado e área isolada, utilizando câmera termográfica calibrada conforme POP 9.
+* Verificar temperaturas em conexões, buchas, terminais, carcaça e radiadores; comparar entre fases para identificar desvios.
+* Comparar imagens térmicas com condições normais de operação e registrar qualquer diferença acima do padrão do fabricante.
+* Anotar carga, corrente, tensão, temperatura ambiente e horário da inspeção para contextualizar os termogramas.
+* Inspecionar visualmente conexões externas, parafusos de aperto e estado dos isoladores.
+* Emitir relatório com imagens térmicas, pontos quentes identificados, severidade e recomendação de manutenção corretiva ou preventiva.`;
     }
-    if (tem('substituição', 'substituicao', 'troca')) {
-      return `Título:\nSubstituição do transformador com defeito — retirada, instalação e testes de comissionamento
+
+    return `Título:
+Inspeção técnica do transformador ${equipOrig} — diagnóstico de falha operacional
 
 Comentários:
 
-* Desenergizar o circuito e isolar a área de intervenção com bloqueio/etiquetagem.
-* Retirar o transformador com defeito, preservando as conexões para referência na instalação do substituto.
-* Instalar o transformador substituto no local, reconectando cabos de potência, aterramento e demais ligações.
-* Reexecutar as conexões elétricas e conferir aperto, polaridade e integridade das ligações.
-* Realizar testes finais, incluindo ensaio de relação de transformação se aplicável, e liberar o equipamento para operação.`;
-    }
+* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer intervenção no transformador.
+* Inspecionar visualmente: buchas, conexões, carcaça, radiadores e pontos de possível aquecimento, vazamento ou degradação.
+* Realizar termografia para identificar pontos quentes em conexões e barramentos associados.
+* Medir resistência de isolamento e verificar parâmetros de funcionamento conforme manual do fabricante.
+* Inspecionar e reapertar conexões com torquímetro calibrado conforme valores do fabricante (POP 8).
+* Verificar estado do sistema de proteção elétrica associado (relés, disjuntores).
+* Registrar medições, fotos e diagnóstico para definição de ação corretiva.`;
   }
 
-  // ── 4. Chave seccionadora ───────────────────────────────────────────────
-  if (tem('chave sec', 'seccionadora', 'chave cc', 'biela')) {
-    return `Título:\nSubstituição e inspeção das chaves seccionadoras e componentes associados
+  // ── 5. CABINE / QGBT / PROTEÇÃO ELÉTRICA ──────────────────────────────
+  if (tem('cabine','qgbt','barramento','relé','rele','proteção elétrica','sistema de proteção')) {
+
+    return `Título:
+Inspeção e manutenção da ${equipOrig} — verificação do sistema de proteção elétrica
 
 Comentários:
 
-* Desligar a usina e garantir o isolamento elétrico completo da área de intervenção com bloqueio/etiquetagem.
-* Executar a substituição das chaves seccionadoras conforme especificação técnica.
-* Substituir os fusíveis associados às chaves e conferir aperto, montagem e integridade das conexões.
-* Verificar alinhamento das bielas, travamento e curso completo de abertura e fechamento.
-* Realizar testes funcionais e liberar o sistema para operação, registrando fotos e evidências.`;
+* Obter autorização do COS e preencher APR/PT; aplicar LOTO antes de qualquer intervenção física conforme POP 4.
+* Monitorar alarmes no SCADA relacionados ao sistema de proteção; anotar códigos de erro, dispositivos e horário dos eventos.
+* Inspecionar visualmente conexões de relés, disjuntores e TCs/TPs por danos, oxidação ou aquecimento excessivo.
+* Realizar medições nos terminais dos relés e TCs para verificar continuidade e valores esperados conforme projeto.
+* Conectar computador ao relé via software do fabricante e verificar parametrização (ajustes de sobrecorrente 50/51, subtensão 27, sobretensão 59).
+* Executar calibração dos relés com equipamentos de teste; simular condições reais e verificar atuação correta.
+* Confirmar integração com SCADA: transmissão de status e alarmes em tempo real.
+* Monitorar sistema por 30 minutos após intervenção para confirmar estabilidade.`;
   }
 
-  // ── 5. Cabine primária / QGBT ───────────────────────────────────────────
-  if (tem('cabine', 'qgbt', 'wgbt', 'barramento')) {
-    if (tem('termografia', 'termográfica', 'termografica', 'ponto quente')) {
-      return `Título:\nInspeção termográfica da cabine de medição primária — identificação de pontos quentes e anomalias
+  // ── 6. STRINGS / MÓDULOS / CABOS ──────────────────────────────────────
+  if (tem('string','módulo','modulo','mc4','conector','cabo','pv')) {
+
+    if (tem('furtado','furto','roubo','recomposição','recomposicao')) {
+      return `Título:
+Recomposição de cabos/strings danificados ou furtados — ${equipOrig}
 
 Comentários:
 
-* Realizar a inspeção com a cabine energizada e área devidamente isolada, utilizando câmera termográfica calibrada.
-* Verificar barramentos, conexões, chaves, disjuntores, cabos e transformador em busca de pontos quentes.
-* Comparar temperaturas entre fases e componentes equivalentes para identificar desequilíbrios térmicos e possíveis falhas de contato.
-* Registrar carga, corrente, tensão, horário da inspeção e condições ambientais para contextualizar os achados.
-* Emitir relatório com imagens térmicas, severidade da anomalia e recomendação de manutenção corretiva, se necessário.`;
+* Obter autorização do COS; solicitar desligamento da string afetada e confirmar ausência de tensão conforme POP 13.
+* Aplicar LOTO e etiquetar pontos de isolamento com "NÃO OPERAR — EM MANUTENÇÃO".
+* Identificar os trechos danificados/furtados e verificar integridade das strings remanescentes.
+* Substituir cabos com mesma bitola, especificação e comprimento dos originais; refazer terminações com conectores MC4 certificados.
+* Realizar amarração adequada dos cabos com abraçadeiras sem causar esforço mecânico excessivo.
+* Testar continuidade, resistência de isolamento e polaridade do circuito após recomposição.
+* Registrar fotos antes e após, valores medidos e comunicar o COS para religamento.`;
     }
-    if (tem('manutenção', 'manutencao', 'corretiva', 'limpeza')) {
-      return `Título:\nManutenção corretiva das cabines da usina — inspeção, limpeza e reaperto de conexões
+
+    return `Título:
+Inspeção e correção de falha em strings fotovoltaicas — ${equipOrig}
 
 Comentários:
 
-* Executar procedimento de desligamento e isolamento da área conforme NR-10.
-* Realizar inspeção visual e identificação de anomalias nas cabines.
-* Efetuar limpeza geral dos compartimentos, barramentos, contatos e componentes acessíveis.
-* Verificar e reapertar conexões elétricas, disjuntores, chaves seccionadoras e barramentos.
-* Testar o funcionamento dos equipamentos após a intervenção e registrar as evidências.`;
+* Obter autorização do COS e preencher APR/PT conforme POP 13.
+* Monitorar no SCADA a string com baixa produção ou comportamento anômalo; identificar alarmes de desconexão ou desequilíbrio.
+* Confirmar ausência de corrente elétrica com multímetro (H-C-H) em todos os condutores antes de iniciar.
+* Inspecionar visualmente módulos, cabos e conectores MC4 por danos físicos, corrosão, ruptura ou aquecimento.
+* Medir tensão de circuito aberto (Voc) e corrente por string para identificar módulos ou diodos inoperantes.
+* Executar reparo conforme diagnóstico: substituir conectores MC4, cabos com isolação danificada ou diodos de bypass.
+* Realizar inspeção termográfica após reparo para confirmar ausência de hotspots.
+* Solicitar ao COS o religamento e monitorar geração no SCADA; registrar todo o procedimento.`;
+  }
+
+  // ── 7. COMUNICAÇÃO / SCADA / REDE ─────────────────────────────────────
+  if (tem('comunicação','comunicacao','scada','rede','switch','roteador','modbus','rs485','cftv','câmera','camera','nvr','anydesk')) {
+
+    if (tem('câmera','camera','cftv','nvr','speed dome')) {
+      return `Título:
+Diagnóstico e restauração do sistema de CFTV — ${equipOrig}
+
+Comentários:
+
+* Obter autorização do COS e registrar a intervenção.
+* Verificar no SCADA/monitoramento de rede os alarmes de desconexão do ${equipOrig}.
+* Inspecionar fisicamente cabos de rede, conectores e switches associados ao sistema de CFTV.
+* Verificar alimentação elétrica do ${equipOrig}; testar cabo de rede com testador de cabos.
+* Acessar o NVR e verificar status das câmeras; reiniciar equipamentos suspeitos.
+* Verificar configuração de IP e parâmetros de rede; confirmar que não há conflito de endereços.
+* Reposicionar a câmera se necessário para melhorar cobertura ou ângulo.
+* Testar qualidade da imagem e estabilidade da conexão por 30 minutos; registrar ações realizadas.`;
     }
+
+    return `Título:
+Diagnóstico e restauração de falha de comunicação — ${equipOrig} / SCADA
+
+Comentários:
+
+* Obter autorização do COS e registrar ocorrência no log conforme POP 15.
+* Identificar no SCADA quais dispositivos estão com falha de comunicação; registrar horário e sequência dos eventos.
+* Realizar teste de conectividade remoto (ping/traceroute) para isolar se a falha ocorre em todo o sistema ou em componente específico.
+* Inspecionar fisicamente cabos Ethernet/serial, fibra óptica e conectores na cadeia de comunicação do ${equipOrig}.
+* Verificar status dos LEDs nos switches e roteadores associados; reiniciar equipamentos com anomalias.
+* Testar comunicação direta com o dispositivo via software específico; verificar endereçamento IP e configurações Modbus/RS485.
+* Atualizar firmware se necessário; substituir cabos ou equipamentos de rede defeituosos com peças certificadas.
+* Confirmar restauração monitorando por 30 minutos e registrar todas as ações no log de operações.`;
   }
 
-  // ── 6. String / cabo furtado / recomposição ─────────────────────────────
-  if (tem('furtado', 'furto', 'roubo', 'recomposição', 'recomposicao', 'cabo')) {
-    return `Título:\nRecomposição de cabos das strings danificados/furtados — substituição e testes elétricos
+  // ── 8. SENSORES METEOROLÓGICOS ─────────────────────────────────────────
+  if (tem('piranômetro','piranometro','anemômetro','anemometro','estação meteorológica','estacao meteorologica','sensor','fieldlogger','datalogger')) {
+
+    return `Título:
+Inspeção, teste e calibração do sensor meteorológico — ${equipOrig}
 
 Comentários:
 
-* Isolar e desenergizar a área antes da intervenção.
-* Identificar os trechos danificados/furtados e verificar a integridade das strings remanescentes.
-* Substituir os cabos conforme bitola e padrão existentes, refazendo conexões e terminações.
-* Realizar amarração adequada dos cabos recompostos, sem causar esforço excessivo.
-* Testar continuidade, isolamento e funcionamento do circuito após a recomposição, registrando fotos e evidências.`;
+* Planejar a atividade com antecedência; realizar em dia ensolarado entre 10h e 16h para piranômetros conforme POP 11.
+* Inspecionar visualmente o ${equipOrig} por sujeira, resíduos, fios rompidos ou degradação física.
+* Realizar limpeza cuidadosa com material não abrasivo preservando superfícies sensíveis.
+* Comparar leituras do ${equipOrig} com equipamento de referência calibrado; diferença não deve exceder ±5%.
+* Verificar comunicação com o SCADA e consistência dos dados transmitidos em tempo real.
+* Verificar data de validade da calibração; se vencida, programar substituição e informar gestão com: número de série, data da última calibração e próxima data prevista.
+* Monitorar estabilidade das leituras por 30 minutos após intervenção e registrar no relatório.`;
   }
 
-  // ── 7. Vegetação / roçagem / poda ───────────────────────────────────────
-  if (tem('vegetação', 'vegetacao', 'roçagem', 'rocagem', 'poda', 'supressão', 'supressao', 'capina')) {
-    return `Título:\nAcompanhamento de controle/supressão vegetal na área da usina
+  // ── 9. EMERGÊNCIAS ─────────────────────────────────────────────────────
+  if (tem('incêndio','incendio','fogo')) {
+    return `Título:
+Procedimento de emergência — resposta a incêndio na usina ${usinaOrig}
 
 Comentários:
 
-* Confirmar previamente os limites da área autorizada e o planejamento da atividade.
-* Acompanhar a execução para garantir que a intervenção permaneça restrita às áreas indicadas.
-* Verificar uso correto de EPIs pelos envolvidos e as condições de segurança durante toda a atividade.
-* Conferir que não há danos a cabos, estruturas e equipamentos próximos durante a execução.
-* Registrar evidências fotográficas, horário de execução e responsáveis pela atividade.`;
+* Acionar imediatamente a brigada de incêndio e comunicar o COS via rádio ou telefone informando: local, se há pessoas em risco e possível origem do fogo.
+* Afastar todos os colaboradores e visitantes da área afetada; isolar com barreiras de segurança.
+* O COS deve realizar o desligamento completo das áreas afetadas (shutdown seguro) para minimizar risco elétrico durante o combate.
+* Utilizar extintor CO₂ ou pó químico seco para fogo classe C (elétrico); nunca usar água em áreas energizadas.
+* Ligar para o Corpo de Bombeiros (193) informando localização exata, natureza do incêndio e se há feridos.
+* Após extinção: inspecionar estrutura e sistema elétrico antes de qualquer religamento.
+* Registrar ocorrência completa: local, causa provável, ações tomadas, danos e lições aprendidas.`;
   }
 
-  // ── 8. Otimizador ───────────────────────────────────────────────────────
-  if (tem('otimizador')) {
-    return `Título:\nInspeção de otimizadores para diagnóstico de falha e abertura de garantia
+  if (tem('surto','descarga atmosférica','raio','sobretensão','sobretensao')) {
+    return `Título:
+Procedimento de emergência — avaliação de danos por surto elétrico/descarga atmosférica
 
 Comentários:
 
-* Identificar o equipamento: modelo, número de série, tag e histórico de alarmes.
-* Verificar conexão CC/CA, integridade dos cabos, conectores e sinais de aquecimento, oxidação ou ruptura.
-* Realizar medições elétricas e teste funcional, comparando o desempenho do otimizador com os demais da mesma string.
-* Registrar evidências fotográficas, medições e defeito apresentado.
-* Consolidar as informações para abertura formal de garantia, com relatório técnico e rastreabilidade do componente.`;
+* COS deve identificar alarmes de surto no SCADA e registrar data, horário e condições climáticas do evento conforme POP Surtos.
+* Isolar virtualmente inversores e strings afetadas no SCADA para proteger o sistema de surtos recorrentes; aplicar LOTO nas áreas afetadas.
+* Inspecionar fisicamente os Dispositivos de Proteção contra Surto (DPS) nos inversores, QDs e transformadores; substituir os que sofreram disparo.
+* Verificar visualmente cabos, conectores, barramentos e transformadores por sinais de derretimento, carbonização ou conexões rompidas.
+* Realizar medições com multímetro e megôhmetro: tensões, correntes e resistência de isolamento nas strings afetadas.
+* Verificar resistência do sistema de aterramento (deve ser <10 ohms) e integridade dos condutores de aterramento.
+* Realizar religamento gradual após confirmação de que não há danos residuais; monitorar geração no SCADA.
+* Documentar evento completo e revisar plano preventivo com base nas lições aprendidas.`;
   }
 
-  // ── 9. Módulo fotovoltaico ───────────────────────────────────────────────
-  if (tem('módulo', 'modulo', 'painel', 'placa', 'pv')) {
-    return `Título:\nInspeção técnica do módulo fotovoltaico — termografia e medição de tensão de circuito aberto
+  if (tem('falha na rede','falta de energia','apagão','queda de energia','concessionária','concessionaria')) {
+    return `Título:
+Procedimento de emergência — resposta a falha na rede elétrica da concessionária
 
 Comentários:
 
-* Realizar inspeção visual do módulo para identificação e registro de trincas, danos ou sujidade.
-* Executar termografia para verificar hotspots, aquecimento localizado e comparação com módulos vizinhos.
-* Medir a tensão de circuito aberto (Voc) com multímetro e comparar com a condição esperada.
-* Registrar evidências fotográficas e valores medidos para análise técnica.
-* Emitir diagnóstico técnico com recomendação de correção, substituição ou monitoramento.`;
+* COS deve verificar alarmes no SCADA (subtensão, sobretensão ou interrupção total) e registrar o evento conforme POP Emergência Rede.
+* Desligar inversores fotovoltaicos remotamente para proteger componentes sensíveis contra surtos no religamento.
+* Abrir o disjuntor principal de conexão com a rede; confirmar que os relés de proteção atuaram corretamente.
+* Bloquear zonas de risco com LOTO; confirmar desconexão total antes de qualquer intervenção local.
+* Inspecionar fusíveis, disjuntores e relés por possíveis danos causados pela variação de tensão.
+* Estabelecer contato com a concessionária para obter informações sobre estabilização da rede.
+* Após normalização: sincronizar inversores gradualmente com a rede, ativar strings progressivamente e confirmar geração no SCADA.
+* Registrar: tipo de falha, tempo de inatividade, ações tomadas e impacto na geração.`;
   }
 
-  // ── 10. Ar condicionado / contatora / exaustor ──────────────────────────
-  if (tem('ar condicionado', 'ar-condicionado', 'contatora', 'contactor', 'exaustor', 'dreno')) {
-    if (tem('contatora', 'contactor')) {
-      return `Título:\nSubstituição de contactoras queimadas — restauração do acionamento elétrico dos equipamentos
+  // ── 10. OPERAÇÃO GERAL / DESLIGAMENTO / ENERGIZAÇÃO ───────────────────
+  if (tem('desligamento','desligar','shutdown')) {
+    return `Título:
+Desligamento programado da usina ${usinaOrig} — procedimento conforme POP 2
 
 Comentários:
 
-* Desenergizar o circuito antes da intervenção com bloqueio/etiquetagem.
-* Inspecionar a contatora e seus contatos de potência e comando.
-* Remover as contactoras danificadas e instalar novas peças compatíveis.
-* Verificar bobina, contatos auxiliares, fusíveis, bornes e sinais de aquecimento.
-* Testar o acionamento dos equipamentos após a substituição e registrar fotos e evidências.`;
-    }
-    if (tem('dreno', 'drenagem')) {
-      return `Título:\nLimpeza e desobstrução dos drenos do ar-condicionado
-
-Comentários:
-
-* Desligar o equipamento antes da intervenção.
-* Verificar obstruções na mangueira e na bandeja de drenagem.
-* Realizar a limpeza e desobstrução do dreno com método apropriado.
-* Testar o escoamento da água após a limpeza.
-* Registrar a condição final do sistema e possíveis ajustes necessários.`;
-    }
-    if (tem('exaustor')) {
-      return `Título:\nLimpeza técnica dos exaustores e sistemas de ventilação do ${equipOrig}
-
-Comentários:
-
-* Limpar os exaustores, grelhas e dutos de ventilação do ${equipOrig}.
-* Remover poeira e resíduos acumulados nas superfícies internas e externas.
-* Verificar se há obstrução na circulação de ar e sinais de aquecimento anormal.
-* Inspecionar fixações e pontos de montagem após a limpeza.
-* Registrar as condições encontradas antes e após a intervenção e liberar o equipamento para operação.`;
-    }
+* COS deve autorizar a manobra, registrar a solicitação e informar a concessionária se aplicável.
+* Confirmar que nenhuma atividade crítica está em andamento; verificar que não há sobrecargas ou falhas nos inversores.
+* Executar desligamento remoto dos inversores via SCADA; aguardar confirmação e desligar o disjuntor principal remotamente.
+* Em caso de falha remota: operador local deve utilizar EPIs adequados (luvas classe 2, capacete, óculos, calçado isolante) e seguir manobra manual conforme POP 2.4.4.
+* Aplicar LOTO em todos os pontos manobrados se a usina permanecerá desligada para manutenção.
+* Registrar: data/hora, responsáveis, motivo, condições antes e depois da manobra e impacto na geração.`;
   }
 
-  // ── 11. CFTV / câmera / switch / rede ───────────────────────────────────
-  if (tem('cftv', 'câmera', 'camera', 'switch', 'roteador', 'rede')) {
-    if (tem('câmera', 'camera', 'cftv') && tem('reposicionamento', 'ajuste', 'posição')) {
-      return `Título:\nReposicionamento de câmera de CFTV para ajuste de cobertura e enquadramento
+  if (tem('energização','energizacao','religamento','religar')) {
+    return `Título:
+Energização/religamento da usina ${usinaOrig} — procedimento conforme POP 1
 
 Comentários:
 
-* Verificar a posição atual e o campo de visão da câmera.
-* Realizar o reposicionamento conforme a necessidade operacional e cobertura esperada.
-* Ajustar enquadramento, inclinação e foco, se aplicável.
-* Validar a qualidade da imagem após o reposicionamento.
-* Registrar a atividade executada com fotos antes e depois.`;
-    }
-    if (tem('switch') || tem('roteador')) {
-      return `Título:\nInstalação de ${equipOrig} e verificação da comunicação da rede
-
-Comentários:
-
-* Definir o local de instalação com ventilação adequada e acesso aos cabos.
-* Conectar a alimentação e os cabos de rede conforme a topologia existente.
-* Verificar portas, leds indicativos e funcionamento do equipamento após a instalação.
-* Testar a comunicação entre os dispositivos conectados.
-* Registrar fotos e evidências da instalação realizada.`;
-    }
+* COS deve registrar a solicitação e o operador local deve inspecionar as condições da usina antes do religamento.
+* Verificar integridade dos equipamentos (módulos, inversores, disjuntores) e confirmar ausência de curtos ou falhas.
+* Retirar todos os bloqueios LOTO antes da manobra; confirmar que a rede da concessionária está estável.
+* Executar religamento remoto via SCADA: fechar seccionadora, disjuntor de MT, disjuntores dos transformadores e disjuntores dos inversores na sequência correta.
+* Acionar os inversores remotamente via COS, monitorando estabilização da geração e ausência de alarmes.
+* Em caso de falha remota: operador local deve seguir sequência manual conforme POP 1.4.3 com EPIs adequados.
+* Monitorar geração, tensões e correntes nos inversores e strings; confirmar normalidade no SCADA.
+* Registrar: data/hora, responsáveis, motivo, condições antes e depois e resultados da geração.`;
   }
 
-  // ── 12. Acompanhamento genérico ─────────────────────────────────────────
-  if (tem('acompanhamento', 'acompanhar')) {
-    const atividade = d.falha || d.equipamento || 'atividade';
-    return `Título:\nAcompanhamento técnico de ${atividade} na usina ${usinaOrig}
+  if (tem('vegetação','vegetacao','roçagem','rocagem','poda','supressão','supressao','capina')) {
+    return `Título:
+Acompanhamento de controle/supressão vegetal na usina ${usinaOrig}
 
 Comentários:
 
-* Confirmar previamente o planejamento, limites e escopo da atividade.
-* Acompanhar a execução para garantir conformidade com o procedimento aprovado.
-* Verificar uso correto de EPIs e condições de segurança durante toda a atividade.
-* Apoiar a equipe responsável e registrar o andamento das atividades em campo.
-* Registrar evidências fotográficas, horário de execução e conclusão do serviço.`;
+* Confirmar previamente os limites da área autorizada, o planejamento da atividade e os recursos disponíveis.
+* Acompanhar execução garantindo que a intervenção permaneça restrita às áreas indicadas e respeite distâncias seguras dos equipamentos.
+* Verificar uso correto de EPIs por todos os envolvidos durante toda a atividade.
+* Conferir que não há danos a cabos, estruturas, módulos e equipamentos durante a execução.
+* Verificar possível presença de animais peçonhentos antes e durante a atividade; interromper imediatamente em caso de risco.
+* Registrar evidências fotográficas, área coberta, horário de início e término e responsáveis.`;
   }
 
-  // ── Fallback genérico ────────────────────────────────────────────────────
+  // ── 11. TERMOGRAFIA ────────────────────────────────────────────────────
+  if (tem('termografia','termográfica','termografica')) {
+    return `Título:
+Inspeção termográfica em ${equipOrig} — identificação de anomalias térmicas
+
+Comentários:
+
+* Realizar a inspeção com o sistema energizado e em plena geração; condições ideais: dia ensolarado entre 10h e 16h conforme POP 9.
+* Utilizar câmera termográfica calibrada; garantir EPIs adequados (capacete, luvas, óculos, roupas anti-chama).
+* Capturar imagens térmicas de módulos, strings, conectores, barramentos e componentes de proteção associados.
+* Verificar padrões térmicos anômalos: diferencial entre células, módulos com temperatura muito acima da média, hotspots em conexões.
+* Classificar anomalias encontradas: Crítica (correção imediata), Moderada (manutenção programada), Baixa (monitoramento).
+* Após correções, realizar nova inspeção termográfica para confirmar normalização das temperaturas.
+* Emitir relatório com imagens, localização, diferencial de temperatura e recomendações de manutenção.`;
+  }
+
+  // ── 12. REINICIALIZAÇÃO GERAL ──────────────────────────────────────────
+  if (tem('reinicialização','reinicializacao','reset','reiniciar','reinicalization')) {
+    return `Título:
+Reinicialização do ${equipOrig} após falha operacional — procedimento conforme POP
+
+Comentários:
+
+* Obter autorização do COS antes de qualquer manobra; verificar no SCADA: código de alarme, equipamentos afetados e sequência dos eventos.
+* Confirmar que as condições operacionais foram normalizadas: rede elétrica estável, equipamentos sem danos físicos, proteções verificadas.
+* Tentar reinicialização remota via SCADA; monitorar tensões, correntes e status do equipamento durante a inicialização.
+* Se remoto não for possível: inspecionar fisicamente o ${equipOrig}, aplicar LOTO se necessário e executar reset conforme manual do fabricante.
+* Monitorar SCADA por pelo menos 30 minutos após reinicialização verificando Performance Ratio e ausência de novos alarmes.
+* Se alarmes persistirem: isolar novamente o equipamento e solicitar inspeção técnica detalhada.
+* Registrar no log: diagnóstico da falha, ação tomada e resultado da reinicialização.`;
+  }
+
+  // ── FALLBACK GENÉRICO ──────────────────────────────────────────────────
   const titulo = d.falha ? d.falha : `intervenção em ${equipOrig}`;
-  return `Título:\nOrdem de Serviço — ${titulo} na usina ${usinaOrig}
+  return `Título:
+Ordem de Serviço — ${titulo} na usina ${usinaOrig}
 
 Comentários:
 
-* Verificar as condições atuais do equipamento e confirmar o escopo da intervenção.
-* Executar as ações necessárias conforme procedimento técnico aplicável.
-* Conferir integridade das conexões e funcionamento após a intervenção.
+* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer atividade em campo.
+* Verificar condições atuais do ${equipOrig} no SCADA e confirmar o escopo da intervenção.
+* Aplicar LOTO nos pontos de isolamento necessários; confirmar ausência de tensão com multímetro (H-C-H) antes de qualquer intervenção elétrica.
+* Executar inspeção visual e executar as ações corretivas conforme diagnóstico e procedimento técnico aplicável.
+* Conferir integridade das conexões e funcionamento do equipamento após a intervenção.
 * Registrar fotos, medições e evidências do serviço executado.
-* Consolidar relatório técnico com diagnóstico e recomendações para acompanhamento.`;
+* Comunicar o COS sobre a conclusão e resultado da intervenção.`;
 }
 
 async function _solicitarOS() {
