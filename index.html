@@ -889,6 +889,44 @@ body{
   .sb-toggle-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
 }
 
+/* BOTTOM NAVIGATION — mobile only */
+.bottom-nav{display:none;}
+@media(max-width:768px){
+  .bottom-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--bg);
+    border-top:1px solid var(--border);
+    z-index:400;
+    padding:8px 0 max(8px,env(safe-area-inset-bottom));
+  }
+  .bn-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    gap:4px;padding:4px 0;cursor:pointer;
+    color:var(--text-faint);transition:color .15s;
+    font-size:9.5px;font-weight:500;letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .bn-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
+  .bn-item.active{color:var(--amber);}
+  .bn-item:hover{color:var(--text-dim);}
+  /* Sidebar no mobile: oculta por padrão, aparece como overlay quando menu é acionado */
+  .sidebar{display:flex;position:fixed;left:-100%;width:240px;transition:left .25s cubic-bezier(.4,0,.2,1);}
+  .sidebar.open{left:0;}
+  .sb-toggle-btn{display:none !important;}
+  /* Topbar mobile: 1 linha limpa, sem row2 */
+  .topbar{padding:0 12px;min-height:52px;}
+  .topbar-row1{padding:12px 0;}
+  .topbar-row2{display:none !important;}
+  /* Padding bottom para não ficar atrás do bottom nav */
+  .main-content{padding:12px 12px 80px !important;}
+}
+
+
+@media(max-width:768px){
+  /* Mostra relógio e botão atualizar na row1 no mobile */
+  .topbar-row1 .topbar-clock-mobile{display:flex;align-items:center;gap:6px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--text-faint);}
+}
 /* LIGHT MODE */
 [data-theme="light"] .fault-table th{background:var(--panel-alt);}
 [data-theme="light"] .fault-table tbody tr:hover{background:#EEF4FA;}
@@ -1613,15 +1651,16 @@ const NAV_TITLES = {
 function switchNav(nav) {
   if (nav === 'eficiencia') { showToast('Eficiência O&M — em desenvolvimento', true); return; }
   _activeNav = nav;
+  // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
+  // Atualiza bottom nav
+  document.querySelectorAll('.bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
   const section = document.getElementById('sec-' + nav);
   if (section) section.classList.add('active');
   const title = document.getElementById('topbarTitle');
   if (title) title.textContent = NAV_TITLES[nav] || nav;
-  // Fecha sidebar mobile ao navegar
   closeMobileSidebar();
-  // Carrega dados sob demanda
   if (nav === 'chamados') openChamadosInline();
   if (nav === 'processos') openZeladoriasInline();
   if (nav === 'historico-log') {/* carregado via botão */}
@@ -1629,6 +1668,15 @@ function switchNav(nav) {
 }
 document.querySelectorAll('.sb-nav-item:not(.disabled)').forEach(el => {
   el.addEventListener('click', () => switchNav(el.dataset.nav));
+});
+// Bottom nav: itens de seção
+document.querySelectorAll('.bn-item[data-nav]').forEach(el => {
+  el.addEventListener('click', () => switchNav(el.dataset.nav));
+});
+// Bottom nav: botão Menu abre a sidebar
+document.getElementById('bnMenuBtn')?.addEventListener('click', () => {
+  // No mobile sem sidebar, abre um sheet/drawer de menu
+  openMobileSidebar();
 });
 
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
@@ -3821,5 +3869,30 @@ if (window._pendingSession) {
 }
 
 </script>
+
+<!-- BOTTOM NAVIGATION — mobile only -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bn-item active" data-nav="falhas">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>Falhas</span>
+  </div>
+  <div class="bn-item" data-nav="rondas">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Rondas</span>
+  </div>
+  <div class="bn-item" data-nav="chamados">
+    <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+    <span>Chamados</span>
+  </div>
+  <div class="bn-item" data-nav="mttr">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span>MTTR</span>
+  </div>
+  <div class="bn-item" id="bnMenuBtn">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>Menu</span>
+  </div>
+</nav>
+
 </body>
 </html>
