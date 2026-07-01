@@ -169,6 +169,9 @@ body{
 
 /* Chips de cliente */
 .sb-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+.sb-toggle-all-btn{width:100%;background:transparent;border:1px dashed var(--border);color:var(--text-faint);border-radius:6px;padding:4px 8px;font-size:10.5px;font-family:'Geist Mono',monospace;cursor:pointer;transition:.15s;margin-bottom:6px;text-align:center;}
+.sb-toggle-all-btn:hover{border-color:var(--teal);color:var(--teal);}
+.sb-toggle-all-btn.active{border-color:var(--teal);border-style:solid;color:var(--teal);background:rgba(63,193,176,.06);}
 .sb-chip{
   font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;
   padding:3px 8px;border-radius:5px;cursor:pointer;
@@ -533,9 +536,9 @@ body{
 /* ══════════════════════════════════════════════════════════
    DRAWER LATERAL
 ══════════════════════════════════════════════════════════ */
-.drawer-backdrop{position:fixed;inset:0;z-index:200;background:rgba(8,12,18,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .28s ease;}
+.drawer-backdrop{position:fixed;inset:0;z-index:450;background:rgba(8,12,18,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .28s ease;}
 .drawer-backdrop.open{opacity:1;pointer-events:all;}
-.drawer{position:fixed;top:0;right:0;bottom:0;z-index:201;width:min(500px,100vw);background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 48px rgba(0,0,0,.45);}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:451;width:min(500px,100vw);background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 48px rgba(0,0,0,.45);}
 .drawer.open{transform:translateX(0);}
 .drawer-accent{height:4px;flex:none;background:var(--drawer-color,var(--amber));transition:background .2s;}
 .drawer-head{padding:16px 18px 12px;border-bottom:1px solid var(--border-soft);flex:none;}
@@ -628,7 +631,7 @@ body{
 /* ══════════════════════════════════════════════════════════
    MODAL CHAMADOS
 ══════════════════════════════════════════════════════════ */
-.ch-overlay{position:fixed;inset:0;background:rgba(8,12,18,.82);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:150;padding:24px;}
+.ch-overlay{position:fixed;inset:0;background:rgba(8,12,18,.82);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:500;padding:24px;}
 .ch-overlay.open{display:flex;}
 .ch-modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.65);border-top:4px solid #5B9BD5;animation:modalIn .2s cubic-bezier(.2,.8,.4,1);}
 @keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:none;}}
@@ -653,7 +656,7 @@ body{
 /* ══════════════════════════════════════════════════════════
    MODAL RONDAS — tela cheia
 ══════════════════════════════════════════════════════════ */
-.rondas-overlay{position:fixed;inset:0;background:rgba(8,12,18,.88);backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:center;z-index:200;}
+.rondas-overlay{position:fixed;inset:0;background:rgba(8,12,18,.88);backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:center;z-index:500;}
 .rondas-overlay.open{display:flex;}
 .rondas-modal{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:0;width:100%;box-shadow:var(--shadow);animation:modalIn .2s cubic-bezier(.2,.8,.4,1);overflow:hidden;}
 @media(min-width:640px){.rondas-overlay{padding:20px;}.rondas-modal{border-radius:16px;max-width:1100px;max-height:calc(100vh - 40px);}}
@@ -892,6 +895,7 @@ body{
 
       <span class="sb-filter-label">Clientes</span>
       <div class="sb-chips" id="sbChipsCliente"></div>
+      <button class="sb-toggle-all-btn" id="sbToggleAllClientes" onclick="_toggleAllClientes()">Marcar todos</button>
 
       <span class="sb-filter-label">Usina</span>
       <select class="sb-select" id="sbSelUsina"><option value="">Todas</option></select>
@@ -1900,8 +1904,8 @@ function renderClienteChips() {
   const wrap = document.getElementById('sbChipsCliente');
   if (!wrap) return;
   const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
-  // Usa os clientes reais da planilha, com fallback para os fixos se vazio
   const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
+  const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
   wrap.innerHTML = clientes.map(c => {
     const cc = clientColor(c);
@@ -1913,14 +1917,43 @@ function renderClienteChips() {
     chip.addEventListener('click', () => {
       const c = chip.dataset.cliente;
       selCliente.has(c) ? selCliente.delete(c) : selCliente.add(c);
-      renderClienteChips();
+      populateFilters();
       applyFilters();
     });
   });
+
+  // Atualiza o botão de marcar/desmarcar todos
+  const btn = document.getElementById('sbToggleAllClientes');
+  if (btn) {
+    if (todosAtivos) {
+      btn.textContent = 'Desmarcar todos';
+      btn.classList.add('active');
+    } else {
+      btn.textContent = 'Marcar todos';
+      btn.classList.remove('active');
+    }
+  }
+}
+
+function _toggleAllClientes() {
+  const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
+  const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
+  const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
+
+  if (todosAtivos) {
+    selCliente.clear();
+  } else {
+    clientes.forEach(c => selCliente.add(c));
+  }
+  populateFilters();
+  applyFilters();
 }
 
 function populateFilters() {
-  const usinas = [...new Set(DATA.map(d => d.usina))].sort();
+  // Respeita o(s) cliente(s) selecionado(s) nos chips: a lista de usinas
+  // disponível no dropdown deve refletir só as usinas daquele(s) cliente(s).
+  const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
+  const usinas = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
   const statuses = [...new Set(DATA.map(d => d.status))].sort();
 
   const selU = document.getElementById('sbSelUsina');
@@ -1928,7 +1961,9 @@ function populateFilters() {
   if (selU) {
     const cur = selU.value;
     selU.innerHTML = '<option value="">Todas</option>' + usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    if (usinas.includes(cur)) selU.value = cur;
+    // Se a usina anteriormente selecionada não pertence mais ao(s) cliente(s)
+    // ativo(s), limpa a seleção em vez de deixar um valor "fantasma".
+    if (usinas.includes(cur)) { selU.value = cur; } else { selU.value = ''; selUsinaValue = ''; }
   }
   if (selS) {
     const cur = selS.value;
@@ -2009,7 +2044,6 @@ function clearFilters() {
   activeCausa = null; activeSlaFilter = false; activeDesligFilter = false; activeInvFilter = false;
   document.getElementById('slaBanner')?.classList.remove('active-filter');
   document.getElementById('desligBanner')?.classList.remove('active-filter');
-  renderClienteChips();
   populateFilters();
   applyFilters();
 }
@@ -2729,6 +2763,364 @@ async function _addHistoryEntry() {
 }
 
 /* ══ SOLICITAR OS — gera texto de abertura de OS via IA, contextualizado ══ */
+// ══ TEMPLATES DE OS — baseado nos padrões reais usados em campo ══════════
+function _gerarTextoOS(d) {
+  const equip    = (d.equipamento  || '').toLowerCase();
+  const falha    = (d.falha        || '').toLowerCase();
+  const causa    = (d.causa        || '').toLowerCase();
+  const acao     = (d.acao         || '').toLowerCase();
+  const hist     = (d.historico    || '').toLowerCase();
+  const impactos = (d.impactados   || '');
+  const equipOrig= (d.equipamento  || 'equipamento');
+  const usinaOrig= (d.usina        || 'usina');
+
+  const tem = (...termos) => termos.some(t => equip.includes(t) || falha.includes(t) || causa.includes(t) || hist.includes(t) || acao.includes(t));
+
+  // ── 1. Inversor ─────────────────────────────────────────────────────────
+  if (tem('inv-', 'inversor')) {
+    if (tem('string zerada', 'strings zerada', 'string zero', 'strings zero', 'sem corrente', 'sem geração')) {
+      return `Título:\nInspeção técnica do ${equipOrig} para diagnóstico de strings sem geração (${impactos || 'strings afetadas'})
+
+Comentários:
+
+* Verificar no supervisório e localmente os alarmes ativos, correntes por string, tensões de entrada e desempenho dos MPPTs do ${equipOrig}.
+* Medir as tensões de circuito aberto (Voc) de cada string afetada e comparar com os valores esperados para o arranjo.
+* Inspecionar conectores MC4, cabos CC, bornes, fusíveis e possíveis sinais de mau contato, aquecimento ou ruptura.
+* Avaliar possível falha de isolação, inversão de polaridade, desconexão ou interrupção no circuito das strings zeradas.
+* Registrar medições, fotos, código de falha e diagnóstico conclusivo, com recomendação de correção.`;
+    }
+    if (tem('baixa isolação', 'baixa isolacao', 'resistência de isolamento', 'resistencia de isolamento', 'isolação', 'isolacao')) {
+      return `Título:\nInspeção de ${equipOrig} com baixa resistência de isolamento nas strings
+
+Comentários:
+
+* Verificar o alarme de baixa isolação no ${equipOrig} e identificar a string com a ocorrência da falha.
+* Realizar teste de resistência de isolamento com megôhmetro, string por string, para localizar o circuito afetado.
+* Inspecionar cabos, conectores MC4, caixas de passagem e pontos com possível entrada de umidade ou dano mecânico.
+* Conferir aterramento dos módulos, estrutura e inversor.
+* Registrar medições, fotos e diagnóstico final para definição da correção necessária.`;
+    }
+    if (tem('baixa performance', 'baixo rendimento', 'potência reduzida', 'potencia reduzida', 'baixa potência', 'baixa potencia')) {
+      return `Título:\nInspeção de ${equipOrig} com baixa performance — verificação de strings, MPPTs e conexões CC
+
+Comentários:
+
+* Verificar no supervisório e localmente os alarmes ativos, correntes por string, tensões de entrada e desempenho dos MPPTs do ${equipOrig}.
+* Inspecionar conectores, cabos CC, bornes, fusíveis e possíveis sinais de mau contato, aquecimento ou corrosão nas strings associadas.
+* Realizar testes individuais nas strings com medição de tensão, corrente e resistência de isolamento para identificar desvios entre circuitos.
+* Conferir se há incompatibilidade entre strings paralelizadas, diferença de quantidade de módulos, sombreamento ou anomalias em campo que afetem a corrente.
+* Registrar medições, fotos, código de falha e diagnóstico conclusivo, com recomendação de correção.`;
+    }
+    if (tem('garantia', 'rma', 'fabricante')) {
+      return `Título:\nInspeção técnica do ${equipOrig} para acionamento de garantia junto ao fabricante
+
+Comentários:
+
+* Coletar dados do ${equipOrig}: modelo, número de série, data de instalação, horas de operação e histórico de alarmes via display ou portal de monitoramento.
+* Realizar testes elétricos: medir tensão/corrente CC e CA, eficiência de conversão e comparar com especificações técnicas do manual.
+* Inspecionar componentes internos por sinais de superaquecimento, corrosão ou dano visível; verificar bornes e conexões.
+* Testar proteções e comunicação conforme protocolos de garantia do fabricante.
+* Registrar relatório fotográfico detalhado, medições tabuladas e acionar formalmente a garantia se defeito coberto for identificado.`;
+    }
+    if (tem('substituição', 'substituicao', 'troca', 'sobressalente')) {
+      return `Título:\nSubstituição do ${equipOrig} com defeito por unidade sobressalente
+
+Comentários:
+
+* Desenergizar o circuito CC e CA, aplicar bloqueio/etiquetagem e confirmar ausência de tensão antes da remoção.
+* Identificar modelo, potência, tensão nominal e corrente do inversor sobressalente para garantir compatibilidade com a instalação existente.
+* Remover o inversor defeituoso, fixar o sobressalente no mesmo padrão de montagem e reconectar cabos CC, CA, comunicação e aterramento.
+* Realizar parametrização inicial, inspeção de polaridade e testes funcionais de partida, geração e comunicação com o monitoramento.
+* Registrar evidências fotográficas, números de série do equipamento retirado e do sobressalente instalado, além de relatório de causa raiz.`;
+    }
+    if (tem('reset', 'fábrica', 'fabrica', 'parametrização', 'parametrizacao')) {
+      return `Título:\nReset de fábrica e reparametrização do ${equipOrig}
+
+Comentários:
+
+* Desenergizar o equipamento e confirmar o modelo exato do inversor antes da intervenção.
+* Realizar backup dos parâmetros atuais, se necessário, para evitar perda de configuração útil.
+* Executar o reset de fábrica conforme manual do fabricante ou procedimento validado para o modelo instalado.
+* Reprogramar comandos, referências, limites e sentidos de rotação conforme a aplicação.
+* Testar partida, parada e alarmes, registrando evidências da restauração e da nova parametrização.`;
+    }
+    // genérico inversor
+    return `Título:\nInspeção técnica do ${equipOrig} para diagnóstico de falha operacional
+
+Comentários:
+
+* Verificar o status geral e os alarmes ativos do ${equipOrig} no supervisório e localmente.
+* Conferir as tensões CC e CA, correntes por MPPT/string e fator de potência do equipamento.
+* Inspecionar conectores, cabos, bornes e possíveis falhas em strings e conexões elétricas associadas.
+* Avaliar resistência de isolamento e condições gerais de operação do equipamento.
+* Registrar os valores medidos, fotos e evidências para análise técnica e definição de correção.`;
+  }
+
+  // ── 2. Tracker / TCU ────────────────────────────────────────────────────
+  if (tem('tracker', 'tcu', 'ncu')) {
+    if (tem('tcu') && tem('parado', 'falha', 'problema')) {
+      return `Título:\nInspeção de TCU do tracker parado — verificação de alimentação, comunicação e estado de emergência
+
+Comentários:
+
+* Verificar no supervisório e na TCU os alarmes ativos, estado de emergência e modo de operação.
+* Inspecionar alimentação elétrica, fusíveis, conectores, cabos e bateria da TCU para confirmar tensão e carga suficientes.
+* Conferir comunicação com a NCU e demais TCUs, bem como possíveis falhas de sincronismo ou perda de sinal.
+* Testar liberação de emergência e realizar reset da TCU quando aplicável, conforme procedimento do fabricante.
+* Registrar evidências, código de falha, posição do tracker, fotos e recomendação de correção para retorno da operação.`;
+    }
+    if (tem('motor', 'escova')) {
+      return `Título:\nInspeção e manutenção dos motores do tracker — verificação de escovas, rolamentos e acionamento
+
+Comentários:
+
+* Inspecionar visualmente as escovas do motor do tracker, verificando desgaste, trincas, quebras, sujeira e assentamento inadequado.
+* Conferir porta-escovas, molas, conexões e sinais de aquecimento ou carbonização no conjunto.
+* Realizar testes elétricos e funcionais nas escovas e no motor para verificar continuidade, contato e resposta durante o acionamento.
+* Avaliar se o estado das escovas está interferindo no torque, partida ou movimentação do tracker.
+* Registrar fotos, medições, condição das escovas e recomendação para ajuste, limpeza ou substituição do conjunto.`;
+    }
+    if (tem('garantia')) {
+      return `Título:\nInspeção da TCU para levantamento de informações e abertura de garantia junto ao fabricante
+
+Comentários:
+
+* Verificar o status operacional e os alarmes da TCU.
+* Levantar as informações de identificação do equipamento: etiqueta, número de série, número MAC e demais dados de rastreabilidade.
+* Registrar evidências técnicas da falha apresentada, com fotos e histórico de alarmes.
+* Consolidar as informações necessárias para abertura do processo de garantia junto ao fabricante.
+* Acompanhar o encaminhamento do caso até a definição da solução.`;
+    }
+    // genérico tracker
+    return `Título:\nInspeção técnica do tracker — verificação mecânica, elétrica e de controle
+
+Comentários:
+
+* Verificar alimentação elétrica, fusíveis, disjuntores e sinais de comando do tracker.
+* Inspecionar motor, redutor, encoder, sensores de posição e cabos de comunicação por falha ou desconexão.
+* Conferir travamento mecânico, desalinhamento estrutural, folgas, empeno ou obstrução no movimento.
+* Testar acionamento manual e automático, registrando o ponto exato em que ocorre a parada.
+* Registrar evidências fotográficas, código de falha, medições e necessidade de manutenção corretiva.`;
+  }
+
+  // ── 3. Transformador ────────────────────────────────────────────────────
+  if (tem('transform')) {
+    if (tem('vazamento', 'óleo', 'oleo', 'bucha')) {
+      return `Título:\nManutenção corretiva do transformador com vazamento de óleo — vedação e abastecimento
+
+Comentários:
+
+* Inspecionar visualmente os pontos de vazamento nas buchas e na saída dos cabos.
+* Realizar limpeza da área antes de qualquer intervenção.
+* Aplicar vedação provisória de forma uniforme nos pontos identificados, conforme procedimento do fabricante.
+* Verificar se o vazamento foi contido após a intervenção.
+* Registrar fotos, evidências e informar a necessidade de reparo definitivo com datas e responsáveis.`;
+    }
+    if (tem('termografia', 'termográfica', 'termografica', 'ponto quente', 'aquecimento')) {
+      return `Título:\nInspeção termográfica do transformador — verificação de pontos de aquecimento anormal
+
+Comentários:
+
+* Realizar a inspeção com o transformador em operação e área devidamente isolada, utilizando câmera termográfica calibrada.
+* Verificar temperaturas em conexões, buchas, terminais, carcaça, radiadores e pontos equivalentes entre fases para identificar desvios térmicos.
+* Comparar as imagens térmicas com as condições normais de operação e registrar qualquer diferença acima do padrão esperado.
+* Anotar carga, corrente, tensão, ambiente e horário da inspeção para contextualizar os termogramas obtidos.
+* Emitir relatório com imagens, pontos quentes, severidade da anomalia e recomendação de manutenção corretiva ou preventiva.`;
+    }
+    if (tem('substituição', 'substituicao', 'troca')) {
+      return `Título:\nSubstituição do transformador com defeito — retirada, instalação e testes de comissionamento
+
+Comentários:
+
+* Desenergizar o circuito e isolar a área de intervenção com bloqueio/etiquetagem.
+* Retirar o transformador com defeito, preservando as conexões para referência na instalação do substituto.
+* Instalar o transformador substituto no local, reconectando cabos de potência, aterramento e demais ligações.
+* Reexecutar as conexões elétricas e conferir aperto, polaridade e integridade das ligações.
+* Realizar testes finais, incluindo ensaio de relação de transformação se aplicável, e liberar o equipamento para operação.`;
+    }
+  }
+
+  // ── 4. Chave seccionadora ───────────────────────────────────────────────
+  if (tem('chave sec', 'seccionadora', 'chave cc', 'biela')) {
+    return `Título:\nSubstituição e inspeção das chaves seccionadoras e componentes associados
+
+Comentários:
+
+* Desligar a usina e garantir o isolamento elétrico completo da área de intervenção com bloqueio/etiquetagem.
+* Executar a substituição das chaves seccionadoras conforme especificação técnica.
+* Substituir os fusíveis associados às chaves e conferir aperto, montagem e integridade das conexões.
+* Verificar alinhamento das bielas, travamento e curso completo de abertura e fechamento.
+* Realizar testes funcionais e liberar o sistema para operação, registrando fotos e evidências.`;
+  }
+
+  // ── 5. Cabine primária / QGBT ───────────────────────────────────────────
+  if (tem('cabine', 'qgbt', 'wgbt', 'barramento')) {
+    if (tem('termografia', 'termográfica', 'termografica', 'ponto quente')) {
+      return `Título:\nInspeção termográfica da cabine de medição primária — identificação de pontos quentes e anomalias
+
+Comentários:
+
+* Realizar a inspeção com a cabine energizada e área devidamente isolada, utilizando câmera termográfica calibrada.
+* Verificar barramentos, conexões, chaves, disjuntores, cabos e transformador em busca de pontos quentes.
+* Comparar temperaturas entre fases e componentes equivalentes para identificar desequilíbrios térmicos e possíveis falhas de contato.
+* Registrar carga, corrente, tensão, horário da inspeção e condições ambientais para contextualizar os achados.
+* Emitir relatório com imagens térmicas, severidade da anomalia e recomendação de manutenção corretiva, se necessário.`;
+    }
+    if (tem('manutenção', 'manutencao', 'corretiva', 'limpeza')) {
+      return `Título:\nManutenção corretiva das cabines da usina — inspeção, limpeza e reaperto de conexões
+
+Comentários:
+
+* Executar procedimento de desligamento e isolamento da área conforme NR-10.
+* Realizar inspeção visual e identificação de anomalias nas cabines.
+* Efetuar limpeza geral dos compartimentos, barramentos, contatos e componentes acessíveis.
+* Verificar e reapertar conexões elétricas, disjuntores, chaves seccionadoras e barramentos.
+* Testar o funcionamento dos equipamentos após a intervenção e registrar as evidências.`;
+    }
+  }
+
+  // ── 6. String / cabo furtado / recomposição ─────────────────────────────
+  if (tem('furtado', 'furto', 'roubo', 'recomposição', 'recomposicao', 'cabo')) {
+    return `Título:\nRecomposição de cabos das strings danificados/furtados — substituição e testes elétricos
+
+Comentários:
+
+* Isolar e desenergizar a área antes da intervenção.
+* Identificar os trechos danificados/furtados e verificar a integridade das strings remanescentes.
+* Substituir os cabos conforme bitola e padrão existentes, refazendo conexões e terminações.
+* Realizar amarração adequada dos cabos recompostos, sem causar esforço excessivo.
+* Testar continuidade, isolamento e funcionamento do circuito após a recomposição, registrando fotos e evidências.`;
+  }
+
+  // ── 7. Vegetação / roçagem / poda ───────────────────────────────────────
+  if (tem('vegetação', 'vegetacao', 'roçagem', 'rocagem', 'poda', 'supressão', 'supressao', 'capina')) {
+    return `Título:\nAcompanhamento de controle/supressão vegetal na área da usina
+
+Comentários:
+
+* Confirmar previamente os limites da área autorizada e o planejamento da atividade.
+* Acompanhar a execução para garantir que a intervenção permaneça restrita às áreas indicadas.
+* Verificar uso correto de EPIs pelos envolvidos e as condições de segurança durante toda a atividade.
+* Conferir que não há danos a cabos, estruturas e equipamentos próximos durante a execução.
+* Registrar evidências fotográficas, horário de execução e responsáveis pela atividade.`;
+  }
+
+  // ── 8. Otimizador ───────────────────────────────────────────────────────
+  if (tem('otimizador')) {
+    return `Título:\nInspeção de otimizadores para diagnóstico de falha e abertura de garantia
+
+Comentários:
+
+* Identificar o equipamento: modelo, número de série, tag e histórico de alarmes.
+* Verificar conexão CC/CA, integridade dos cabos, conectores e sinais de aquecimento, oxidação ou ruptura.
+* Realizar medições elétricas e teste funcional, comparando o desempenho do otimizador com os demais da mesma string.
+* Registrar evidências fotográficas, medições e defeito apresentado.
+* Consolidar as informações para abertura formal de garantia, com relatório técnico e rastreabilidade do componente.`;
+  }
+
+  // ── 9. Módulo fotovoltaico ───────────────────────────────────────────────
+  if (tem('módulo', 'modulo', 'painel', 'placa', 'pv')) {
+    return `Título:\nInspeção técnica do módulo fotovoltaico — termografia e medição de tensão de circuito aberto
+
+Comentários:
+
+* Realizar inspeção visual do módulo para identificação e registro de trincas, danos ou sujidade.
+* Executar termografia para verificar hotspots, aquecimento localizado e comparação com módulos vizinhos.
+* Medir a tensão de circuito aberto (Voc) com multímetro e comparar com a condição esperada.
+* Registrar evidências fotográficas e valores medidos para análise técnica.
+* Emitir diagnóstico técnico com recomendação de correção, substituição ou monitoramento.`;
+  }
+
+  // ── 10. Ar condicionado / contatora / exaustor ──────────────────────────
+  if (tem('ar condicionado', 'ar-condicionado', 'contatora', 'contactor', 'exaustor', 'dreno')) {
+    if (tem('contatora', 'contactor')) {
+      return `Título:\nSubstituição de contactoras queimadas — restauração do acionamento elétrico dos equipamentos
+
+Comentários:
+
+* Desenergizar o circuito antes da intervenção com bloqueio/etiquetagem.
+* Inspecionar a contatora e seus contatos de potência e comando.
+* Remover as contactoras danificadas e instalar novas peças compatíveis.
+* Verificar bobina, contatos auxiliares, fusíveis, bornes e sinais de aquecimento.
+* Testar o acionamento dos equipamentos após a substituição e registrar fotos e evidências.`;
+    }
+    if (tem('dreno', 'drenagem')) {
+      return `Título:\nLimpeza e desobstrução dos drenos do ar-condicionado
+
+Comentários:
+
+* Desligar o equipamento antes da intervenção.
+* Verificar obstruções na mangueira e na bandeja de drenagem.
+* Realizar a limpeza e desobstrução do dreno com método apropriado.
+* Testar o escoamento da água após a limpeza.
+* Registrar a condição final do sistema e possíveis ajustes necessários.`;
+    }
+    if (tem('exaustor')) {
+      return `Título:\nLimpeza técnica dos exaustores e sistemas de ventilação do ${equipOrig}
+
+Comentários:
+
+* Limpar os exaustores, grelhas e dutos de ventilação do ${equipOrig}.
+* Remover poeira e resíduos acumulados nas superfícies internas e externas.
+* Verificar se há obstrução na circulação de ar e sinais de aquecimento anormal.
+* Inspecionar fixações e pontos de montagem após a limpeza.
+* Registrar as condições encontradas antes e após a intervenção e liberar o equipamento para operação.`;
+    }
+  }
+
+  // ── 11. CFTV / câmera / switch / rede ───────────────────────────────────
+  if (tem('cftv', 'câmera', 'camera', 'switch', 'roteador', 'rede')) {
+    if (tem('câmera', 'camera', 'cftv') && tem('reposicionamento', 'ajuste', 'posição')) {
+      return `Título:\nReposicionamento de câmera de CFTV para ajuste de cobertura e enquadramento
+
+Comentários:
+
+* Verificar a posição atual e o campo de visão da câmera.
+* Realizar o reposicionamento conforme a necessidade operacional e cobertura esperada.
+* Ajustar enquadramento, inclinação e foco, se aplicável.
+* Validar a qualidade da imagem após o reposicionamento.
+* Registrar a atividade executada com fotos antes e depois.`;
+    }
+    if (tem('switch') || tem('roteador')) {
+      return `Título:\nInstalação de ${equipOrig} e verificação da comunicação da rede
+
+Comentários:
+
+* Definir o local de instalação com ventilação adequada e acesso aos cabos.
+* Conectar a alimentação e os cabos de rede conforme a topologia existente.
+* Verificar portas, leds indicativos e funcionamento do equipamento após a instalação.
+* Testar a comunicação entre os dispositivos conectados.
+* Registrar fotos e evidências da instalação realizada.`;
+    }
+  }
+
+  // ── 12. Acompanhamento genérico ─────────────────────────────────────────
+  if (tem('acompanhamento', 'acompanhar')) {
+    const atividade = d.falha || d.equipamento || 'atividade';
+    return `Título:\nAcompanhamento técnico de ${atividade} na usina ${usinaOrig}
+
+Comentários:
+
+* Confirmar previamente o planejamento, limites e escopo da atividade.
+* Acompanhar a execução para garantir conformidade com o procedimento aprovado.
+* Verificar uso correto de EPIs e condições de segurança durante toda a atividade.
+* Apoiar a equipe responsável e registrar o andamento das atividades em campo.
+* Registrar evidências fotográficas, horário de execução e conclusão do serviço.`;
+  }
+
+  // ── Fallback genérico ────────────────────────────────────────────────────
+  const titulo = d.falha ? d.falha : `intervenção em ${equipOrig}`;
+  return `Título:\nOrdem de Serviço — ${titulo} na usina ${usinaOrig}
+
+Comentários:
+
+* Verificar as condições atuais do equipamento e confirmar o escopo da intervenção.
+* Executar as ações necessárias conforme procedimento técnico aplicável.
+* Conferir integridade das conexões e funcionamento após a intervenção.
+* Registrar fotos, medições e evidências do serviço executado.
+* Consolidar relatório técnico com diagnóstico e recomendações para acompanhamento.`;
+}
+
 async function _solicitarOS() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
 
@@ -2737,64 +3129,17 @@ async function _solicitarOS() {
   const result=document.getElementById('osModalResult');
   const errorBox=document.getElementById('osModalError');
   overlay.style.display='flex';
-  loading.style.display='flex';
-  result.style.display='none';
+  loading.style.display='none'; // não precisa de loading, é instantâneo
+  result.style.display='block';
   errorBox.style.display='none';
 
-  const systemPrompt = `Você é um engenheiro de O&M (operação e manutenção) de usinas solares, redigindo solicitações de Ordem de Serviço (OS) técnica para equipe de campo.
-
-Gere SEMPRE a saída EXATAMENTE neste formato, sem nenhum texto antes ou depois:
-
-Título:
-<uma linha, objetiva, descrevendo o diagnóstico/inspeção necessária para o equipamento e a falha específica>
-
-Comentários:
-
-* <item 1 do checklist técnico>
-* <item 2 do checklist técnico>
-* <item 3 do checklist técnico>
-* <item 4 ou mais itens, conforme necessário — geralmente entre 4 e 6 itens>
-
-Regras:
-- O checklist deve ser ESPECÍFICO ao tipo de equipamento (inversor, tracker, motor, TCU, câmera/CFTV, nobreak, transformador, chave seccionadora, piranômetro, etc.) e à causa da falha informada — nunca genérico.
-- Use linguagem técnica de campo, direta, em formato de instrução (verbos no infinitivo: verificar, conferir, inspecionar, avaliar, registrar, medir, testar).
-- Considere o histórico cronológico para não repetir verificações já feitas, e para direcionar o checklist ao que ainda falta investigar/resolver.
-- Considere os equipamentos impactados para garantir que o checklist cubra todos eles quando relevante.
-- O título deve mencionar o equipamento/local específico (ex: tracker, inversor, identificação) quando essa informação estiver disponível.
-- Nunca inclua explicações, saudações, ou qualquer texto fora do formato Título/Comentários especificado.`;
-
-  const contexto = `Equipamento: ${d.equipamento || 'não informado'}
-Usina: ${d.usina || 'não informado'}
-Falha: ${d.falha || 'não informado'}
-Causa: ${d.causa || 'não informado'}
-Equipamentos impactados: ${d.impactados || 'não informado'}
-Ações já realizadas: ${d.acao || 'nenhuma registrada'}
-Histórico cronológico:
-${d.historico || 'sem histórico registrado'}`;
-
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: [{ role: "user", content: contexto }],
-      })
-    });
-    const data = await response.json();
-    const textBlock = (data.content || []).find(c => c.type === 'text');
-    const texto = textBlock ? textBlock.text.trim() : '';
-    if (!texto) throw new Error('Resposta vazia da IA.');
-
+    const texto = _gerarTextoOS(d);
     document.getElementById('osModalText').value = texto;
-    loading.style.display='none';
-    result.style.display='block';
-  } catch (err) {
+  } catch(err) {
     loading.style.display='none';
     errorBox.style.display='block';
-    errorBox.textContent = 'Erro ao gerar texto da OS: ' + (err.message || 'falha desconhecida.');
+    errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
   }
 }
 
