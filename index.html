@@ -1077,6 +1077,13 @@ body{
 [data-theme="light"] .d-edit-select option{background:#F4F8FC;}
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
+
+.rel-input{width:100%;background:var(--bg-elevated);border:1px solid var(--border-strong);
+  border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;box-sizing:border-box;}
+.rel-btn-primario{background:var(--teal);color:#0a0a0a;border:none;border-radius:8px;
+  padding:11px;font-weight:600;font-size:13px;cursor:pointer;}
+.rel-btn-secundario{flex:1;background:transparent;border:1px solid var(--border-strong);
+  border-radius:8px;padding:8px;color:var(--text-dim);font-size:12px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1142,6 +1149,10 @@ body{
       <div class="sb-nav-item" data-nav="eficiencia">
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Eficiência O&amp;M
+      </div>
+      <div class="sb-nav-item" data-nav="relatorios">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Relatórios semanais
       </div>
     </nav>
 
@@ -1465,6 +1476,41 @@ body{
         <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
       </section>
 
+      <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
+      <section class="content-section" id="sec-relatorios">
+        <div style="max-width:520px;margin:40px auto;">
+          <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;
+                      text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
+            Relatórios Semanais
+          </div>
+
+          <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
+          <select id="relCliente" class="rel-input"></select>
+
+          <div style="display:flex;gap:12px;margin-top:12px;">
+            <div style="flex:1;">
+              <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">De</label>
+              <input type="date" id="relDataInicio" class="rel-input">
+            </div>
+            <div style="flex:1;">
+              <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Até</label>
+              <input type="date" id="relDataFim" class="rel-input">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="rel-btn-secundario" onclick="relDefinirSemana('atual')">Semana atual</button>
+            <button class="rel-btn-secundario" onclick="relDefinirSemana('passada')">Semana passada</button>
+          </div>
+
+          <button id="relGerarBtn" class="rel-btn-primario" onclick="relGerarRelatorio()" style="margin-top:20px;width:100%;">
+            Gerar relatório (.pptx)
+          </button>
+
+          <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+        </div>
+      </section>
+
     </div><!-- /main-content -->
   </div><!-- /main-area -->
 
@@ -1569,6 +1615,10 @@ body{
             <option value="Abrir chamado">Abrir chamado</option>
           </select>
         </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Nº OS (opcional)</label>
+        <input class="nova-oc-input" id="novaOcOS" placeholder="Ex: 1596">
       </div>
       <div class="nova-oc-field">
         <label>Ação realizada</label>
@@ -1884,10 +1934,12 @@ const NAV_TITLES = {
   'historico-log': 'Log histórico',
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
+  'relatorios': 'Relatórios Semanais',
 };
 
 function switchNav(nav) {
   if (nav === 'eficiencia') { renderEficiencia(); }
+  if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -4578,7 +4630,7 @@ function _openNovaOcorrencia() {
     selCli.dispatchEvent(new Event('change'));
   }
   // Limpa campos
-  ['novaOcEquip','novaOcFalha','novaOcCausa','novaOcAcao'].forEach(id => {
+  ['novaOcEquip','novaOcFalha','novaOcCausa','novaOcAcao','novaOcOS'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('novaOcStatus').value = 'Em Aberto';
@@ -4599,6 +4651,7 @@ async function _submeterNovaOcorrencia() {
   const causa    = document.getElementById('novaOcCausa')?.value?.trim() || '';
   const status   = document.getElementById('novaOcStatus')?.value?.trim() || 'Em Aberto';
   const acao     = document.getElementById('novaOcAcao')?.value?.trim() || '';
+  const numeroOS = document.getElementById('novaOcOS')?.value?.trim() || '';
   const errEl    = document.getElementById('novaOcErr');
   const btn      = document.getElementById('novaOcSubmit');
 
@@ -4613,7 +4666,7 @@ async function _submeterNovaOcorrencia() {
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   const hoje = new Date().toLocaleDateString('pt-BR');
   const historico = `${hoje.slice(0,5)} - Registro inicial.`;
-  const payload = { cliente, usina, equipamento:equip, falha, causa, acao, status, historico, editor, source:'dashboard' };
+  const payload = { cliente, usina, equipamento:equip, falha, causa, acao, status, historico, numeroOS, editor, source:'dashboard' };
 
   try {
     const ctrl = new AbortController();
@@ -4766,6 +4819,72 @@ function renderEficiencia() {
 if (window._pendingSession) {
   initDashboard(window._pendingSession);
   window._pendingSession = null;
+}
+
+
+
+/* ══ RELATÓRIOS SEMANAIS ══ */
+function relDefinirSemana(qual){
+  const hoje = new Date();
+  const diaSemana = hoje.getDay();
+  const segundaAtual = new Date(hoje);
+  segundaAtual.setDate(hoje.getDate() - ((diaSemana + 6) % 7));
+  const inicio = new Date(segundaAtual);
+  if (qual === 'passada') inicio.setDate(inicio.getDate() - 7);
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 6);
+  const elI = document.getElementById('relDataInicio');
+  const elF = document.getElementById('relDataFim');
+  if (elI) elI.value = inicio.toISOString().slice(0,10);
+  if (elF) elF.value = fim.toISOString().slice(0,10);
+}
+
+function relPopularClientes(){
+  const sel = document.getElementById('relCliente');
+  if (!sel) return;
+  const clientes = [...new Set(DATA.map(d => d.cliente).filter(Boolean))].sort();
+  sel.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+async function relGerarRelatorio(){
+  const cliente = document.getElementById('relCliente')?.value;
+  const dataInicio = document.getElementById('relDataInicio')?.value;
+  const dataFim = document.getElementById('relDataFim')?.value;
+  const btn = document.getElementById('relGerarBtn');
+  const status = document.getElementById('relStatus');
+  if (!cliente || !dataInicio || !dataFim) {
+    if (status) status.textContent = 'Selecione cliente e período.';
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (status) status.textContent = 'Gerando relatório...';
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-relatorio-semanal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente, dataInicio, dataFim })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (status) status.textContent = err.error || 'Erro ao gerar relatório.';
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Relatorio_${cliente}_${dataInicio}.pptx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    if (status) status.textContent = 'Relatório gerado com sucesso.';
+  } catch (e) {
+    if (status) status.textContent = 'Erro de conexão ao gerar relatório.';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 </script>
