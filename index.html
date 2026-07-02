@@ -3420,6 +3420,37 @@ function _gerarTextoOS(d) {
 
   const tem = (...ts) => ts.some(t => equip.includes(t)||falha.includes(t)||causa.includes(t)||hist.includes(t)||acao.includes(t));
 
+  // ── 0a. ORGANIZAÇÃO DOS ABRIGOS DE INVERSORES (atividade de zeladoria, não falha) ──
+  if (tem('organização do abrigo','organizacao do abrigo','organização dos abrigos','organizacao dos abrigos','abrigo do inversor','abrigo dos inversores','abrigo desorganizado','abrigo sujo','caixas espalhadas')) {
+    return `Título:
+Organização e limpeza do abrigo de inversores — ${usinaOrig}
+
+Comentários:
+
+* Realizar a organização geral do abrigo: acondicionar ferramentas, materiais e caixas em locais apropriados, sem obstruir acessos e saídas de emergência.
+* Remover lixo, embalagens e materiais sem utilidade do abrigo.
+* Limpar poeira, sujeira e detritos acumulados no piso e nas superfícies do abrigo, sem interferir em componentes energizados.
+* Verificar identificação e etiquetagem de caixas, quadros e materiais armazenados.
+* Conferir integridade da vedação, iluminação e ventilação do abrigo; registrar qualquer não conformidade encontrada.
+* Registrar fotos do antes e depois da organização.
+* Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
+  }
+
+  // ── 0b. REPOSICIONAMENTO DE CÂMERAS (atividade proativa, não diagnóstico de falha) ──
+  if (tem('reposicionamento de câmera','reposicionamento de camera','reposicionamento de câmeras','reposicionamento de cameras','reposicionar câmera','reposicionar camera','reenquadramento de câmera','reenquadramento de camera','ajuste de ângulo da câmera','ajuste de angulo da camera')) {
+    return `Título:
+Reposicionamento e ajuste de câmeras de CFTV — ${equipOrig}
+
+Comentários:
+
+* Identificar as câmeras com enquadramento inadequado ou fora da área de cobertura definida.
+* Reposicionar fisicamente a câmera ajustando ângulo, foco e zoom para garantir cobertura da área designada.
+* Conferir no monitor/NVR se a nova posição cobre corretamente pontos cegos e áreas críticas (acessos, perímetro, equipamentos sensíveis).
+* Fixar firmemente o suporte da câmera após o ajuste, evitando deslocamento por vento ou vibração.
+* Registrar fotos do enquadramento antes e depois do ajuste.
+* Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
+  }
+
   // ── 1. INVERSORES ───────────────────────────────────────────────────────
   if (tem('inv-','inversor')) {
 
@@ -3867,9 +3898,24 @@ Comentários:
 * Registrar: data/hora, responsáveis, motivo, condições antes e depois e resultados da geração.`;
   }
 
-  if (tem('vegetação','vegetacao','roçagem','rocagem','poda','supressão','supressao','capina')) {
+  if (tem('poda química','poda quimica','herbicida','aplicação de herbicida','aplicacao de herbicida','poda')) {
     return `Título:
-Acompanhamento de controle/supressão vegetal na usina ${usinaOrig}
+Acompanhamento de poda química na usina ${usinaOrig}
+
+Comentários:
+
+* Confirmar previamente a área autorizada para aplicação, o produto utilizado e as condições climáticas (sem vento forte ou previsão de chuva).
+* Acompanhar a aplicação garantindo distância segura de módulos, cabos e equipamentos sensíveis.
+* Verificar uso correto de EPIs (luvas, máscara, óculos, roupa de proteção) por todos os envolvidos.
+* Conferir que a aplicação não atinge áreas fora do escopo autorizado nem corpos d'água próximos.
+* Verificar possível presença de animais peçonhentos antes e durante a atividade; interromper imediatamente em caso de risco.
+* Registrar evidências fotográficas, produto e dosagem aplicada, área coberta, horário de início e término e responsáveis.
+* Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
+  }
+
+  if (tem('vegetação','vegetacao','roçagem','rocagem','supressão','supressao','capina')) {
+    return `Título:
+Acompanhamento de roçagem/supressão vegetal na usina ${usinaOrig}
 
 Comentários:
 
@@ -3878,7 +3924,8 @@ Comentários:
 * Verificar uso correto de EPIs por todos os envolvidos durante toda a atividade.
 * Conferir que não há danos a cabos, estruturas, módulos e equipamentos durante a execução.
 * Verificar possível presença de animais peçonhentos antes e durante a atividade; interromper imediatamente em caso de risco.
-* Registrar evidências fotográficas, área coberta, horário de início e término e responsáveis.`;
+* Registrar evidências fotográficas, área coberta, horário de início e término e responsáveis.
+* Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
   // ── 11. TERMOGRAFIA ────────────────────────────────────────────────────
