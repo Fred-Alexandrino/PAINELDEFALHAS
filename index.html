@@ -1176,6 +1176,10 @@ body{
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Relatórios semanais
       </div>
+      <div class="sb-nav-item" data-nav="atividades">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Painel de Atividades
+      </div>
     </nav>
 
     <!-- Zona 3: Filtros -->
@@ -1236,6 +1240,12 @@ body{
           Gerar texto OS
         </button>
       </div>
+
+      <!-- Nova Atividade -->
+      <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:8px;">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Nova Atividade
+      </button>
 
       <!-- Nova ocorrência -->
       <button class="sb-action-btn" onclick="_openNovaOcorrencia()">
@@ -1546,6 +1556,21 @@ body{
         </div>
       </section>
 
+      <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
+      <section class="content-section" id="sec-atividades">
+        <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;"></div>
+        <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
+      </section>
+
+      <!-- Drawer de Atividade -->
+      <div class="drawer-backdrop" id="ativDrawerBackdrop" onclick="_fecharAtivDrawer()"></div>
+      <div class="drawer" id="ativDrawer">
+        <div class="drawer-head">
+          <button class="modal-close-btn" onclick="_fecharAtivDrawer()">✕</button>
+        </div>
+        <div class="drawer-body" id="ativDrawerBody"></div>
+      </div>
+
     </div><!-- /main-content -->
   </div><!-- /main-area -->
 
@@ -1662,6 +1687,68 @@ body{
       <div id="novaOcErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
       <button class="nova-oc-submit" id="novaOcSubmit" onclick="_submeterNovaOcorrencia()">
         Registrar ocorrência
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Atividade -->
+<div class="ch-overlay" id="novaAtivOverlay">
+  <div class="ch-modal" style="max-width:540px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h2>Nova Atividade</h2></div><div class="ch-subtitle">Registrar atividade a ser realizada pela equipe ou gestão</div></div>
+        <button class="modal-close-btn" id="novaAtivClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Cliente</label>
+          <select class="nova-oc-select" id="novaAtivCliente"></select>
+        </div>
+        <div class="nova-oc-field">
+          <label>Usina</label>
+          <select class="nova-oc-select" id="novaAtivUsina"></select>
+        </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Descrição da atividade</label>
+        <textarea class="nova-oc-textarea" id="novaAtivDescricao" placeholder="O que precisa ser feito…" rows="3"></textarea>
+      </div>
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Responsável</label>
+          <input class="nova-oc-input" id="novaAtivResponsavel" placeholder="Ex: Ivan Santos">
+        </div>
+        <div class="nova-oc-field">
+          <label>Prazo</label>
+          <input class="nova-oc-input" type="date" id="novaAtivPrazo">
+        </div>
+      </div>
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Prioridade</label>
+          <select class="nova-oc-select" id="novaAtivPrioridade">
+            <option value="Baixa">Baixa</option>
+            <option value="Média" selected>Média</option>
+            <option value="Alta">Alta</option>
+          </select>
+        </div>
+        <div class="nova-oc-field">
+          <label>Status inicial</label>
+          <select class="nova-oc-select" id="novaAtivStatus">
+            <option value="Em Aberto">Em Aberto</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Pausado">Pausado</option>
+            <option value="Aguardando Cliente">Aguardando Cliente</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+        </div>
+      </div>
+      <div id="novaAtivErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
+      <button class="nova-oc-submit" id="novaAtivSubmit" onclick="_submeterNovaAtividade()">
+        Registrar atividade
       </button>
     </div>
   </div>
@@ -1970,11 +2057,13 @@ const NAV_TITLES = {
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
   'relatorios': 'Relatórios Semanais',
+  'atividades': 'Painel de Atividades',
 };
 
 function switchNav(nav) {
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
+  if (nav === 'atividades') { carregarAtividades(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -4740,6 +4829,234 @@ function _openNovaOcorrencia() {
 
 document.getElementById('novaOcClose')?.addEventListener('click', () => { document.getElementById('novaOcOverlay').style.display = 'none'; });
 document.getElementById('novaOcOverlay')?.addEventListener('click', e => { if(e.target.id==='novaOcOverlay') document.getElementById('novaOcOverlay').style.display='none'; });
+
+document.getElementById('novaAtivClose')?.addEventListener('click', () => { document.getElementById('novaAtivOverlay').style.display = 'none'; });
+document.getElementById('novaAtivOverlay')?.addEventListener('click', e => { if(e.target.id==='novaAtivOverlay') document.getElementById('novaAtivOverlay').style.display='none'; });
+
+/* ══ PAINEL DE ATIVIDADES ══ */
+let ATIVIDADES = [];
+let _ativDrawerList = []; let _ativDrawerIndex = -1;
+
+async function carregarAtividades() {
+  const grid = document.getElementById('ativGrid');
+  const sub = document.getElementById('ativSub');
+  if (sub) sub.textContent = 'Carregando…';
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades');
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
+    ATIVIDADES = result.atividades || [];
+    renderAtividadeCards();
+  } catch (e) {
+    if (sub) sub.textContent = 'Erro ao carregar atividades.';
+    if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora.</div>`;
+  }
+}
+
+function _prioridadeCor(p) {
+  const v = (p||'').toLowerCase();
+  if (v === 'alta') return 'var(--red)';
+  if (v === 'baixa') return 'var(--sla-ok)';
+  return 'var(--amber)';
+}
+
+function renderAtividadeCards() {
+  const grid = document.getElementById('ativGrid');
+  const sub = document.getElementById('ativSub');
+  const abertas = ATIVIDADES.filter(a => !(a.status||'').toLowerCase().includes('conclu')).length;
+  if (sub) sub.textContent = `${ATIVIDADES.length} atividade${ATIVIDADES.length!==1?'s':''} · ${abertas} em aberto`;
+  if (!grid) return;
+  if (ATIVIDADES.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><strong>Nenhuma atividade registrada</strong>Use "Nova Atividade" na barra lateral para criar a primeira.</div>`;
+    return;
+  }
+  const ordenadas = [...ATIVIDADES].sort((a,b) => {
+    const aAberta = !(a.status||'').toLowerCase().includes('conclu');
+    const bAberta = !(b.status||'').toLowerCase().includes('conclu');
+    if (aAberta !== bAberta) return aAberta ? -1 : 1;
+    return (b.id||0) - (a.id||0);
+  });
+  grid.innerHTML = ordenadas.map(a => {
+    const cc = clientColor(a.cliente);
+    const sc = statusColor(a.status);
+    return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
+      <div class="card-top">
+        <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(a.cliente)}</div>
+        <span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">${esc(a.prioridade||'Média')}</span>
+      </div>
+      <p class="equip">${esc(a.responsavel||'Sem responsável')}</p>
+      <p class="falha">${esc(a.descricao)}</p>
+      <div class="card-foot">
+        <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
+        ${a.prazo ? `<span class="see-more">prazo ${esc(a.prazo)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.card').forEach(c => {
+    c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
+    c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
+  });
+}
+
+function _abrirAtivDrawer(id) {
+  _ativDrawerList = ATIVIDADES;
+  _ativDrawerIndex = _ativDrawerList.findIndex(x => x.id === id);
+  if (_ativDrawerIndex < 0) return;
+  _renderAtivDrawer();
+  document.getElementById('ativDrawer').classList.add('open');
+  document.getElementById('ativDrawerBackdrop').classList.add('open');
+}
+
+function _fecharAtivDrawer() {
+  document.getElementById('ativDrawer').classList.remove('open');
+  document.getElementById('ativDrawerBackdrop').classList.remove('open');
+}
+
+const ATIV_STATUS_OPCOES = ['Em Aberto','Em Andamento','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Concluído'];
+
+function _renderAtivDrawer() {
+  const a = _ativDrawerList[_ativDrawerIndex];
+  const body = document.getElementById('ativDrawerBody');
+  if (!a || !body) return;
+  body.innerHTML = `
+    <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
+    <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
+    <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(a.descricao)}</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Responsável</label>
+        <div style="font-size:13.5px;">${esc(a.responsavel||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prazo</label>
+        <div style="font-size:13.5px;">${esc(a.prazo||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prioridade</label>
+        <div style="font-size:13.5px;">${esc(a.prioridade||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Criada em</label>
+        <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
+    </div>
+
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Status</label>
+    <select class="nova-oc-select" id="ativDrawerStatus" style="width:100%;margin-bottom:16px;">
+      ${ATIV_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}
+    </select>
+
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Adicionar ao histórico</label>
+    <textarea class="nova-oc-textarea" id="ativDrawerNovoHist" rows="2" placeholder="Ex: aguardando peça do fornecedor…" style="width:100%;box-sizing:border-box;margin-bottom:10px;"></textarea>
+    <button class="nova-oc-submit" id="ativDrawerSalvarBtn" onclick="_salvarAtivDrawer()" style="width:100%;margin-bottom:18px;">Salvar alterações</button>
+
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
+    <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
+  `;
+}
+
+let _isSalvandoAtiv = false;
+async function _salvarAtivDrawer() {
+  if (_isSalvandoAtiv) return;
+  const a = _ativDrawerList[_ativDrawerIndex];
+  if (!a) return;
+  const novoStatus = document.getElementById('ativDrawerStatus')?.value || a.status;
+  const novoHistTxt = document.getElementById('ativDrawerNovoHist')?.value?.trim() || '';
+  const btn = document.getElementById('ativDrawerSalvarBtn');
+  _isSalvandoAtiv = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  try {
+    if (novoStatus !== a.status) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'status', value: novoStatus, editor })
+      });
+      a.status = novoStatus;
+    }
+    if (novoHistTxt) {
+      const agora = new Date();
+      const dateStr = agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const entry = `${dateStr} - ${novoHistTxt}`;
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'historico', value: entry, append: true, editor })
+      });
+      a.historico = a.historico ? `${a.historico}\n${entry}` : entry;
+    }
+    showToast('Atividade atualizada!', true);
+    _renderAtivDrawer();
+    renderAtividadeCards();
+  } catch (e) {
+    showToast('Erro ao salvar atividade.', false);
+  } finally {
+    _isSalvandoAtiv = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+  }
+}
+
+function _openNovaAtividade() {
+  const clientes = [...new Set(DATA.map(d => d.cliente))].sort();
+  const selCli = document.getElementById('novaAtivCliente');
+  if (selCli) {
+    selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    selCli.onchange = () => {
+      const cli = selCli.value;
+      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
+      const selU = document.getElementById('novaAtivUsina');
+      if (selU) selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    };
+    selCli.dispatchEvent(new Event('change'));
+  }
+  ['novaAtivDescricao','novaAtivResponsavel','novaAtivPrazo'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('novaAtivPrioridade').value = 'Média';
+  document.getElementById('novaAtivStatus').value = 'Em Aberto';
+  const errEl = document.getElementById('novaAtivErr'); if(errEl) errEl.style.display='none';
+  document.getElementById('novaAtivOverlay').style.display = 'flex';
+}
+
+let _isSubmittingAtiv = false;
+async function _submeterNovaAtividade() {
+  if (_isSubmittingAtiv) return;
+  const cliente     = document.getElementById('novaAtivCliente')?.value?.trim() || '';
+  const usina       = document.getElementById('novaAtivUsina')?.value?.trim() || '';
+  const descricao   = document.getElementById('novaAtivDescricao')?.value?.trim() || '';
+  const responsavel = document.getElementById('novaAtivResponsavel')?.value?.trim() || '';
+  const prazo       = document.getElementById('novaAtivPrazo')?.value || '';
+  const prioridade  = document.getElementById('novaAtivPrioridade')?.value || 'Média';
+  const status      = document.getElementById('novaAtivStatus')?.value || 'Em Aberto';
+  const errEl = document.getElementById('novaAtivErr');
+  const btn   = document.getElementById('novaAtivSubmit');
+
+  if (!cliente || !descricao) {
+    if(errEl){errEl.textContent='Cliente e descrição são obrigatórios.';errEl.style.display='block';}
+    return;
+  }
+  if(errEl) errEl.style.display='none';
+  _isSubmittingAtiv = true;
+  if(btn){btn.disabled=true;btn.textContent='Registrando…';}
+
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  const prazoBR = prazo ? prazo.split('-').reverse().join('/') : '';
+  const payload = { cliente, usina, descricao, responsavel, prazo: prazoBR, prioridade, status, editor };
+
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 12000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/nova-atividade', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao registrar');
+    showToast('Atividade registrada!', true);
+    document.getElementById('novaAtivOverlay').style.display = 'none';
+    if (_activeNav === 'atividades') carregarAtividades();
+  } catch(err) {
+    if(errEl){errEl.textContent='Erro ao registrar: ' + (err.message||'falha desconhecida.');errEl.style.display='block';}
+  } finally {
+    _isSubmittingAtiv = false;
+    if(btn){btn.disabled=false;btn.textContent='Registrar atividade';}
+  }
+}
 
 let _isSubmittingOc = false;
 async function _submeterNovaOcorrencia() {
