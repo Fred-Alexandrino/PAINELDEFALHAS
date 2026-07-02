@@ -1558,8 +1558,34 @@ body{
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section" id="sec-atividades">
-        <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;"></div>
-        <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
+        <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
+
+        <div class="grid-controls">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="tabs-wrapper">
+              <button class="tab-btn active" id="ativTabAtivas" onclick="_ativMudarTab('ativas')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Ativas <span class="tab-count" id="ativTabAtivasCount">0</span>
+              </button>
+              <button class="tab-btn" id="ativTabHistorico" onclick="_ativMudarTab('historico')">
+                <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                Concluídas <span class="tab-count" id="ativTabHistoricoCount">0</span>
+              </button>
+            </div>
+            <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="ativSub"></span>
+          </div>
+        </div>
+        <div class="sort-group">
+          <span class="sort-label">Ordenar:</span>
+          <button class="sort-btn active" data-ativsort="id">ID</button>
+          <button class="sort-btn" data-ativsort="newest">Mais recentes</button>
+          <button class="sort-btn" data-ativsort="usina">Usina</button>
+          <button class="sort-btn" data-ativsort="equip">Equip.</button>
+          <button class="sort-btn" data-ativsort="prazo">Prazo</button>
+          <button class="sort-btn" data-ativsort="prioridade">Prioridade</button>
+        </div>
+
+        <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -2452,7 +2478,7 @@ function renderClienteChips() {
   const wrap = document.getElementById('sbChipsCliente');
   if (!wrap) return;
   const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
-  const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
+  const clientes = (clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS).concat(['Geral','Administrativo']);
   const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
   wrap.innerHTML = clientes.map(c => {
@@ -2503,7 +2529,7 @@ let _cbStatusOpts = [];
 
 function populateFilters() {
   const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
-  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
+  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort().concat(['Geral','Administrativo']);
   _cbStatusOpts = [...new Set(DATA.map(d => d.status))].sort();
 
   // Remove usinas selecionadas que não existem mais no filtro de cliente
@@ -2655,6 +2681,7 @@ function applyFilters() {
     return true;
   });
   applySortAndRender();
+  if (_activeNav === 'atividades') renderAtividadeCards();
 }
 
 function clearFilters() {
@@ -3263,7 +3290,7 @@ function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _d
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
-const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','Análise de Performance','Análise Engenharia'];
+const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Análise de Performance','Análise Engenharia'];
 
 /* Linha do tempo visual T1-T4 */
 function renderTimelineT1T4(d) {
@@ -3540,6 +3567,21 @@ Comentários:
 
   // ── 1. INVERSORES ───────────────────────────────────────────────────────
   if (tem('inv-','inversor')) {
+
+    if (tem('queda de geração','queda de geracao','queda na geração','queda na geracao','baixa geração','baixa geracao')) {
+      return `Título:
+Análise de inversor com queda de geração — ${equipOrig}
+
+Comentários:
+
+* Verificar tensões e correntes CC por string, identificando possíveis desequilíbrios ou strings com valores fora do padrão.
+* Verificar tensão CA de saída do inversor.
+* Inspecionar fisicamente os conectores MC4 das strings (aperto, oxidação, sinais de aquecimento).
+* Conferir status e eventuais alarmes/históricos de falha registrados no display ou datalogger do inversor.
+* Comparar os dados reais coletados em campo com os dados exibidos na plataforma de monitoramento, a fim de identificar possível divergência de leitura/comunicação.
+* Registrar evidências (fotos, valores medidos) para subsidiar diagnóstico conclusivo.
+* Atividade não exige desligamento do inversor; não é necessário acionar o COS.`;
+    }
 
     if (tem('string zerada','strings zerada','sem corrente','string sem','strings sem','pv sem')) {
       return `Título:
@@ -4861,6 +4903,62 @@ function _prioridadeCor(p) {
   return '#F97316';
 }
 
+let _ativTab = 'ativas';
+let _ativSortKey = 'id';
+
+function _ativIsConcluida(a) {
+  return (a.status||'').toLowerCase().includes('conclu');
+}
+
+function _ativMudarTab(tab) {
+  _ativTab = tab;
+  document.getElementById('ativTabAtivas')?.classList.toggle('active', tab==='ativas');
+  document.getElementById('ativTabHistorico')?.classList.toggle('active', tab==='historico');
+  renderAtividadeCards();
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-ativsort]');
+  if (!btn) return;
+  _ativSortKey = btn.dataset.ativsort;
+  btn.parentElement.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAtividadeCards();
+});
+
+function _ativAtrasada(a) {
+  if (_ativIsConcluida(a)) return false;
+  const d = _ativParseDataBR(a.prazo);
+  if (!d) return false;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return d.getTime() < hoje.getTime();
+}
+
+function _ativRenderKpis() {
+  const el = document.getElementById('ativKpis');
+  if (!el) return;
+  const ativas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const atrasadas = ATIVIDADES.filter(_ativAtrasada);
+  const altas = ativas.filter(a => (a.prioridade||'').toLowerCase()==='alta');
+  const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate()-7);
+  const concluidas7d = ATIVIDADES.filter(a => {
+    if (!_ativIsConcluida(a)) return false;
+    const d = _ativParseDataBR(a.dataConclusao?.split(' ')[0]) || null;
+    return d ? d.getTime() >= seteDiasAtras.getTime() : false;
+  });
+  const kpisData = [
+    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--teal)', glow:'rgba(20,184,166,.1)'},
+    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--amber)', glow:'rgba(245,166,35,.1)'},
+    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
+    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
+    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)'},
+  ];
+  el.innerHTML = kpisData.map(k => `<div class="kpi" style="--kpi-color:${k.color};--kpi-glow:${k.glow}">
+    <div class="num">${String(k.num).padStart(2,'0')}</div>
+    <div class="label">${k.label}</div>
+  </div>`).join('');
+}
+
 function _ativEquipamento(a) {
   if (a.equipamento && a.equipamento.trim()) return a.equipamento.trim();
   const m = (a.descricao||'').match(/\(([^()]+)\)\s*$/);
@@ -4870,21 +4968,53 @@ function _ativEquipamento(a) {
 function renderAtividadeCards() {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
-  const abertas = ATIVIDADES.filter(a => !(a.status||'').toLowerCase().includes('conclu')).length;
-  if (sub) sub.textContent = `${ATIVIDADES.length} atividade${ATIVIDADES.length!==1?'s':''} · ${abertas} em aberto`;
   if (!grid) return;
-  if (ATIVIDADES.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><strong>Nenhuma atividade registrada</strong>Use "Nova Atividade" na barra lateral para criar a primeira.</div>`;
+
+  _ativRenderKpis();
+
+  // aplica os mesmos filtros da sidebar (Cliente/Usina/Status) usados no Painel de Falhas
+  const filtradas = ATIVIDADES.filter(a => {
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
+    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    return true;
+  });
+
+  const ativasList = filtradas.filter(a => !_ativIsConcluida(a));
+  const historicoList = filtradas.filter(a => _ativIsConcluida(a));
+  const tA = document.getElementById('ativTabAtivasCount');
+  const tH = document.getElementById('ativTabHistoricoCount');
+  if (tA) tA.textContent = ativasList.length;
+  if (tH) tH.textContent = historicoList.length;
+
+  const lista = _ativTab === 'historico' ? historicoList : ativasList;
+  if (sub) sub.textContent = `${lista.length} de ${filtradas.length} atividade${filtradas.length!==1?'s':''}`;
+
+  const PRIORIDADE_ORDEM = {alta:0, média:1, media:1, baixa:2};
+  const ordenadas = [...lista].sort((a,b) => {
+    if (_ativSortKey==='id') return (+a.id||0)-(+b.id||0);
+    if (_ativSortKey==='newest') return (+b.id||0)-(+a.id||0);
+    if (_ativSortKey==='usina') return (a.usina||'').localeCompare(b.usina||'');
+    if (_ativSortKey==='equip') return _ativEquipamento(a).localeCompare(_ativEquipamento(b));
+    if (_ativSortKey==='prazo') {
+      const da = _ativParseDataBR(a.prazo); const db = _ativParseDataBR(b.prazo);
+      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1;
+      return da.getTime()-db.getTime();
+    }
+    if (_ativSortKey==='prioridade') {
+      const pa = PRIORIDADE_ORDEM[(a.prioridade||'').toLowerCase()] ?? 3;
+      const pb = PRIORIDADE_ORDEM[(b.prioridade||'').toLowerCase()] ?? 3;
+      return pa-pb;
+    }
+    return 0;
+  });
+
+  if (ordenadas.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><strong>${_ativTab==='historico' ? 'Nenhuma atividade concluída' : 'Nenhuma atividade em aberto'}</strong>${ATIVIDADES.length===0 ? 'Use "Nova Atividade" na barra lateral para criar a primeira.' : 'Ajuste os filtros ou troque de aba.'}</div>`;
     return;
   }
-  const ordenadas = [...ATIVIDADES].sort((a,b) => {
-    const aAberta = !(a.status||'').toLowerCase().includes('conclu');
-    const bAberta = !(b.status||'').toLowerCase().includes('conclu');
-    if (aAberta !== bAberta) return aAberta ? -1 : 1;
-    return (b.id||0) - (a.id||0);
-  });
+
   grid.innerHTML = ordenadas.map(a => {
-    const cc = clientColor(a.cliente);
     const sc = statusColor(a.status);
     return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
       <div class="card-top">
@@ -4910,6 +5040,7 @@ function _abrirAtivDrawer(id) {
   _ativDrawerList = ATIVIDADES;
   _ativDrawerIndex = _ativDrawerList.findIndex(x => x.id === id);
   if (_ativDrawerIndex < 0) return;
+  _ativPrazoSelecionado = null;
   _renderAtivDrawer();
   document.getElementById('ativDrawer').classList.add('open');
   document.getElementById('ativDrawerBackdrop').classList.add('open');
@@ -4918,6 +5049,7 @@ function _abrirAtivDrawer(id) {
 function _fecharAtivDrawer() {
   document.getElementById('ativDrawer').classList.remove('open');
   document.getElementById('ativDrawerBackdrop').classList.remove('open');
+  _fecharAtivCalendario();
 }
 
 const ATIV_STATUS_OPCOES = ALL_STATUSES;
@@ -4932,11 +5064,21 @@ function _renderAtivDrawer() {
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(_ativEquipamento(a))}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(a.descricao)}</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;position:relative;">
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Responsável</label>
         <div style="font-size:13.5px;">${esc(a.responsavel||'—')}</div></div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prazo</label>
-        <div style="font-size:13.5px;">${esc(a.prazo||'—')}</div></div>
+        <div class="rel-input rel-date-trigger" id="ativDrawerPrazoTrigger" onclick="_abrirAtivCalendario()" style="font-size:13.5px;padding:6px 10px;">${esc(a.prazo||'Selecionar data')}</div>
+        <div id="ativCalendarPopup" class="rel-cal-popup" style="display:none;left:0;top:auto;">
+          <div class="rel-cal-header">
+            <button type="button" class="rel-cal-nav" onclick="_ativCalMudarMes(-1)">&lsaquo;</button>
+            <div class="rel-cal-titulo" id="ativCalTitulo"></div>
+            <button type="button" class="rel-cal-nav" onclick="_ativCalMudarMes(1)">&rsaquo;</button>
+          </div>
+          <div class="rel-cal-semana"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+          <div class="rel-cal-grid" id="ativCalGrid"></div>
+        </div>
+      </div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prioridade</label>
         <div style="font-size:13.5px;">${esc(a.prioridade||'—')}</div></div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Criada em</label>
@@ -4982,6 +5124,7 @@ function _solicitarOSAtividade() {
   errorBox.style.display = 'none';
   try {
     document.getElementById('osModalText').value = _gerarTextoOS(pseudoOcorrencia);
+    _registrarOSSolicitadaAtividade(a);
   } catch (err) {
     result.style.display = 'none';
     errorBox.style.display = 'block';
@@ -4989,13 +5132,116 @@ function _solicitarOSAtividade() {
   }
 }
 
+async function _registrarOSSolicitadaAtividade(a) {
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  try {
+    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: a.id, field: 'status', value: 'OS Solicitada', editor })
+    });
+    a.status = 'OS Solicitada';
+    const agora = new Date();
+    const dateStr = agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const entry = `${dateStr} - OS solicitada por ${editor}.`;
+    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: a.id, field: 'historico', value: entry, append: true, editor })
+    });
+    a.historico = a.historico ? `${a.historico}\n${entry}` : entry;
+    _renderAtivDrawer();
+    renderAtividadeCards();
+  } catch (e) { /* falha silenciosa - o texto da OS ja foi mostrado */ }
+}
+
 let _isSalvandoAtiv = false;
+let _ativPrazoSelecionado = null;
+let _ativCalMesAtual = new Date();
+
+function _ativParseDataBR(txt) {
+  if (!txt) return null;
+  const partes = txt.split('/');
+  if (partes.length !== 3) return null;
+  const [d,m,a] = partes.map(Number);
+  if (!d||!m||!a) return null;
+  return new Date(a, m-1, d);
+}
+
+function _abrirAtivCalendario() {
+  const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
+  _ativPrazoSelecionado = _ativParseDataBR(a.prazo) || new Date();
+  _ativCalMesAtual = new Date(_ativPrazoSelecionado);
+  _ativCalMesAtual.setDate(1);
+  const popup = document.getElementById('ativCalendarPopup');
+  if (!popup) return;
+  popup.style.display = 'block';
+  _ativCalRenderizar();
+  setTimeout(() => document.addEventListener('click', _ativCalCliqueForaHandler), 0);
+}
+
+function _fecharAtivCalendario() {
+  const popup = document.getElementById('ativCalendarPopup');
+  if (popup) popup.style.display = 'none';
+  document.removeEventListener('click', _ativCalCliqueForaHandler);
+}
+
+function _ativCalCliqueForaHandler(e) {
+  const popup = document.getElementById('ativCalendarPopup');
+  if (popup && !popup.contains(e.target) && e.target.id !== 'ativDrawerPrazoTrigger') {
+    _fecharAtivCalendario();
+  }
+}
+
+function _ativCalMudarMes(delta) {
+  _ativCalMesAtual.setMonth(_ativCalMesAtual.getMonth() + delta);
+  _ativCalRenderizar();
+}
+
+function _ativCalRenderizar() {
+  const titulo = document.getElementById('ativCalTitulo');
+  const grid = document.getElementById('ativCalGrid');
+  if (!titulo || !grid) return;
+  const ano = _ativCalMesAtual.getFullYear();
+  const mes = _ativCalMesAtual.getMonth();
+  titulo.textContent = `${REL_MESES[mes]} de ${ano}`;
+
+  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const diasMesAnterior = new Date(ano, mes, 0).getDate();
+  const hoje = new Date();
+
+  let celulas = [];
+  for (let i = primeiroDiaSemana - 1; i >= 0; i--) celulas.push({ dia: diasMesAnterior - i, fora: true, data: new Date(ano, mes - 1, diasMesAnterior - i) });
+  for (let d = 1; d <= diasNoMes; d++) celulas.push({ dia: d, fora: false, data: new Date(ano, mes, d) });
+  while (celulas.length % 7 !== 0 || celulas.length < 42) {
+    const proximo = celulas.length - (primeiroDiaSemana + diasNoMes) + 1;
+    celulas.push({ dia: proximo, fora: true, data: new Date(ano, mes + 1, proximo) });
+  }
+
+  grid.innerHTML = celulas.map(c => {
+    const classes = ['rel-cal-dia'];
+    if (c.fora) classes.push('fora');
+    if (relMesmoDia(c.data, hoje)) classes.push('hoje');
+    if (relMesmoDia(c.data, _ativPrazoSelecionado)) classes.push('selecionado');
+    const iso = relISO(c.data);
+    return `<button type="button" class="${classes.join(' ')}" onclick="_ativCalClicarDia('${iso}')">${c.dia}</button>`;
+  }).join('');
+}
+
+function _ativCalClicarDia(iso) {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  _ativPrazoSelecionado = new Date(ano, mes - 1, dia);
+  const trigger = document.getElementById('ativDrawerPrazoTrigger');
+  if (trigger) trigger.textContent = relBR(_ativPrazoSelecionado);
+  _fecharAtivCalendario();
+}
+
 async function _salvarAtivDrawer() {
   if (_isSalvandoAtiv) return;
   const a = _ativDrawerList[_ativDrawerIndex];
   if (!a) return;
   const novoStatus = document.getElementById('ativDrawerStatus')?.value || a.status;
   const novoHistTxt = document.getElementById('ativDrawerNovoHist')?.value?.trim() || '';
+  const novoPrazo = _ativPrazoSelecionado ? relBR(_ativPrazoSelecionado) : a.prazo;
   const btn = document.getElementById('ativDrawerSalvarBtn');
   _isSalvandoAtiv = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
@@ -5008,6 +5254,13 @@ async function _salvarAtivDrawer() {
         body: JSON.stringify({ id: a.id, field: 'status', value: novoStatus, editor })
       });
       a.status = novoStatus;
+    }
+    if (novoPrazo && novoPrazo !== a.prazo) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'prazo', value: novoPrazo, editor })
+      });
+      a.prazo = novoPrazo;
     }
     if (novoHistTxt) {
       const agora = new Date();
@@ -5032,14 +5285,21 @@ async function _salvarAtivDrawer() {
 
 function _openNovaAtividade() {
   const clientes = [...new Set(DATA.map(d => d.cliente))].sort();
+  clientes.push('Geral', 'Administrativo');
   const selCli = document.getElementById('novaAtivCliente');
   if (selCli) {
     selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     selCli.onchange = () => {
       const cli = selCli.value;
-      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
       const selU = document.getElementById('novaAtivUsina');
-      if (selU) selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+      if (!selU) return;
+      if (cli === 'Geral' || cli === 'Administrativo') {
+        selU.innerHTML = `<option value="${esc(cli)}">${esc(cli)}</option>`;
+        return;
+      }
+      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
+      usinas.push('Geral', 'Administrativo');
+      selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
     selCli.dispatchEvent(new Event('change'));
   }
