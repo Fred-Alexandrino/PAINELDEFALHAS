@@ -3423,30 +3423,31 @@ function _gerarTextoOS(d) {
   // ── 0a. ORGANIZAÇÃO DOS ABRIGOS DE INVERSORES (atividade de zeladoria, não falha) ──
   if (tem('organização do abrigo','organizacao do abrigo','organização dos abrigos','organizacao dos abrigos','abrigo do inversor','abrigo dos inversores','abrigo desorganizado','abrigo sujo','caixas espalhadas')) {
     return `Título:
-Organização e limpeza do abrigo de inversores
+Organização e limpeza do abrigo de inversores — ${usinaOrig}
 
 Comentários:
 
-* Realizar a limpeza geral do abrigo de inversores.
-* Remover poeira, resíduos e materiais acumulados no local.
-* Organizar cabos, componentes e área de acesso para facilitar inspeções e manutenção.
-* Verificar se as condições de ventilação e proteção do abrigo permanecem adequadas.
-* Registrar a atividade executada e as evidências da intervenção.
+* Realizar a organização geral do abrigo: acondicionar ferramentas, materiais e caixas em locais apropriados, sem obstruir acessos e saídas de emergência.
+* Remover lixo, embalagens e materiais sem utilidade do abrigo.
+* Limpar poeira, sujeira e detritos acumulados no piso e nas superfícies do abrigo, sem interferir em componentes energizados.
+* Verificar identificação e etiquetagem de caixas, quadros e materiais armazenados.
+* Conferir integridade da vedação, iluminação e ventilação do abrigo; registrar qualquer não conformidade encontrada.
+* Registrar fotos do antes e depois da organização.
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
   // ── 0b. REPOSICIONAMENTO DE CÂMERAS (atividade proativa, não diagnóstico de falha) ──
   if (tem('reposicionamento de câmera','reposicionamento de camera','reposicionamento de câmeras','reposicionamento de cameras','reposicionar câmera','reposicionar camera','reenquadramento de câmera','reenquadramento de camera','ajuste de ângulo da câmera','ajuste de angulo da camera')) {
     return `Título:
-Reposicionamento de câmeras de CFTV
+Reposicionamento e ajuste de câmeras de CFTV — ${equipOrig}
 
 Comentários:
 
-* Verificar a posição atual de cada câmera e o campo de visão.
-* Realizar o reposicionamento conforme a necessidade operacional.
-* Ajustar inclinação, direção e enquadramento da imagem.
-* Validar a visualização após o ajuste e confirmar a cobertura desejada.
-* Registrar a atividade e as evidências da intervenção.
+* Identificar as câmeras com enquadramento inadequado ou fora da área de cobertura definida.
+* Reposicionar fisicamente a câmera ajustando ângulo, foco e zoom para garantir cobertura da área designada.
+* Conferir no monitor/NVR se a nova posição cobre corretamente pontos cegos e áreas críticas (acessos, perímetro, equipamentos sensíveis).
+* Fixar firmemente o suporte da câmera após o ajuste, evitando deslocamento por vento ou vibração.
+* Registrar fotos do enquadramento antes e depois do ajuste.
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
@@ -3459,13 +3460,14 @@ Inspeção técnica do ${equipOrig} — diagnóstico de strings sem geração ($
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer intervenção.
+* Preencher APR/PT antes de iniciar qualquer intervenção.
 * Verificar no SCADA os alarmes ativos, correntes por string e desempenho dos MPPTs do ${equipOrig}.
 * Medir tensão de circuito aberto (Voc) de cada string afetada e comparar com valor esperado para o arranjo.
 * Inspecionar conectores MC4, cabos CC, bornes, fusíveis e blocos de proteção por sinais de mau contato, ruptura ou aquecimento.
 * Avaliar possível falha de isolação, inversão de polaridade ou interrupção no circuito das strings.
 * Confirmar ausência de tensão com multímetro (método H-C-H: Energizado–Desenergizado–Energizado) antes de qualquer intervenção física.
-* Registrar medições, fotos, código de falha e diagnóstico conclusivo para definição de correção.`;
+* Registrar medições, fotos, código de falha e diagnóstico conclusivo para definição de correção.
+* Atividade não exige desligamento do inversor; não é necessário acionar o COS.`;
     }
 
     if (tem('baixa isolação','baixa isolacao','resistência de isolamento','isolação')) {
@@ -3474,13 +3476,14 @@ Inspeção do ${equipOrig} com baixa resistência de isolamento — localizaçã
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar.
+* Preencher APR/PT antes de iniciar.
 * Identificar a string com alarme de baixa isolação no ${equipOrig} via SCADA.
 * Realizar medição de resistência de isolamento com megôhmetro, string por string, para localizar o ponto com falha.
 * Inspecionar cabos, conectores MC4, caixas de passagem e pontos com possível entrada de umidade ou dano físico.
 * Confirmar aterramento dos módulos, estrutura e do próprio inversor.
 * Realizar termografia para identificar pontos de aquecimento anormal nas conexões e módulos.
-* Registrar medições, fotos e diagnóstico final para definição da correção necessária.`;
+* Registrar medições, fotos e diagnóstico final para definição da correção necessária.
+* Atividade não exige desligamento do inversor; não é necessário acionar o COS.`;
     }
 
     if (tem('baixa performance','baixo rendimento','potência reduzida','baixa potência','desempenho')) {
@@ -3489,13 +3492,14 @@ Inspeção do ${equipOrig} — diagnóstico de baixa performance em strings e MP
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar.
+* Preencher APR/PT antes de iniciar.
 * Verificar no SCADA correntes por string, tensões CC de entrada e desempenho dos MPPTs do ${equipOrig}.
 * Inspecionar conectores MC4, cabos CC, bornes, fusíveis por sinais de mau contato, aquecimento ou corrosão.
 * Realizar medições individuais nas strings (tensão, corrente e resistência de isolamento) para identificar desvios.
 * Executar inspeção termográfica nos módulos, strings e conexões para detecção de hotspots conforme POP 9.
 * Verificar se há incompatibilidade entre strings paralelizadas, módulos sombreados ou estruturas danificadas.
-* Registrar medições, fotos, código de falha e recomendar correção específica.`;
+* Registrar medições, fotos, código de falha e recomendar correção específica.
+* Atividade não exige desligamento do inversor; não é necessário acionar o COS.`;
     }
 
     if (tem('falha de comunicação','perda de comunicação','comunicação','scada','rs485','modbus','rede')) {
@@ -3504,13 +3508,14 @@ Diagnóstico e restauração de comunicação do ${equipOrig} com o SCADA
 
 Comentários:
 
-* Obter autorização do COS antes de iniciar conforme POP 15.
+* Registrar a intervenção conforme POP 15.
 * Verificar no SCADA quais dispositivos estão com falha de comunicação e registrar o horário e sequência dos eventos.
 * Inspecionar fisicamente cabos Ethernet/serial, conectores RJ-45 e conversores de mídia na cadeia de comunicação do ${equipOrig}.
 * Verificar status dos LEDs de conectividade nos switches e roteadores associados; reiniciar equipamentos suspeitos.
 * Testar comunicação com o inversor via software específico do fabricante (RS485/Modbus) e confirmar endereço de rede.
 * Verificar e atualizar firmware do inversor se necessário para corrigir bugs de comunicação.
-* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log de operações.`;
+* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log de operações.
+* Atividade não exige desligamento do inversor; não é necessário acionar o COS.`;
     }
 
     if (tem('reset','reinicialização','reinicializacao','travado','falha interna')) {
@@ -3564,13 +3569,14 @@ Inspeção técnica do ${equipOrig} — diagnóstico de falha operacional na usi
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar conforme POP 3.
+* Preencher APR/PT antes de iniciar conforme POP 3.
 * Verificar status geral e alarmes ativos do ${equipOrig} no SCADA; registrar código de alarme, horário e sequência dos eventos.
 * Confirmar ausência de tensão com multímetro (H-C-H) antes de qualquer intervenção física; aplicar LOTO se necessário.
 * Conferir tensões CC e CA, correntes por MPPT/string e fator de potência do equipamento.
 * Inspecionar conectores MC4, cabos, bornes e possíveis falhas em strings e conexões associadas.
 * Avaliar resistência de isolamento e condições gerais de operação do equipamento.
-* Registrar valores medidos, fotos e evidências para análise técnica e definição de correção.`;
+* Registrar valores medidos, fotos e evidências para análise técnica e definição de correção.
+* Caso a intervenção exija desligamento do inversor, obter autorização do COS antes de iniciar.`;
   }
 
   // ── 2. TRACKER / TCU / NCU ─────────────────────────────────────────────
@@ -3582,14 +3588,15 @@ Inspeção e manutenção do motor/escovas do ${equipOrig} — verificação mec
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT; acionar ao COS informando localização e tempo estimado conforme POP Trackers 4.1.
+* Preencher APR/PT conforme POP Trackers 4.1.
 * Aplicar LOTO no sistema de acionamento do tracker antes de qualquer intervenção mecânica ou elétrica.
 * Inspecionar visualmente as escovas do motor: verificar desgaste, trincas, quebras, sujeira, assentamento e porta-escovas.
 * Verificar molas, conexões e sinais de aquecimento ou carbonização no conjunto de escovas.
 * Realizar testes elétricos e funcionais no motor: continuidade, resistência de isolamento e resposta durante acionamento.
 * Avaliar se o estado das escovas interfere no torque, partida ou movimentação do tracker; substituir se necessário.
 * Verificar alinhamento, folgas e lubrificação da transmissão mecânica conforme especificações do fabricante.
-* Registrar fotos, medições e recomendação de ajuste, limpeza ou substituição do conjunto.`;
+* Registrar fotos, medições e recomendação de ajuste, limpeza ou substituição do conjunto.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
     }
 
     if (tem('comunicação','comunicacao','falha de comunicação','perda de comunicação','scada')) {
@@ -3598,13 +3605,14 @@ Diagnóstico de falha de comunicação do ${equipOrig} com o sistema de controle
 
 Comentários:
 
-* Obter autorização do COS e registrar a intervenção no sistema conforme POP Trackers.
+* Registrar a intervenção no sistema conforme POP Trackers.
 * Verificar no SunOp/SCADA os alarmes ativos e identificar quais TCUs/NCUs estão com falha de comunicação.
 * Inspecionar fisicamente cabos de comunicação, conectores e roteadores na cadeia de rede do tracker.
 * Verificar status dos LEDs de conectividade nos switches; reiniciar equipamentos suspeitos conforme POP 15.
 * Testar comunicação com a TCU via software específico do fabricante e verificar endereçamento de rede.
 * Verificar alimentação elétrica, fusíveis e bateria da TCU para confirmar tensão e carga suficientes.
-* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log.`;
+* Monitorar estabilidade por 30 minutos após restauração e registrar ações no log.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
     }
 
     if (tem('parado','travado','bloqueado','emergência','emergencia')) {
@@ -3613,14 +3621,15 @@ Inspeção do ${equipOrig} parado/bloqueado — diagnóstico mecânico, elétric
 
 Comentários:
 
-* Obter autorização do COS antes de qualquer intervenção no sistema tracker conforme POP Trackers 4.1.
+* Registrar a intervenção no sistema tracker conforme POP Trackers 4.1.
 * Verificar no SunOp/SCADA os alarmes ativos, estado de emergência e modo de operação do tracker.
 * Inspecionar alimentação elétrica da TCU: verificar fusíveis, conectores, cabos e nível de carga da bateria.
 * Verificar comunicação entre NCU e TCUs e possível perda de sincronismo na cadeia.
 * Inspecionar mecanicamente: alinhamento estrutural, deformações, obstrução física ou dano nos componentes móveis.
 * Verificar sensor de ângulo e encoder; testar acionamento manual conforme procedimento do fabricante.
 * Testar liberação de emergência e realizar reset da TCU quando aplicável.
-* Registrar código de falha, posição do tracker, fotos e recomendação de correção.`;
+* Registrar código de falha, posição do tracker, fotos e recomendação de correção.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
     }
 
     if (tem('garantia','rma','fabricante')) {
@@ -3643,13 +3652,14 @@ Inspeção técnica do ${equipOrig} — verificação mecânica, elétrica e de 
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT conforme POP Trackers 4.1.
+* Preencher APR/PT conforme POP Trackers 4.1.
 * Verificar alimentação elétrica, fusíveis, disjuntores e sinais de comando da TCU/NCU do ${equipOrig}.
 * Inspecionar motor, redutor, encoder, sensores de posição e cabos de comunicação por falha ou desconexão.
 * Verificar mecanicamente: alinhamento, folgas, empeno, lubrificação e obstrução no movimento.
 * Testar acionamento manual e automático, registrando o ponto em que ocorre a anomalia.
 * Realizar termografia nas conexões elétricas e no motor para identificar pontos de aquecimento.
-* Registrar evidências fotográficas, código de falha, medições e necessidade de manutenção corretiva.`;
+* Registrar evidências fotográficas, código de falha, medições e necessidade de manutenção corretiva.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
   }
 
   // ── 3. FUSÍVEIS / DISJUNTORES ─────────────────────────────────────────
@@ -3679,13 +3689,14 @@ Inspeção e vedação do transformador ${equipOrig} — vazamento de óleo nas 
 
 Comentários:
 
-* Notificar o COS e registrar a ocorrência antes de qualquer intervenção.
+* Registrar a ocorrência antes de qualquer intervenção.
 * Inspecionar visualmente os pontos de vazamento nas buchas e na saída dos cabos do transformador.
 * Realizar limpeza da área afetada antes de qualquer intervenção para avaliação precisa do volume de vazamento.
 * Aplicar vedação nos pontos identificados conforme procedimento e materiais aprovados pelo fabricante.
 * Verificar se o vazamento foi contido após a intervenção; monitorar por período mínimo de 30 minutos.
 * Avaliar necessidade de substituição das buchas e programar reparo definitivo com fornecedor.
-* Registrar fotos, evidências, volume estimado de óleo e informar necessidade de acompanhamento.`;
+* Registrar fotos, evidências, volume estimado de óleo e informar necessidade de acompanhamento.
+* Atividade não exige desligamento do transformador; não é necessário acionar o COS.`;
     }
 
     if (tem('termografia','termográfica','termografica','ponto quente','aquecimento')) {
@@ -3707,17 +3718,18 @@ Inspeção técnica do transformador ${equipOrig} — diagnóstico de falha oper
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer intervenção no transformador.
+* Preencher APR/PT antes de iniciar qualquer intervenção no transformador.
 * Inspecionar visualmente: buchas, conexões, carcaça, radiadores e pontos de possível aquecimento, vazamento ou degradação.
 * Realizar termografia para identificar pontos quentes em conexões e barramentos associados.
 * Medir resistência de isolamento e verificar parâmetros de funcionamento conforme manual do fabricante.
 * Inspecionar e reapertar conexões com torquímetro calibrado conforme valores do fabricante (POP 8).
 * Verificar estado do sistema de proteção elétrica associado (relés, disjuntores).
-* Registrar medições, fotos e diagnóstico para definição de ação corretiva.`;
+* Registrar medições, fotos e diagnóstico para definição de ação corretiva.
+* Caso a intervenção exija desligamento do transformador, obter autorização do COS antes de iniciar.`;
   }
 
   // ── 5. CABINE / QGBT / PROTEÇÃO ELÉTRICA ──────────────────────────────
-  if (tem('cabine','qgbt','barramento','relé','rele','proteção elétrica','sistema de proteção')) {
+  if (tem('cabine','skid','qgbt','barramento','relé','rele','proteção elétrica','sistema de proteção')) {
 
     return `Título:
 Inspeção e manutenção da ${equipOrig} — verificação do sistema de proteção elétrica
@@ -3743,13 +3755,14 @@ Recomposição de cabos/strings danificados ou furtados — ${equipOrig}
 
 Comentários:
 
-* Obter autorização do COS; solicitar desligamento da string afetada e confirmar ausência de tensão conforme POP 13.
+* Confirmar ausência de tensão com multímetro (H-C-H) na string afetada conforme POP 13.
 * Aplicar LOTO e etiquetar pontos de isolamento com "NÃO OPERAR — EM MANUTENÇÃO".
 * Identificar os trechos danificados/furtados e verificar integridade das strings remanescentes.
 * Substituir cabos com mesma bitola, especificação e comprimento dos originais; refazer terminações com conectores MC4 certificados.
 * Realizar amarração adequada dos cabos com abraçadeiras sem causar esforço mecânico excessivo.
 * Testar continuidade, resistência de isolamento e polaridade do circuito após recomposição.
-* Registrar fotos antes e após, valores medidos e comunicar o COS para religamento.`;
+* Registrar fotos antes e após e os valores medidos.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
     }
 
     return `Título:
@@ -3757,14 +3770,15 @@ Inspeção e correção de falha em strings fotovoltaicas — ${equipOrig}
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT conforme POP 13.
+* Preencher APR/PT conforme POP 13.
 * Monitorar no SCADA a string com baixa produção ou comportamento anômalo; identificar alarmes de desconexão ou desequilíbrio.
 * Confirmar ausência de corrente elétrica com multímetro (H-C-H) em todos os condutores antes de iniciar.
 * Inspecionar visualmente módulos, cabos e conectores MC4 por danos físicos, corrosão, ruptura ou aquecimento.
 * Medir tensão de circuito aberto (Voc) e corrente por string para identificar módulos ou diodos inoperantes.
 * Executar reparo conforme diagnóstico: substituir conectores MC4, cabos com isolação danificada ou diodos de bypass.
 * Realizar inspeção termográfica após reparo para confirmar ausência de hotspots.
-* Solicitar ao COS o religamento e monitorar geração no SCADA; registrar todo o procedimento.`;
+* Monitorar geração no SCADA após o reparo; registrar todo o procedimento.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
   }
 
   // ── 7. COMUNICAÇÃO / SCADA / REDE ─────────────────────────────────────
@@ -3776,14 +3790,15 @@ Diagnóstico e restauração do sistema de CFTV — ${equipOrig}
 
 Comentários:
 
-* Obter autorização do COS e registrar a intervenção.
+* Registrar a intervenção realizada.
 * Verificar no SCADA/monitoramento de rede os alarmes de desconexão do ${equipOrig}.
 * Inspecionar fisicamente cabos de rede, conectores e switches associados ao sistema de CFTV.
 * Verificar alimentação elétrica do ${equipOrig}; testar cabo de rede com testador de cabos.
 * Acessar o NVR e verificar status das câmeras; reiniciar equipamentos suspeitos.
 * Verificar configuração de IP e parâmetros de rede; confirmar que não há conflito de endereços.
 * Reposicionar a câmera se necessário para melhorar cobertura ou ângulo.
-* Testar qualidade da imagem e estabilidade da conexão por 30 minutos; registrar ações realizadas.`;
+* Testar qualidade da imagem e estabilidade da conexão por 30 minutos; registrar ações realizadas.
+* Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
     }
 
     return `Título:
@@ -3791,14 +3806,15 @@ Diagnóstico e restauração de falha de comunicação — ${equipOrig} / SCADA
 
 Comentários:
 
-* Obter autorização do COS e registrar ocorrência no log conforme POP 15.
+* Registrar ocorrência no log conforme POP 15.
 * Identificar no SCADA quais dispositivos estão com falha de comunicação; registrar horário e sequência dos eventos.
 * Realizar teste de conectividade remoto (ping/traceroute) para isolar se a falha ocorre em todo o sistema ou em componente específico.
 * Inspecionar fisicamente cabos Ethernet/serial, fibra óptica e conectores na cadeia de comunicação do ${equipOrig}.
 * Verificar status dos LEDs nos switches e roteadores associados; reiniciar equipamentos com anomalias.
 * Testar comunicação direta com o dispositivo via software específico; verificar endereçamento IP e configurações Modbus/RS485.
 * Atualizar firmware se necessário; substituir cabos ou equipamentos de rede defeituosos com peças certificadas.
-* Confirmar restauração monitorando por 30 minutos e registrar todas as ações no log de operações.`;
+* Confirmar restauração monitorando por 30 minutos e registrar todas as ações no log de operações.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
   }
 
   // ── 8. SENSORES METEOROLÓGICOS ─────────────────────────────────────────
@@ -3899,29 +3915,31 @@ Comentários:
 
   if (tem('poda química','poda quimica','herbicida','aplicação de herbicida','aplicacao de herbicida','poda')) {
     return `Título:
-Acompanhamento das atividades de poda química
+Acompanhamento de poda química na usina ${usinaOrig}
 
 Comentários:
 
-* Acompanhar a execução da poda química conforme planejamento.
-* Verificar as condições de segurança da equipe e da área de trabalho.
-* Conferir a aplicação correta do procedimento e a delimitação da área.
-* Avaliar o manejo e a destinação dos resíduos resultantes da atividade.
-* Registrar o andamento e as evidências da intervenção.
+* Confirmar previamente a área autorizada para aplicação, o produto utilizado e as condições climáticas (sem vento forte ou previsão de chuva).
+* Acompanhar a aplicação garantindo distância segura de módulos, cabos e equipamentos sensíveis.
+* Verificar uso correto de EPIs (luvas, máscara, óculos, roupa de proteção) por todos os envolvidos.
+* Conferir que a aplicação não atinge áreas fora do escopo autorizado nem corpos d'água próximos.
+* Verificar possível presença de animais peçonhentos antes e durante a atividade; interromper imediatamente em caso de risco.
+* Registrar evidências fotográficas, produto e dosagem aplicada, área coberta, horário de início e término e responsáveis.
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
   if (tem('vegetação','vegetacao','roçagem','rocagem','supressão','supressao','capina')) {
     return `Título:
-Acompanhamento das atividades de roçagem
+Acompanhamento de roçagem/supressão vegetal na usina ${usinaOrig}
 
 Comentários:
 
-* Acompanhar a execução da roçagem na área designada.
-* Verificar a sinalização e a segurança da área durante a atividade.
-* Conferir se a roçagem foi realizada conforme o planejamento.
-* Identificar e registrar eventuais pendências para correção.
-* Registrar o acompanhamento e as evidências da intervenção.
+* Confirmar previamente os limites da área autorizada, o planejamento da atividade e os recursos disponíveis.
+* Acompanhar execução garantindo que a intervenção permaneça restrita às áreas indicadas e respeite distâncias seguras dos equipamentos.
+* Verificar uso correto de EPIs por todos os envolvidos durante toda a atividade.
+* Conferir que não há danos a cabos, estruturas, módulos e equipamentos durante a execução.
+* Verificar possível presença de animais peçonhentos antes e durante a atividade; interromper imediatamente em caso de risco.
+* Registrar evidências fotográficas, área coberta, horário de início e término e responsáveis.
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
@@ -3948,13 +3966,14 @@ Reinicialização do ${equipOrig} após falha operacional — procedimento confo
 
 Comentários:
 
-* Obter autorização do COS antes de qualquer manobra; verificar no SCADA: código de alarme, equipamentos afetados e sequência dos eventos.
+* Verificar no SCADA: código de alarme, equipamentos afetados e sequência dos eventos.
 * Confirmar que as condições operacionais foram normalizadas: rede elétrica estável, equipamentos sem danos físicos, proteções verificadas.
 * Tentar reinicialização remota via SCADA; monitorar tensões, correntes e status do equipamento durante a inicialização.
 * Se remoto não for possível: inspecionar fisicamente o ${equipOrig}, aplicar LOTO se necessário e executar reset conforme manual do fabricante.
 * Monitorar SCADA por pelo menos 30 minutos após reinicialização verificando Performance Ratio e ausência de novos alarmes.
 * Se alarmes persistirem: isolar novamente o equipamento e solicitar inspeção técnica detalhada.
-* Registrar no log: diagnóstico da falha, ação tomada e resultado da reinicialização.`;
+* Registrar no log: diagnóstico da falha, ação tomada e resultado da reinicialização.
+* Caso a reinicialização exija desligamento do inversor, da usina, de um SKID ou da Cabine de Medição Primária, obter autorização do COS antes de qualquer manobra.`;
   }
 
   // ── 13. VISITA TÉCNICA SEMANAL / RONDA DIÁRIA ────────────────────────
@@ -3983,14 +4002,15 @@ Inspeção e correção de exaustores parados no ${equipOrig}
 
 Comentários:
 
-* Obter autorização do COS e registrar a intervenção antes de iniciar.
+* Registrar a intervenção antes de iniciar.
 * Verificar no sistema de monitoramento se há alarmes de temperatura elevada no QGBT/SKID associado aos exaustores parados.
 * Inspecionar visualmente os exaustores: verificar estado físico, rolamentos, hélice, fiação de alimentação e contactoras de acionamento.
 * Confirmar alimentação elétrica dos exaustores com multímetro; verificar fusíveis, disjuntores e contactoras no painel de controle.
 * Substituir contactoras queimadas se identificadas como causa da falha, com peças de mesma especificação.
 * Testar o acionamento de cada exaustor após intervenção e confirmar operação normal (rotação, vazão de ar, temperatura interna).
 * Limpar filtros, grades e dutos de ventilação acumulados com poeira ou resíduos.
-* Monitorar temperatura interna do QGBT/SKID por 30 minutos após a normalização e registrar fotos e evidências.`;
+* Monitorar temperatura interna do QGBT/SKID por 30 minutos após a normalização e registrar fotos e evidências.
+* Caso seja necessário desligar o SKID/QGBT para a intervenção, obter autorização do COS antes de iniciar.`;
   }
 
   // ── 15. VEGETAÇÃO COM RISCO DE INCÊNDIO ──────────────────────────────
@@ -4017,14 +4037,15 @@ Diagnóstico de falha de comunicação na TCU do ${equipOrig} — tracker parado
 
 Comentários:
 
-* Obter autorização do COS e registrar a ocorrência informando: localização do tracker, identificação da TCU e horário da falha.
+* Registrar a ocorrência informando: localização do tracker, identificação da TCU e horário da falha.
 * Verificar no sistema de monitoramento (SunOp/SCADA) os alarmes ativos da TCU e confirmar se outros trackers da mesma cadeia estão afetados.
 * Inspecionar fisicamente a TCU: verificar alimentação elétrica, estado dos conectores, cabos de comunicação e nível de carga da bateria interna.
 * Verificar integridade dos cabos de rede/comunicação desde a TCU até o switch ou NCU mais próximo; substituir cabo danificado se encontrado.
 * Conectar computador via software específico do fabricante para verificar status, configurações e log de erros da TCU.
 * Executar reset da TCU conforme procedimento do fabricante; aguardar inicialização e confirmar reconexão com a NCU no sistema de monitoramento.
 * Testar acionamento manual e automático do tracker após restauração; confirmar que está rastreando corretamente.
-* Monitorar estabilidade da comunicação por 30 minutos e registrar todas as ações realizadas.`;
+* Monitorar estabilidade da comunicação por 30 minutos e registrar todas as ações realizadas.
+* Atividade não exige desligamento do inversor ou da usina; não é necessário acionar o COS.`;
   }
 
   // ── FALLBACK GENÉRICO ──────────────────────────────────────────────────
@@ -4034,13 +4055,13 @@ Ordem de Serviço — ${titulo} na usina ${usinaOrig}
 
 Comentários:
 
-* Obter autorização do COS e preencher APR/PT antes de iniciar qualquer atividade em campo.
+* Preencher APR/PT antes de iniciar qualquer atividade em campo.
 * Verificar condições atuais do ${equipOrig} no SCADA e confirmar o escopo da intervenção.
 * Aplicar LOTO nos pontos de isolamento necessários; confirmar ausência de tensão com multímetro (H-C-H) antes de qualquer intervenção elétrica.
 * Executar inspeção visual e executar as ações corretivas conforme diagnóstico e procedimento técnico aplicável.
 * Conferir integridade das conexões e funcionamento do equipamento após a intervenção.
 * Registrar fotos, medições e evidências do serviço executado.
-* Comunicar o COS sobre a conclusão e resultado da intervenção.`;
+* Caso a intervenção exija desligamento do inversor, da usina, de um SKID ou da Cabine de Medição Primária, obter autorização do COS antes de iniciar e comunicar a conclusão ao final.`;
 }
 
 async function _solicitarOS() {
