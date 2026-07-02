@@ -1558,13 +1558,7 @@ body{
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section" id="sec-atividades">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);"></div>
-          <button class="tb-btn tb-btn-refresh" id="ativUpdateBtn" onclick="carregarAtividades()">
-            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-            Atualizar
-          </button>
-        </div>
+        <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;"></div>
         <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
       </section>
 
@@ -1747,13 +1741,7 @@ body{
         </div>
         <div class="nova-oc-field">
           <label>Status inicial</label>
-          <select class="nova-oc-select" id="novaAtivStatus">
-            <option value="Em Aberto">Em Aberto</option>
-            <option value="Em Andamento">Em Andamento</option>
-            <option value="Pausado">Pausado</option>
-            <option value="Aguardando Cliente">Aguardando Cliente</option>
-            <option value="Concluído">Concluído</option>
-          </select>
+          <select class="nova-oc-select" id="novaAtivStatus"></select>
         </div>
       </div>
       <div id="novaAtivErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
@@ -4579,7 +4567,10 @@ document.getElementById('tabHistorico').addEventListener('click', () => {
   applyFilters();
 });
 
-document.getElementById('updateBtn').addEventListener('click',fetchSheet);
+document.getElementById('updateBtn').addEventListener('click', () => {
+  fetchSheet();
+  if (_activeNav === 'atividades') carregarAtividades();
+});
 document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilter=!activeSlaFilter;document.getElementById('slaBanner').classList.toggle('active-filter',activeSlaFilter);if(activeSlaFilter)document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});applyFilters();});
 document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
 
@@ -4850,9 +4841,7 @@ let _ativDrawerList = []; let _ativDrawerIndex = -1;
 async function carregarAtividades() {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
-  const btn = document.getElementById('ativUpdateBtn');
   if (sub) sub.textContent = 'Carregando…';
-  if (btn) { btn.disabled = true; btn.classList.add('loading'); }
   try {
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades');
     const result = await resp.json();
@@ -4862,16 +4851,14 @@ async function carregarAtividades() {
   } catch (e) {
     if (sub) sub.textContent = 'Erro ao carregar atividades.';
     if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora.</div>`;
-  } finally {
-    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
   }
 }
 
 function _prioridadeCor(p) {
   const v = (p||'').toLowerCase();
-  if (v === 'alta') return 'var(--red)';
-  if (v === 'baixa') return 'var(--sla-ok)';
-  return 'var(--amber)';
+  if (v === 'alta') return '#EF4444';
+  if (v === 'baixa') return '#EAB308';
+  return '#F97316';
 }
 
 function _ativEquipamento(a) {
@@ -4901,15 +4888,15 @@ function renderAtividadeCards() {
     const sc = statusColor(a.status);
     return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
       <div class="card-top">
-        <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(a.cliente)}</div>
-        <span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">${esc(a.prioridade||'Média')}</span>
+        <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
+        ${a.prazo ? `<span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">Prazo: ${esc(a.prazo)}</span>` : ''}
       </div>
-      <p class="equip">${esc(_ativEquipamento(a))}</p>
-      <p class="falha">${esc(a.descricao)}</p>
-      <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">${esc(a.responsavel||'Sem responsável')}</div>
+      <p style="font-size:17px;font-weight:800;margin:0 0 4px;color:var(--text);letter-spacing:-0.02em;line-height:1.2;">${esc(_ativEquipamento(a))}</p>
+      <p style="font-size:12.5px;font-weight:400;color:var(--text-dim);line-height:1.5;margin:0 0 10px;">${esc(a.descricao)}</p>
+      <div style="font-size:11.5px;color:var(--text-dim);margin-top:-4px;margin-bottom:8px;">${esc(a.responsavel||'Sem responsável')}</div>
       <div class="card-foot">
         <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
-        ${a.prazo ? `<span class="see-more">prazo ${esc(a.prazo)}</span>` : ''}
+        <span class="see-more">Abrir Card <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
     </div>`;
   }).join('');
@@ -4933,7 +4920,7 @@ function _fecharAtivDrawer() {
   document.getElementById('ativDrawerBackdrop').classList.remove('open');
 }
 
-const ATIV_STATUS_OPCOES = ['Em Aberto','Em Andamento','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Concluído'];
+const ATIV_STATUS_OPCOES = ALL_STATUSES;
 
 function _renderAtivDrawer() {
   const a = _ativDrawerList[_ativDrawerIndex];
@@ -5060,7 +5047,11 @@ function _openNovaAtividade() {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('novaAtivPrioridade').value = 'Média';
-  document.getElementById('novaAtivStatus').value = 'Em Aberto';
+  const selStatus = document.getElementById('novaAtivStatus');
+  if (selStatus) {
+    selStatus.innerHTML = ALL_STATUSES.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    selStatus.value = 'Em Aberto';
+  }
   const errEl = document.getElementById('novaAtivErr'); if(errEl) errEl.style.display='none';
   document.getElementById('novaAtivOverlay').style.display = 'flex';
 }
