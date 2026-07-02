@@ -1250,7 +1250,7 @@ body{
       <!-- Nova ocorrência -->
       <button class="sb-action-btn" onclick="_openNovaOcorrencia()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        Nova ocorrência
+        Nova Ocorrência
       </button>
     </div>
 
@@ -1558,7 +1558,13 @@ body{
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section" id="sec-atividades">
-        <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div id="ativSub" style="font-size:12.5px;color:var(--text-dim);"></div>
+          <button class="tb-btn tb-btn-refresh" id="ativUpdateBtn" onclick="carregarAtividades()">
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Atualizar
+          </button>
+        </div>
         <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
       </section>
 
@@ -1711,6 +1717,10 @@ body{
           <label>Usina</label>
           <select class="nova-oc-select" id="novaAtivUsina"></select>
         </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Equipamento</label>
+        <input class="nova-oc-input" id="novaAtivEquipamento" placeholder="Ex: INV-03, Tracker 12, RSU…">
       </div>
       <div class="nova-oc-field">
         <label>Descrição da atividade</label>
@@ -4840,7 +4850,9 @@ let _ativDrawerList = []; let _ativDrawerIndex = -1;
 async function carregarAtividades() {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
+  const btn = document.getElementById('ativUpdateBtn');
   if (sub) sub.textContent = 'Carregando…';
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); }
   try {
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades');
     const result = await resp.json();
@@ -4850,6 +4862,8 @@ async function carregarAtividades() {
   } catch (e) {
     if (sub) sub.textContent = 'Erro ao carregar atividades.';
     if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora.</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
   }
 }
 
@@ -4858,6 +4872,12 @@ function _prioridadeCor(p) {
   if (v === 'alta') return 'var(--red)';
   if (v === 'baixa') return 'var(--sla-ok)';
   return 'var(--amber)';
+}
+
+function _ativEquipamento(a) {
+  if (a.equipamento && a.equipamento.trim()) return a.equipamento.trim();
+  const m = (a.descricao||'').match(/\(([^()]+)\)\s*$/);
+  return m ? m[1].trim() : 'Equipamento não informado';
 }
 
 function renderAtividadeCards() {
@@ -4884,8 +4904,9 @@ function renderAtividadeCards() {
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(a.cliente)}</div>
         <span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">${esc(a.prioridade||'Média')}</span>
       </div>
-      <p class="equip">${esc(a.responsavel||'Sem responsável')}</p>
+      <p class="equip">${esc(_ativEquipamento(a))}</p>
       <p class="falha">${esc(a.descricao)}</p>
+      <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">${esc(a.responsavel||'Sem responsável')}</div>
       <div class="card-foot">
         <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
         ${a.prazo ? `<span class="see-more">prazo ${esc(a.prazo)}</span>` : ''}
@@ -4921,6 +4942,7 @@ function _renderAtivDrawer() {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
+    <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(_ativEquipamento(a))}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(a.descricao)}</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
@@ -4934,6 +4956,11 @@ function _renderAtivDrawer() {
         <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
     </div>
 
+    <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:16px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Solicitar OS
+    </button>
+
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Status</label>
     <select class="nova-oc-select" id="ativDrawerStatus" style="width:100%;margin-bottom:16px;">
       ${ATIV_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}
@@ -4946,6 +4973,33 @@ function _renderAtivDrawer() {
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
     <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
   `;
+}
+
+function _solicitarOSAtividade() {
+  const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
+  const pseudoOcorrencia = {
+    equipamento: _ativEquipamento(a),
+    falha: a.descricao || '',
+    causa: '',
+    acao: '',
+    historico: a.historico || '',
+    usina: a.usina || '',
+  };
+  const overlay = document.getElementById('osOverlay');
+  const loading = document.getElementById('osModalLoading');
+  const result = document.getElementById('osModalResult');
+  const errorBox = document.getElementById('osModalError');
+  overlay.style.display = 'flex';
+  loading.style.display = 'none';
+  result.style.display = 'block';
+  errorBox.style.display = 'none';
+  try {
+    document.getElementById('osModalText').value = _gerarTextoOS(pseudoOcorrencia);
+  } catch (err) {
+    result.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+  }
 }
 
 let _isSalvandoAtiv = false;
@@ -5002,7 +5056,7 @@ function _openNovaAtividade() {
     };
     selCli.dispatchEvent(new Event('change'));
   }
-  ['novaAtivDescricao','novaAtivResponsavel','novaAtivPrazo'].forEach(id => {
+  ['novaAtivEquipamento','novaAtivDescricao','novaAtivResponsavel','novaAtivPrazo'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('novaAtivPrioridade').value = 'Média';
@@ -5016,6 +5070,7 @@ async function _submeterNovaAtividade() {
   if (_isSubmittingAtiv) return;
   const cliente     = document.getElementById('novaAtivCliente')?.value?.trim() || '';
   const usina       = document.getElementById('novaAtivUsina')?.value?.trim() || '';
+  const equipamento = document.getElementById('novaAtivEquipamento')?.value?.trim() || '';
   const descricao   = document.getElementById('novaAtivDescricao')?.value?.trim() || '';
   const responsavel = document.getElementById('novaAtivResponsavel')?.value?.trim() || '';
   const prazo       = document.getElementById('novaAtivPrazo')?.value || '';
@@ -5034,7 +5089,7 @@ async function _submeterNovaAtividade() {
 
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   const prazoBR = prazo ? prazo.split('-').reverse().join('/') : '';
-  const payload = { cliente, usina, descricao, responsavel, prazo: prazoBR, prioridade, status, editor };
+  const payload = { cliente, usina, equipamento, descricao, responsavel, prazo: prazoBR, prioridade, status, editor };
 
   try {
     const ctrl = new AbortController();
