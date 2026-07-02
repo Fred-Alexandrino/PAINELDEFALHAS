@@ -1144,11 +1144,15 @@ body{
     <nav class="sb-nav" id="sbNav">
       <div class="sb-nav-item active" data-nav="falhas">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Painel de falhas
+        Painel de Falhas
       </div>
-      <div class="sb-nav-item" data-nav="rondas">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Verificar rondas
+      <div class="sb-nav-item" data-nav="atividades">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Painel de Atividades
+      </div>
+      <div class="sb-nav-item" data-nav="relatorios">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Relatórios Semanais
       </div>
       <div class="sb-nav-item" data-nav="chamados">
         <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
@@ -1157,11 +1161,15 @@ body{
       </div>
       <div class="sb-nav-item" data-nav="processos">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Controle de processos
+        Controle de Processos
+      </div>
+      <div class="sb-nav-item" data-nav="rondas">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Verificar Rondas
       </div>
       <div class="sb-nav-item" data-nav="historico-log">
         <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-        Log histórico
+        Log Histórico
         <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
       </div>
       <div class="sb-nav-item" data-nav="mttr">
@@ -1171,14 +1179,6 @@ body{
       <div class="sb-nav-item" data-nav="eficiencia">
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Eficiência O&amp;M
-      </div>
-      <div class="sb-nav-item" data-nav="relatorios">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Relatórios semanais
-      </div>
-      <div class="sb-nav-item" data-nav="atividades">
-        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Painel de Atividades
       </div>
     </nav>
 
@@ -2049,11 +2049,11 @@ let _forcedCliente = null;
 let _activeNav = 'falhas';
 
 const NAV_TITLES = {
-  'falhas': 'Painel de falhas',
-  'rondas': 'Verificar rondas',
+  'falhas': 'Painel de Falhas',
+  'rondas': 'Verificar Rondas',
   'chamados': 'Chamados',
-  'processos': 'Controle de processos',
-  'historico-log': 'Log histórico',
+  'processos': 'Controle de Processos',
+  'historico-log': 'Log Histórico',
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
   'relatorios': 'Relatórios Semanais',
