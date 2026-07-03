@@ -5086,6 +5086,11 @@ function _renderAtivDrawer() {
         <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
     </div>
 
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Nº OS</label>
+      <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
+    </div>
+
     <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Solicitar OS
@@ -5281,6 +5286,7 @@ async function _salvarAtivDrawer() {
   const novoStatus = document.getElementById('ativDrawerStatus')?.value || a.status;
   const novoHistTxt = document.getElementById('ativDrawerNovoHist')?.value?.trim() || '';
   const novoPrazo = _ativPrazoSelecionado ? relBR(_ativPrazoSelecionado) : a.prazo;
+  const novoNumeroOS = document.getElementById('ativDrawerNumeroOS')?.value?.trim() || '';
   const btn = document.getElementById('ativDrawerSalvarBtn');
   _isSalvandoAtiv = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
@@ -5300,6 +5306,13 @@ async function _salvarAtivDrawer() {
         body: JSON.stringify({ id: a.id, field: 'prazo', value: novoPrazo, editor })
       });
       a.prazo = novoPrazo;
+    }
+    if (novoNumeroOS !== (a.numeroOS||'')) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'numeroOS', value: novoNumeroOS, editor })
+      });
+      a.numeroOS = novoNumeroOS;
     }
     if (novoHistTxt) {
       const agora = new Date();
