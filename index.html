@@ -3538,6 +3538,8 @@ function _gerarTextoOS(d) {
   const impactos = (d.impactados   || '');
   const equipOrig= (d.equipamento  || 'equipamento');
   const usinaOrig= (d.usina        || 'usina');
+  const clienteOrig = (d.cliente || '').trim();
+  const responsavelOrig = (d.responsavel || '').trim();
 
   const tem = (...ts) => ts.some(t => equip.includes(t)||falha.includes(t)||causa.includes(t)||hist.includes(t)||acao.includes(t));
 
@@ -3555,6 +3557,22 @@ Comentários:
 * Conferir integridade da vedação, iluminação e ventilação do abrigo; registrar qualquer não conformidade encontrada.
 * Registrar fotos do antes e depois da organização.
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
+  }
+
+  // ── 0c. ENVIO DE EQUIPAMENTO DANIFICADO PARA AVALIAÇÃO/CONSERTO (logística, não diagnóstico técnico) ──
+  if (tem('orçamento de envio','orcamento de envio','envio para conserto','avaliar o conserto','envio das câmeras','envio das cameras','equipamento danificado','equipamentos danificados','câmeras danificadas','cameras danificadas')) {
+    const localTexto = [usinaOrig, clienteOrig].filter(Boolean).join(' — ');
+    const destinatario = responsavelOrig || 'avaliador técnico';
+    return `Título:
+${equipOrig}${localTexto ? ` — ${localTexto}` : ''}
+
+Comentários:
+
+1. Desinstalar (caso ainda estejam em campo) e acondicionar o(s) equipamento(s) danificado(s) em embalagem segura, protegendo-os contra impactos para evitar danos adicionais durante o transporte.
+2. Coletar os dados de peso e dimensões do pacote finalizado para embasar a cotação logística.
+3. Realizar o orçamento de envio (frete) junto às transportadoras ou Correios, tendo como destino o endereço do avaliador técnico (${destinatario}).
+4. Encaminhar os orçamentos de frete levantados para aprovação da gerência ou responsável pela planta${localTexto ? ` ${localTexto}` : ''}.
+5. Após a aprovação e o despacho dos equipamentos, registrar o código de rastreio na OS e notificar ${destinatario}, garantindo que receba o(s) equipamento(s) e inicie a avaliação do conserto.`;
   }
 
   // ── 0b. REPOSICIONAMENTO DE CÂMERAS (atividade proativa, não diagnóstico de falha) ──
@@ -5181,6 +5199,8 @@ function _solicitarOSAtividade() {
     acao: '',
     historico: a.historico || '',
     usina: a.usina || '',
+    cliente: a.cliente || '',
+    responsavel: a.responsavel || '',
   };
   const overlay = document.getElementById('osOverlay');
   const loading = document.getElementById('osModalLoading');
