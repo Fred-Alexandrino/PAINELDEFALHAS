@@ -4252,6 +4252,22 @@ async function _converterOcorrenciaEmAtividade() {
   }
 }
 
+async function _gerarTextoOSComIA(d) {
+  const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-texto-os-ia', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
+      falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
+      historico: d.historico||'', responsavel: d.responsavel||'',
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const result = await resp.json();
+  if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
+  return result.texto;
+}
+
 async function _solicitarOS() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
 
@@ -4260,18 +4276,26 @@ async function _solicitarOS() {
   const result=document.getElementById('osModalResult');
   const errorBox=document.getElementById('osModalError');
   overlay.style.display='flex';
-  loading.style.display='none'; // não precisa de loading, é instantâneo
-  result.style.display='block';
+  loading.style.display='flex';
+  result.style.display='none';
   errorBox.style.display='none';
 
+  let texto;
   try {
-    const texto = _gerarTextoOS(d);
-    document.getElementById('osModalText').value = texto;
-  } catch(err) {
-    loading.style.display='none';
-    errorBox.style.display='block';
-    errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+    texto = await _gerarTextoOSComIA(d);
+  } catch (errIA) {
+    try {
+      texto = _gerarTextoOS(d); // fallback: gerador local baseado em regras
+    } catch (err) {
+      loading.style.display='none';
+      errorBox.style.display='block';
+      errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+      return;
+    }
   }
+  document.getElementById('osModalText').value = texto;
+  loading.style.display='none';
+  result.style.display='block';
 }
 
 document.getElementById('osModalClose')?.addEventListener('click', () => { document.getElementById('osOverlay').style.display='none'; });
@@ -5190,7 +5214,7 @@ function _renderAtivDrawer() {
   `;
 }
 
-function _solicitarOSAtividade() {
+async function _solicitarOSAtividade() {
   const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
   const pseudoOcorrencia = {
     equipamento: _ativEquipamento(a),
@@ -5207,17 +5231,27 @@ function _solicitarOSAtividade() {
   const result = document.getElementById('osModalResult');
   const errorBox = document.getElementById('osModalError');
   overlay.style.display = 'flex';
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+
+  let texto;
+  try {
+    texto = await _gerarTextoOSComIA(pseudoOcorrencia);
+  } catch (errIA) {
+    try {
+      texto = _gerarTextoOS(pseudoOcorrencia); // fallback: gerador local baseado em regras
+    } catch (err) {
+      loading.style.display = 'none';
+      errorBox.style.display = 'block';
+      errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+      return;
+    }
+  }
+  document.getElementById('osModalText').value = texto;
   loading.style.display = 'none';
   result.style.display = 'block';
-  errorBox.style.display = 'none';
-  try {
-    document.getElementById('osModalText').value = _gerarTextoOS(pseudoOcorrencia);
-    _registrarOSSolicitadaAtividade(a);
-  } catch (err) {
-    result.style.display = 'none';
-    errorBox.style.display = 'block';
-    errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
-  }
+  _registrarOSSolicitadaAtividade(a);
 }
 
 async function _converterAtividadeEmOcorrencia() {
