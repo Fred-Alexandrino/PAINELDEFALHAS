@@ -1650,7 +1650,7 @@ body{
     <div class="ch-body" id="osModalBody">
       <div id="osModalLoading" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
         <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
-        Gerando texto da OS…
+        Gerando texto da OS… (pode levar até 1 min na primeira vez)
       </div>
       <div id="osModalResult" style="display:none;">
         <textarea id="osModalText" readonly style="width:100%;min-height:280px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12.5px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;white-space:pre-wrap;"></textarea>
@@ -4037,7 +4037,7 @@ Comentários:
   }
 
   // ── 10. OPERAÇÃO GERAL / DESLIGAMENTO / ENERGIZAÇÃO ───────────────────
-  if (tem('desligamento','desligar','shutdown')) {
+  if (tem('desligamento','desligar','shutdown','usina offline','offline, sem possibilidade','sem possibilidade de monitoramento','sem possibilidade de religamento','sem religamento remoto','usina parada','usina desligada')) {
     return `Título:
 Desligamento programado da usina ${usinaOrig} — procedimento conforme POP 2
 
@@ -4252,20 +4252,27 @@ async function _converterOcorrenciaEmAtividade() {
   }
 }
 
-async function _gerarTextoOSComIA(d) {
-  const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-texto-os-ia', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
-      falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
-      historico: d.historico||'', responsavel: d.responsavel||'',
-    }),
-    signal: AbortSignal.timeout(15000),
-  });
-  const result = await resp.json();
-  if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
-  return result.texto;
+async function _gerarTextoOSComIA(d, tentativa = 1) {
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-texto-os-ia', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
+        falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
+        historico: d.historico||'', responsavel: d.responsavel||'',
+      }),
+      signal: AbortSignal.timeout(45000), // Render pode demorar até ~50s pra "acordar"
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
+    return result.texto;
+  } catch (e) {
+    if (tentativa < 2) {
+      return _gerarTextoOSComIA(d, tentativa + 1); // 1 nova tentativa antes de desistir
+    }
+    throw e;
+  }
 }
 
 async function _solicitarOS() {
@@ -5919,17 +5926,17 @@ async function relGerarRelatorio(){
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <span>Falhas</span>
   </div>
-  <div class="bn-item" data-nav="rondas">
-    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <span>Rondas</span>
+  <div class="bn-item" data-nav="atividades">
+    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Atividades</span>
+  </div>
+  <div class="bn-item" data-nav="relatorios">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span>Relatórios</span>
   </div>
   <div class="bn-item" data-nav="chamados">
     <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
     <span>Chamados</span>
-  </div>
-  <div class="bn-item" data-nav="mttr">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    <span>MTTR</span>
   </div>
   <div class="bn-item" id="bnMenuBtn">
     <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
