@@ -5134,7 +5134,11 @@ function _renderAtivDrawer() {
         </div>
       </div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prioridade</label>
-        <div style="font-size:13.5px;">${esc(a.prioridade||'—')}</div></div>
+        <select class="nova-oc-select" id="ativDrawerPrioridade" style="width:100%;font-size:13.5px;">
+          <option value="Baixa" ${a.prioridade==='Baixa'?'selected':''}>Baixa</option>
+          <option value="Média" ${a.prioridade==='Média'?'selected':''}>Média</option>
+          <option value="Alta" ${a.prioridade==='Alta'?'selected':''}>Alta</option>
+        </select></div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Criada em</label>
         <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
     </div>
@@ -5341,6 +5345,7 @@ async function _salvarAtivDrawer() {
   const novoPrazo = _ativPrazoSelecionado ? relBR(_ativPrazoSelecionado) : a.prazo;
   const novoNumeroOS = document.getElementById('ativDrawerNumeroOS')?.value?.trim() || '';
   const novoResponsavel = document.getElementById('ativDrawerResponsavel')?.value?.trim() || '';
+  const novaPrioridade = document.getElementById('ativDrawerPrioridade')?.value || a.prioridade;
   const btn = document.getElementById('ativDrawerSalvarBtn');
   _isSalvandoAtiv = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
@@ -5374,6 +5379,13 @@ async function _salvarAtivDrawer() {
         body: JSON.stringify({ id: a.id, field: 'responsavel', value: novoResponsavel, editor })
       });
       a.responsavel = novoResponsavel;
+    }
+    if (novaPrioridade !== a.prioridade) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'prioridade', value: novaPrioridade, editor })
+      });
+      a.prioridade = novaPrioridade;
     }
     if (novoHistTxt) {
       const agora = new Date();
