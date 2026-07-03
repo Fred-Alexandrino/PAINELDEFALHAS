@@ -485,6 +485,10 @@ body{
 @media(max-width:1300px){.kpis{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
+#ativKpis{grid-template-columns:repeat(5,1fr);}
+@media(max-width:1300px){#ativKpis{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:860px){#ativKpis{grid-template-columns:repeat(2,1fr);}}
+
 .kpi{
   background:#111;border:1px solid rgba(255,255,255,0.07);
   border-radius:10px;padding:20px 18px 18px;
@@ -4880,19 +4884,26 @@ document.getElementById('novaAtivOverlay')?.addEventListener('click', e => { if(
 let ATIVIDADES = [];
 let _ativDrawerList = []; let _ativDrawerIndex = -1;
 
-async function carregarAtividades() {
+async function carregarAtividades(tentativa = 1) {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
-  if (sub) sub.textContent = 'Carregando…';
+  if (sub) sub.textContent = tentativa > 1 ? `Carregando… (tentativa ${tentativa})` : 'Carregando…';
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades');
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 20000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades', { signal: ctrl.signal });
+    clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
     ATIVIDADES = result.atividades || [];
     renderAtividadeCards();
   } catch (e) {
+    if (tentativa < 3) {
+      setTimeout(() => carregarAtividades(tentativa + 1), 2500);
+      return;
+    }
     if (sub) sub.textContent = 'Erro ao carregar atividades.';
-    if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora.</div>`;
+    if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora (${esc(e.message||'falha de conexão')}). Clique em Atualizar para tentar de novo.</div>`;
   }
 }
 
