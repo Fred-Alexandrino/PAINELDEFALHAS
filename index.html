@@ -3290,7 +3290,7 @@ function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _d
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
-const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Análise de Performance','Análise Engenharia'];
+const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Convertida em Ocorrência','Análise de Performance','Análise Engenharia'];
 
 /* Linha do tempo visual T1-T4 */
 function renderTimelineT1T4(d) {
@@ -4907,7 +4907,8 @@ let _ativTab = 'ativas';
 let _ativSortKey = 'id';
 
 function _ativIsConcluida(a) {
-  return (a.status||'').toLowerCase().includes('conclu');
+  const s = (a.status||'').toLowerCase();
+  return s.includes('conclu') || s.includes('convertida');
 }
 
 function _ativMudarTab(tab) {
@@ -5085,9 +5086,14 @@ function _renderAtivDrawer() {
         <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
     </div>
 
-    <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:16px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
+    <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Solicitar OS
+    </button>
+
+    <button class="nova-oc-submit" id="ativConverterBtn" onclick="_converterAtividadeEmOcorrencia()" style="width:100%;margin-bottom:16px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Transformar em Ocorrência
     </button>
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Status</label>
@@ -5129,6 +5135,39 @@ function _solicitarOSAtividade() {
     result.style.display = 'none';
     errorBox.style.display = 'block';
     errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+  }
+}
+
+async function _converterAtividadeEmOcorrencia() {
+  const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
+  const confirmar = confirm(
+    `Transformar esta atividade em ocorrência?\n\n` +
+    `${_ativEquipamento(a)} — ${a.descricao}\n\n` +
+    `O histórico completo será transferido para a nova ocorrência, e esta atividade ` +
+    `será marcada como "Convertida em Ocorrência".`
+  );
+  if (!confirmar) return;
+
+  const btn = document.getElementById('ativConverterBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Convertendo…'; }
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/converter-atividade-em-ocorrencia', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: a.id, editor })
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao converter');
+
+    showToast(`Convertida! Nova ocorrência #${result.novaOcorrenciaId} criada.`, true);
+    _fecharAtivDrawer();
+    await carregarAtividades();
+    if (typeof fetchSheet === 'function') fetchSheet();
+  } catch (e) {
+    showToast('Erro ao converter atividade: ' + (e.message||''), false);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Transformar em Ocorrência'; }
   }
 }
 
