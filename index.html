@@ -3350,7 +3350,7 @@ function _renderDrawer() {
   document.getElementById('drawerCounter').textContent=`${_drawerIndex+1} / ${total}`;
   document.getElementById('drawerPrev').disabled=_drawerIndex===0;
   document.getElementById('drawerNext').disabled=_drawerIndex===total-1;
-  document.getElementById('drawerActionBar').style.display=editing?'grid':'none';
+  document.getElementById('drawerActionBar').style.display=editing?'flex':'none';
 
   let ageHtml='';
   if(ageDays!==null&&ageDays>=0){
@@ -5120,10 +5120,10 @@ function _renderAtivDrawer() {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;position:relative;">
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Responsável</label>
-        <div style="font-size:13.5px;">${esc(a.responsavel||'—')}</div></div>
+        <input class="nova-oc-input" id="ativDrawerResponsavel" type="text" value="${esc(a.responsavel||'')}" placeholder="Ex: Ivan Santos" style="width:100%;box-sizing:border-box;font-size:13.5px;"></div>
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prazo</label>
         <div class="rel-input rel-date-trigger" id="ativDrawerPrazoTrigger" onclick="_abrirAtivCalendario()" style="font-size:13.5px;padding:6px 10px;">${esc(a.prazo||'Selecionar data')}</div>
-        <div id="ativCalendarPopup" class="rel-cal-popup" style="display:none;left:0;top:auto;">
+        <div id="ativCalendarPopup" class="rel-cal-popup" style="display:none;left:auto;right:0;top:auto;transform:none;">
           <div class="rel-cal-header">
             <button type="button" class="rel-cal-nav" onclick="_ativCalMudarMes(-1)">&lsaquo;</button>
             <div class="rel-cal-titulo" id="ativCalTitulo"></div>
@@ -5340,6 +5340,7 @@ async function _salvarAtivDrawer() {
   const novoHistTxt = document.getElementById('ativDrawerNovoHist')?.value?.trim() || '';
   const novoPrazo = _ativPrazoSelecionado ? relBR(_ativPrazoSelecionado) : a.prazo;
   const novoNumeroOS = document.getElementById('ativDrawerNumeroOS')?.value?.trim() || '';
+  const novoResponsavel = document.getElementById('ativDrawerResponsavel')?.value?.trim() || '';
   const btn = document.getElementById('ativDrawerSalvarBtn');
   _isSalvandoAtiv = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
@@ -5366,6 +5367,13 @@ async function _salvarAtivDrawer() {
         body: JSON.stringify({ id: a.id, field: 'numeroOS', value: novoNumeroOS, editor })
       });
       a.numeroOS = novoNumeroOS;
+    }
+    if (novoResponsavel !== (a.responsavel||'')) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'responsavel', value: novoResponsavel, editor })
+      });
+      a.responsavel = novoResponsavel;
     }
     if (novoHistTxt) {
       const agora = new Date();
