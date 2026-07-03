@@ -3350,7 +3350,7 @@ function _renderDrawer() {
   document.getElementById('drawerCounter').textContent=`${_drawerIndex+1} / ${total}`;
   document.getElementById('drawerPrev').disabled=_drawerIndex===0;
   document.getElementById('drawerNext').disabled=_drawerIndex===total-1;
-  document.getElementById('drawerActionBar').style.display=editing?'flex':'none';
+  document.getElementById('drawerActionBar').style.display=editing?'grid':'none';
 
   let ageHtml='';
   if(ageDays!==null&&ageDays>=0){
