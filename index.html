@@ -1587,6 +1587,7 @@ body{
           <button class="sort-btn" data-ativsort="equip">Equip.</button>
           <button class="sort-btn" data-ativsort="prazo">Prazo</button>
           <button class="sort-btn" data-ativsort="prioridade">Prioridade</button>
+          <button class="sort-btn" data-ativsort="status">Status</button>
         </div>
 
         <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
@@ -5017,6 +5018,10 @@ function renderAtividadeCards() {
       const pa = PRIORIDADE_ORDEM[(a.prioridade||'').toLowerCase()] ?? 3;
       const pb = PRIORIDADE_ORDEM[(b.prioridade||'').toLowerCase()] ?? 3;
       return pa-pb;
+    }
+    if (_ativSortKey==='status') {
+      const sa = ALL_STATUSES.indexOf(a.status); const sb = ALL_STATUSES.indexOf(b.status);
+      return (sa<0?999:sa) - (sb<0?999:sb);
     }
     return 0;
   });
