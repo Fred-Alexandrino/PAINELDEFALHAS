@@ -2478,7 +2478,7 @@ function renderClienteChips() {
   const wrap = document.getElementById('sbChipsCliente');
   if (!wrap) return;
   const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
-  const clientes = (clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS).concat(['Geral','Administrativo']);
+  const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
   const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
   wrap.innerHTML = clientes.map(c => {
@@ -2529,7 +2529,7 @@ let _cbStatusOpts = [];
 
 function populateFilters() {
   const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
-  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort().concat(['Geral','Administrativo']);
+  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
   _cbStatusOpts = [...new Set(DATA.map(d => d.status))].sort();
 
   // Remove usinas selecionadas que não existem mais no filtro de cliente
