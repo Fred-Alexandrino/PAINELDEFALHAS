@@ -4284,6 +4284,8 @@ async function _solicitarOS() {
   try {
     texto = await _gerarTextoOSComIA(d);
   } catch (errIA) {
+    console.error('[Gemini] Falhou, usando fallback local:', errIA);
+    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
       texto = _gerarTextoOS(d); // fallback: gerador local baseado em regras
     } catch (err) {
@@ -5239,6 +5241,8 @@ async function _solicitarOSAtividade() {
   try {
     texto = await _gerarTextoOSComIA(pseudoOcorrencia);
   } catch (errIA) {
+    console.error('[Gemini] Falhou, usando fallback local:', errIA);
+    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
       texto = _gerarTextoOS(pseudoOcorrencia); // fallback: gerador local baseado em regras
     } catch (err) {
