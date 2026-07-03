@@ -1374,8 +1374,8 @@ body{
         </div>
         <div class="sort-group" id="sortGroup">
           <span class="sort-label">Ordenar:</span>
-          <button class="sort-btn active" data-sort="id">ID</button>
-          <button class="sort-btn" data-sort="newest">Mais recentes</button>
+          <button class="sort-btn" data-sort="id">ID</button>
+          <button class="sort-btn active" data-sort="newest">Mais recentes</button>
           <button class="sort-btn" data-sort="usina">Usina</button>
           <button class="sort-btn" data-sort="equip">Equip.</button>
           <button class="sort-btn" data-sort="age">Mais antigas</button>
@@ -1582,8 +1582,8 @@ body{
         </div>
         <div class="sort-group">
           <span class="sort-label">Ordenar:</span>
-          <button class="sort-btn active" data-ativsort="id">ID</button>
-          <button class="sort-btn" data-ativsort="newest">Mais recentes</button>
+          <button class="sort-btn" data-ativsort="id">ID</button>
+          <button class="sort-btn active" data-ativsort="newest">Mais recentes</button>
           <button class="sort-btn" data-ativsort="usina">Usina</button>
           <button class="sort-btn" data-ativsort="equip">Equip.</button>
           <button class="sort-btn" data-ativsort="prazo">Prazo</button>
@@ -2060,9 +2060,12 @@ function isDesligamento(d) {
   const causa = (d.causa || '').toLowerCase();
   const fc = falha + ' ' + causa;
 
-  // Regra 1: usina/UFV + desligada/parada (próximos, em qualquer ordem)
-  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao])/.test(fc)) return true;
-  if (/(?:desligad[ao]|parad[ao])\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(fc)) return true;
+  // Regra 1: usina/UFV + desligada/parada/offline (próximos, em qualquer ordem)
+  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/.test(fc)) return true;
+  if (/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(fc)) return true;
+
+  // Regra 1b: usina offline / sem possibilidade de monitoramento ou religamento remoto
+  if (/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/.test(fc)) return true;
 
   // Regra 2: desligamento + da usina/da UFV
   if (/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/.test(fc)) return true;
@@ -2215,7 +2218,7 @@ const SNAPSHOT = [
 ];
 
 /* ══ ESTADO ══ */
-let DATA = []; let filtered = []; let sortKey = 'id';
+let DATA = []; let filtered = []; let sortKey = 'newest';
 let activeCausa = null; let activeSlaFilter = false;
 
 // ── ABAS: 'ativas' | 'historico' ──────────────────────────────────────────
@@ -3282,7 +3285,7 @@ function renderCards(sorted) {
         </div>
         <span class="sla-badge-card">SLA</span>
       </div>
-      <p class="equip">${esc(d.equipamento)}</p><p class="falha">${esc(d.falha)}</p>
+      <p class="equip">${esc(isDeslig ? 'DESLIGAMENTO' : (d.equipamento || d.falha))}</p><p class="falha">${esc(d.falha)}</p>
       ${ageBarHtml}
       <div class="age-row"><span class="age-pill ${slaClass}">${ageIcon}${esc(ageText)}</span>${stalePillHtml}${isDeslig ? `<span class="deslig-badge"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>DESLIGADA</span>` : ''}</div>
       <div class="card-foot"><span class="status-chip" style="background:${statusBg(d.status)};border-color:${statusBorder(d.status)};color:${sc}">${esc(d.status)}</span><span class="see-more">histórico <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></div>
@@ -5004,7 +5007,7 @@ function _prioridadeCor(p) {
 }
 
 let _ativTab = 'ativas';
-let _ativSortKey = 'id';
+let _ativSortKey = 'newest';
 
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
