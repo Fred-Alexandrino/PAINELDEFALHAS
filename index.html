@@ -1854,6 +1854,7 @@ body{
   <div class="drawer-action-bar" id="drawerActionBar" style="display:none">
     <button class="drawer-hist-btn" id="drawerHistBtn"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Histórico</button>
     <button class="drawer-os-btn" id="drawerOsBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
+    <button class="drawer-os-btn" id="drawerConverterAtivBtn"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Transformar em Atividade</button>
     <button class="drawer-save-btn" id="drawerSaveBtn"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvar na planilha</button>
   </div>
 </aside>
@@ -2219,7 +2220,7 @@ let activeCausa = null; let activeSlaFilter = false;
 // ── ABAS: 'ativas' | 'historico' ──────────────────────────────────────────
 let activeTab = 'ativas';
 
-const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed'];
+const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida'];
 function isConcluido(d) { const s=(d.status||'').toLowerCase(); return STATUS_CONCLUIDO.some(x=>s.includes(x)); }
 
 async function fetchSheet() {
@@ -4198,6 +4199,40 @@ Comentários:
 * Caso a intervenção exija desligamento do inversor, da usina, de um SKID ou da Cabine de Medição Primária, obter autorização do COS antes de iniciar e comunicar a conclusão ao final.`;
 }
 
+async function _converterOcorrenciaEmAtividade() {
+  const d = _drawerList[_drawerIndex]; if (!d) return;
+  const confirmar = confirm(
+    `Transformar esta ocorrência em atividade?\n\n` +
+    `${d.equipamento} — ${d.falha}\n\n` +
+    `O histórico completo será transferido para a nova atividade, e esta ocorrência ` +
+    `será marcada como "Convertida em Atividade".`
+  );
+  if (!confirmar) return;
+
+  const btn = document.getElementById('drawerConverterAtivBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Convertendo…'; }
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/converter-ocorrencia-em-atividade', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: d.id, editor })
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao converter');
+
+    showToast(`Convertida! Nova atividade #${result.novaAtividadeId} criada.`, true);
+    document.getElementById('drawer')?.classList.remove('open');
+    document.getElementById('drawerBackdrop')?.classList.remove('open');
+    if (typeof fetchSheet === 'function') fetchSheet();
+    if (typeof carregarAtividades === 'function') carregarAtividades();
+  } catch (e) {
+    showToast('Erro ao converter ocorrência: ' + (e.message||''), false);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Transformar em Atividade'; }
+  }
+}
+
 async function _solicitarOS() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
 
@@ -4560,6 +4595,7 @@ document.getElementById('drawerNext').addEventListener('click',()=>_navigateDraw
 document.getElementById('drawerSaveBtn').addEventListener('click',_saveDrawerToSheet);
 document.getElementById('drawerHistBtn').addEventListener('click',_addHistoryEntry);
 document.getElementById('drawerOsBtn').addEventListener('click',_solicitarOS);
+document.getElementById('drawerConverterAtivBtn')?.addEventListener('click',_converterOcorrenciaEmAtividade);
 document.addEventListener('keydown',e=>{const drawerOpen=document.getElementById('drawer').classList.contains('open');if(e.key==='Escape'){closeModal();closeChamados();}if(!drawerOpen)return;if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();_navigateDrawer(-1);}if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();_navigateDrawer(1);}});
 
 /* ══ VIEW MODE ══ */
