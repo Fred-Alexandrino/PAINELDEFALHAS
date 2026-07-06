@@ -2185,9 +2185,26 @@ function initDashboard(session) {
   }
 
   document.getElementById('appShell').classList.add('ready');
-  fetchSheet();
+  fetchSheet().then(() => _abrirDeepLinkNotificacao());
   if (session.role === 'admin' || session.role === 'manager') {
     setTimeout(initPush, 2000);
+  }
+}
+
+// Abre direto o card de ocorrência/atividade quando a notificação push
+// leva pra cá com ?atividade=<id> ou ?ocorrencia=<id> na URL.
+async function _abrirDeepLinkNotificacao() {
+  const params = new URLSearchParams(window.location.search);
+  const atividadeId  = params.get('atividade');
+  const ocorrenciaId = params.get('ocorrencia');
+
+  if (atividadeId) {
+    switchNav('atividades');
+    await carregarAtividades();
+    _abrirAtivDrawer(atividadeId);
+  } else if (ocorrenciaId) {
+    switchNav('falhas');
+    openModal(ocorrenciaId);
   }
 }
 function canEdit() { return _currentSession.role==='manager'; }
