@@ -1794,11 +1794,18 @@ body{
       </div>
     </div>
     <div class="ch-body">
-      <textarea id="osRapidaText" readonly style="width:100%;min-height:260px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
-      <button onclick="_copiarOsRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
-        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copiar texto
-      </button>
+      <div id="osRapidaLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Gerando texto da OS… (pode levar até 1 min na primeira vez)
+      </div>
+      <div id="osRapidaResult" style="display:none;">
+        <textarea id="osRapidaText" readonly style="width:100%;min-height:260px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <button onclick="_copiarOsRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar texto
+        </button>
+      </div>
+      <div id="osRapidaError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
   </div>
 </div>
@@ -4929,7 +4936,7 @@ async function _toggleNotificacoes() {
 }
 
 /* ══ OS RÁPIDA (sidebar) ══ */
-function _gerarOSRapida() {
+async function _gerarOSRapida() {
   const txt = (document.getElementById('sbOsInput')?.value || '').trim();
   if (!txt) { showToast('Descreva o problema antes de gerar.', false); return; }
 
@@ -4943,10 +4950,35 @@ function _gerarOSRapida() {
     impactados: '',
     usina: '',
   };
-  const resultado = _gerarTextoOS(pseudo);
 
-  document.getElementById('osRapidaText').value = resultado;
-  document.getElementById('osRapidaOverlay').style.display = 'flex';
+  const overlay = document.getElementById('osRapidaOverlay');
+  const loading = document.getElementById('osRapidaLoading');
+  const result = document.getElementById('osRapidaResult');
+  const errorBox = document.getElementById('osRapidaError');
+  overlay.style.display = 'flex';
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+
+  let texto;
+  try {
+    texto = await _gerarTextoOSComIA(pseudo);
+  } catch (errIA) {
+    console.error('[Gemini] Falhou, usando fallback local:', errIA);
+    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
+    try {
+      texto = _gerarTextoOS(pseudo); // fallback: gerador local baseado em regras
+    } catch (err) {
+      loading.style.display = 'none';
+      errorBox.style.display = 'block';
+      errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
+      return;
+    }
+  }
+
+  document.getElementById('osRapidaText').value = texto;
+  loading.style.display = 'none';
+  result.style.display = 'block';
 }
 
 function _copiarOsRapida() {
