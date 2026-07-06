@@ -1071,6 +1071,10 @@ body{
   /* Drawer: fullscreen no mobile */
   .drawer{width:100vw;border-left:none;}
 
+  /* Esconde a barra inferior enquanto um drawer estiver aberto — evita que
+     ela apareça por cima do conteúdo do drawer (bug de stacking em mobile) */
+  body.drawer-open .bottom-nav{display:none !important;}
+
   /* Ocultar topbar-count */
   .topbar-count{display:none;}
 }
@@ -3321,8 +3325,8 @@ function renderCards(sorted) {
 /* ══ DRAWER ══ */
 let _drawerList=[]; let _drawerIndex=-1;
 function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _drawerIndex=_drawerList.findIndex(x=>x.id===id); if(_drawerIndex<0){const d=DATA.find(x=>x.id===id);if(d){_drawerList=[d];_drawerIndex=0;}else return;} _renderDrawer();_openDrawerPanel(); }
-function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; }
-function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); }
+function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; document.body.classList.add('drawer-open'); }
+function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); document.body.classList.remove('drawer-open'); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
 const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Convertida em Ocorrência','Análise de Performance','Análise Engenharia'];
 
@@ -5201,11 +5205,13 @@ function _abrirAtivDrawer(id) {
   _renderAtivDrawer();
   document.getElementById('ativDrawer').classList.add('open');
   document.getElementById('ativDrawerBackdrop').classList.add('open');
+  document.body.classList.add('drawer-open');
 }
 
 function _fecharAtivDrawer() {
   document.getElementById('ativDrawer').classList.remove('open');
   document.getElementById('ativDrawerBackdrop').classList.remove('open');
+  document.body.classList.remove('drawer-open');
   _fecharAtivCalendario();
 }
 
