@@ -112,6 +112,12 @@ self.addEventListener('notificationclick', event => {
       .then(clientList => {
         for (const client of clientList) {
           if (client.url.includes('PAINELDEFALHAS') && 'focus' in client) {
+            // Navega a aba já aberta para o link específico (ex: ?atividade=20)
+            // em vez de só focar nela como estava antes — senão o clique nunca
+            // levava pro card certo quando o painel já estava aberto.
+            if ('navigate' in client) {
+              return client.navigate(url).then(c => c.focus());
+            }
             return client.focus();
           }
         }
