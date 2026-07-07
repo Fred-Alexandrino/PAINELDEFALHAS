@@ -5338,8 +5338,23 @@ function _renderAtivDrawer() {
         ${a.numeroOS && a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;font-size:11px;">Abrir no Fracttal ↗</a>` : ''}
       </label>
       <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
-      ${a.statusOS ? `<div style="margin-top:6px;font-size:12px;color:var(--text-dim);">Status na OS (Fracttal): <strong style="color:var(--text);">${esc(a.statusOS)}</strong></div>` : ''}
     </div>
+
+    ${(a.statusOS || a.statusTarefaOS || a.etiquetasOS || a.observacoesOS) ? `
+    <div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Resumo da OS (Fracttal)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${a.etiquetasOS || a.observacoesOS ? '10px' : '0'};">
+        ${a.statusOS ? `<span class="status-chip" style="background:var(--blue)22;border-color:var(--blue)44;color:var(--blue);">${esc(a.statusOS)}</span>` : ''}
+        ${a.statusTarefaOS ? `<span class="status-chip" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);">${esc(a.statusTarefaOS)}</span>` : ''}
+      </div>
+      ${a.etiquetasOS ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${a.observacoesOS ? '10px' : '0'};">
+        ${a.etiquetasOS.split(',').map(e => e.trim()).filter(Boolean).map(e => `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--amber)22;color:var(--amber);border:1px solid var(--amber)44;">🏷️ ${esc(e)}</span>`).join('')}
+      </div>` : ''}
+      ${a.observacoesOS ? `<div style="font-size:12px;color:var(--text-dim);white-space:pre-wrap;line-height:1.5;">${esc(a.observacoesOS)}</div>` : ''}
+    </div>` : ''}
+
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">📝 Minhas anotações (uso pessoal — não sincroniza com a Fracttal)</label>
+    <textarea class="nova-oc-textarea" id="ativDrawerAnotacoes" rows="3" placeholder="Anotações só suas sobre essa OS/atividade…" style="width:100%;box-sizing:border-box;margin-bottom:16px;">${esc(a.anotacoesPessoais||'')}</textarea>
 
     ${a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--blue);color:var(--blue);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -5367,8 +5382,6 @@ function _renderAtivDrawer() {
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
     <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
-    ${a.observacoesOS ? `<label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;margin-top:16px;">Observações (Fracttal)</label>
-    <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.observacoesOS)}</div>` : ''}
   `;
 }
 
@@ -5560,6 +5573,7 @@ async function _salvarAtivDrawer() {
   const novoNumeroOS = document.getElementById('ativDrawerNumeroOS')?.value?.trim() || '';
   const novoResponsavel = document.getElementById('ativDrawerResponsavel')?.value?.trim() || '';
   const novaPrioridade = document.getElementById('ativDrawerPrioridade')?.value || a.prioridade;
+  const novasAnotacoes = document.getElementById('ativDrawerAnotacoes')?.value ?? '';
   const btn = document.getElementById('ativDrawerSalvarBtn');
   _isSalvandoAtiv = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
@@ -5600,6 +5614,13 @@ async function _salvarAtivDrawer() {
         body: JSON.stringify({ id: a.id, field: 'prioridade', value: novaPrioridade, editor })
       });
       a.prioridade = novaPrioridade;
+    }
+    if (novasAnotacoes !== (a.anotacoesPessoais||'')) {
+      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: a.id, field: 'anotacoesPessoais', value: novasAnotacoes, editor })
+      });
+      a.anotacoesPessoais = novasAnotacoes;
     }
     if (novoHistTxt) {
       const agora = new Date();
