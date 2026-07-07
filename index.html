@@ -5338,7 +5338,7 @@ function _renderAtivDrawer() {
 
     ${a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--blue);color:var(--blue);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      Abrir OS no Fracttal
+      Abrir OTs no Fracttal (busque pela OS ${esc(a.numeroOS||'')})
     </a>` : ''}
 
     <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
