@@ -5177,6 +5177,16 @@ function _ativRenderBreakdowns() {
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
 }
 
+function _ativFormatarPrazoCard(prazo) {
+  if (!prazo) return '';
+  const s = String(prazo);
+  const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mIso) return `${mIso[3]}/${mIso[2]}/${mIso[1]}`;
+  const mBr = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (mBr) return `${mBr[1]}/${mBr[2]}/${mBr[3]}`;
+  return s.split(' ')[0].split('T')[0];
+}
+
 function _ativEquipamento(a) {
   if (a.equipamento && a.equipamento.trim()) return a.equipamento.trim();
   const m = (a.descricao||'').match(/\(([^()]+)\)\s*$/);
@@ -5242,13 +5252,19 @@ function renderAtividadeCards() {
     return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
       <div class="card-top">
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
-        ${a.prazo ? `<span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">Prazo: ${esc(a.prazo)}</span>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          ${a.numeroOS ? `<span class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;">OS: ${esc(a.numeroOS)}</span>` : ''}
+          ${a.prazo ? `<span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">Prazo: ${_ativFormatarPrazoCard(a.prazo)}</span>` : ''}
+        </div>
       </div>
-      <p style="font-size:17px;font-weight:800;margin:0 0 4px;color:var(--text);letter-spacing:-0.02em;line-height:1.2;">${esc(_ativEquipamento(a))}</p>
-      <p style="font-size:12.5px;font-weight:400;color:var(--text-dim);line-height:1.5;margin:0 0 10px;">${esc(a.descricao)}</p>
+      <p style="font-size:17px;font-weight:800;margin:0 0 4px;color:var(--text);letter-spacing:-0.02em;line-height:1.2;">${esc(a.descricao)}</p>
+      <p style="font-size:12.5px;font-weight:400;color:var(--text-dim);line-height:1.5;margin:0 0 10px;">${esc(_ativEquipamento(a))}</p>
       <div style="font-size:11.5px;color:var(--text-dim);margin-top:-4px;margin-bottom:8px;">${esc(a.responsavel||'Sem responsável')}</div>
       <div class="card-foot">
-        <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
+          ${a.statusOS ? `<span class="status-chip" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);">OS: ${esc(a.statusOS)}</span>` : ''}
+        </div>
         <span class="see-more">Abrir Card <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
     </div>`;
@@ -5286,8 +5302,8 @@ function _renderAtivDrawer() {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
-    <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(_ativEquipamento(a))}</p>
-    <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(a.descricao)}</p>
+    <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
+    <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;position:relative;">
       <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Responsável</label>
@@ -5317,7 +5333,13 @@ function _renderAtivDrawer() {
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Nº OS</label>
       <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
+      ${a.statusOS ? `<div style="margin-top:6px;font-size:12px;color:var(--text-dim);">Status na OS (Fracttal): <strong style="color:var(--text);">${esc(a.statusOS)}</strong></div>` : ''}
     </div>
+
+    ${a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--blue);color:var(--blue);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Abrir OS no Fracttal
+    </a>` : ''}
 
     <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -5340,6 +5362,8 @@ function _renderAtivDrawer() {
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
     <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
+    ${a.observacoesOS ? `<label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;margin-top:16px;">Observações (Fracttal)</label>
+    <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.observacoesOS)}</div>` : ''}
   `;
 }
 
