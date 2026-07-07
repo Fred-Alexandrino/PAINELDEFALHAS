@@ -5253,7 +5253,9 @@ function renderAtividadeCards() {
       <div class="card-top">
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-          ${a.numeroOS ? `<span class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;">OS: ${esc(a.numeroOS)}</span>` : ''}
+          ${a.numeroOS ? (a.linkOS
+            ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;text-decoration:none;cursor:pointer;">OS: ${esc(a.numeroOS)}</a>`
+            : `<span class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;">OS: ${esc(a.numeroOS)}</span>`) : ''}
           ${a.prazo ? `<span class="filter-badge" style="background:${_prioridadeCor(a.prioridade)}22;color:${_prioridadeCor(a.prioridade)};border-color:${_prioridadeCor(a.prioridade)}44;">Prazo: ${_ativFormatarPrazoCard(a.prazo)}</span>` : ''}
         </div>
       </div>
@@ -5331,7 +5333,10 @@ function _renderAtivDrawer() {
     </div>
 
     <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Nº OS</label>
+      <label style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
+        <span>Nº OS</span>
+        ${a.numeroOS && a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;font-size:11px;">Abrir no Fracttal ↗</a>` : ''}
+      </label>
       <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
       ${a.statusOS ? `<div style="margin-top:6px;font-size:12px;color:var(--text-dim);">Status na OS (Fracttal): <strong style="color:var(--text);">${esc(a.statusOS)}</strong></div>` : ''}
     </div>
