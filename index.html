@@ -1155,13 +1155,13 @@ body{
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-nav-item active" data-nav="falhas">
-        <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Painel de Falhas
-      </div>
       <div class="sb-nav-item" data-nav="atividades">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Painel de Atividades
+      </div>
+      <div class="sb-nav-item active" data-nav="falhas">
+        <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Painel de Falhas
       </div>
       <div class="sb-nav-item" data-nav="relatorios">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -1591,7 +1591,21 @@ body{
                 Concluídas <span class="tab-count" id="ativTabHistoricoCount">0</span>
               </button>
             </div>
+            <button class="sort-btn" id="ativFiltroHojeBtn" onclick="_ativToggleFiltroHoje()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Vence hoje
+            </button>
             <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="ativSub"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="sort-btn" id="ativReprogramarBtn" onclick="_abrirReprogramacao()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+              Reprogramações
+            </button>
+            <button class="sort-btn" id="ativAtualizarOsBtn" onclick="_atualizarOSAgora()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              <span id="ativAtualizarOsLabel">Atualizar OS</span>
+            </button>
           </div>
         </div>
         <div class="sort-group">
@@ -1649,6 +1663,35 @@ body{
       </div>
     </div>
     <div class="ch-body" id="msgModalBody" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text-dim);"></div>
+  </div>
+</div>
+
+<!-- Modal Reprogramações -->
+<div class="ch-overlay" id="reprogOverlay">
+  <div class="ch-modal" style="max-width:820px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><h2>Reprogramação de Atividades</h2></div><div class="ch-subtitle">A IA analisa as atividades em aberto e sugere novas datas, agrupando por usina/equipe pra evitar deslocamento no mesmo dia</div></div>
+        <button class="modal-close-btn" id="reprogModalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="reprogModalBody">
+      <div id="reprogModalIntro" style="display:flex;flex-direction:column;gap:12px;padding:6px 0 16px;">
+        <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;">
+          Isso vai enviar todas as atividades <strong>em aberto</strong> (não concluídas/canceladas) pra IA analisar e sugerir uma reprogramação otimizada — considerando prioridade, prazo atual e evitando escalar a mesma equipe em usinas diferentes no mesmo dia.
+        </div>
+        <button id="reprogGerarBtn" onclick="_gerarSugestaoReprogramacao()" style="width:100%;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Gerar sugestão com IA
+        </button>
+      </div>
+      <div id="reprogModalLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:40px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Analisando atividades e montando a agenda otimizada… (pode levar até 1 min)
+      </div>
+      <div id="reprogModalResult" style="display:none;"></div>
+      <div id="reprogModalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
   </div>
 </div>
 
@@ -3338,7 +3381,7 @@ function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _d
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; document.body.classList.add('drawer-open'); }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); document.body.classList.remove('drawer-open'); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
-const ALL_STATUSES=['Concluído','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Convertida em Ocorrência','Análise de Performance','Análise Engenharia'];
+const ALL_STATUSES=['Concluído','Cancelado','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Convertida em Ocorrência','Análise de Performance','Análise Engenharia'];
 
 /* Linha do tempo visual T1-T4 */
 function renderTimelineT1T4(d) {
@@ -5062,6 +5105,147 @@ async function carregarAtividades(tentativa = 1) {
   }
 }
 
+async function _atualizarOSAgora() {
+  const btn = document.getElementById('ativAtualizarOsBtn');
+  const label = document.getElementById('ativAtualizarOsLabel');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const textoOriginal = label.textContent;
+  label.textContent = 'Buscando na Fracttal…';
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 45000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
+      method: 'POST', signal: ctrl.signal
+    });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
+    const qtdNovas = (result.criadas || []).length;
+    const qtdMudancas = (result.mudancas_status || []).length;
+    if (qtdNovas === 0 && qtdMudancas === 0) {
+      label.textContent = 'Nenhuma novidade';
+    } else {
+      label.textContent = `+${qtdNovas} nova(s), ${qtdMudancas} atualizada(s)`;
+    }
+    await carregarAtividades();
+    setTimeout(() => { label.textContent = textoOriginal; }, 4000);
+  } catch (e) {
+    label.textContent = 'Erro ao atualizar';
+    setTimeout(() => { label.textContent = textoOriginal; }, 4000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function _abrirReprogramacao() {
+  const overlay = document.getElementById('reprogOverlay');
+  if (!overlay) return;
+  document.getElementById('reprogModalIntro').style.display = 'flex';
+  document.getElementById('reprogModalLoading').style.display = 'none';
+  document.getElementById('reprogModalResult').style.display = 'none';
+  document.getElementById('reprogModalError').style.display = 'none';
+  overlay.style.display = 'flex';
+}
+
+async function _gerarSugestaoReprogramacao() {
+  const intro = document.getElementById('reprogModalIntro');
+  const loading = document.getElementById('reprogModalLoading');
+  const result = document.getElementById('reprogModalResult');
+  const errorBox = document.getElementById('reprogModalError');
+  intro.style.display = 'none';
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 60000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-reprogramacao', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}', signal: ctrl.signal
+    });
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+    loading.style.display = 'none';
+    if (!data.ok) throw new Error(data.error || 'Erro ao gerar sugestão');
+    _renderSugestaoReprogramacao(data.sugestao, data.total_atividades);
+  } catch (e) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Erro ao gerar sugestão: ' + (e.message || 'falha de conexão');
+  }
+}
+
+function _renderSugestaoReprogramacao(sugestao, totalAtividades) {
+  const result = document.getElementById('reprogModalResult');
+  const itens = sugestao?.reprogramacoes || [];
+
+  // agrupa por responsável/equipe, depois por data sugerida, pra ficar fácil ver o agrupamento por usina
+  const porResponsavel = {};
+  itens.forEach(it => {
+    const chave = it.responsavel || 'Sem responsável';
+    if (!porResponsavel[chave]) porResponsavel[chave] = [];
+    porResponsavel[chave].push(it);
+  });
+
+  const parseDataBRSort = (s) => {
+    const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
+  };
+
+  let html = `<div style="font-size:12.5px;color:var(--text-dim);background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);border-radius:8px;padding:10px 12px;margin-bottom:16px;">
+    <strong style="color:var(--teal);">Resumo da IA:</strong> ${esc(sugestao?.resumo || '')}
+    <div style="margin-top:4px;color:var(--text-faint);">${itens.length} de ${totalAtividades} atividade(s) reprogramada(s).</div>
+  </div>`;
+
+  Object.entries(porResponsavel).forEach(([responsavel, lista]) => {
+    lista.sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
+    html += `<div style="margin-bottom:18px;">
+      <div style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">👷 ${esc(responsavel)} <span style="color:var(--text-faint);">— ${lista.length} atividade(s)</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${lista.map(it => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12.5px;color:var(--text);font-weight:600;">${esc(it.usina||'')} ${it.numeroOS ? `<span style="color:var(--teal);font-weight:400;">OS ${esc(it.numeroOS)}</span>` : ''}</div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${esc(it.justificativa||'')}</div>
+            </div>
+            <div style="flex:none;text-align:right;">
+              <div style="font-size:10px;color:var(--text-faint);text-decoration:line-through;">${esc(it.dataAtual||'')}</div>
+              <div style="font-size:13px;color:var(--teal);font-weight:700;">${esc(it.dataSugerida||'')}</div>
+            </div>
+            <button onclick="_aplicarReprogramacao('${esc(it.id)}','${esc(it.dataSugerida)}', this)" style="flex:none;background:transparent;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;white-space:nowrap;">Aplicar</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  result.innerHTML = html;
+  result.style.display = 'block';
+}
+
+async function _aplicarReprogramacao(id, novaData, btnEl) {
+  if (!id || !novaData) return;
+  btnEl.disabled = true;
+  btnEl.textContent = '...';
+  try {
+    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, field: 'prazo', value: novaData, editor: 'reprogramacao-ia' })
+    });
+    btnEl.textContent = '✓ Aplicado';
+    btnEl.style.background = 'var(--teal)';
+    btnEl.style.color = '#04231e';
+    const a = ATIVIDADES.find(x => String(x.id) === String(id));
+    if (a) a.prazo = novaData;
+  } catch (e) {
+    btnEl.textContent = 'Erro';
+    btnEl.disabled = false;
+  }
+}
+
+document.getElementById('reprogModalClose')?.addEventListener('click', () => { document.getElementById('reprogOverlay').style.display='none'; carregarAtividades(); });
+document.getElementById('reprogOverlay')?.addEventListener('click', e => { if(e.target.id==='reprogOverlay') { document.getElementById('reprogOverlay').style.display='none'; carregarAtividades(); } });
+
 function _prioridadeCor(p) {
   const v = (p||'').toLowerCase();
   if (v === 'alta') return '#EF4444';
@@ -5074,7 +5258,7 @@ let _ativSortKey = 'newest';
 
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
-  return s.includes('conclu') || s.includes('convertida');
+  return s.includes('conclu') || s.includes('convertida') || s.includes('cancel');
 }
 
 function _ativMudarTab(tab) {
@@ -5193,6 +5377,21 @@ function _ativEquipamento(a) {
   return m ? m[1].trim() : 'Equipamento não informado';
 }
 
+let _ativFiltroHoje = false;
+
+function _ativToggleFiltroHoje() {
+  _ativFiltroHoje = !_ativFiltroHoje;
+  document.getElementById('ativFiltroHojeBtn')?.classList.toggle('active', _ativFiltroHoje);
+  renderAtividadeCards();
+}
+
+function _ativVenceHoje(a) {
+  const d = _ativParseDataBR(a.prazo);
+  if (!d) return false;
+  const hoje = new Date();
+  return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
+}
+
 function renderAtividadeCards() {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
@@ -5206,6 +5405,7 @@ function renderAtividadeCards() {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     return true;
   });
 
@@ -5262,6 +5462,16 @@ function renderAtividadeCards() {
       <p style="font-size:17px;font-weight:800;margin:0 0 4px;color:var(--text);letter-spacing:-0.02em;line-height:1.2;">${esc(a.descricao)}</p>
       <p style="font-size:12.5px;font-weight:400;color:var(--text-dim);line-height:1.5;margin:0 0 10px;">${esc(_ativEquipamento(a))}</p>
       <div style="font-size:11.5px;color:var(--text-dim);margin-top:-4px;margin-bottom:8px;">${esc(a.responsavel||'Sem responsável')}</div>
+      ${a.percentualOS !== undefined && a.percentualOS !== '' ? `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-dim);margin-bottom:3px;">
+          <span>${esc(a.statusGeralOS||'')}</span>
+          <span>${esc(a.percentualOS)}%</span>
+        </div>
+        <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden;">
+          <div style="height:100%;width:${esc(a.percentualOS)}%;background:${a.percentualOS==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div>
+        </div>
+      </div>` : ''}
       <div class="card-foot">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
@@ -5296,6 +5506,30 @@ function _fecharAtivDrawer() {
 }
 
 const ATIV_STATUS_OPCOES = ALL_STATUSES;
+
+function _ativRenderTabelaEquipamentos(a) {
+  if (!a.detalhesEquipamentosOS) return '';
+  let itens = [];
+  try { itens = JSON.parse(a.detalhesEquipamentosOS); } catch { return ''; }
+  if (!Array.isArray(itens) || itens.length <= 1) return '';
+
+  const STATUS_COR = {
+    'Concluída': 'var(--teal)', 'Em Progresso': 'var(--blue)',
+    'Pausada': 'var(--amber)', 'Não Iniciada': 'var(--text-dim)'
+  };
+
+  return `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">⚙️ ${itens.length} equipamentos nessa OS:</div>
+    <div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+      ${itens.map(it => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);">
+          <span style="color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(it.equipamento||'')}">${esc(it.equipamento||'—')}</span>
+          <span style="flex:none;font-size:10.5px;color:${STATUS_COR[it.status]||'var(--text-dim)'};white-space:nowrap;">${esc(it.status||'')}</span>
+          ${it.prazo ? `<span style="flex:none;font-size:10.5px;color:var(--text-faint);white-space:nowrap;">${esc(it.prazo)}</span>` : ''}
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
 
 function _renderAtivDrawer() {
   const a = _ativDrawerList[_ativDrawerIndex];
@@ -5340,9 +5574,19 @@ function _renderAtivDrawer() {
       <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
     </div>
 
-    ${(a.statusOS || a.statusTarefaOS || a.etiquetasOS || a.observacoesOS) ? `
+    ${(a.statusOS || a.statusTarefaOS || a.etiquetasOS || a.observacoesOS || a.statusGeralOS) ? `
     <div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;margin-bottom:16px;">
       <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Resumo da OS (Fracttal)</div>
+      ${a.percentualOS !== undefined && a.percentualOS !== '' ? `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
+          <span>${esc(a.statusGeralOS||'')}</span>
+          <span>${esc(a.percentualOS)}% concluído</span>
+        </div>
+        <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;">
+          <div style="height:100%;width:${esc(a.percentualOS)}%;background:${a.percentualOS==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div>
+        </div>
+      </div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${a.etiquetasOS || a.observacoesOS ? '10px' : '0'};">
         ${a.statusOS ? `<span class="status-chip" style="background:var(--blue)22;border-color:var(--blue)44;color:var(--blue);">${esc(a.statusOS)}</span>` : ''}
         ${a.statusTarefaOS ? `<span class="status-chip" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);">${esc(a.statusTarefaOS)}</span>` : ''}
@@ -5351,6 +5595,7 @@ function _renderAtivDrawer() {
         ${a.etiquetasOS.split(',').map(e => e.trim()).filter(Boolean).map(e => `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--amber)22;color:var(--amber);border:1px solid var(--amber)44;">🏷️ ${esc(e)}</span>`).join('')}
       </div>` : ''}
       ${a.observacoesOS ? `<div style="font-size:12px;color:var(--text-dim);white-space:pre-wrap;line-height:1.5;">${esc(a.observacoesOS)}</div>` : ''}
+      ${_ativRenderTabelaEquipamentos(a)}
     </div>` : ''}
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">📝 Minhas anotações (uso pessoal — não sincroniza com a Fracttal)</label>
@@ -5359,6 +5604,11 @@ function _renderAtivDrawer() {
     ${a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--blue);color:var(--blue);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       Abrir OS no Fracttal
+    </a>` : ''}
+
+    ${a.numeroOS ? `<a href="https://app.fracttal.com/tasks/wo" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Abrir portal Fracttal
     </a>` : ''}
 
     <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
@@ -6092,13 +6342,13 @@ async function relGerarRelatorio(){
 
 <!-- BOTTOM NAVIGATION — mobile only -->
 <nav class="bottom-nav" id="bottomNav">
-  <div class="bn-item active" data-nav="falhas">
-    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span>Falhas</span>
-  </div>
   <div class="bn-item" data-nav="atividades">
     <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span>Atividades</span>
+  </div>
+  <div class="bn-item active" data-nav="falhas">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>Falhas</span>
   </div>
   <div class="bn-item" data-nav="relatorios">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
