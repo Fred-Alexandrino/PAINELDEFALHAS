@@ -528,6 +528,10 @@ body{
 .panels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
 @media(max-width:1100px){.panels{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.panels{grid-template-columns:1fr;}}
+/* Painel de Atividades — 2 cards (Usina/Status) ocupando toda a largura no PC, empilhados no mobile */
+.panels-ativ{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+@media(max-width:768px){.panels-ativ{grid-template-columns:1fr;}}
+.panel-bars-ativ{max-height:208px;}
 .panel{background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
 .panel-head h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#555;font-family:'Geist Mono',monospace;font-weight:700;}
@@ -1568,6 +1572,12 @@ body{
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section" id="sec-atividades">
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
+
+        <!-- Panels de breakdown -->
+        <div class="panels-ativ">
+          <div class="panel"><div class="panel-head"><h3>Atividades por usina</h3><span class="panel-total" id="ativUsinaTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
+          <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="ativStatusTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
+        </div>
 
         <div class="grid-controls">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -5116,6 +5126,57 @@ function _ativRenderKpis() {
   </div>`).join('');
 }
 
+function _ativRenderBreakdowns() {
+  const filtradas = ATIVIDADES.filter(a => {
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
+    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    return true;
+  });
+  const ativasList = filtradas.filter(a => !_ativIsConcluida(a));
+  const historicoList = filtradas.filter(a => _ativIsConcluida(a));
+  const listaStatus = _ativTab === 'historico' ? historicoList : ativasList;
+
+  const uMap = {}, sMap = {};
+  ativasList.forEach(a => { uMap[a.usina] = (uMap[a.usina] || 0) + 1; });
+  listaStatus.forEach(a => { sMap[a.status] = (sMap[a.status] || 0) + 1; });
+
+  makeBar('ativUsinaBars', Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']), 'ativUsinaTotal');
+  makeBar('ativStatusBars', Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+    const pal = getStatusPalette(k);
+    return [k, v, pal.color + 'BB', pal.pulse || false];
+  }), 'ativStatusTotal');
+
+  document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    if (selUsinaValues.has(v) && selUsinaValues.size === 1) {
+      selUsinaValues.clear();
+    } else {
+      selUsinaValues.clear();
+      selUsinaValues.add(v);
+    }
+    _updateCbLabel('Usina');
+    _renderCbDropdown('Usina');
+    applyFilters();
+  }));
+
+  document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    if (selStatusValues.has(v) && selStatusValues.size === 1) {
+      selStatusValues.clear();
+    } else {
+      selStatusValues.clear();
+      selStatusValues.add(v);
+    }
+    _updateCbLabel('Status');
+    _renderCbDropdown('Status');
+    applyFilters();
+  }));
+
+  document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
+  document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
+}
+
 function _ativEquipamento(a) {
   if (a.equipamento && a.equipamento.trim()) return a.equipamento.trim();
   const m = (a.descricao||'').match(/\(([^()]+)\)\s*$/);
@@ -5128,6 +5189,7 @@ function renderAtividadeCards() {
   if (!grid) return;
 
   _ativRenderKpis();
+  _ativRenderBreakdowns();
 
   // aplica os mesmos filtros da sidebar (Cliente/Usina/Status) usados no Painel de Falhas
   const filtradas = ATIVIDADES.filter(a => {
