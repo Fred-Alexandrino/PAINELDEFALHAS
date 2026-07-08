@@ -5488,7 +5488,7 @@ function renderAtividadeCards() {
       </div>` : ''}
       <div class="card-foot">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${(a.editor||'').startsWith('fracttal-') ? _statusGeralChip(a.statusGeralOS) : `<span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>`}
+          ${a.statusGeralOS ? _statusGeralChip(a.statusGeralOS) : `<span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>`}
         </div>
         <span class="see-more">Abrir Card <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
@@ -5548,7 +5548,7 @@ function _renderAtivDrawer() {
   const a = _ativDrawerList[_ativDrawerIndex];
   const body = document.getElementById('ativDrawerBody');
   if (!a || !body) return;
-  const isFracttalOrigin = (a.editor||'').startsWith('fracttal-');
+  const isFracttalOrigin = !!a.statusGeralOS;
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
