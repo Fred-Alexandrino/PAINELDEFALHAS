@@ -5488,8 +5488,7 @@ function renderAtividadeCards() {
       </div>` : ''}
       <div class="card-foot">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
-          ${_statusGeralChip(a.statusGeralOS)}
+          ${(a.editor||'').startsWith('fracttal-') ? _statusGeralChip(a.statusGeralOS) : `<span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>`}
         </div>
         <span class="see-more">Abrir Card <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
