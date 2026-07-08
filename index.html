@@ -5464,7 +5464,8 @@ function _ativIsConcluida(a) {
   // reprovação, e nesses casos continua em "Em Processo" na Fracttal. Só
   // trata como concluída quando o status OFICIAL da OS chegou em
   // "Finalizada" (mesmo que o status interno ainda não tenha sincronizado).
-  return (a.statusOS||'').toLowerCase() === 'finalizada';
+  const statusOS = (a.statusOS||'').toLowerCase();
+  return statusOS === 'finalizada' || statusOS === 'em revisão' || statusOS === 'em revisao';
 }
 
 function _ativMudarTab(tab) {
