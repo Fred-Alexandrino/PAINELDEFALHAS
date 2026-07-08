@@ -5299,6 +5299,19 @@ function _diasAtraso(prazoBR) {
   return Math.round((hoje - prazo) / 86400000); // positivo = atrasado
 }
 
+// Mesmo técnico grafado de formas diferentes na Fracttal (apelido x nome
+// completo) — mantém uma única entrada no agrupamento por equipe.
+const _RESPONSAVEL_ALIASES = {
+  'deivity jhon cunha saugo': 'Deivity Saugo',
+};
+
+function _normalizarResponsavel(nome) {
+  const limpo = (nome||'').replace(/\s+/g, ' ').trim();
+  if (!limpo) return '';
+  const chave = limpo.toLowerCase();
+  return _RESPONSAVEL_ALIASES[chave] || limpo;
+}
+
 function _abrirComunicados() {
   const overlay = document.getElementById('comunicadoOverlay');
   if (!overlay) return;
@@ -5308,7 +5321,7 @@ function _abrirComunicados() {
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
   const porEquipe = {};
   abertas.forEach(a => {
-    const eq = (a.responsavel||'').trim() || 'Sem responsável';
+    const eq = _normalizarResponsavel(a.responsavel) || 'Sem responsável';
     if (!porEquipe[eq]) porEquipe[eq] = [];
     porEquipe[eq].push(a);
   });
