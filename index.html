@@ -5361,6 +5361,21 @@ function _ativRenderBreakdowns() {
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
 }
 
+function _statusGeralEstilo(status) {
+  const s = (status||'').toLowerCase();
+  if (s.includes('conclu')) return {bg:'#22C55E22', border:'#22C55E44', color:'#22C55E'};
+  if (s.includes('progresso')) return {bg:'var(--blue)22', border:'var(--blue)44', color:'var(--blue)'};
+  if (s.includes('pausad')) return {bg:'var(--amber)22', border:'var(--amber)44', color:'var(--amber)'};
+  if (s.includes('não iniciada') || s.includes('nao iniciada')) return {bg:'transparent', border:'var(--border-strong)', color:'var(--text-dim)'};
+  return {bg:'transparent', border:'var(--border-strong)', color:'var(--text-dim)'};
+}
+
+function _statusGeralChip(status) {
+  if (!status) return '';
+  const e = _statusGeralEstilo(status);
+  return `<span class="status-chip" style="background:${e.bg};border-color:${e.border};color:${e.color};">${esc(status)}</span>`;
+}
+
 function _ativFormatarPrazoCard(prazo) {
   if (!prazo) return '';
   const s = String(prazo);
@@ -5464,8 +5479,7 @@ function renderAtividadeCards() {
       <div style="font-size:11.5px;color:var(--text-dim);margin-top:-4px;margin-bottom:8px;">${esc(a.responsavel||'Sem responsável')}</div>
       ${a.percentualOS !== undefined && a.percentualOS !== '' ? `
       <div style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-dim);margin-bottom:3px;">
-          <span>${esc(a.statusGeralOS||'')}</span>
+        <div style="display:flex;justify-content:flex-end;font-size:10.5px;color:var(--text-dim);margin-bottom:3px;">
           <span>${esc(a.percentualOS)}%</span>
         </div>
         <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden;">
@@ -5475,7 +5489,7 @@ function renderAtividadeCards() {
       <div class="card-foot">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <span class="status-chip" style="background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>
-          ${a.statusOS ? `<span class="status-chip" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);">OS: ${esc(a.statusOS)}</span>` : ''}
+          ${_statusGeralChip(a.statusGeralOS)}
         </div>
         <span class="see-more">Abrir Card <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
@@ -5535,6 +5549,7 @@ function _renderAtivDrawer() {
   const a = _ativDrawerList[_ativDrawerIndex];
   const body = document.getElementById('ativDrawerBody');
   if (!a || !body) return;
+  const isFracttalOrigin = (a.editor||'').startsWith('fracttal-');
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
@@ -5567,20 +5582,16 @@ function _renderAtivDrawer() {
     </div>
 
     <div style="margin-bottom:16px;">
-      <label style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
-        <span>Nº OS</span>
-        ${a.numeroOS && a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;font-size:11px;">Abrir no Fracttal ↗</a>` : ''}
-      </label>
+      <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Nº OS</label>
       <input class="nova-oc-input" id="ativDrawerNumeroOS" type="text" value="${esc(a.numeroOS||'')}" placeholder="Ex: 1596" style="width:100%;box-sizing:border-box;">
     </div>
 
-    ${(a.statusOS || a.statusTarefaOS || a.etiquetasOS || a.observacoesOS || a.statusGeralOS) ? `
+    ${(a.statusGeralOS || a.etiquetasOS || a.observacoesOS) ? `
     <div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;margin-bottom:16px;">
       <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Resumo da OS (Fracttal)</div>
       ${a.percentualOS !== undefined && a.percentualOS !== '' ? `
       <div style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
-          <span>${esc(a.statusGeralOS||'')}</span>
+        <div style="display:flex;justify-content:flex-end;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
           <span>${esc(a.percentualOS)}% concluído</span>
         </div>
         <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;">
@@ -5588,8 +5599,7 @@ function _renderAtivDrawer() {
         </div>
       </div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${a.etiquetasOS || a.observacoesOS ? '10px' : '0'};">
-        ${a.statusOS ? `<span class="status-chip" style="background:var(--blue)22;border-color:var(--blue)44;color:var(--blue);">${esc(a.statusOS)}</span>` : ''}
-        ${a.statusTarefaOS ? `<span class="status-chip" style="background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);">${esc(a.statusTarefaOS)}</span>` : ''}
+        ${_statusGeralChip(a.statusGeralOS)}
       </div>
       ${a.etiquetasOS ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${a.observacoesOS ? '10px' : '0'};">
         ${a.etiquetasOS.split(',').map(e => e.trim()).filter(Boolean).map(e => `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:var(--amber)22;color:var(--amber);border:1px solid var(--amber)44;">🏷️ ${esc(e)}</span>`).join('')}
@@ -5621,13 +5631,14 @@ function _renderAtivDrawer() {
       Transformar em Ocorrência
     </button>
 
+    ${!isFracttalOrigin ? `
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Status</label>
     <select class="nova-oc-select" id="ativDrawerStatus" style="width:100%;margin-bottom:16px;">
       ${ATIV_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}
     </select>
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Adicionar ao histórico</label>
-    <textarea class="nova-oc-textarea" id="ativDrawerNovoHist" rows="2" placeholder="Ex: aguardando peça do fornecedor…" style="width:100%;box-sizing:border-box;margin-bottom:10px;"></textarea>
+    <textarea class="nova-oc-textarea" id="ativDrawerNovoHist" rows="2" placeholder="Ex: aguardando peça do fornecedor…" style="width:100%;box-sizing:border-box;margin-bottom:10px;"></textarea>` : ''}
     <button class="nova-oc-submit" id="ativDrawerSalvarBtn" onclick="_salvarAtivDrawer()" style="width:100%;margin-bottom:18px;">Salvar alterações</button>
 
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
