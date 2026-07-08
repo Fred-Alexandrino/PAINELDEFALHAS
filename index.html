@@ -1687,7 +1687,17 @@ body{
     <div class="ch-body" id="reprogModalBody">
       <div id="reprogModalIntro" style="display:flex;flex-direction:column;gap:12px;padding:6px 0 16px;">
         <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;">
-          Isso vai enviar todas as atividades <strong>em aberto</strong> (não concluídas/canceladas) pra IA analisar e sugerir uma reprogramação otimizada — considerando prioridade, prazo atual e evitando escalar a mesma equipe em usinas diferentes no mesmo dia.
+          Isso vai enviar as atividades <strong>em aberto</strong> (não concluídas/canceladas) pra IA analisar e sugerir uma reprogramação otimizada — considerando prioridade, prazo atual e evitando escalar a mesma equipe em usinas diferentes no mesmo dia.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
+            <select class="nova-oc-select" id="reprogCliente" style="width:100%;"></select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Usina</label>
+            <select class="nova-oc-select" id="reprogUsina" style="width:100%;"></select>
+          </div>
         </div>
         <button id="reprogGerarBtn" onclick="_gerarSugestaoReprogramacao()" style="width:100%;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -5208,6 +5218,21 @@ function _abrirReprogramacao() {
   document.getElementById('reprogModalLoading').style.display = 'none';
   document.getElementById('reprogModalResult').style.display = 'none';
   document.getElementById('reprogModalError').style.display = 'none';
+
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const clientes = [...new Set(abertas.map(a => a.cliente).filter(Boolean))].sort();
+  const selCli = document.getElementById('reprogCliente');
+  const selUsi = document.getElementById('reprogUsina');
+  if (selCli) {
+    selCli.innerHTML = `<option value="">Todos os clientes</option>` + clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    selCli.onchange = () => {
+      const cli = selCli.value;
+      const usinas = [...new Set(abertas.filter(a => !cli || a.cliente === cli).map(a => a.usina).filter(Boolean))].sort();
+      if (selUsi) selUsi.innerHTML = `<option value="">Todas as usinas</option>` + usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+    };
+    selCli.dispatchEvent(new Event('change'));
+  }
+
   overlay.style.display = 'flex';
 }
 
@@ -5221,11 +5246,24 @@ async function _gerarSugestaoReprogramacao() {
   result.style.display = 'none';
   errorBox.style.display = 'none';
 
+  const cliFiltro = document.getElementById('reprogCliente')?.value || '';
+  const usiFiltro = document.getElementById('reprogUsina')?.value || '';
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const filtradas = abertas.filter(a => (!cliFiltro || a.cliente === cliFiltro) && (!usiFiltro || a.usina === usiFiltro));
+  const ids = filtradas.map(a => a.id);
+
+  if (ids.length === 0) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Nenhuma atividade em aberto encontrada com esse filtro.';
+    return;
+  }
+
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 60000);
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-reprogramacao', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}', signal: ctrl.signal
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ids }), signal: ctrl.signal
     });
     clearTimeout(timeoutId);
     const data = await resp.json();
