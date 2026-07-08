@@ -1602,6 +1602,10 @@ body{
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
               Reprogramações
             </button>
+            <button class="sort-btn" id="ativComunicadosBtn" onclick="_abrirComunicados()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Comunicados
+            </button>
             <button class="sort-btn" id="ativAtualizarOsBtn" onclick="_atualizarOSAgora()" style="display:flex;align-items:center;gap:5px;">
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               <span id="ativAtualizarOsLabel">Atualizar OS</span>
@@ -1691,6 +1695,35 @@ body{
       </div>
       <div id="reprogModalResult" style="display:none;"></div>
       <div id="reprogModalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Comunicados aos Técnicos -->
+<div class="ch-overlay" id="comunicadoOverlay">
+  <div class="ch-modal" style="max-width:820px;border-top-color:var(--amber);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><h2>Comunicados aos Técnicos</h2></div><div class="ch-subtitle">Selecione as equipes e gere um comunicado individual com as atividades em aberto de cada uma</div></div>
+        <button class="modal-close-btn" id="comunicadoModalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="comunicadoModalBody">
+      <div id="comunicadoModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:var(--text-dim);">Equipes com atividades em aberto</span>
+          <div style="display:flex;gap:8px;">
+            <button onclick="_comunicadoSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
+            <button onclick="_comunicadoSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
+          </div>
+        </div>
+        <div id="comunicadoListaEquipes" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+        <button id="comunicadoGerarBtn" onclick="_gerarComunicados()" style="width:100%;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Gerar comunicados
+        </button>
+      </div>
+      <div id="comunicadoModalResult" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -5245,6 +5278,133 @@ async function _aplicarReprogramacao(id, novaData, btnEl) {
 
 document.getElementById('reprogModalClose')?.addEventListener('click', () => { document.getElementById('reprogOverlay').style.display='none'; carregarAtividades(); });
 document.getElementById('reprogOverlay')?.addEventListener('click', e => { if(e.target.id==='reprogOverlay') { document.getElementById('reprogOverlay').style.display='none'; carregarAtividades(); } });
+
+// ── Comunicados aos Técnicos ────────────────────────────────────────────
+let _comunicadoPorEquipeCache = {};
+let _comunicadoTextoCache = {};
+
+function _diasAtraso(prazoBR) {
+  const m = (prazoBR||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return null;
+  const prazo = new Date(+m[3], +m[2]-1, +m[1]);
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return Math.round((hoje - prazo) / 86400000); // positivo = atrasado
+}
+
+function _abrirComunicados() {
+  const overlay = document.getElementById('comunicadoOverlay');
+  if (!overlay) return;
+  document.getElementById('comunicadoModalIntro').style.display = 'flex';
+  document.getElementById('comunicadoModalResult').style.display = 'none';
+
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const porEquipe = {};
+  abertas.forEach(a => {
+    const eq = (a.responsavel||'').trim() || 'Sem responsável';
+    if (!porEquipe[eq]) porEquipe[eq] = [];
+    porEquipe[eq].push(a);
+  });
+  const equipes = Object.keys(porEquipe).sort((a,b) => porEquipe[b].length - porEquipe[a].length);
+  _comunicadoPorEquipeCache = porEquipe;
+
+  const lista = document.getElementById('comunicadoListaEquipes');
+  lista.innerHTML = equipes.map(eq => {
+    const atrasadas = porEquipe[eq].filter(a => (_diasAtraso(a.prazo) ?? -999) > 0).length;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+      <input type="checkbox" class="comunicado-equipe-check" value="${esc(eq)}" checked style="width:16px;height:16px;accent-color:var(--amber);flex:none;">
+      <span style="flex:1;font-size:13px;color:var(--text);">${esc(eq)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;">${porEquipe[eq].length} aberta${porEquipe[eq].length!==1?'s':''}${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</span>
+    </label>`;
+  }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhuma atividade em aberto no momento.</div>`;
+
+  overlay.style.display = 'flex';
+}
+
+function _comunicadoSelecionarTodas(marcar) {
+  document.querySelectorAll('.comunicado-equipe-check').forEach(cb => cb.checked = marcar);
+}
+
+function _montarTextoComunicado(equipe, lista, hojeStr) {
+  lista = lista.slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
+  let txt = `📋 *Atividades em aberto — ${equipe}*\n📅 ${hojeStr}\n\n`;
+  txt += `Você tem *${lista.length} atividade${lista.length!==1?'s':''}* pendente${lista.length!==1?'s':''}:\n\n`;
+  lista.forEach((a, i) => {
+    const dias = _diasAtraso(a.prazo);
+    const atrasada = dias !== null && dias > 0;
+    txt += `${i+1}. ${atrasada ? '🔴' : '🟢'} ${a.numeroOS ? 'OS '+a.numeroOS+' — ' : ''}${a.usina||''}\n`;
+    txt += `   ${a.descricao||''}\n`;
+    if (a.prazo) txt += `   📅 Prazo: ${a.prazo}${atrasada ? ` (atrasada há ${dias} dia${dias>1?'s':''})` : ''}\n`;
+    const st = a.statusGeralOS || a.status;
+    if (st) txt += `   📊 Status: ${st}${a.percentualOS !== undefined && a.percentualOS !== '' ? ' — '+a.percentualOS+'%' : ''}\n`;
+    txt += `\n`;
+  });
+  txt += `Por favor, atualizem o andamento dessas atividades o quanto antes. Qualquer dificuldade, me avisem.`;
+  return txt;
+}
+
+function _gerarComunicados() {
+  const marcadas = Array.from(document.querySelectorAll('.comunicado-equipe-check:checked')).map(cb => cb.value);
+  if (marcadas.length === 0) { showToast('Selecione ao menos uma equipe.', false); return; }
+
+  const result = document.getElementById('comunicadoModalResult');
+  const hojeStr = new Date().toLocaleDateString('pt-BR');
+  _comunicadoTextoCache = {};
+
+  let html = '';
+  marcadas.forEach(equipe => {
+    const lista = (_comunicadoPorEquipeCache[equipe] || []).slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
+    const atrasadas = lista.filter(a => (_diasAtraso(a.prazo) ?? -999) > 0).length;
+    const idSeguro = equipe.replace(/[^a-zA-Z0-9]/g, '_');
+    _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, lista, hojeStr);
+
+    html += `<div style="margin-bottom:22px;border:1px solid var(--border-strong);border-radius:10px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">👷 ${esc(equipe)}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${lista.length} atividade${lista.length!==1?'s':''} em aberto${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</div>
+        </div>
+        <button onclick="_copiarComunicado('${idSeguro}')" style="background:var(--teal);border:none;color:#04231e;border-radius:6px;padding:7px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copiar mensagem
+        </button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+        ${lista.map(a => {
+          const dias = _diasAtraso(a.prazo);
+          const atrasada = dias !== null && dias > 0;
+          const cor = atrasada ? 'var(--red)' : _prioridadeCor(a.prioridade);
+          return `<div style="border-left:3px solid ${cor};background:rgba(255,255,255,0.02);border-radius:6px;padding:9px 10px;">
+            <div style="font-size:10.5px;color:var(--teal);font-family:'Geist Mono',monospace;">${a.numeroOS ? 'OS '+esc(a.numeroOS) : esc(a.usina||'')}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin:2px 0;line-height:1.3;">${esc(a.descricao||'')}</div>
+            <div style="font-size:10.5px;color:var(--text-dim);">${esc(a.usina||'')} · ${esc(a.cliente||'')}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:4px;">
+              <span style="font-size:10.5px;color:${atrasada?'var(--red)':'var(--text-faint)'};">${a.prazo ? 'Prazo: '+esc(a.prazo) : 'Sem prazo'}${atrasada ? ' ⚠️' : ''}</span>
+              ${a.statusGeralOS ? _statusGeralChip(a.statusGeralOS) : `<span class="status-chip" style="font-size:9.5px;padding:2px 7px;">${esc(a.status||'')}</span>`}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('comunicadoModalIntro').style.display = 'none';
+  result.innerHTML = html + `<button onclick="document.getElementById('comunicadoModalIntro').style.display='flex';document.getElementById('comunicadoModalResult').style.display='none';" style="width:100%;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:10px;font-size:12.5px;cursor:pointer;margin-top:4px;">← Voltar pra seleção de equipes</button>`;
+  result.style.display = 'block';
+}
+
+async function _copiarComunicado(idSeguro) {
+  const texto = _comunicadoTextoCache[idSeguro];
+  if (!texto) return;
+  try {
+    await navigator.clipboard.writeText(texto);
+    showToast('Mensagem copiada! Cole no WhatsApp.', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
+  }
+}
+
+document.getElementById('comunicadoModalClose')?.addEventListener('click', () => { document.getElementById('comunicadoOverlay').style.display='none'; });
+document.getElementById('comunicadoOverlay')?.addEventListener('click', e => { if(e.target.id==='comunicadoOverlay') { document.getElementById('comunicadoOverlay').style.display='none'; } });
 
 function _prioridadeCor(p) {
   const v = (p||'').toLowerCase();
