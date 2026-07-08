@@ -1155,11 +1155,11 @@ body{
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-nav-item" data-nav="atividades">
+      <div class="sb-nav-item active" data-nav="atividades">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Painel de Atividades
       </div>
-      <div class="sb-nav-item active" data-nav="falhas">
+      <div class="sb-nav-item" data-nav="falhas">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Painel de Falhas
       </div>
@@ -1294,7 +1294,7 @@ body{
           <button class="sb-toggle-btn" id="sbToggleBtn">
             <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <div class="topbar-section-title" id="topbarTitle">Painel de falhas</div>
+          <div class="topbar-section-title" id="topbarTitle">Painel de Atividades</div>
         </div>
         <div class="topbar-live" style="flex:none;">
           <div class="topbar-live-dot" id="sourceDot"></div>
@@ -1325,7 +1325,7 @@ body{
     <div class="main-content" id="mainContent">
 
       <!-- ── SEÇÃO: PAINEL DE FALHAS ──────────────────────── -->
-      <section class="content-section active" id="sec-falhas">
+      <section class="content-section" id="sec-falhas">
 
         <!-- Banners -->
         <div class="sla-banner" id="slaBanner">
@@ -1570,7 +1570,7 @@ body{
       </section>
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
-      <section class="content-section" id="sec-atividades">
+      <section class="content-section active" id="sec-atividades">
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
 
         <!-- Panels de breakdown -->
@@ -2177,7 +2177,7 @@ function isDesligamento(d) {
 /* ══ SESSION / NAVEGAÇÃO SIDEBAR ══ */
 let _currentSession = { role:'viewer' };
 let _forcedCliente = null;
-let _activeNav = 'falhas';
+let _activeNav = 'atividades';
 
 const NAV_TITLES = {
   'falhas': 'Painel de Falhas',
@@ -2283,6 +2283,7 @@ function initDashboard(session) {
 
   document.getElementById('appShell').classList.add('ready');
   fetchSheet().then(() => _abrirDeepLinkNotificacao());
+  carregarAtividades();
   if (session.role === 'admin' || session.role === 'manager') {
     setTimeout(initPush, 2000);
   }
@@ -6512,11 +6513,11 @@ async function relGerarRelatorio(){
 
 <!-- BOTTOM NAVIGATION — mobile only -->
 <nav class="bottom-nav" id="bottomNav">
-  <div class="bn-item" data-nav="atividades">
+  <div class="bn-item active" data-nav="atividades">
     <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span>Atividades</span>
   </div>
-  <div class="bn-item active" data-nav="falhas">
+  <div class="bn-item" data-nav="falhas">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <span>Falhas</span>
   </div>
