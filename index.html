@@ -2390,7 +2390,7 @@ async function fetchSheet() {
     const g = (r, i) => { const cell = r.c?.[i]; if (!cell) return ''; const v = cell.v != null ? String(cell.v) : ''; const f = cell.f != null ? String(cell.f) : ''; return (f.length > v.length ? f : v).trim(); };
     parsed = rows.map(r => ({
       id: g(r, idx.id??0), dataAbertura: idx.dataAbertura!=null?g(r,idx.dataAbertura):'',
-      cliente: g(r, idx.cliente??1), usina: normalizeUsina(g(r, idx.usina??2)),
+      cliente: normalizeCliente(g(r, idx.cliente??1)), usina: normalizeUsina(g(r, idx.usina??2)),
       equipamento: g(r, idx.equipamento??3), falha: g(r, idx.falha??4),
       causa: g(r, idx.causa??5), impactados: g(r, idx.impactados??6),
       acao: g(r, idx.acao??7), status: g(r, idx.status??8) || 'Em Aberto',
@@ -2438,7 +2438,7 @@ async function fetchSheet() {
       parsed = rows.slice(1).filter(r=>r.trim()).map(r => {
         const cells = parseCSVLine(r);
         const g = (i) => (cells[i] || '').trim();
-        return { id:g(idx.id??0), dataAbertura:idx.dataAbertura!=null?g(idx.dataAbertura):'', cliente:g(idx.cliente??1), usina:normalizeUsina(g(idx.usina??2)), equipamento:g(idx.equipamento??3), falha:g(idx.falha??4), causa:g(idx.causa??5), impactados:g(idx.impactados??6), acao:g(idx.acao??7), status:g(idx.status??8)||'Em Aberto', historico:g(idx.historico??11), ticketFabricante:idx.ticket!=null?g(idx.ticket):'', numeroOS:idx.os!=null?g(idx.os):g(10),
+        return { id:g(idx.id??0), dataAbertura:idx.dataAbertura!=null?g(idx.dataAbertura):'', cliente:normalizeCliente(g(idx.cliente??1)), usina:normalizeUsina(g(idx.usina??2)), equipamento:g(idx.equipamento??3), falha:g(idx.falha??4), causa:g(idx.causa??5), impactados:g(idx.impactados??6), acao:g(idx.acao??7), status:g(idx.status??8)||'Em Aberto', historico:g(idx.historico??11), ticketFabricante:idx.ticket!=null?g(idx.ticket):'', numeroOS:idx.os!=null?g(idx.os):g(10),
           dataPrimeiraAcao: idx.dataPrimeiraAcao!=null?g(idx.dataPrimeiraAcao):'',
           dataEncaminhamento: idx.dataEncaminhamento!=null?g(idx.dataEncaminhamento):'',
           dataRetornoExterno: idx.dataRetornoExterno!=null?g(idx.dataRetornoExterno):'',
@@ -2485,6 +2485,23 @@ function normalizeUsina(raw) {
   const gm = s.match(GENERIC);
   if (gm) { const base=gm[1].trim(); const suf=gm[2].toUpperCase(); const toRoman={'1':'I','I':'I','A':'I','2':'II','II':'II','B':'II'}; const roman=toRoman[suf]; if(roman) return base+' '+roman; }
   return s;
+}
+
+// Mesmo cliente grafado de formas diferentes conforme a origem do dado
+// (Falhas x Atividades x Fracttal) — sempre reduz pra um nome canônico
+// único, pra filtros/dropdowns não mostrarem duplicatas.
+const CLIENTE_CANONICO = {
+  '2c': '2C', '2c energia': '2C',
+  'alves lima': 'Alves Lima',
+  'gd energy': 'GD Energy',
+  'renogrid': 'RENOGRID', 'reno grid': 'RENOGRID',
+  'thopen': 'THOPEN',
+};
+function normalizeCliente(raw) {
+  if (!raw) return raw;
+  const s = raw.replace(/\s+/g, ' ').trim();
+  if (!s) return s;
+  return CLIENTE_CANONICO[s.toLowerCase()] || s;
 }
 
 const STATUS_PALETTE = {
@@ -5134,7 +5151,7 @@ async function carregarAtividades(tentativa = 1) {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
-    ATIVIDADES = result.atividades || [];
+    ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente) }));
     renderAtividadeCards();
   } catch (e) {
     if (tentativa < 3) {
@@ -5442,10 +5459,12 @@ let _ativSortKey = 'newest';
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
   if (s.includes('conclu') || s.includes('convertida') || s.includes('cancel')) return true;
-  // mesmo que o status interno ainda não tenha sido sincronizado, se o
-  // status calculado a partir das tarefas da Fracttal já é "Concluída",
-  // trata como concluída (evita mostrar como aberta em comunicados/KPIs)
-  return (a.statusGeralOS||'').toLowerCase().includes('conclu');
+  // 100% das tarefas NÃO significa que a OS está encerrada de fato — ela
+  // pode estar aguardando envio pra verificação, ou ter voltado de lá por
+  // reprovação, e nesses casos continua em "Em Processo" na Fracttal. Só
+  // trata como concluída quando o status OFICIAL da OS chegou em
+  // "Finalizada" (mesmo que o status interno ainda não tenha sincronizado).
+  return (a.statusOS||'').toLowerCase() === 'finalizada';
 }
 
 function _ativMudarTab(tab) {
