@@ -591,6 +591,11 @@ body{
 .card:hover{border-color:rgba(255,255,255,0.14);background:#161616;}
 .card.sla-breach{border-color:rgba(239,68,68,.4)!important;}
 .card.card-desligamento{border-color:rgba(239,68,68,.4)!important;}
+.card.card-atrasada{animation:card-atrasada-pulse 2s infinite;}
+@keyframes card-atrasada-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.38);}
+  50%{box-shadow:0 0 0 5px rgba(239,68,68,0);}
+}
 @keyframes card-sla-pulse{0%,100%{opacity:1;}50%{opacity:.85;}}
 @keyframes deslig-pulse{0%,100%{opacity:1;}50%{opacity:.85;}}
 .card-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;}
@@ -5671,7 +5676,7 @@ function renderAtividadeCards() {
 
   grid.innerHTML = ordenadas.map(a => {
     const sc = statusColor(a.status);
-    return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
+    return `<div class="card${_ativAtrasada(a) ? ' card-atrasada' : ''}" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
       <div class="card-top">
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
