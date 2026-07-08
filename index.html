@@ -2597,13 +2597,19 @@ let selStatusValues = new Set();
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
-const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'Renogrid', 'Thopen'];
+const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'RENOGRID', 'THOPEN'];
+
+function _clientesDisponiveis() {
+  const doFalhas = DATA.map(d => d.cliente);
+  const daAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.cliente) : []);
+  const todos = new Set([...CLIENTES_FIXOS, ...doFalhas, ...daAtiv].filter(Boolean));
+  return [...todos].sort();
+}
 
 function renderClienteChips() {
   const wrap = document.getElementById('sbChipsCliente');
   if (!wrap) return;
-  const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
-  const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
+  const clientes = _clientesDisponiveis();
   const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
   wrap.innerHTML = clientes.map(c => {
@@ -2635,8 +2641,7 @@ function renderClienteChips() {
 }
 
 function _toggleAllClientes() {
-  const clientesNaPlanilha = [...new Set(DATA.map(d => d.cliente))];
-  const clientes = clientesNaPlanilha.length ? clientesNaPlanilha.sort() : CLIENTES_FIXOS;
+  const clientes = _clientesDisponiveis();
   const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
   if (todosAtivos) {
@@ -2933,8 +2938,8 @@ let _mttrPage = 1;
 const MTTR_PAGE_SIZE = 10;
 
 function _mttrPopulateFilters() {
-  const clientes = [...new Set(DATA.map(d => d.cliente).filter(Boolean))].sort();
-  const usinas   = [...new Set(DATA.map(d => d.usina).filter(Boolean))].sort();
+  const clientes = _clientesDisponiveis();
+  const usinas   = [...new Set([...DATA.map(d => d.usina), ...(typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.usina) : [])].filter(Boolean))].sort();
   const selC = document.getElementById('mttrCliente');
   const selU = document.getElementById('mttrUsina');
   if (selC) {
@@ -5085,13 +5090,15 @@ document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(
 /* ══ NOVA OCORRÊNCIA ══ */
 function _openNovaOcorrencia() {
   // Popula clientes e usinas
-  const clientes = [...new Set(DATA.map(d => d.cliente))].sort();
+  const clientes = _clientesDisponiveis();
   const selCli = document.getElementById('novaOcCliente');
   if (selCli) {
     selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     selCli.onchange = () => {
       const cli = selCli.value;
-      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
+      const usinasFalhas = DATA.filter(d => d.cliente===cli).map(d => d.usina);
+      const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => a.cliente===cli).map(a => a.usina) : []);
+      const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
       const selU = document.getElementById('novaOcUsina');
       if (selU) selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
@@ -6065,7 +6072,7 @@ async function _salvarAtivDrawer() {
 }
 
 function _openNovaAtividade() {
-  const clientes = [...new Set(DATA.map(d => d.cliente))].sort();
+  const clientes = _clientesDisponiveis();
   clientes.push('Geral', 'Administrativo');
   const selCli = document.getElementById('novaAtivCliente');
   if (selCli) {
@@ -6078,7 +6085,9 @@ function _openNovaAtividade() {
         selU.innerHTML = `<option value="${esc(cli)}">${esc(cli)}</option>`;
         return;
       }
-      const usinas = [...new Set(DATA.filter(d => d.cliente===cli).map(d => d.usina))].sort();
+      const usinasFalhas = DATA.filter(d => d.cliente===cli).map(d => d.usina);
+      const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => a.cliente===cli).map(a => a.usina) : []);
+      const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
       usinas.push('Geral', 'Administrativo');
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
@@ -6369,7 +6378,7 @@ function relDefinirSemana(qual){
 function relPopularClientes(){
   const sel = document.getElementById('relCliente');
   if (!sel) return;
-  const clientes = [...new Set(DATA.map(d => d.cliente).filter(Boolean))].sort();
+  const clientes = _clientesDisponiveis();
   sel.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
