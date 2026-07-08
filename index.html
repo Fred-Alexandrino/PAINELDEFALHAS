@@ -5426,7 +5426,11 @@ let _ativSortKey = 'newest';
 
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
-  return s.includes('conclu') || s.includes('convertida') || s.includes('cancel');
+  if (s.includes('conclu') || s.includes('convertida') || s.includes('cancel')) return true;
+  // mesmo que o status interno ainda não tenha sido sincronizado, se o
+  // status calculado a partir das tarefas da Fracttal já é "Concluída",
+  // trata como concluída (evita mostrar como aberta em comunicados/KPIs)
+  return (a.statusGeralOS||'').toLowerCase().includes('conclu');
 }
 
 function _ativMudarTab(tab) {
