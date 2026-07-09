@@ -1593,6 +1593,10 @@ body{
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Ativas <span class="tab-count" id="ativTabAtivasCount">0</span>
               </button>
+              <button class="tab-btn" id="ativTabVerificacao" onclick="_ativMudarTab('verificacao')">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Em Verificação <span class="tab-count" id="ativTabVerificacaoCount">0</span>
+              </button>
               <button class="tab-btn" id="ativTabHistorico" onclick="_ativMudarTab('historico')">
                 <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
                 Concluídas <span class="tab-count" id="ativTabHistoricoCount">0</span>
@@ -5530,9 +5534,15 @@ function _ativIsConcluida(a) {
   return statusOS === 'finalizada';
 }
 
+function _ativEmVerificacao(a) {
+  if (_ativIsConcluida(a)) return false;
+  return (a.statusOS||'').toLowerCase() === 'em revisão' || (a.statusOS||'').toLowerCase() === 'em revisao';
+}
+
 function _ativMudarTab(tab) {
   _ativTab = tab;
   document.getElementById('ativTabAtivas')?.classList.toggle('active', tab==='ativas');
+  document.getElementById('ativTabVerificacao')?.classList.toggle('active', tab==='verificacao');
   document.getElementById('ativTabHistorico')?.classList.toggle('active', tab==='historico');
   renderAtividadeCards();
 }
@@ -5586,12 +5596,13 @@ function _ativRenderBreakdowns() {
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
     return true;
   });
-  const ativasList = filtradas.filter(a => !_ativIsConcluida(a));
+  const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
+  const verificacaoList = filtradas.filter(a => _ativEmVerificacao(a));
   const historicoList = filtradas.filter(a => _ativIsConcluida(a));
-  const listaStatus = _ativTab === 'historico' ? historicoList : ativasList;
+  const listaStatus = _ativTab === 'historico' ? historicoList : (_ativTab === 'verificacao' ? verificacaoList : ativasList);
 
   const uMap = {}, sMap = {};
-  ativasList.forEach(a => { uMap[a.usina] = (uMap[a.usina] || 0) + 1; });
+  listaStatus.forEach(a => { uMap[a.usina] = (uMap[a.usina] || 0) + 1; });
   listaStatus.forEach(a => { sMap[a.status] = (sMap[a.status] || 0) + 1; });
 
   makeBar('ativUsinaBars', Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']), 'ativUsinaTotal');
@@ -5693,14 +5704,17 @@ function renderAtividadeCards() {
     return true;
   });
 
-  const ativasList = filtradas.filter(a => !_ativIsConcluida(a));
+  const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
+  const verificacaoList = filtradas.filter(a => _ativEmVerificacao(a));
   const historicoList = filtradas.filter(a => _ativIsConcluida(a));
   const tA = document.getElementById('ativTabAtivasCount');
+  const tV = document.getElementById('ativTabVerificacaoCount');
   const tH = document.getElementById('ativTabHistoricoCount');
   if (tA) tA.textContent = ativasList.length;
+  if (tV) tV.textContent = verificacaoList.length;
   if (tH) tH.textContent = historicoList.length;
 
-  const lista = _ativTab === 'historico' ? historicoList : ativasList;
+  const lista = _ativTab === 'historico' ? historicoList : (_ativTab === 'verificacao' ? verificacaoList : ativasList);
   if (sub) sub.textContent = `${lista.length} de ${filtradas.length} atividade${filtradas.length!==1?'s':''}`;
 
   const PRIORIDADE_ORDEM = {alta:0, média:1, media:1, baixa:2};
@@ -5727,16 +5741,19 @@ function renderAtividadeCards() {
   });
 
   if (ordenadas.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><strong>${_ativTab==='historico' ? 'Nenhuma atividade concluída' : 'Nenhuma atividade em aberto'}</strong>${ATIVIDADES.length===0 ? 'Use "Nova Atividade" na barra lateral para criar a primeira.' : 'Ajuste os filtros ou troque de aba.'}</div>`;
+    const msgVazio = _ativTab==='historico' ? 'Nenhuma atividade concluída' : (_ativTab==='verificacao' ? 'Nenhuma atividade em verificação' : 'Nenhuma atividade em aberto');
+    grid.innerHTML = `<div class="empty-state"><strong>${msgVazio}</strong>${ATIVIDADES.length===0 ? 'Use "Nova Atividade" na barra lateral para criar a primeira.' : 'Ajuste os filtros ou troque de aba.'}</div>`;
     return;
   }
 
   grid.innerHTML = ordenadas.map(a => {
     const sc = statusColor(a.status);
-    return `<div class="card${_ativAtrasada(a) ? ' card-atrasada' : ''}" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${_prioridadeCor(a.prioridade)};">
+    const emVerif = _ativEmVerificacao(a);
+    return `<div class="card${_ativAtrasada(a) ? ' card-atrasada' : ''}" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${emVerif ? 'var(--blue)' : _prioridadeCor(a.prioridade)};">
       <div class="card-top">
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          ${emVerif ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>EM VERIFICAÇÃO</span>` : ''}
           ${a.numeroOS ? (a.linkOS
             ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;text-decoration:none;cursor:pointer;">OS: ${esc(a.numeroOS)}</a>`
             : `<span class="filter-badge" style="background:var(--teal)22;color:var(--teal);border-color:var(--teal)44;">OS: ${esc(a.numeroOS)}</span>`) : ''}
@@ -5818,9 +5835,11 @@ function _renderAtivDrawer() {
   const body = document.getElementById('ativDrawerBody');
   if (!a || !body) return;
   const isFracttalOrigin = !!a.statusGeralOS;
+  const emVerifDrawer = _ativEmVerificacao(a);
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>EM VERIFICAÇÃO — aguardando confirmação na Fracttal</span>` : ''}
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
