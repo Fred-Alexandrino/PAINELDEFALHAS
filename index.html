@@ -5200,7 +5200,7 @@ async function _atualizarOSAgora() {
   label.textContent = 'Buscando na Fracttal…';
   try {
     const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 45000);
+    const timeoutId = setTimeout(() => ctrl.abort(), 70000);
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
       method: 'POST', signal: ctrl.signal
     });
