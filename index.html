@@ -5374,6 +5374,11 @@ function _normalizarResponsavel(nome) {
   return _RESPONSAVEL_ALIASES[chave] || limpo;
 }
 
+// Nomes que aparecem como "responsável" em algumas OSs da Fracttal mas não
+// são técnicos do Fred (ex.: times terceiros, centrais de operação) — não
+// devem aparecer como opção de comunicado.
+const _EQUIPES_EXCLUIDAS = new Set(['COS', 'Roger Lélis']);
+
 function _abrirComunicados() {
   const overlay = document.getElementById('comunicadoOverlay');
   if (!overlay) return;
@@ -5384,6 +5389,7 @@ function _abrirComunicados() {
   const porEquipe = {};
   abertas.forEach(a => {
     const eq = _normalizarResponsavel(a.responsavel) || 'Sem responsável';
+    if (_EQUIPES_EXCLUIDAS.has(eq)) return;
     if (!porEquipe[eq]) porEquipe[eq] = [];
     porEquipe[eq].push(a);
   });
