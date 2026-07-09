@@ -487,7 +487,21 @@ body{
 
 #ativKpis{grid-template-columns:repeat(5,1fr);}
 @media(max-width:1300px){#ativKpis{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:860px){#ativKpis{grid-template-columns:repeat(2,1fr);}#ativKanban{grid-template-columns:1fr !important;}}
+@media(max-width:860px){
+  #ativKpis{grid-template-columns:repeat(2,1fr);}
+  #ativKanban{
+    grid-template-columns:none !important;
+    display:flex !important;
+    overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+    gap:0 !important;scroll-behavior:smooth;
+  }
+  #ativKanban::-webkit-scrollbar{display:none;}
+  #ativKanban > div{flex:0 0 100%;scroll-snap-align:center;max-width:100%;}
+  #ativKanbanDots{display:flex !important;}
+}
+#ativKanbanDots{display:none;justify-content:center;gap:7px;margin-top:10px;}
+#ativKanbanDots button{width:7px;height:7px;border-radius:99px;border:none;background:var(--border-strong);padding:0;cursor:pointer;transition:.15s;}
+#ativKanbanDots button.active{background:var(--teal);width:18px;border-radius:5px;}
 
 .kpi{
   background:var(--panel);border:1px solid var(--border);
@@ -1640,6 +1654,7 @@ body{
 
         <div class="grid" id="ativGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
         <div id="ativKanban" style="display:grid;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
+        <div id="ativKanbanDots"></div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -5212,6 +5227,10 @@ async function carregarAtividades(tentativa = 1) {
     const clienteRestrito = _forcedCliente || URL_CLIENTE;
     if (clienteRestrito) {
       ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
+      // Atividades cuja descrição menciona "Greenyellow" são de outra empresa
+      // que acabou batendo com o mesmo nome de usina na Fracttal (contaminação
+      // de dados entre tenants) — nunca devem aparecer pra um cliente nosso.
+      ATIVIDADES = ATIVIDADES.filter(a => !(a.descricao || '').toLowerCase().includes('greenyellow'));
     }
     renderAtividadeCards();
   } catch (e) {
@@ -5767,6 +5786,27 @@ function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
     c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
     c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
   });
+
+  // Indicadores de página (mobile) — arrastar/swipe entre os 3 quadros
+  const dots = document.getElementById('ativKanbanDots');
+  if (dots) {
+    dots.innerHTML = [0,1,2].map(i => `<button aria-label="Quadro ${i+1}" class="${i===0?'active':''}" data-idx="${i}"></button>`).join('');
+    dots.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = +btn.dataset.idx;
+        const coluna = kanban.children[idx];
+        if (coluna) kanban.scrollTo({ left: coluna.offsetLeft, behavior: 'smooth' });
+      });
+    });
+    let scrollTimeout;
+    kanban.onscroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const idx = Math.round(kanban.scrollLeft / kanban.clientWidth);
+        dots.querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === idx));
+      }, 80);
+    };
+  }
 }
 
 function renderAtividadeCards() {
