@@ -2009,9 +2009,10 @@ window.addEventListener('unhandledrejection', function(e) {
     if (!found) { errEl.classList.add('show'); document.getElementById('loginPass').value = ''; document.getElementById('loginPass').focus(); return; }
     errEl.classList.remove('show');
     document.getElementById('loginScreen').classList.add('hidden');
-    try { sessionStorage.setItem('om_role', found.role); } catch(e){}
-    try { sessionStorage.setItem('om_cliente', found.cliente || ''); } catch(e){}
-    try { sessionStorage.setItem('om_user', found.user || ''); } catch(e){}
+    try { localStorage.setItem('om_role', found.role); } catch(e){}
+    try { localStorage.setItem('om_cliente', found.cliente || ''); } catch(e){}
+    try { localStorage.setItem('om_user', found.user || ''); } catch(e){}
+    try { localStorage.setItem('om_login_ts', String(Date.now())); } catch(e){}
     if (typeof initDashboard === 'function') initDashboard(found);
     else window._pendingSession = found;
   }
@@ -2019,9 +2020,16 @@ window.addEventListener('unhandledrejection', function(e) {
   document.getElementById('loginPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') tryLogin(); });
   document.getElementById('loginUser').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
   try {
-    var role = sessionStorage.getItem('om_role');
-    var cliente = sessionStorage.getItem('om_cliente') || '';
-    var user = sessionStorage.getItem('om_user') || '';
+    var SESSAO_VALIDADE_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
+    var loginTs = parseInt(localStorage.getItem('om_login_ts') || '0', 10);
+    var sessaoExpirada = !loginTs || (Date.now() - loginTs) > SESSAO_VALIDADE_MS;
+    var role = sessaoExpirada ? null : localStorage.getItem('om_role');
+    var cliente = localStorage.getItem('om_cliente') || '';
+    var user = localStorage.getItem('om_user') || '';
+    if (sessaoExpirada) {
+      localStorage.removeItem('om_role'); localStorage.removeItem('om_cliente');
+      localStorage.removeItem('om_user'); localStorage.removeItem('om_login_ts');
+    }
     if (role) { document.getElementById('loginScreen').classList.add('hidden'); window._pendingSession = { role: role, cliente: cliente, user: user }; }
   } catch(e) {}
 })();
@@ -2323,7 +2331,10 @@ async function _abrirDeepLinkNotificacao() {
 function canEdit() { return _currentSession.role==='manager'; }
 
 document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
-  sessionStorage.clear();
+  localStorage.removeItem('om_role');
+  localStorage.removeItem('om_cliente');
+  localStorage.removeItem('om_user');
+  localStorage.removeItem('om_login_ts');
   location.reload();
 });
 
