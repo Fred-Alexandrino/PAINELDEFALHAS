@@ -5189,6 +5189,10 @@ async function carregarAtividades(tentativa = 1) {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
     ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente) }));
+    const clienteRestrito = _forcedCliente || URL_CLIENTE;
+    if (clienteRestrito) {
+      ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
+    }
     renderAtividadeCards();
   } catch (e) {
     if (tentativa < 3) {
@@ -5734,7 +5738,7 @@ function _ativKanbanColuna(titulo, cor, lista) {
 function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
   const kanban = document.getElementById('ativKanban');
   if (!kanban) return;
-  const ordenarPorId = arr => [...arr].sort((a,b) => (+b.id||0)-(+a.id||0));
+  const ordenarPorId = arr => [...arr].sort((a,b) => (+a.numeroOS||+a.id||0)-(+b.numeroOS||+b.id||0));
   kanban.innerHTML =
     _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList)) +
     _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList)) +
