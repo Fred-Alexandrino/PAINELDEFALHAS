@@ -1249,7 +1249,7 @@ body{
     </div>
 
     <!-- Zona 4: Ações rápidas -->
-    <div class="sb-quick-actions">
+    <div class="sb-quick-actions" id="sbQuickActions">
       <div class="sb-section-label">AÇÕES RÁPIDAS</div>
 
       <!-- Campo de OS genérica -->
@@ -2290,29 +2290,49 @@ function initDashboard(session) {
   if (roleEl) roleEl.textContent = roleLabels[session.role] || session.role;
 
   // Visibilidade dos itens de navegação por perfil
-  const navRondas    = document.querySelector('.sb-nav-item[data-nav="rondas"]');
-  const navProcessos = document.querySelector('.sb-nav-item[data-nav="processos"]');
-  const navHistLog   = document.querySelector('.sb-nav-item[data-nav="historico-log"]');
-  const navChamados  = document.querySelector('.sb-nav-item[data-nav="chamados"]');
+  const navRondas      = document.querySelector('.sb-nav-item[data-nav="rondas"]');
+  const navProcessos   = document.querySelector('.sb-nav-item[data-nav="processos"]');
+  const navHistLog     = document.querySelector('.sb-nav-item[data-nav="historico-log"]');
+  const navChamados    = document.querySelector('.sb-nav-item[data-nav="chamados"]');
+  const navRelatorios  = document.querySelector('.sb-nav-item[data-nav="relatorios"]');
+  const navMttr        = document.querySelector('.sb-nav-item[data-nav="mttr"]');
+  const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
+  const sbFiltersEl    = document.getElementById('sbFilters');
+  const sbQuickActions = document.getElementById('sbQuickActions');
 
   if (session.role === 'manager') {
-    // Acesso completo
+    // Acesso completo — visão do fredalexandrino
     if (navRondas) navRondas.style.display = '';
     if (navProcessos) navProcessos.style.display = '';
     if (navHistLog) navHistLog.style.display = '';
     if (navChamados) navChamados.style.display = '';
+    if (navRelatorios) navRelatorios.style.display = '';
+    if (navMttr) navMttr.style.display = '';
+    if (navEficiencia) navEficiencia.style.display = '';
+    if (sbFiltersEl) sbFiltersEl.style.display = '';
+    if (sbQuickActions) sbQuickActions.style.display = '';
   } else if (session.role === 'admin') {
-    // Somente visualização — sem rondas/processos/log (que envolvem ações)
+    // Somente visualização — sem rondas/processos/log/relatorios/mttr/eficiencia/filtros/acoes
     if (navRondas) navRondas.style.display = 'none';
     if (navProcessos) navProcessos.style.display = 'none';
     if (navHistLog) navHistLog.style.display = 'none';
-    if (navChamados) navChamados.style.display = '';
+    if (navChamados) navChamados.style.display = 'none';
+    if (navRelatorios) navRelatorios.style.display = 'none';
+    if (navMttr) navMttr.style.display = 'none';
+    if (navEficiencia) navEficiencia.style.display = 'none';
+    if (sbFiltersEl) sbFiltersEl.style.display = 'none';
+    if (sbQuickActions) sbQuickActions.style.display = 'none';
   } else {
-    // Cliente: apenas chamados
+    // Cliente: idem — nada disso deve aparecer
     if (navRondas) navRondas.style.display = 'none';
     if (navProcessos) navProcessos.style.display = 'none';
     if (navHistLog) navHistLog.style.display = 'none';
-    if (navChamados) navChamados.style.display = '';
+    if (navChamados) navChamados.style.display = 'none';
+    if (navRelatorios) navRelatorios.style.display = 'none';
+    if (navMttr) navMttr.style.display = 'none';
+    if (navEficiencia) navEficiencia.style.display = 'none';
+    if (sbFiltersEl) sbFiltersEl.style.display = 'none';
+    if (sbQuickActions) sbQuickActions.style.display = 'none';
   }
 
   document.getElementById('appShell').classList.add('ready');
