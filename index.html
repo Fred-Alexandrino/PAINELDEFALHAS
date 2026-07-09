@@ -5918,10 +5918,56 @@ function _ativRenderTabelaEquipamentos(a) {
   </div>`;
 }
 
+function _renderAtivDrawerSomenteLeitura(a, body) {
+  const emVerifDrawer = _ativEmVerificacao(a);
+  const statusExibido = a.statusGeralOS || a.status || '—';
+  body.innerHTML = `
+    <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
+    <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>EM VERIFICAÇÃO — aguardando confirmação na Fracttal</span>` : ''}
+    <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
+    <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Responsável</label>
+        <div style="font-size:13.5px;">${esc(a.responsavel||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prazo</label>
+        <div style="font-size:13.5px;">${esc(a.prazo||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Prioridade</label>
+        <div style="font-size:13.5px;">${esc(a.prioridade||'—')}</div></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Criada em</label>
+        <div style="font-size:13.5px;">${esc(a.dataCriacao||'—')}</div></div>
+      ${a.numeroOS ? `<div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Nº OS</label>
+        <div style="font-size:13.5px;">${esc(a.numeroOS)}</div></div>` : ''}
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">Status</label>
+        <div style="font-size:13.5px;">${esc(statusExibido)}</div></div>
+    </div>
+
+    ${a.percentualOS !== undefined && a.percentualOS !== '' ? `
+    <div style="margin-bottom:18px;">
+      <div style="display:flex;justify-content:flex-end;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
+        <span>${esc(a.percentualOS)}% concluído</span>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;">
+        <div style="height:100%;width:${esc(a.percentualOS)}%;background:${a.percentualOS==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div>
+      </div>
+    </div>` : ''}
+
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
+    <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
+  `;
+}
+
 function _renderAtivDrawer() {
   const a = _ativDrawerList[_ativDrawerIndex];
   const body = document.getElementById('ativDrawerBody');
   if (!a || !body) return;
+
+  if (_currentSession && _currentSession.role === 'client') {
+    _renderAtivDrawerSomenteLeitura(a, body);
+    return;
+  }
+
   const isFracttalOrigin = !!a.statusGeralOS;
   const emVerifDrawer = _ativEmVerificacao(a);
   body.innerHTML = `
