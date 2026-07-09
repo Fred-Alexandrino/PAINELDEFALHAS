@@ -1216,28 +1216,26 @@ body{
         <div class="cb-list" id="cbListUsina" style="display:none;"></div>
       </div>
 
-      <div style="display:none;">
-        <span class="sb-filter-label">Status</span>
-        <div class="cb-dropdown" id="cbDropdownStatus">
-          <button class="cb-trigger" id="cbTriggerStatus" onclick="_toggleCbDropdown('Status')">
-            <span id="cbLabelStatus">Todos</span>
-            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="cb-list" id="cbListStatus" style="display:none;"></div>
-        </div>
-
-        <span class="sb-filter-label">Sem ação há</span>
-        <select class="sb-select" id="sbSelStale">
-          <option value="">Qualquer</option>
-          <option value="7">+7 dias</option>
-          <option value="15">+15 dias</option>
-          <option value="30">+30 dias</option>
-          <option value="60">+60 dias</option>
-        </select>
-
-        <span class="sb-filter-label">Buscar</span>
-        <input class="sb-search" type="text" id="sbSearch" placeholder="equip., OS, tracker…">
+      <span class="sb-filter-label">Status</span>
+      <div class="cb-dropdown" id="cbDropdownStatus">
+        <button class="cb-trigger" id="cbTriggerStatus" onclick="_toggleCbDropdown('Status')">
+          <span id="cbLabelStatus">Todos</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListStatus" style="display:none;"></div>
       </div>
+
+      <span class="sb-filter-label">Sem ação há</span>
+      <select class="sb-select" id="sbSelStale">
+        <option value="">Qualquer</option>
+        <option value="7">+7 dias</option>
+        <option value="15">+15 dias</option>
+        <option value="30">+30 dias</option>
+        <option value="60">+60 dias</option>
+      </select>
+
+      <span class="sb-filter-label">Buscar</span>
+      <input class="sb-search" type="text" id="sbSearch" placeholder="equip., OS, tracker…">
 
       <span class="sb-filter-label">Período</span>
       <div class="sb-date-row">
@@ -5521,13 +5519,13 @@ let _ativSortKey = 'newest';
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
   if (s.includes('conclu') || s.includes('convertida') || s.includes('cancel')) return true;
-  // 100% das tarefas NÃO significa que a OS está encerrada de fato — ela
-  // pode estar aguardando envio pra verificação, ou ter voltado de lá por
-  // reprovação, e nesses casos continua em "Em Processo" na Fracttal. Só
-  // trata como concluída quando o status OFICIAL da OS chegou em
-  // "Finalizada" (mesmo que o status interno ainda não tenha sincronizado).
+  // "Em Revisão" é só o card de verificação na Fracttal — a OS continua
+  // ativa até o estado oficial virar "Finalizada" de fato. Tratar "Em
+  // Revisão" como concluída fazia essas OSs sumirem dos filtros de usina
+  // e listas de "abertas" (ex.: Sete Lagoas ficou invisível porque todas
+  // as OSs dela estavam em Em Revisão).
   const statusOS = (a.statusOS||'').toLowerCase();
-  return statusOS === 'finalizada' || statusOS === 'em revisão' || statusOS === 'em revisao';
+  return statusOS === 'finalizada';
 }
 
 function _ativMudarTab(tab) {
