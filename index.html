@@ -1622,12 +1622,12 @@ body{
               <span id="ativAtualizarOsLabel">Atualizar OS</span>
             </button>
             <div class="view-toggle">
-              <button class="view-btn active" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
-              <button class="view-btn" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
+              <button class="view-btn" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
+              <button class="view-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
             </div>
           </div>
         </div>
-        <div class="sort-group" id="ativSortGroup">
+        <div class="sort-group" id="ativSortGroup" style="display:none;">
           <span class="sort-label">Ordenar:</span>
           <button class="sort-btn" data-ativsort="id">ID</button>
           <button class="sort-btn active" data-ativsort="newest">Mais recentes</button>
@@ -1638,8 +1638,8 @@ body{
           <button class="sort-btn" data-ativsort="status">Status</button>
         </div>
 
-        <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
-        <div id="ativKanban" style="display:none;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
+        <div class="grid" id="ativGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
+        <div id="ativKanban" style="display:grid;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -5189,10 +5189,6 @@ async function carregarAtividades(tentativa = 1) {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
     ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente) }));
-    const clienteRestrito = _forcedCliente || URL_CLIENTE;
-    if (clienteRestrito) {
-      ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
-    }
     renderAtividadeCards();
   } catch (e) {
     if (tentativa < 3) {
@@ -5530,7 +5526,7 @@ function _prioridadeCor(p) {
 
 let _ativTab = 'ativas';
 let _ativSortKey = 'newest';
-let _ativViewMode = 'cards';
+let _ativViewMode = 'kanban';
 
 function _ativSetViewMode(mode) {
   _ativViewMode = mode;
@@ -5738,7 +5734,7 @@ function _ativKanbanColuna(titulo, cor, lista) {
 function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
   const kanban = document.getElementById('ativKanban');
   if (!kanban) return;
-  const ordenarPorId = arr => [...arr].sort((a,b) => (+a.numeroOS||+a.id||0)-(+b.numeroOS||+b.id||0));
+  const ordenarPorId = arr => [...arr].sort((a,b) => (+b.id||0)-(+a.id||0));
   kanban.innerHTML =
     _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList)) +
     _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList)) +
