@@ -487,7 +487,7 @@ body{
 
 #ativKpis{grid-template-columns:repeat(5,1fr);}
 @media(max-width:1300px){#ativKpis{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:860px){#ativKpis{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:860px){#ativKpis{grid-template-columns:repeat(2,1fr);}#ativKanban{grid-template-columns:1fr !important;}}
 
 .kpi{
   background:#111;border:1px solid rgba(255,255,255,0.07);
@@ -1621,9 +1621,13 @@ body{
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               <span id="ativAtualizarOsLabel">Atualizar OS</span>
             </button>
+            <div class="view-toggle">
+              <button class="view-btn active" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
+              <button class="view-btn" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
+            </div>
           </div>
         </div>
-        <div class="sort-group">
+        <div class="sort-group" id="ativSortGroup">
           <span class="sort-label">Ordenar:</span>
           <button class="sort-btn" data-ativsort="id">ID</button>
           <button class="sort-btn active" data-ativsort="newest">Mais recentes</button>
@@ -1635,6 +1639,7 @@ body{
         </div>
 
         <div class="grid" id="ativGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
+        <div id="ativKanban" style="display:none;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -5521,6 +5526,18 @@ function _prioridadeCor(p) {
 
 let _ativTab = 'ativas';
 let _ativSortKey = 'newest';
+let _ativViewMode = 'cards';
+
+function _ativSetViewMode(mode) {
+  _ativViewMode = mode;
+  document.getElementById('ativViewCards')?.classList.toggle('active', mode === 'cards');
+  document.getElementById('ativViewKanban')?.classList.toggle('active', mode === 'kanban');
+  document.getElementById('ativGrid').style.display = mode === 'cards' ? 'grid' : 'none';
+  document.getElementById('ativKanban').style.display = mode === 'kanban' ? 'grid' : 'none';
+  const sg = document.getElementById('ativSortGroup');
+  if (sg) sg.style.display = mode === 'cards' ? 'flex' : 'none';
+  renderAtividadeCards();
+}
 
 function _ativIsConcluida(a) {
   const s = (a.status||'').toLowerCase();
@@ -5687,6 +5704,47 @@ function _ativVenceHoje(a) {
   return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth() && d.getDate() === hoje.getDate();
 }
 
+function _ativKanbanCard(a) {
+  const pct = a.percentualOS !== undefined && a.percentualOS !== '' ? a.percentualOS : null;
+  return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="padding:12px 14px;margin-bottom:10px;cursor:pointer;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--teal);font-weight:700;">${a.numeroOS ? 'OS '+esc(a.numeroOS) : '#'+esc(a.id)}</span>
+      <span style="font-size:10px;color:var(--text-faint);">${esc(a.responsavel||'Sem responsável')}</span>
+    </div>
+    <div style="font-size:10.5px;color:var(--text-faint);margin-bottom:4px;">${esc(a.usina||'—')} <span style="color:var(--border-strong);">·</span> ${esc(a.cliente||'')}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3;">${esc(a.descricao||'')}</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;line-height:1.4;">${esc(_ativEquipamento(a))}</div>
+    ${a.prazo ? `<div style="font-size:10.5px;color:${_prioridadeCor(a.prioridade)};margin-bottom:6px;">Prazo: ${_ativFormatarPrazoCard(a.prazo)}</div>` : ''}
+    ${pct !== null ? `<div style="height:4px;border-radius:3px;background:var(--border);overflow:hidden;"><div style="height:100%;width:${esc(pct)}%;background:${pct==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div></div>` : ''}
+  </div>`;
+}
+
+function _ativKanbanColuna(titulo, cor, lista) {
+  return `<div style="background:var(--panel-bg,rgba(255,255,255,0.02));border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:2px solid ${cor};background:${cor}11;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
+      <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 9px;">${lista.length}</span>
+    </div>
+    <div style="padding:12px;max-height:640px;overflow-y:auto;">
+      ${lista.length === 0 ? `<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:20px 0;">Nenhuma atividade</div>` : lista.map(_ativKanbanCard).join('')}
+    </div>
+  </div>`;
+}
+
+function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
+  const kanban = document.getElementById('ativKanban');
+  if (!kanban) return;
+  const ordenarPorId = arr => [...arr].sort((a,b) => (+b.id||0)-(+a.id||0));
+  kanban.innerHTML =
+    _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList)) +
+    _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList)) +
+    _ativKanbanColuna('OSs Concluídas', 'var(--teal)', ordenarPorId(historicoList));
+  kanban.querySelectorAll('.card').forEach(c => {
+    c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
+    c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
+  });
+}
+
 function renderAtividadeCards() {
   const grid = document.getElementById('ativGrid');
   const sub = document.getElementById('ativSub');
@@ -5713,6 +5771,12 @@ function renderAtividadeCards() {
   if (tA) tA.textContent = ativasList.length;
   if (tV) tV.textContent = verificacaoList.length;
   if (tH) tH.textContent = historicoList.length;
+
+  if (_ativViewMode === 'kanban') {
+    if (sub) sub.textContent = `${filtradas.length} atividade${filtradas.length!==1?'s':''}`;
+    _ativRenderKanban(ativasList, verificacaoList, historicoList);
+    return;
+  }
 
   const lista = _ativTab === 'historico' ? historicoList : (_ativTab === 'verificacao' ? verificacaoList : ativasList);
   if (sub) sub.textContent = `${lista.length} de ${filtradas.length} atividade${filtradas.length!==1?'s':''}`;
