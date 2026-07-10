@@ -1620,15 +1620,15 @@ body{
             <div class="tabs-wrapper">
               <button class="tab-btn active" id="ativTabAtivas" onclick="_ativMudarTab('ativas')">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Ativas <span class="tab-count" id="ativTabAtivasCount">0</span>
+                OSs em Processo <span class="tab-count" id="ativTabAtivasCount">0</span>
               </button>
               <button class="tab-btn" id="ativTabVerificacao" onclick="_ativMudarTab('verificacao')">
                 <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Em Verificação <span class="tab-count" id="ativTabVerificacaoCount">0</span>
+                OSs em Verificação <span class="tab-count" id="ativTabVerificacaoCount">0</span>
               </button>
               <button class="tab-btn" id="ativTabHistorico" onclick="_ativMudarTab('historico')">
                 <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-                Concluídas <span class="tab-count" id="ativTabHistoricoCount">0</span>
+                OSs Concluídas <span class="tab-count" id="ativTabHistoricoCount">0</span>
               </button>
             </div>
             <button class="sort-btn" id="ativFiltroHojeBtn" onclick="_ativToggleFiltroHoje()" style="display:flex;align-items:center;gap:5px;">
@@ -5763,6 +5763,12 @@ function _ativMudarTab(tab) {
   document.getElementById('ativTabVerificacao')?.classList.toggle('active', tab==='verificacao');
   document.getElementById('ativTabHistorico')?.classList.toggle('active', tab==='historico');
   renderAtividadeCards();
+  if (_ativViewMode === 'kanban') {
+    const kanban = document.getElementById('ativKanban');
+    const idx = { ativas: 0, verificacao: 1, historico: 2 }[tab] ?? 0;
+    const coluna = kanban?.children[idx];
+    if (coluna) coluna.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  }
 }
 
 document.addEventListener('click', (e) => {
