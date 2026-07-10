@@ -581,11 +581,16 @@ body{
    GRID CONTROLS + ABAS
 ══════════════════════════════════════════════════════════ */
 .grid-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
-.tabs-wrapper{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
-.tab-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:#888;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
+.tabs-wrapper{display:flex;align-items:center;gap:2px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:3px;flex-wrap:wrap;}
+.tab-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text-dim);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
+@media(max-width:480px){
+  .tab-btn{padding:5px 7px;font-size:10px;gap:4px;}
+  .tab-btn svg{width:11px;height:11px;flex:none;}
+  .tab-count{font-size:8px !important;padding:1px 4px !important;}
+}
 .tab-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.tab-btn.active{background:#1a1a1a;color:#ededed;box-shadow:0 1px 3px rgba(0,0,0,.4);}
-.tab-count{background:rgba(255,255,255,0.08);color:#888;border-radius:99px;font-size:9.5px;font-weight:600;padding:1px 6px;}
+.tab-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.tab-count{background:var(--border);color:var(--text-dim);border-radius:99px;font-size:9.5px;font-weight:600;padding:1px 6px;}
 .tab-btn.active .tab-count{background:var(--amber);color:#000;}
 .view-toggle{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:#888;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
