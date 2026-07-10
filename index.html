@@ -1230,6 +1230,11 @@ body{
         <div class="cb-list" id="cbListUsina" style="display:none;"></div>
       </div>
 
+      <span class="sb-filter-label">Cluster</span>
+      <select class="sb-select" id="ativClusterSelect" onchange="_ativFiltrarPorCluster(this.value)">
+        <option value="">Todos</option>
+      </select>
+
       <div style="display:none;">
         <span class="sb-filter-label">Status</span>
         <div class="cb-dropdown" id="cbDropdownStatus">
@@ -5244,6 +5249,7 @@ async function carregarAtividades(tentativa = 1) {
       // de dados entre tenants) — nunca devem aparecer pra um cliente nosso.
       ATIVIDADES = ATIVIDADES.filter(a => !(a.descricao || '').toLowerCase().includes('greenyellow'));
     }
+    _ativPopularClusters();
     renderAtividadeCards();
   } catch (e) {
     if (tentativa < 3) {
@@ -5372,7 +5378,7 @@ function _ativDiaSemana(dataStr) {
 function _montarTextoReprogramacao(itens) {
   const porEquipe = {};
   itens.forEach(it => {
-    const chave = it.responsavel || 'Sem responsável';
+    const chave = it.cluster || it.responsavel || 'Sem equipe';
     if (!porEquipe[chave]) porEquipe[chave] = [];
     porEquipe[chave].push(it);
   });
@@ -5651,6 +5657,22 @@ function _prioridadeCor(p) {
 let _ativTab = 'ativas';
 let _ativSortKey = 'newest';
 let _ativViewMode = 'kanban';
+let _ativClusterFiltro = '';
+
+function _ativFiltrarPorCluster(valor) {
+  _ativClusterFiltro = valor || '';
+  renderAtividadeCards();
+}
+
+function _ativPopularClusters() {
+  const sel = document.getElementById('ativClusterSelect');
+  if (!sel) return;
+  const atual = sel.value;
+  const clusters = [...new Set(ATIVIDADES.map(a => a.cluster).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos</option>' + clusters.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (clusters.includes(atual)) sel.value = atual;
+  else _ativClusterFiltro = '';
+}
 
 function _ativSetViewMode(mode) {
   _ativViewMode = mode;
@@ -5735,6 +5757,7 @@ function _ativRenderBreakdowns() {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     return true;
   });
   const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
@@ -5903,6 +5926,7 @@ function renderAtividadeCards() {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     return true;
   });
