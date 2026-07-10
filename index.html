@@ -5552,7 +5552,7 @@ function _abrirComunicados() {
   document.getElementById('comunicadoModalIntro').style.display = 'flex';
   document.getElementById('comunicadoModalResult').style.display = 'none';
 
-  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !(a.statusGeralOS||'').toLowerCase().includes('conclu'));
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
   const porEquipe = {};
   abertas.forEach(a => {
     const eq = a.cluster || _normalizarResponsavel(a.responsavel) || 'Sem cluster';
