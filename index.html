@@ -5361,26 +5361,44 @@ function _ativTurnoLabel(t) {
   return t || '—';
 }
 
+function _ativDiaSemana(dataStr) {
+  const m = (dataStr || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return '—';
+  const dt = new Date(+m[3], +m[2]-1, +m[1]);
+  const dias = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  return dias[dt.getDay()];
+}
+
 function _montarTextoReprogramacao(itens) {
-  const porUsina = {};
+  const porEquipe = {};
   itens.forEach(it => {
-    const chave = it.usina || 'Sem usina';
-    if (!porUsina[chave]) porUsina[chave] = [];
-    porUsina[chave].push(it);
+    const chave = it.responsavel || 'Sem responsável';
+    if (!porEquipe[chave]) porEquipe[chave] = [];
+    porEquipe[chave].push(it);
   });
   const parseDataBRSort = (s) => {
     const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
     return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
   };
   let txt = '📅 *Reprogramação de Atividades*\n\n';
-  Object.entries(porUsina).forEach(([usina, lista]) => {
-    lista = [...lista].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
-    txt += `${usina}\n`;
-    lista.forEach(it => {
-      const os = it.numeroOS ? `OS ${it.numeroOS}` : (it.equipamento || 'atividade');
-      txt += `${os} - ${it.dataSugerida || '—'} - ${_ativTurnoLabel(it.turno)}\n`;
+  Object.entries(porEquipe).forEach(([equipe, listaEquipe]) => {
+    txt += `${equipe}:\n\n`;
+    const porUsina = {};
+    listaEquipe.forEach(it => {
+      const chaveU = it.usina || 'Sem usina';
+      if (!porUsina[chaveU]) porUsina[chaveU] = [];
+      porUsina[chaveU].push(it);
     });
-    txt += '\n';
+    Object.entries(porUsina).forEach(([usina, lista]) => {
+      lista = [...lista].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
+      txt += `${usina}\n`;
+      lista.forEach(it => {
+        const os = it.numeroOS ? `OS ${it.numeroOS}` : 'atividade';
+        const atividade = it.equipamento || it.justificativa || '—';
+        txt += `${os}; ${_ativDiaSemana(it.dataSugerida)}; ${atividade}; ${_ativTurnoLabel(it.turno)}\n`;
+      });
+      txt += '\n';
+    });
   });
   return txt.trim();
 }
@@ -5418,7 +5436,7 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades, truncado, total
     <div style="margin-top:4px;color:var(--text-faint);">${itens.length} de ${totalAtividades} atividade(s) reprogramada(s).</div>
   </div>
   ${truncado ? `<div style="font-size:12px;color:var(--amber);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
-    ⚠️ Havia <strong>${esc(totalOriginal)}</strong> atividades no filtro selecionado, mas só processamos as <strong>25 mais urgentes</strong> (prioridade Alta e prazos mais próximos primeiro) de uma vez — o servidor tem um limite de tempo pra IA responder. Pra cobrir o restante, filtre por cliente/usina e rode de novo, ou repita a reprogramação depois de aplicar essas.
+    ⚠️ Havia <strong>${esc(totalOriginal)}</strong> atividades no filtro selecionado, mas só processamos as <strong>60 mais urgentes</strong> (prioridade Alta e prazos mais próximos primeiro) de uma vez. Pra cobrir o restante, filtre por cliente/usina e rode de novo, ou repita a reprogramação depois de aplicar essas.
   </div>` : ''}
   <button id="reprogCopiarBtn" style="width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
     <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
