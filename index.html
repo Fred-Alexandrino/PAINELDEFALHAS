@@ -500,6 +500,15 @@ body{
   #ativKanbanDots{display:flex !important;}
 }
 #ativKanbanDots{display:none;justify-content:center;gap:7px;margin-top:10px;}
+.kanban-col-body::-webkit-scrollbar{width:5px;}
+.kanban-col-body::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px;}
+.kanban-col-body::-webkit-scrollbar-track{background:transparent;}
+/* fallback geral pra qualquer área rolável que não tenha estilo próprio —
+   evita a scrollbar branca padrão do navegador destoar do tema escuro */
+*{scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px;}
 #ativKanbanDots button{width:7px;height:7px;border-radius:99px;border:none;background:var(--border-strong);padding:0;cursor:pointer;transition:.15s;}
 #ativKanbanDots button.active{background:var(--teal);width:18px;border-radius:5px;}
 
@@ -5872,7 +5881,7 @@ function _ativKanbanColuna(titulo, cor, lista) {
       <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
       <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 9px;">${lista.length}</span>
     </div>
-    <div style="padding:12px;max-height:640px;overflow-y:auto;">
+    <div class="kanban-col-body" style="padding:12px;max-height:640px;overflow-y:auto;">
       ${lista.length === 0 ? `<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:20px 0;">Nenhuma atividade</div>` : lista.map(_ativKanbanCard).join('')}
     </div>
   </div>`;
