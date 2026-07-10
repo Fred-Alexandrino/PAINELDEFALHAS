@@ -204,7 +204,7 @@ body{
   font-family:'Geist Mono',monospace;font-size:9px;
   text-transform:uppercase;letter-spacing:.1em;
   color:var(--text-faint);font-weight:700;
-  margin:10px 0 5px;display:block;
+  margin:7px 0 4px;display:block;
 }
 .sb-filter-label:first-child{margin-top:0;}
 
@@ -222,24 +222,24 @@ body{
 
 /* Select compacto */
 .sb-select{
-  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-  color:#ededed;border-radius:7px;padding:7px 9px;
+  width:100%;background:var(--panel-alt);border:1px solid var(--border);
+  color:var(--text);border-radius:7px;padding:6px 9px;
   font-size:12px;font-family:'Geist',sans-serif;
-  outline:none;cursor:pointer;margin-bottom:6px;
+  outline:none;cursor:pointer;margin-bottom:4px;
   -webkit-appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%23888' fill='none' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;background-size:12px;
   padding-right:26px;
 }
-.sb-select:focus{border-color:rgba(255,255,255,0.2);}
-.sb-select option{color:#ededed;background:#1a1a1a;}
+.sb-select:focus{border-color:var(--border-strong);}
+.sb-select option{color:var(--text);background:var(--panel);}
 
 /* Custom checkbox dropdown */
-.cb-dropdown{position:relative;margin-bottom:8px;}
+.cb-dropdown{position:relative;margin-bottom:5px;}
 .cb-trigger{
   width:100%;display:flex;align-items:center;justify-content:space-between;
   background:var(--panel-alt);border:1px solid var(--border);
-  color:var(--text);border-radius:7px;padding:7px 9px;
+  color:var(--text);border-radius:7px;padding:6px 9px;
   font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;
   transition:border-color .15s;text-align:left;
 }
@@ -288,7 +288,7 @@ body{
 .sb-search::placeholder{color:var(--text-faint);}
 
 /* Datas lado a lado */
-.sb-date-row{display:flex;gap:4px;margin-bottom:6px;}
+.sb-date-row{display:flex;gap:4px;margin-bottom:4px;}
 .sb-date-input{
   flex:1;background:var(--panel-alt);border:1px solid var(--border);
   color:var(--text);border-radius:7px;padding:6px 7px;
@@ -2927,6 +2927,7 @@ function applyFilters() {
   });
   applySortAndRender();
   if (_activeNav === 'atividades') renderAtividadeCards();
+  if (_activeNav === 'chamados') openChamadosInline();
 }
 
 function clearFilters() {
@@ -4949,7 +4950,12 @@ document.getElementById('desligBanner').addEventListener('click', toggleDesligFi
 
 /* ══ CHAMADOS — agora seção inline (não mais modal) ══ */
 function openChamadosInline(){
-  const withTicket=DATA.filter(d=>isValidTicket(d.ticketFabricante));
+  const dataFiltrada = DATA.filter(d => {
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(d.usina)) return false;
+    return true;
+  });
+  const withTicket=dataFiltrada.filter(d=>isValidTicket(d.ticketFabricante));
   const body=document.getElementById('chamadosBody');const sub=document.getElementById('chamadosSubtitle');
   const totalAbertos=withTicket.filter(d=>{const s=d.status.toLowerCase();return!s.includes('conclu')&&!s.includes('resolv')&&!s.includes('fechad');}).length;
   if (sub) sub.textContent=`${withTicket.length} chamado(s) com ticket · ${totalAbertos} em aberto`;
