@@ -1609,6 +1609,7 @@ body{
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
 
         <!-- Panels de breakdown -->
+        <div class="panel" style="margin-bottom:10px;"><div class="panel-head"><h3>Por cluster</h3><span class="panel-total" id="ativClusterTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
         <div class="panels-ativ">
           <div class="panel"><div class="panel-head"><h3>Atividades por usina</h3><span class="panel-total" id="ativUsinaTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
           <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="ativStatusTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
@@ -2603,6 +2604,13 @@ function normalizeCliente(raw) {
 }
 
 const STATUS_PALETTE = {
+  // Status geral da OS (statusGeralOS) — mesmas cores dos badges dos cards
+  'não iniciada':           {color:'#94A3B8', glow:'rgba(148,163,184,.5)',  pulse:false},
+  'nao iniciada':           {color:'#94A3B8', glow:'rgba(148,163,184,.5)',  pulse:false},
+  'em progresso':           {color:'#60A5FA', glow:'rgba(96,165,250,.55)',  pulse:false},
+  'pausada':                {color:'#FB923C', glow:'rgba(251,146,60,.55)',  pulse:false},
+  'concluída':              {color:'#3FC1B0', glow:'rgba(63,193,176,.55)',  pulse:false},
+  'concluida':              {color:'#3FC1B0', glow:'rgba(63,193,176,.55)',  pulse:false},
   // Urgentes — laranja vibrante pulsante (≠ vermelho dos desligamentos)
   'em aberto':              {color:'#F97316', glow:'rgba(249,115,22,.6)',  pulse:true},
   'abrir chamado':          {color:'#FBBF24', glow:'rgba(251,191,36,.6)',  pulse:true},
@@ -5803,7 +5811,7 @@ function _ativRenderBreakdowns() {
   const filtradas = ATIVIDADES.filter(a => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
-    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     return true;
   });
@@ -5812,15 +5820,25 @@ function _ativRenderBreakdowns() {
   const historicoList = filtradas.filter(a => _ativIsConcluida(a));
   const listaStatus = _ativTab === 'historico' ? historicoList : (_ativTab === 'verificacao' ? verificacaoList : ativasList);
 
-  const uMap = {}, sMap = {};
+  const uMap = {}, sMap = {}, cMap = {};
   listaStatus.forEach(a => { uMap[a.usina] = (uMap[a.usina] || 0) + 1; });
-  listaStatus.forEach(a => { sMap[a.status] = (sMap[a.status] || 0) + 1; });
+  listaStatus.forEach(a => { sMap[a.statusGeralOS || 'Não iniciada'] = (sMap[a.statusGeralOS || 'Não iniciada'] || 0) + 1; });
+  listaStatus.forEach(a => { if (a.cluster) cMap[a.cluster] = (cMap[a.cluster] || 0) + 1; });
 
+  makeBar('ativClusterBars', Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']), 'ativClusterTotal');
   makeBar('ativUsinaBars', Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']), 'ativUsinaTotal');
   makeBar('ativStatusBars', Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
     const pal = getStatusPalette(k);
     return [k, v, pal.color + 'BB', pal.pulse || false];
   }), 'ativStatusTotal');
+
+  document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    _ativClusterFiltro = (_ativClusterFiltro === v) ? '' : v;
+    const sel = document.getElementById('ativClusterSelect');
+    if (sel) sel.value = _ativClusterFiltro;
+    renderAtividadeCards();
+  }));
 
   document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.addEventListener('click', () => {
     const v = r.dataset.group;
@@ -5850,6 +5868,7 @@ function _ativRenderBreakdowns() {
 
   document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
+  document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.classList.toggle('selected', _ativClusterFiltro === r.dataset.group));
 }
 
 function _statusGeralEstilo(status) {
@@ -5972,7 +5991,7 @@ function renderAtividadeCards() {
   const filtradas = ATIVIDADES.filter(a => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
-    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.status)) return false;
+    if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     return true;
