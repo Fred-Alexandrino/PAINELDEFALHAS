@@ -5362,22 +5362,22 @@ function _ativTurnoLabel(t) {
 }
 
 function _montarTextoReprogramacao(itens) {
-  const porResponsavel = {};
+  const porUsina = {};
   itens.forEach(it => {
-    const chave = it.responsavel || 'Sem responsável';
-    if (!porResponsavel[chave]) porResponsavel[chave] = [];
-    porResponsavel[chave].push(it);
+    const chave = it.usina || 'Sem usina';
+    if (!porUsina[chave]) porUsina[chave] = [];
+    porUsina[chave].push(it);
   });
   const parseDataBRSort = (s) => {
     const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
     return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
   };
   let txt = '📅 *Reprogramação de Atividades*\n\n';
-  Object.entries(porResponsavel).forEach(([responsavel, lista]) => {
+  Object.entries(porUsina).forEach(([usina, lista]) => {
     lista = [...lista].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
-    txt += `👷 *${responsavel}*\n`;
+    txt += `${usina}\n`;
     lista.forEach(it => {
-      const os = it.numeroOS ? `OS ${it.numeroOS}` : (it.usina || 'atividade');
+      const os = it.numeroOS ? `OS ${it.numeroOS}` : (it.equipamento || 'atividade');
       txt += `${os} - ${it.dataSugerida || '—'} - ${_ativTurnoLabel(it.turno)}\n`;
     });
     txt += '\n';
