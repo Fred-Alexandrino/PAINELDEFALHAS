@@ -2314,6 +2314,9 @@ function initDashboard(session) {
   const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
+  const ativReprogBtn      = document.getElementById('ativReprogramarBtn');
+  const ativComunicadosBtn = document.getElementById('ativComunicadosBtn');
+  const ativAtualizarBtn   = document.getElementById('ativAtualizarOsBtn');
 
   if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
@@ -2326,6 +2329,9 @@ function initDashboard(session) {
     if (navEficiencia) navEficiencia.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
+    if (ativReprogBtn) ativReprogBtn.style.display = '';
+    if (ativComunicadosBtn) ativComunicadosBtn.style.display = '';
+    if (ativAtualizarBtn) ativAtualizarBtn.style.display = '';
   } else if (session.role === 'admin') {
     // Somente visualização — sem rondas/processos/log/relatorios/mttr/eficiencia/filtros/acoes
     if (navRondas) navRondas.style.display = 'none';
@@ -2337,6 +2343,9 @@ function initDashboard(session) {
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
+    if (ativReprogBtn) ativReprogBtn.style.display = 'none';
+    if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
+    if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
   } else {
     // Cliente: idem — nada disso deve aparecer
     if (navRondas) navRondas.style.display = 'none';
@@ -2348,6 +2357,9 @@ function initDashboard(session) {
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
+    if (ativReprogBtn) ativReprogBtn.style.display = 'none';
+    if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
+    if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
   }
 
   document.getElementById('appShell').classList.add('ready');
