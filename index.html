@@ -5338,7 +5338,7 @@ async function _gerarSugestaoReprogramacao() {
 
   try {
     const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 60000);
+    const timeoutId = setTimeout(() => ctrl.abort(), 100000);
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-reprogramacao', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ids }), signal: ctrl.signal
     });
