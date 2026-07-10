@@ -5354,6 +5354,48 @@ async function _gerarSugestaoReprogramacao() {
   }
 }
 
+function _ativTurnoLabel(t) {
+  const s = (t || '').toLowerCase();
+  if (s.includes('manh')) return 'manhã';
+  if (s.includes('tard')) return 'tarde';
+  return t || '—';
+}
+
+function _montarTextoReprogramacao(itens) {
+  const porResponsavel = {};
+  itens.forEach(it => {
+    const chave = it.responsavel || 'Sem responsável';
+    if (!porResponsavel[chave]) porResponsavel[chave] = [];
+    porResponsavel[chave].push(it);
+  });
+  const parseDataBRSort = (s) => {
+    const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
+  };
+  let txt = '📅 *Reprogramação de Atividades*\n\n';
+  Object.entries(porResponsavel).forEach(([responsavel, lista]) => {
+    lista = [...lista].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
+    txt += `👷 *${responsavel}*\n`;
+    lista.forEach(it => {
+      const os = it.numeroOS ? `OS ${it.numeroOS}` : (it.usina || 'atividade');
+      txt += `${os} - ${it.dataSugerida || '—'} - ${_ativTurnoLabel(it.turno)}\n`;
+    });
+    txt += '\n';
+  });
+  return txt.trim();
+}
+
+async function _copiarTextoReprogramacao(itens, btnEl) {
+  const texto = _montarTextoReprogramacao(itens);
+  try {
+    await navigator.clipboard.writeText(texto);
+    if (btnEl) { const orig = btnEl.textContent; btnEl.textContent = '✓ Copiado!'; setTimeout(() => btnEl.textContent = orig, 1800); }
+    showToast('Texto copiado!', true);
+  } catch (e) {
+    showToast('Não foi possível copiar automaticamente.', false);
+  }
+}
+
 function _renderSugestaoReprogramacao(sugestao, totalAtividades) {
   const result = document.getElementById('reprogModalResult');
   const itens = sugestao?.reprogramacoes || [];
@@ -5371,10 +5413,14 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades) {
     return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
   };
 
-  let html = `<div style="font-size:12.5px;color:var(--text-dim);background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);border-radius:8px;padding:10px 12px;margin-bottom:16px;">
+  let html = `<div style="font-size:12.5px;color:var(--text-dim);background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
     <strong style="color:var(--teal);">Resumo da IA:</strong> ${esc(sugestao?.resumo || '')}
     <div style="margin-top:4px;color:var(--text-faint);">${itens.length} de ${totalAtividades} atividade(s) reprogramada(s).</div>
-  </div>`;
+  </div>
+  <button id="reprogCopiarBtn" style="width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+    <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    Copiar texto (OS - data - turno)
+  </button>`;
 
   Object.entries(porResponsavel).forEach(([responsavel, lista]) => {
     lista.sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
@@ -5390,6 +5436,7 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades) {
             <div style="flex:none;text-align:right;">
               <div style="font-size:10px;color:var(--text-faint);text-decoration:line-through;">${esc(it.dataAtual||'')}</div>
               <div style="font-size:13px;color:var(--teal);font-weight:700;">${esc(it.dataSugerida||'')}</div>
+              <div style="font-size:10px;color:var(--text-dim);">${esc(_ativTurnoLabel(it.turno))}</div>
             </div>
             <button onclick="_aplicarReprogramacao('${esc(it.id)}','${esc(it.dataSugerida)}', this)" style="flex:none;background:transparent;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;white-space:nowrap;">Aplicar</button>
           </div>`).join('')}
@@ -5399,6 +5446,7 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades) {
 
   result.innerHTML = html;
   result.style.display = 'block';
+  document.getElementById('reprogCopiarBtn')?.addEventListener('click', function() { _copiarTextoReprogramacao(itens, this); });
 }
 
 async function _aplicarReprogramacao(id, novaData, btnEl) {
