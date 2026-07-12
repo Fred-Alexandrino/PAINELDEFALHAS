@@ -1659,6 +1659,10 @@ body{
               <button class="view-btn" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
               <button class="view-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
             </div>
+            <button class="sort-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+              <span id="ativKanbanOrdemLabel">OS crescente</span>
+            </button>
           </div>
         </div>
         <div class="sort-group" id="ativSortGroup" style="display:none;">
@@ -5718,6 +5722,14 @@ let _ativTab = 'ativas';
 let _ativSortKey = 'newest';
 let _ativViewMode = 'kanban';
 let _ativClusterFiltro = '';
+let _ativKanbanOrdemCrescente = true;
+
+function _ativAlternarOrdemKanban() {
+  _ativKanbanOrdemCrescente = !_ativKanbanOrdemCrescente;
+  const label = document.getElementById('ativKanbanOrdemLabel');
+  if (label) label.textContent = _ativKanbanOrdemCrescente ? 'OS crescente' : 'OS decrescente';
+  renderAtividadeCards();
+}
 
 function _ativFiltrarPorCluster(valor) {
   _ativClusterFiltro = valor || '';
@@ -5742,6 +5754,8 @@ function _ativSetViewMode(mode) {
   document.getElementById('ativKanban').style.display = mode === 'kanban' ? 'grid' : 'none';
   const sg = document.getElementById('ativSortGroup');
   if (sg) sg.style.display = mode === 'cards' ? 'flex' : 'none';
+  const ob = document.getElementById('ativKanbanOrdemBtn');
+  if (ob) ob.style.display = mode === 'kanban' ? 'flex' : 'none';
   renderAtividadeCards();
 }
 
@@ -5958,7 +5972,10 @@ function _ativKanbanColuna(titulo, cor, lista) {
 function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
   const kanban = document.getElementById('ativKanban');
   if (!kanban) return;
-  const ordenarPorId = arr => [...arr].sort((a,b) => (+a.numeroOS||+a.id||0)-(+b.numeroOS||+b.id||0));
+  const ordenarPorId = arr => [...arr].sort((a,b) => {
+    const diff = (+a.numeroOS||+a.id||0) - (+b.numeroOS||+b.id||0);
+    return _ativKanbanOrdemCrescente ? diff : -diff;
+  });
   kanban.innerHTML =
     _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList)) +
     _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList)) +
