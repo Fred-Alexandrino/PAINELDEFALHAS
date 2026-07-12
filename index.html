@@ -5307,7 +5307,7 @@ async function _atualizarOSAgora() {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const textoOriginal = label.textContent;
-  label.textContent = 'Buscando na Fracttal…';
+  label.textContent = 'Verificando status…';
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 40000);
@@ -5317,8 +5317,9 @@ async function _atualizarOSAgora() {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
-    const qtdNovas = (result.criadas || []).length;
-    label.textContent = qtdNovas === 0 ? 'Nenhuma OS nova' : `+${qtdNovas} OS nova(s)`;
+    const corrigidas = (result.divergencias || []).length;
+    const revalidadas = (result.revalidadas_ao_vivo || []).length;
+    label.textContent = corrigidas === 0 ? `${revalidadas} verificada(s), tudo certo` : `${corrigidas} corrigida(s)`;
     await carregarAtividades();
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
   } catch (e) {
@@ -5335,7 +5336,7 @@ async function _rodarAuditoriaAgora() {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const textoOriginal = label.textContent;
-  label.textContent = 'Revalidando na Fracttal…';
+  label.textContent = 'Varredura completa…';
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 60000);
@@ -5345,11 +5346,12 @@ async function _rodarAuditoriaAgora() {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro na auditoria');
-    const corrigidas = (result.divergencias || []).length;
-    const revalidadas = (result.revalidadas_ao_vivo || []).length;
-    label.textContent = corrigidas === 0 ? `${revalidadas} revalidada(s), tudo certo` : `${corrigidas} corrigida(s)`;
+    const qtdNovas = (result.descoberta?.criadas || []).length;
+    const corrigidas = (result.consistencia?.divergencias || []).length;
+    const revalidadas = (result.consistencia?.revalidadas_ao_vivo || []).length;
+    label.textContent = `+${qtdNovas} nova(s), ${corrigidas} corrigida(s), ${revalidadas} revalidada(s)`;
     await carregarAtividades();
-    setTimeout(() => { label.textContent = textoOriginal; }, 4000);
+    setTimeout(() => { label.textContent = textoOriginal; }, 5000);
   } catch (e) {
     label.textContent = 'Erro na auditoria';
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
