@@ -1655,6 +1655,10 @@ body{
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               <span id="ativAtualizarOsLabel">Atualizar OS</span>
             </button>
+            <button class="sort-btn" id="ativAuditoriaBtn" onclick="_rodarAuditoriaAgora()" style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.4 0 4.58.94 6.2 2.47"/><path d="M21 4v5h-5"/></svg>
+              <span id="ativAuditoriaLabel">Auditoria</span>
+            </button>
             <div class="view-toggle">
               <button class="view-btn" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
               <button class="view-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
@@ -2341,6 +2345,7 @@ function initDashboard(session) {
   const ativReprogBtn      = document.getElementById('ativReprogramarBtn');
   const ativComunicadosBtn = document.getElementById('ativComunicadosBtn');
   const ativAtualizarBtn   = document.getElementById('ativAtualizarOsBtn');
+  const ativAuditoriaBtn   = document.getElementById('ativAuditoriaBtn');
 
   if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
@@ -2356,6 +2361,7 @@ function initDashboard(session) {
     if (ativReprogBtn) ativReprogBtn.style.display = '';
     if (ativComunicadosBtn) ativComunicadosBtn.style.display = '';
     if (ativAtualizarBtn) ativAtualizarBtn.style.display = '';
+    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = '';
   } else if (session.role === 'admin') {
     // Somente visualização — sem rondas/processos/log/relatorios/mttr/eficiencia/filtros/acoes
     if (navRondas) navRondas.style.display = 'none';
@@ -2370,6 +2376,7 @@ function initDashboard(session) {
     if (ativReprogBtn) ativReprogBtn.style.display = 'none';
     if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
     if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
+    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = 'none';
   } else {
     // Cliente: idem — nada disso deve aparecer
     if (navRondas) navRondas.style.display = 'none';
@@ -2384,6 +2391,7 @@ function initDashboard(session) {
     if (ativReprogBtn) ativReprogBtn.style.display = 'none';
     if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
     if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
+    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = 'none';
   }
 
   document.getElementById('appShell').classList.add('ready');
@@ -5302,7 +5310,7 @@ async function _atualizarOSAgora() {
   label.textContent = 'Buscando na Fracttal…';
   try {
     const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 70000);
+    const timeoutId = setTimeout(() => ctrl.abort(), 40000);
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
       method: 'POST', signal: ctrl.signal
     });
@@ -5310,16 +5318,40 @@ async function _atualizarOSAgora() {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
     const qtdNovas = (result.criadas || []).length;
-    const qtdMudancas = (result.mudancas_status || []).length;
-    if (qtdNovas === 0 && qtdMudancas === 0) {
-      label.textContent = 'Nenhuma novidade';
-    } else {
-      label.textContent = `+${qtdNovas} nova(s), ${qtdMudancas} atualizada(s)`;
-    }
+    label.textContent = qtdNovas === 0 ? 'Nenhuma OS nova' : `+${qtdNovas} OS nova(s)`;
     await carregarAtividades();
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
   } catch (e) {
     label.textContent = 'Erro ao atualizar';
+    setTimeout(() => { label.textContent = textoOriginal; }, 4000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function _rodarAuditoriaAgora() {
+  const btn = document.getElementById('ativAuditoriaBtn');
+  const label = document.getElementById('ativAuditoriaLabel');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const textoOriginal = label.textContent;
+  label.textContent = 'Revalidando na Fracttal…';
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 60000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/rodar-auditoria-agora', {
+      method: 'POST', signal: ctrl.signal
+    });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro na auditoria');
+    const corrigidas = (result.divergencias || []).length;
+    const revalidadas = (result.revalidadas_ao_vivo || []).length;
+    label.textContent = corrigidas === 0 ? `${revalidadas} revalidada(s), tudo certo` : `${corrigidas} corrigida(s)`;
+    await carregarAtividades();
+    setTimeout(() => { label.textContent = textoOriginal; }, 4000);
+  } catch (e) {
+    label.textContent = 'Erro na auditoria';
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
   } finally {
     btn.disabled = false;
