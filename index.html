@@ -192,6 +192,25 @@ body{
 .sb-nav-item.active .sb-nav-badge{color:var(--text-dim);border-color:var(--border-strong);}
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
+.cmp-card{background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:10px;padding:16px 18px;}
+.cmp-card.cmp-atrasado{border-color:var(--red);}
+.cmp-card.cmp-urgente{border-color:var(--amber);}
+.cmp-card.cmp-concluido{opacity:.55;}
+.cmp-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.cmp-card-title{font-size:14px;font-weight:700;color:#ededed;}
+.cmp-card-sub{font-size:11px;color:var(--text-dim);font-family:'Geist Mono',monospace;margin-top:2px;}
+.cmp-badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;}
+.cmp-badge.cmp-b-atrasado{background:rgba(239,68,68,.15);color:var(--red);}
+.cmp-badge.cmp-b-pendente{background:rgba(107,114,128,.18);color:var(--text-dim);}
+.cmp-badge.cmp-b-andamento{background:rgba(245,166,35,.15);color:var(--amber);}
+.cmp-badge.cmp-b-concluido{background:rgba(34,197,94,.15);color:var(--sla-ok);}
+.cmp-steps{display:flex;flex-direction:column;gap:7px;margin-top:8px;}
+.cmp-step{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#d1d5db;cursor:pointer;user-select:none;}
+.cmp-step.cmp-step-done{color:var(--text-dim);text-decoration:line-through;}
+.cmp-check{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;}
+.cmp-step-done .cmp-check{background:var(--sla-ok);border-color:var(--sla-ok);}
+.cmp-step-done .cmp-check svg{width:11px;height:11px;stroke:#0a0a0a;stroke-width:3;}
+.cmp-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;}
 
 /* Zona 3 — Filtros */
 .sb-filters{
@@ -1226,6 +1245,10 @@ body{
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Eficiência O&amp;M
       </div>
+      <div class="sb-nav-item" data-nav="boletins">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Boletins &amp; Relatórios
+      </div>
     </nav>
 
     <!-- Zona 3: Filtros -->
@@ -1606,6 +1629,17 @@ body{
           </button>
 
           <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+        </div>
+      </section>
+
+<!-- ── SEÇÃO: COMPROMISSOS (BM / Relatórios de Terceiros) ── -->
+      <section class="content-section" id="sec-boletins">
+        <div style="max-width:900px;margin:0 auto;">
+          <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;
+                      text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
+            Boletins de Medição & Relatórios de Terceiros
+          </div>
+          <div id="cmpLista" style="display:flex;flex-direction:column;gap:12px;"></div>
         </div>
       </section>
 
@@ -2266,12 +2300,14 @@ const NAV_TITLES = {
   'eficiencia': 'Eficiência O&M',
   'relatorios': 'Relatórios Semanais',
   'atividades': 'Painel de Atividades',
+  'boletins': 'Boletins de Medição & Relatórios de Terceiros',
 };
 
 function switchNav(nav) {
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
   if (nav === 'atividades') { carregarAtividades(); }
+  if (nav === 'boletins') { carregarCompromissos(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -2302,6 +2338,88 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', _initBottomNav);
 } else {
   _initBottomNav();
+}
+
+/* ══ COMPROMISSOS (BM / Relatórios de Performance & PCM) ══ */
+async function carregarCompromissos() {
+  const wrap = document.getElementById('cmpLista');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="cmp-empty">Carregando...</div>';
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos');
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
+    renderCompromissos(data.compromissos || []);
+  } catch (e) {
+    wrap.innerHTML = '<div class="cmp-empty">Erro ao carregar compromissos: ' + (e.message || e) + '</div>';
+  }
+}
+
+function renderCompromissos(lista) {
+  const wrap = document.getElementById('cmpLista');
+  if (!wrap) return;
+  if (!lista.length) {
+    wrap.innerHTML = '<div class="cmp-empty">Nenhum compromisso cadastrado ainda.</div>';
+    return;
+  }
+  wrap.innerHTML = lista.map(cmpCardHtml).join('');
+}
+
+function cmpBadgeInfo(status) {
+  if (status === 'Atrasado') return {cls: 'cmp-b-atrasado', label: 'Atrasado'};
+  if (status === 'Concluído') return {cls: 'cmp-b-concluido', label: 'Concluído'};
+  if (status === 'Em Andamento') return {cls: 'cmp-b-andamento', label: 'Em andamento'};
+  return {cls: 'cmp-b-pendente', label: 'Pendente'};
+}
+
+function cmpPrazoTexto(c) {
+  if (c.status === 'Concluído') return 'Concluído em ' + (c.dataConclusao || '—');
+  if (c.status === 'Atrasado') return 'Prazo era ' + c.dataLimite + ' — vencido';
+  if (c.diasRestantes === 0) return 'Vence hoje (' + c.dataLimite + ')';
+  if (c.diasRestantes === 1) return 'Vence amanhã (' + c.dataLimite + ')';
+  if (c.diasRestantes > 1) return 'Faltam ' + c.diasRestantes + ' dias (' + c.dataLimite + ')';
+  return 'Prazo: ' + c.dataLimite;
+}
+
+function cmpCardHtml(c) {
+  const badge = cmpBadgeInfo(c.status);
+  const cardClass = c.status === 'Atrasado' ? 'cmp-atrasado'
+                   : c.status === 'Concluído' ? 'cmp-concluido'
+                   : (c.diasRestantes <= 1 ? 'cmp-urgente' : '');
+  const stepsHtml = c.etapas.map((nome, idx) => {
+    const feita = !!c.etapasConcluidas[idx];
+    const habilitada = idx === 0 || !!c.etapasConcluidas[idx - 1];
+    return '<div class="cmp-step' + (feita ? ' cmp-step-done' : '') + '"' +
+      (habilitada ? ' onclick="cmpToggleEtapa(\'' + c.id + '\',' + idx + ',' + (!feita) + ')"' : ' style="opacity:.4;cursor:default;"') +
+      '><span class="cmp-check">' + (feita ? '<svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</span>' +
+      nome + (feita ? ' <span style="color:var(--text-faint);font-size:10.5px;">(' + c.etapasConcluidas[idx] + ')</span>' : '') +
+      '</div>';
+  }).join('');
+
+  return '<div class="cmp-card ' + cardClass + '">' +
+    '<div class="cmp-card-head">' +
+      '<div><div class="cmp-card-title">' + c.tipoLabel + ' — ' + c.cliente + (c.usina ? (' · ' + c.usina) : '') + '</div>' +
+      '<div class="cmp-card-sub">Competência ' + c.competencia + ' · ' + cmpPrazoTexto(c) + '</div></div>' +
+      '<span class="cmp-badge ' + badge.cls + '">' + badge.label + '</span>' +
+    '</div>' +
+    '<div class="cmp-steps">' + stepsHtml + '</div>' +
+  '</div>';
+}
+
+async function cmpToggleEtapa(id, etapaIndex, concluida) {
+  try {
+    await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos/marcar-etapa', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        id, etapaIndex, concluida,
+        editor: (_currentSession && _currentSession.user) || 'dashboard',
+      }),
+    });
+  } catch (e) {
+    console.error('Erro ao marcar etapa:', e);
+  }
+  carregarCompromissos();
 }
 
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
@@ -2340,6 +2458,7 @@ function initDashboard(session) {
   const navRelatorios  = document.querySelector('.sb-nav-item[data-nav="relatorios"]');
   const navMttr        = document.querySelector('.sb-nav-item[data-nav="mttr"]');
   const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
+  const navBoletins    = document.querySelector('.sb-nav-item[data-nav="boletins"]');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
   const ativReprogBtn      = document.getElementById('ativReprogramarBtn');
@@ -2356,6 +2475,7 @@ function initDashboard(session) {
     if (navRelatorios) navRelatorios.style.display = '';
     if (navMttr) navMttr.style.display = '';
     if (navEficiencia) navEficiencia.style.display = '';
+    if (navBoletins) navBoletins.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
     if (ativReprogBtn) ativReprogBtn.style.display = '';
@@ -2371,6 +2491,7 @@ function initDashboard(session) {
     if (navRelatorios) navRelatorios.style.display = 'none';
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
+    if (navBoletins) navBoletins.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativReprogBtn) ativReprogBtn.style.display = 'none';
@@ -2386,6 +2507,7 @@ function initDashboard(session) {
     if (navRelatorios) navRelatorios.style.display = 'none';
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
+    if (navBoletins) navBoletins.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativReprogBtn) ativReprogBtn.style.display = 'none';
