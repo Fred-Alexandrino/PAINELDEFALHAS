@@ -6528,7 +6528,7 @@ function _ativKanbanCard(a) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--teal);font-weight:700;">${a.numeroOS ? 'OS '+esc(a.numeroOS) : '#'+esc(a.id)}</span>
       <div style="display:flex;align-items:center;gap:6px;">
-        ${a.numeroOS ? `<button class="ativ-refresh-btn" data-id="${esc(a.id)}" title="Verificar essa OS agora na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--text-faint);display:flex;">
+        ${a.numeroOS && _currentSession?.role === 'manager' ? `<button class="ativ-refresh-btn" data-id="${esc(a.id)}" title="Verificar essa OS agora na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--text-faint);display:flex;">
           <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         </button>` : ''}
         <span style="font-size:10px;color:var(--text-faint);">${esc(a.responsavel||'Sem responsável')}</span>
