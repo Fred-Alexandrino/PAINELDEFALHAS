@@ -192,7 +192,16 @@ body{
 .sb-nav-item.active .sb-nav-badge{color:var(--text-dim);border-color:var(--border-strong);}
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
-.cmp-card{background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:10px;padding:16px 18px;}
+.cmp-prazos-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;}
+.cmp-prazo-chip{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:84px;}
+.cmp-prazo-chip:hover{border-color:var(--teal);}
+.cmp-prazo-chip-urgente{border-color:var(--red);}
+.cmp-prazo-chip-cliente{font-size:10.5px;color:#d1d5db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+.cmp-prazo-chip-dias{font-size:12px;font-weight:700;color:#ededed;font-family:'Geist Mono',monospace;}
+.cmp-prazo-chip-urgente .cmp-prazo-chip-dias{color:var(--red);}
+.cmp-cliente-bloco{margin-bottom:26px;scroll-margin-top:20px;}
+.cmp-cliente-nome{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-strong);}
+.cmp-card{background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
 .cmp-card.cmp-atrasado{border-color:var(--red);}
 .cmp-card.cmp-urgente{border-color:var(--amber);}
 .cmp-card.cmp-concluido{opacity:.55;}
@@ -210,6 +219,9 @@ body{
 .cmp-check{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;}
 .cmp-step-done .cmp-check{background:var(--sla-ok);border-color:var(--sla-ok);}
 .cmp-step-done .cmp-check svg{width:11px;height:11px;stroke:#0a0a0a;stroke-width:3;}
+.cmp-historico-toggle{font-size:11.5px;color:var(--text-dim);cursor:pointer;padding:4px 0;}
+.cmp-historico-toggle:hover{color:#ededed;}
+.cmp-historico-lista{margin-top:6px;}
 .cmp-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;}
 
 /* Zona 3 — Filtros */
@@ -2341,6 +2353,9 @@ if (document.readyState === 'loading') {
 }
 
 /* ══ COMPROMISSOS (BM / Relatórios de Performance & PCM) ══ */
+let _cmpCache = [];
+let _cmpHistoricoAberto = {};  // cliente -> bool
+
 async function carregarCompromissos() {
   const wrap = document.getElementById('cmpLista');
   if (!wrap) return;
@@ -2349,20 +2364,11 @@ async function carregarCompromissos() {
     const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos');
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
-    renderCompromissos(data.compromissos || []);
+    _cmpCache = data.compromissos || [];
+    renderCompromissos();
   } catch (e) {
     wrap.innerHTML = '<div class="cmp-empty">Erro ao carregar compromissos: ' + (e.message || e) + '</div>';
   }
-}
-
-function renderCompromissos(lista) {
-  const wrap = document.getElementById('cmpLista');
-  if (!wrap) return;
-  if (!lista.length) {
-    wrap.innerHTML = '<div class="cmp-empty">Nenhum compromisso cadastrado ainda.</div>';
-    return;
-  }
-  wrap.innerHTML = lista.map(cmpCardHtml).join('');
 }
 
 function cmpBadgeInfo(status) {
@@ -2381,6 +2387,74 @@ function cmpPrazoTexto(c) {
   return 'Prazo: ' + c.dataLimite;
 }
 
+/* Faixa de "próximos prazos" no topo — visão rápida tipo calendário, sem
+   precisar abrir cada card. Só considera o que ainda não foi concluído. */
+function cmpFaixaPrazosHtml() {
+  const abertos = _cmpCache.filter(c => c.status !== 'Concluído')
+    .sort((a, b) => a.diasRestantes - b.diasRestantes);
+  if (!abertos.length) return '';
+  const chips = abertos.map(c => {
+    const urgente = c.status === 'Atrasado' || c.diasRestantes <= 1;
+    return '<div class="cmp-prazo-chip' + (urgente ? ' cmp-prazo-chip-urgente' : '') + '" onclick="cmpScrollPara(\'' + c.cliente.replace(/'/g, "\\'") + '\')">' +
+      '<span class="cmp-prazo-chip-cliente">' + c.cliente + '</span>' +
+      '<span class="cmp-prazo-chip-dias">' + (c.status === 'Atrasado' ? 'atrasado' : (c.diasRestantes === 0 ? 'hoje' : c.diasRestantes + 'd')) + '</span>' +
+    '</div>';
+  }).join('');
+  return '<div class="cmp-prazos-strip">' + chips + '</div>';
+}
+
+function cmpScrollPara(cliente) {
+  const el = document.getElementById('cmp-cliente-' + cliente.replace(/[^a-zA-Z0-9]/g, '_'));
+  if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function renderCompromissos() {
+  const wrap = document.getElementById('cmpLista');
+  if (!wrap) return;
+  if (!_cmpCache.length) {
+    wrap.innerHTML = '<div class="cmp-empty">Nenhum compromisso cadastrado ainda.</div>';
+    return;
+  }
+
+  // Agrupa por cliente, mantendo ordem de urgência já vinda do backend
+  const porCliente = {};
+  const ordemClientes = [];
+  _cmpCache.forEach(c => {
+    if (!porCliente[c.cliente]) { porCliente[c.cliente] = []; ordemClientes.push(c.cliente); }
+    porCliente[c.cliente].push(c);
+  });
+
+  let html = cmpFaixaPrazosHtml();
+
+  ordemClientes.forEach(cliente => {
+    const itens = porCliente[cliente];
+    const ativos = itens.filter(c => c.status !== 'Concluído');
+    const concluidos = itens.filter(c => c.status === 'Concluído')
+      .sort((a, b) => b.competencia.localeCompare(a.competencia));
+    const anchorId = 'cmp-cliente-' + cliente.replace(/[^a-zA-Z0-9]/g, '_');
+    const historicoAberto = !!_cmpHistoricoAberto[cliente];
+
+    html += '<div class="cmp-cliente-bloco" id="' + anchorId + '">';
+    html += '<div class="cmp-cliente-nome">' + cliente + '</div>';
+    html += ativos.map(cmpCardHtml).join('');
+    if (concluidos.length) {
+      html += '<div class="cmp-historico-toggle" onclick="cmpToggleHistorico(\'' + cliente.replace(/'/g, "\\'") + '\')">' +
+        (historicoAberto ? '▾' : '▸') + ' Histórico (' + concluidos.length + ')</div>';
+      if (historicoAberto) {
+        html += '<div class="cmp-historico-lista">' + concluidos.map(cmpCardHtml).join('') + '</div>';
+      }
+    }
+    html += '</div>';
+  });
+
+  wrap.innerHTML = html;
+}
+
+function cmpToggleHistorico(cliente) {
+  _cmpHistoricoAberto[cliente] = !_cmpHistoricoAberto[cliente];
+  renderCompromissos();
+}
+
 function cmpCardHtml(c) {
   const badge = cmpBadgeInfo(c.status);
   const cardClass = c.status === 'Atrasado' ? 'cmp-atrasado'
@@ -2390,7 +2464,7 @@ function cmpCardHtml(c) {
     const feita = !!c.etapasConcluidas[idx];
     const habilitada = idx === 0 || !!c.etapasConcluidas[idx - 1];
     return '<div class="cmp-step' + (feita ? ' cmp-step-done' : '') + '"' +
-      (habilitada ? ' onclick="cmpToggleEtapa(\'' + c.id + '\',' + idx + ',' + (!feita) + ')"' : ' style="opacity:.4;cursor:default;"') +
+      (habilitada ? ' onclick="cmpToggleEtapa(\'' + c.id + '\',' + idx + ',' + (!feita) + ',this)"' : ' style="opacity:.4;cursor:default;"') +
       '><span class="cmp-check">' + (feita ? '<svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</span>' +
       nome + (feita ? ' <span style="color:var(--text-faint);font-size:10.5px;">(' + c.etapasConcluidas[idx] + ')</span>' : '') +
       '</div>';
@@ -2398,17 +2472,34 @@ function cmpCardHtml(c) {
 
   return '<div class="cmp-card ' + cardClass + '">' +
     '<div class="cmp-card-head">' +
-      '<div><div class="cmp-card-title">' + c.tipoLabel + ' — ' + c.cliente + (c.usina ? (' · ' + c.usina) : '') + '</div>' +
-      '<div class="cmp-card-sub">Competência ' + c.competencia + ' · ' + cmpPrazoTexto(c) + '</div></div>' +
+      '<div><div class="cmp-card-title">' + c.tipoLabel + (c.usina ? (' · ' + c.usina) : '') + ' — ' + c.competencia + '</div>' +
+      '<div class="cmp-card-sub">' + cmpPrazoTexto(c) + '</div></div>' +
       '<span class="cmp-badge ' + badge.cls + '">' + badge.label + '</span>' +
     '</div>' +
     '<div class="cmp-steps">' + stepsHtml + '</div>' +
   '</div>';
 }
 
-async function cmpToggleEtapa(id, etapaIndex, concluida) {
+/* Atualização otimista: já reflete o clique na tela na hora (sem esperar
+   a rede) e só confirma com o servidor em segundo plano. Antes disso, cada
+   clique disparava um recarregamento completo da lista (nova leitura na
+   planilha), o que travava a tela em cliques seguidos e ajudou a estourar
+   a cota de leitura do Google Sheets (13/07/2026). Agora não busca a lista
+   de novo — só corrige o item local se o servidor responder algo diferente
+   do que já foi aplicado na tela. */
+async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
+  const item = _cmpCache.find(c => c.id === id);
+  if (!item) return;
+  const etapasAntes = item.etapasConcluidas.slice();
+  const statusAntes = item.status;
+
+  item.etapasConcluidas[etapaIndex] = concluida ? 'agora' : '';
+  item.status = item.etapasConcluidas.every(Boolean) ? 'Concluído'
+    : item.etapasConcluidas.some(Boolean) ? 'Em Andamento' : 'Pendente';
+  renderCompromissos();
+
   try {
-    await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos/marcar-etapa', {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos/marcar-etapa', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -2416,10 +2507,17 @@ async function cmpToggleEtapa(id, etapaIndex, concluida) {
         editor: (_currentSession && _currentSession.user) || 'dashboard',
       }),
     });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'falha ao salvar');
+    item.status = data.status;
+    item.etapasConcluidas = data.etapasConcluidas;
   } catch (e) {
+    // reverte em caso de erro real de rede/servidor
+    item.etapasConcluidas = etapasAntes;
+    item.status = statusAntes;
     console.error('Erro ao marcar etapa:', e);
   }
-  carregarCompromissos();
+  renderCompromissos();
 }
 
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
@@ -5429,19 +5527,28 @@ async function _atualizarOSAgora() {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const textoOriginal = label.textContent;
-  label.textContent = 'Verificando status…';
+  // Cada chamada só processa as 35 OSs mais "atrasadas" na fila de verificação
+  // (limite do backend). Com ~88 OSs abertas em rodízio, 1 clique só não
+  // garante que uma OS específica seja revisitada — 3 rodadas seguidas
+  // (35×3=105) cobrem o total com folga, garantindo que o clique realmente
+  // reflita o estado mais atual de tudo, não só de parte da fila.
+  const RODADAS = 3;
+  let totalCorrigidas = 0, totalRevalidadas = 0;
   try {
-    const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 40000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
-      method: 'POST', signal: ctrl.signal
-    });
-    clearTimeout(timeoutId);
-    const result = await resp.json();
-    if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
-    const corrigidas = (result.divergencias || []).length;
-    const revalidadas = (result.revalidadas_ao_vivo || []).length;
-    label.textContent = corrigidas === 0 ? `${revalidadas} verificada(s), tudo certo` : `${corrigidas} corrigida(s)`;
+    for (let r = 1; r <= RODADAS; r++) {
+      label.textContent = `Verificando status… (${r}/${RODADAS})`;
+      const ctrl = new AbortController();
+      const timeoutId = setTimeout(() => ctrl.abort(), 40000);
+      const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
+        method: 'POST', signal: ctrl.signal
+      });
+      clearTimeout(timeoutId);
+      const result = await resp.json();
+      if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
+      totalCorrigidas += (result.divergencias || []).length;
+      totalRevalidadas += (result.revalidadas_ao_vivo || []).length;
+    }
+    label.textContent = totalCorrigidas === 0 ? `${totalRevalidadas} verificada(s), tudo certo` : `${totalCorrigidas} corrigida(s)`;
     await carregarAtividades();
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
   } catch (e) {
