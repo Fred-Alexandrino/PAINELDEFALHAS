@@ -5527,16 +5527,19 @@ async function _atualizarOSAgora() {
   if (!btn || btn.disabled) return;
   btn.disabled = true;
   const textoOriginal = label.textContent;
-  // Cada chamada só processa as 35 OSs mais "atrasadas" na fila de verificação
-  // (limite do backend). Com ~88 OSs abertas em rodízio, 1 clique só não
-  // garante que uma OS específica seja revisitada — 3 rodadas seguidas
-  // (35×3=105) cobrem o total com folga, garantindo que o clique realmente
-  // reflita o estado mais atual de tudo, não só de parte da fila.
-  const RODADAS = 3;
+  // Cada chamada só processa um lote das OSs mais "atrasadas" na fila de
+  // verificação (limite do backend, hoje 35). Isso significa que 1 clique
+  // só não garante que uma OS específica caia nesse recorte. Em vez de
+  // fixar um número de rodadas (que quebra de novo assim que o total de
+  // OS abertas crescer), a 1ª chamada já informa o total real de OS que
+  // precisam ser revistas — a partir daí calculamos quantas rodadas
+  // cobrem TUDO, sempre, não importa quantas OS existam.
+  const MAX_RODADAS_SEGURANCA = 12;  // trava só pra nunca rodar pra sempre
   let totalCorrigidas = 0, totalRevalidadas = 0;
+  let rodadasNecessarias = 1;
   try {
-    for (let r = 1; r <= RODADAS; r++) {
-      label.textContent = `Verificando status… (${r}/${RODADAS})`;
+    for (let r = 1; r <= rodadasNecessarias && r <= MAX_RODADAS_SEGURANCA; r++) {
+      label.textContent = rodadasNecessarias > 1 ? `Verificando status… (${r}/${rodadasNecessarias})` : 'Verificando status…';
       const ctrl = new AbortController();
       const timeoutId = setTimeout(() => ctrl.abort(), 40000);
       const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
@@ -5547,6 +5550,11 @@ async function _atualizarOSAgora() {
       if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
       totalCorrigidas += (result.divergencias || []).length;
       totalRevalidadas += (result.revalidadas_ao_vivo || []).length;
+      if (r === 1) {
+        const totalOS = result.total_desatualizadas || 0;
+        const lote = result.limite_recheck_ao_vivo || 35;
+        rodadasNecessarias = Math.min(Math.max(1, Math.ceil(totalOS / lote)), MAX_RODADAS_SEGURANCA);
+      }
     }
     label.textContent = totalCorrigidas === 0 ? `${totalRevalidadas} verificada(s), tudo certo` : `${totalCorrigidas} corrigida(s)`;
     await carregarAtividades();
