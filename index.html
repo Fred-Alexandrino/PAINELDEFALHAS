@@ -6268,6 +6268,7 @@ function _ativVenceHoje(a) {
 
 function _ativKanbanCard(a) {
   const pct = a.percentualOS !== undefined && a.percentualOS !== '' ? a.percentualOS : null;
+  const sc = statusColor(a.status);
   return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="padding:12px 14px;margin-bottom:10px;cursor:pointer;">
     ${a.visualizado !== 'sim' ? '<span class="card-unread-dot"></span>' : ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -6283,7 +6284,12 @@ function _ativKanbanCard(a) {
     <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3;">${esc(a.descricao||'')}</div>
     <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;line-height:1.4;">${esc(_ativEquipamento(a))}</div>
     ${a.prazo ? `<div style="font-size:10.5px;color:${_prioridadeCor(a.prioridade)};margin-bottom:6px;">Prazo: ${_ativFormatarPrazoCard(a.prazo)}</div>` : ''}
-    ${pct !== null ? `<div style="height:4px;border-radius:3px;background:var(--border);overflow:hidden;"><div style="height:100%;width:${esc(pct)}%;background:${pct==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div></div>` : ''}
+    ${pct !== null ? `<div style="margin-bottom:8px;"><div style="height:4px;border-radius:3px;background:var(--border);overflow:hidden;"><div style="height:100%;width:${esc(pct)}%;background:${pct==='100'?'var(--teal)':'var(--blue)'};border-radius:3px;"></div></div></div>` : ''}
+    <div class="card-foot">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${a.statusGeralOS ? _statusGeralChip(a.statusGeralOS) : `<span class="status-chip" style="font-size:9.5px;padding:2px 7px;background:${statusBg(a.status)};border-color:${statusBorder(a.status)};color:${sc}">${esc(a.status)}</span>`}
+      </div>
+    </div>
   </div>`;
 }
 
