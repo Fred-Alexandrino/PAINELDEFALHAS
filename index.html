@@ -695,6 +695,34 @@ body{
 .sort-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#777;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;flex:none;font-weight:400;}
 .sort-btn.active{border-color:rgba(255,255,255,0.2);color:#ededed;background:rgba(255,255,255,0.07);}
 
+/* Ícones compactos (visualização/ordem) — mesma função, sem texto fixo */
+.icon-toggle-group{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
+.icon-toggle-btn{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  background:transparent;border:none;color:#888;border-radius:6px;
+  width:28px;height:28px;cursor:pointer;transition:.15s;flex:none;
+}
+.icon-toggle-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+.icon-toggle-btn.active{background:#1a1a1a;color:#ededed;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+#ativKanbanOrdemBtn{border:1px solid rgba(255,255,255,0.08);border-radius:8px;}
+
+/* Menu "Ações" — consolida Reprogramações/Comunicados/Atualizar OS/Auditoria */
+.ativ-acoes-menu{
+  display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:60;
+  background:var(--panel,#131313);border:1px solid var(--border-strong,#333);
+  border-radius:10px;min-width:190px;padding:5px;
+  box-shadow:0 12px 32px rgba(0,0,0,.45);
+}
+.ativ-acoes-menu.open{display:block;}
+.ativ-acoes-item{
+  display:flex;align-items:center;gap:9px;width:100%;
+  background:transparent;border:none;color:var(--text-dim,#a3a3a3);
+  border-radius:7px;padding:9px 10px;font-size:12.5px;font-weight:500;
+  cursor:pointer;text-align:left;font-family:'Geist',sans-serif;transition:.12s;
+}
+.ativ-acoes-item:hover{background:rgba(255,255,255,.06);color:var(--text,#ededed);}
+.ativ-acoes-item svg{flex:none;}
+
 /* Banner histórico */
 .historico-banner{display:none;align-items:center;gap:10px;padding:9px 14px;margin-bottom:14px;background:rgba(107,119,128,.08);border:1px solid rgba(107,119,128,.25);border-radius:var(--radius);font-size:11.5px;font-family:'Geist Mono',monospace;color:var(--text-faint);}
 .historico-banner.visible{display:flex;}
@@ -1769,31 +1797,44 @@ body{
             </button>
             <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="ativSub"></span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button class="sort-btn" id="ativReprogramarBtn" onclick="_abrirReprogramacao()" style="display:flex;align-items:center;gap:5px;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-              Reprogramações
-            </button>
-            <button class="sort-btn" id="ativComunicadosBtn" onclick="_abrirComunicados()" style="display:flex;align-items:center;gap:5px;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-              Comunicados
-            </button>
-            <button class="sort-btn" id="ativAtualizarOsBtn" onclick="_atualizarOSAgora()" style="display:flex;align-items:center;gap:5px;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-              <span id="ativAtualizarOsLabel">Atualizar OS</span>
-            </button>
-            <button class="sort-btn" id="ativAuditoriaBtn" onclick="_rodarAuditoriaAgora()" style="display:flex;align-items:center;gap:5px;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.4 0 4.58.94 6.2 2.47"/><path d="M21 4v5h-5"/></svg>
-              <span id="ativAuditoriaLabel">Auditoria</span>
-            </button>
-            <div class="view-toggle">
-              <button class="view-btn" id="ativViewCards" onclick="_ativSetViewMode('cards')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
-              <button class="view-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>Kanban</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;">
+            <div class="icon-toggle-group">
+              <button class="icon-toggle-btn" id="ativViewCards" onclick="_ativSetViewMode('cards')" title="Ver em Cards">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </button>
+              <button class="icon-toggle-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')" title="Ver em Kanban">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>
+              </button>
             </div>
-            <button class="sort-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" style="display:flex;align-items:center;gap:5px;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
-              <span id="ativKanbanOrdemLabel">OS crescente</span>
+            <button class="icon-toggle-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" title="Ordem: OS crescente">
+              <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+              <span id="ativKanbanOrdemLabel" style="display:none;">OS crescente</span>
             </button>
+            <div id="ativAcoesWrap" style="position:relative;">
+              <button class="sort-btn" id="ativAcoesBtn" onclick="_ativToggleMenuAcoes()" style="display:flex;align-items:center;gap:5px;">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                Ações
+                <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="ativAcoesMenu" class="ativ-acoes-menu">
+                <button class="ativ-acoes-item" id="ativReprogramarBtn" onclick="_abrirReprogramacao();_ativToggleMenuAcoes(false)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+                  Reprogramações
+                </button>
+                <button class="ativ-acoes-item" id="ativComunicadosBtn" onclick="_abrirComunicados();_ativToggleMenuAcoes(false)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  Comunicados
+                </button>
+                <button class="ativ-acoes-item" id="ativAtualizarOsBtn" onclick="_atualizarOSAgora();_ativToggleMenuAcoes(false)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                  <span id="ativAtualizarOsLabel">Atualizar OS</span>
+                </button>
+                <button class="ativ-acoes-item" id="ativAuditoriaBtn" onclick="_rodarAuditoriaAgora();_ativToggleMenuAcoes(false)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.4 0 4.58.94 6.2 2.47"/><path d="M21 4v5h-5"/></svg>
+                  <span id="ativAuditoriaLabel">Auditoria</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="sort-group" id="ativSortGroup" style="display:none;">
@@ -2640,10 +2681,7 @@ function initDashboard(session) {
   const navBoletins    = document.querySelector('.sb-nav-item[data-nav="boletins"]');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
-  const ativReprogBtn      = document.getElementById('ativReprogramarBtn');
-  const ativComunicadosBtn = document.getElementById('ativComunicadosBtn');
-  const ativAtualizarBtn   = document.getElementById('ativAtualizarOsBtn');
-  const ativAuditoriaBtn   = document.getElementById('ativAuditoriaBtn');
+  const ativAcoesWrap  = document.getElementById('ativAcoesWrap');
 
   if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
@@ -2657,10 +2695,7 @@ function initDashboard(session) {
     if (navBoletins) navBoletins.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
-    if (ativReprogBtn) ativReprogBtn.style.display = '';
-    if (ativComunicadosBtn) ativComunicadosBtn.style.display = '';
-    if (ativAtualizarBtn) ativAtualizarBtn.style.display = '';
-    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = '';
+    if (ativAcoesWrap) ativAcoesWrap.style.display = '';
   } else if (session.role === 'admin') {
     // Somente visualização — sem rondas/processos/log/relatorios/mttr/eficiencia/filtros/acoes
     if (navRondas) navRondas.style.display = 'none';
@@ -2673,10 +2708,7 @@ function initDashboard(session) {
     if (navBoletins) navBoletins.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
-    if (ativReprogBtn) ativReprogBtn.style.display = 'none';
-    if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
-    if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
-    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = 'none';
+    if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
   } else {
     // Cliente: idem — nada disso deve aparecer
     if (navRondas) navRondas.style.display = 'none';
@@ -2689,10 +2721,7 @@ function initDashboard(session) {
     if (navBoletins) navBoletins.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
-    if (ativReprogBtn) ativReprogBtn.style.display = 'none';
-    if (ativComunicadosBtn) ativComunicadosBtn.style.display = 'none';
-    if (ativAtualizarBtn) ativAtualizarBtn.style.display = 'none';
-    if (ativAuditoriaBtn) ativAuditoriaBtn.style.display = 'none';
+    if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
   }
 
   document.getElementById('appShell').classList.add('ready');
@@ -6228,9 +6257,23 @@ let _ativKanbanOrdemCrescente = true;
 function _ativAlternarOrdemKanban() {
   _ativKanbanOrdemCrescente = !_ativKanbanOrdemCrescente;
   const label = document.getElementById('ativKanbanOrdemLabel');
-  if (label) label.textContent = _ativKanbanOrdemCrescente ? 'OS crescente' : 'OS decrescente';
+  const texto = _ativKanbanOrdemCrescente ? 'OS crescente' : 'OS decrescente';
+  if (label) label.textContent = texto;
+  const btn = document.getElementById('ativKanbanOrdemBtn');
+  if (btn) btn.title = `Ordem: ${texto}`;
   renderAtividadeCards();
 }
+
+function _ativToggleMenuAcoes(forcar) {
+  const menu = document.getElementById('ativAcoesMenu');
+  if (!menu) return;
+  const abrir = forcar !== undefined ? forcar : !menu.classList.contains('open');
+  menu.classList.toggle('open', abrir);
+}
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('ativAcoesWrap');
+  if (wrap && !wrap.contains(e.target)) _ativToggleMenuAcoes(false);
+});
 
 function _ativFiltrarPorCluster(valor) {
   _ativClusterFiltro = valor || '';
