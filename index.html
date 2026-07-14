@@ -203,6 +203,58 @@ body{
 }
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
+
+/* Central de Notificações — pop-up central, estilo WhatsApp */
+.central-notif-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:9990;backdrop-filter:blur(2px);
+}
+.central-notif-backdrop.open{display:block;}
+.central-notif-modal{
+  display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(480px,92vw);max-height:min(600px,80vh);
+  background:var(--panel,#111);border:1px solid var(--border-strong);
+  border-radius:14px;z-index:9991;flex-direction:column;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.central-notif-modal.open{display:flex;}
+.central-notif-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--border);
+  font-weight:700;font-size:15px;color:var(--text);flex:none;
+}
+.central-notif-close{
+  background:transparent;border:none;cursor:pointer;color:var(--text-faint);
+  padding:4px;display:flex;border-radius:6px;
+}
+.central-notif-close:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.central-notif-list{
+  overflow-y:auto;flex:1;padding:6px;
+  scrollbar-color:var(--border-strong) transparent;
+}
+.central-notif-list::-webkit-scrollbar{width:8px;}
+.central-notif-list::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;}
+.central-notif-item{
+  display:flex;align-items:flex-start;gap:10px;padding:12px 12px;
+  border-radius:10px;cursor:pointer;transition:background .12s;
+  border-bottom:1px solid var(--border-soft,rgba(255,255,255,.05));
+}
+.central-notif-item:last-child{border-bottom:none;}
+.central-notif-item:hover{background:var(--panel-alt,rgba(255,255,255,.04));}
+.central-notif-item-dot{
+  flex:none;width:8px;height:8px;border-radius:50%;background:var(--teal);
+  margin-top:6px;
+}
+.central-notif-item-body{flex:1;min-width:0;}
+.central-notif-item-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.central-notif-item-sub{font-size:11.5px;color:var(--text-dim);margin-bottom:3px;}
+.central-notif-item-tag{
+  display:inline-block;font-size:9.5px;font-weight:600;padding:1px 6px;
+  border-radius:5px;font-family:'Geist Mono',monospace;letter-spacing:.02em;
+}
+.central-notif-empty{
+  padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px;
+}
 .cmp-prazos-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;}
 .cmp-prazo-chip{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:84px;}
 .cmp-prazo-chip:hover{border-color:var(--teal);}
@@ -1394,6 +1446,10 @@ body{
         <div class="topbar-clock" id="topbarClock"></div>
         <span class="topbar-count" id="totalBadge"></span>
         <div class="topbar-right">
+          <button class="tb-btn tb-btn-notif" id="centralNotifBtn" title="Notificações não vistas" style="position:relative;">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="centralNotifBadge" class="sb-nav-badge-unread" style="position:absolute;top:-4px;right:-4px;margin-left:0;display:none;"></span>
+          </button>
           <button class="tb-btn tb-btn-notif" id="notifBtn" title="Notificações">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notifBtnLabel">Notif.</span>
@@ -1407,6 +1463,18 @@ body{
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Central de Notificações (pop-up central, estilo WhatsApp) -->
+    <div id="centralNotifBackdrop" class="central-notif-backdrop"></div>
+    <div id="centralNotifModal" class="central-notif-modal" role="dialog" aria-label="Notificações não vistas">
+      <div class="central-notif-header">
+        <span>Notificações</span>
+        <button id="centralNotifCloseBtn" class="central-notif-close" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="centralNotifList" class="central-notif-list"></div>
     </div>
 
     <!-- CONTEÚDO PRINCIPAL -->
@@ -2850,18 +2918,112 @@ function _marcarFalhaVisualizada(id) {
 
 function _atualizarBadgesNaoLidos() {
   const badgeAtiv = document.getElementById('sbBadgeAtividades');
+  const naoLidasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim');
   if (badgeAtiv) {
-    const naoLidasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim').length;
-    badgeAtiv.textContent = naoLidasAtiv > 99 ? '99+' : naoLidasAtiv;
-    badgeAtiv.style.display = naoLidasAtiv > 0 ? '' : 'none';
+    badgeAtiv.textContent = naoLidasAtiv.length > 99 ? '99+' : naoLidasAtiv.length;
+    badgeAtiv.style.display = naoLidasAtiv.length > 0 ? '' : 'none';
   }
   const badgeFalhas = document.getElementById('sbBadgeFalhas');
+  const naoLidasFalhas = (typeof DATA !== 'undefined' ? DATA : []).filter(d => !_falhaVisualizada(d.id));
   if (badgeFalhas) {
-    const naoLidasFalhas = (typeof DATA !== 'undefined' ? DATA : []).filter(d => !_falhaVisualizada(d.id)).length;
-    badgeFalhas.textContent = naoLidasFalhas > 99 ? '99+' : naoLidasFalhas;
-    badgeFalhas.style.display = naoLidasFalhas > 0 ? '' : 'none';
+    badgeFalhas.textContent = naoLidasFalhas.length > 99 ? '99+' : naoLidasFalhas.length;
+    badgeFalhas.style.display = naoLidasFalhas.length > 0 ? '' : 'none';
   }
+  const badgeSino = document.getElementById('centralNotifBadge');
+  if (badgeSino) {
+    const total = naoLidasAtiv.length + naoLidasFalhas.length;
+    badgeSino.textContent = total > 99 ? '99+' : total;
+    badgeSino.style.display = total > 0 ? '' : 'none';
+  }
+  // se o pop-up estiver aberto no momento em que os dados recarregam,
+  // re-renderiza pra manter a lista em dia sem precisar fechar/abrir.
+  const modal = document.getElementById('centralNotifModal');
+  if (modal && modal.classList.contains('open')) _renderCentralNotificacoes();
 }
+
+// ── Central de Notificações (pop-up central, estilo WhatsApp) ───────────
+function _coletarNotificacoesNaoVistas() {
+  const itens = [];
+  (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).forEach(a => {
+    if (a.visualizado === 'sim') return;
+    itens.push({
+      origem: 'atividade',
+      id: a.id,
+      titulo: a.numeroOS ? `OS ${a.numeroOS}` : `Atividade #${a.id}`,
+      sub: `${a.usina || 'Usina não informada'} · ${a.cliente || ''}`,
+      descricao: a.descricao || '',
+      tag: 'ATIVIDADE',
+      tagCor: 'var(--blue)',
+      data: a.dataCriacao || '',
+    });
+  });
+  (typeof DATA !== 'undefined' ? DATA : []).forEach(d => {
+    if (_falhaVisualizada(d.id)) return;
+    itens.push({
+      origem: 'falha',
+      id: d.id,
+      titulo: d.equipamento || d.falha || 'Ocorrência',
+      sub: `${d.usina || 'Usina não informada'} · ${d.cliente || ''}`,
+      descricao: d.falha || '',
+      tag: 'FALHA',
+      tagCor: 'var(--red,#EF4444)',
+      data: d.inicio || d.dataAbertura || '',
+    });
+  });
+  // mais recentes primeiro (ordenação simples por string de data — os
+  // formatos usados no sistema são cronologicamente comparáveis assim)
+  itens.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  return itens;
+}
+
+function _renderCentralNotificacoes() {
+  const lista = document.getElementById('centralNotifList');
+  if (!lista) return;
+  const itens = _coletarNotificacoesNaoVistas();
+  if (itens.length === 0) {
+    lista.innerHTML = `<div class="central-notif-empty">Tudo em dia — nenhuma notificação nova.</div>`;
+    return;
+  }
+  lista.innerHTML = itens.map(it => `
+    <div class="central-notif-item" data-origem="${esc(it.origem)}" data-id="${esc(it.id)}">
+      <span class="central-notif-item-dot"></span>
+      <div class="central-notif-item-body">
+        <div class="central-notif-item-title">${esc(it.titulo)}</div>
+        <div class="central-notif-item-sub">${esc(it.sub)}</div>
+        <span class="central-notif-item-tag" style="background:${it.tagCor}22;color:${it.tagCor};">${it.tag}</span>
+      </div>
+    </div>
+  `).join('');
+  lista.querySelectorAll('.central-notif-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const origem = el.dataset.origem;
+      const id = el.dataset.id;
+      _fecharCentralNotificacoes();
+      if (origem === 'atividade') {
+        switchNav('atividades');
+        setTimeout(() => _abrirAtivDrawer(id), 50);
+      } else {
+        switchNav('falhas');
+        setTimeout(() => openModal(id), 50);
+      }
+    });
+  });
+}
+
+function _abrirCentralNotificacoes() {
+  _renderCentralNotificacoes();
+  document.getElementById('centralNotifModal').classList.add('open');
+  document.getElementById('centralNotifBackdrop').classList.add('open');
+}
+
+function _fecharCentralNotificacoes() {
+  document.getElementById('centralNotifModal').classList.remove('open');
+  document.getElementById('centralNotifBackdrop').classList.remove('open');
+}
+
+document.getElementById('centralNotifBtn')?.addEventListener('click', _abrirCentralNotificacoes);
+document.getElementById('centralNotifCloseBtn')?.addEventListener('click', _fecharCentralNotificacoes);
+document.getElementById('centralNotifBackdrop')?.addEventListener('click', _fecharCentralNotificacoes);
 
 function normalizeUsina(raw) {
   if (!raw) return raw;
