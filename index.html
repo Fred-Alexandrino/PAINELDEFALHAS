@@ -190,6 +190,17 @@ body{
   color:var(--text-faint);border:1px solid var(--border);
 }
 .sb-nav-item.active .sb-nav-badge{color:var(--text-dim);border-color:var(--border-strong);}
+.sb-nav-badge-unread{
+  margin-left:auto;font-family:'Geist Mono',monospace;
+  font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center;
+  border-radius:99px;background:var(--teal);color:#04231e;border:none;
+}
+/* Dot de "não lido" nos cards — estilo WhatsApp */
+.card-unread-dot{
+  position:absolute;top:8px;right:8px;width:9px;height:9px;
+  border-radius:50%;background:var(--teal);
+  box-shadow:0 0 0 2px var(--panel);
+}
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
 .cmp-prazos-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;}
@@ -645,7 +656,7 @@ body{
   background:var(--panel);border:1px solid var(--border);
   border-radius:10px;padding:18px 16px 14px;cursor:pointer;
   transition:border-color .15s,background .12s;
-  display:flex;flex-direction:column;
+  display:flex;flex-direction:column;position:relative;
 }
 .card:hover{border-color:var(--border-strong);background:var(--panel-alt);}
 .card.sla-breach{border-color:rgba(239,68,68,.4)!important;}
@@ -1222,10 +1233,12 @@ body{
       <div class="sb-nav-item active" data-nav="atividades">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Painel de Atividades
+        <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
       </div>
       <div class="sb-nav-item" data-nav="falhas">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Painel de Falhas
+        <span class="sb-nav-badge-unread" id="sbBadgeFalhas" style="display:none;"></span>
       </div>
       <div class="sb-nav-item" data-nav="relatorios">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -2812,6 +2825,44 @@ function splitCSVRows(csv) { const rows=[]; let current='',inQuotes=false; for(l
 /* ══ UTILS ══ */
 function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
+// ── "Não lido" estilo WhatsApp ───────────────────────────────────────────
+// Atividades: campo "visualizado" sincronizado no servidor (funciona em
+// qualquer aparelho). Falhas: como o Painel de Falhas usa um Apps Script
+// separado (fora do nosso controle), o estado de "lido" fica salvo no
+// navegador — funciona bem, só não sincroniza entre aparelhos diferentes.
+const _FALHAS_LIDAS_KEY = 'falhasVisualizadas';
+function _falhaVisualizada(id) {
+  try {
+    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
+    return lidas.includes(String(id));
+  } catch (e) { return false; }
+}
+function _marcarFalhaVisualizada(id) {
+  try {
+    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
+    const idStr = String(id);
+    if (!lidas.includes(idStr)) {
+      lidas.push(idStr);
+      localStorage.setItem(_FALHAS_LIDAS_KEY, JSON.stringify(lidas));
+    }
+  } catch (e) {}
+}
+
+function _atualizarBadgesNaoLidos() {
+  const badgeAtiv = document.getElementById('sbBadgeAtividades');
+  if (badgeAtiv) {
+    const naoLidasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim').length;
+    badgeAtiv.textContent = naoLidasAtiv > 99 ? '99+' : naoLidasAtiv;
+    badgeAtiv.style.display = naoLidasAtiv > 0 ? '' : 'none';
+  }
+  const badgeFalhas = document.getElementById('sbBadgeFalhas');
+  if (badgeFalhas) {
+    const naoLidasFalhas = (typeof DATA !== 'undefined' ? DATA : []).filter(d => !_falhaVisualizada(d.id)).length;
+    badgeFalhas.textContent = naoLidasFalhas > 99 ? '99+' : naoLidasFalhas;
+    badgeFalhas.style.display = naoLidasFalhas > 0 ? '' : 'none';
+  }
+}
+
 function normalizeUsina(raw) {
   if (!raw) return raw;
   const s = raw.trim();
@@ -3760,6 +3811,7 @@ function renderCards(sorted) {
     }
 
     return `<div class="card ${cardSlaClass} ${staleClass} ${cardDesligClass}" tabindex="0" role="button" aria-label="${esc(d.equipamento)} — ${esc(d.usina)}" data-id="${esc(d.id)}">
+      ${!_falhaVisualizada(d.id) ? '<span class="card-unread-dot"></span>' : ''}
       <div class="card-top">
         <div>
           <div class="usina-name">${esc(d.usina)} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(d.cliente)}</div>
@@ -3773,11 +3825,12 @@ function renderCards(sorted) {
     </div>`;
   }).join('');
   grid.querySelectorAll('.card').forEach(c=>{c.addEventListener('click',()=>openModal(c.dataset.id));c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openModal(c.dataset.id);}});});
+  _atualizarBadgesNaoLidos();
 }
 
 /* ══ DRAWER ══ */
 let _drawerList=[]; let _drawerIndex=-1;
-function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _drawerIndex=_drawerList.findIndex(x=>x.id===id); if(_drawerIndex<0){const d=DATA.find(x=>x.id===id);if(d){_drawerList=[d];_drawerIndex=0;}else return;} _renderDrawer();_openDrawerPanel(); }
+function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _drawerIndex=_drawerList.findIndex(x=>x.id===id); if(_drawerIndex<0){const d=DATA.find(x=>x.id===id);if(d){_drawerList=[d];_drawerIndex=0;}else return;} _renderDrawer();_openDrawerPanel(); _marcarFalhaVisualizada(id); _atualizarBadgesNaoLidos(); document.querySelector(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`)?.remove(); }
 function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; document.body.classList.add('drawer-open'); }
 function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); document.body.classList.remove('drawer-open'); }
 function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
@@ -6216,6 +6269,7 @@ function _ativVenceHoje(a) {
 function _ativKanbanCard(a) {
   const pct = a.percentualOS !== undefined && a.percentualOS !== '' ? a.percentualOS : null;
   return `<div class="card" tabindex="0" role="button" data-id="${esc(a.id)}" style="padding:12px 14px;margin-bottom:10px;cursor:pointer;">
+    ${a.visualizado !== 'sim' ? '<span class="card-unread-dot"></span>' : ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--teal);font-weight:700;">${a.numeroOS ? 'OS '+esc(a.numeroOS) : '#'+esc(a.id)}</span>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -6342,6 +6396,7 @@ function renderAtividadeCards() {
   if (_ativViewMode === 'kanban') {
     if (sub) sub.textContent = `${filtradas.length} atividade${filtradas.length!==1?'s':''}`;
     _ativRenderKanban(ativasList, verificacaoList, historicoList);
+    _atualizarBadgesNaoLidos();
     return;
   }
 
@@ -6381,6 +6436,7 @@ function renderAtividadeCards() {
     const sc = statusColor(a.status);
     const emVerif = _ativEmVerificacao(a);
     return `<div class="card${_ativAtrasada(a) ? ' card-atrasada' : ''}" tabindex="0" role="button" data-id="${esc(a.id)}" style="border-left:3px solid ${emVerif ? 'var(--blue)' : _prioridadeCor(a.prioridade)};">
+      ${a.visualizado !== 'sim' ? '<span class="card-unread-dot"></span>' : ''}
       <div class="card-top">
         <div class="usina-name">${esc(a.usina||'—')} <span style="color:var(--border-strong);margin:0 3px;">-</span> ${esc(a.cliente)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
@@ -6415,6 +6471,7 @@ function renderAtividadeCards() {
     c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
     c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
   });
+  _atualizarBadgesNaoLidos();
 }
 
 function _abrirAtivDrawer(id) {
@@ -6426,6 +6483,25 @@ function _abrirAtivDrawer(id) {
   document.getElementById('ativDrawer').classList.add('open');
   document.getElementById('ativDrawerBackdrop').classList.add('open');
   document.body.classList.add('drawer-open');
+  _marcarAtividadeVisualizada(id);
+}
+
+async function _marcarAtividadeVisualizada(id) {
+  const item = ATIVIDADES.find(x => x.id === id);
+  if (!item || item.visualizado === 'sim') return;
+  item.visualizado = 'sim';
+  document.querySelectorAll(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`).forEach(el => el.remove());
+  _atualizarBadgesNaoLidos();
+  try {
+    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, field: 'visualizado', value: 'sim' }),
+    });
+  } catch (e) {
+    // falha silenciosa — na pior das hipóteses o dot volta a aparecer no
+    // próximo carregamento, sem quebrar a experiência agora
+  }
 }
 
 function _fecharAtivDrawer() {
