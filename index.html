@@ -6115,6 +6115,21 @@ function _ativEmVerificacao(a) {
   return (a.statusOS||'').toLowerCase() === 'em revisão' || (a.statusOS||'').toLowerCase() === 'em revisao';
 }
 
+function _ativTextoBadgeVerificacao(a) {
+  // "Em Verificação" (estado geral da OS na Fracttal) e "Concluída"
+  // (percentual da tarefa) são duas informações diferentes — uma é o
+  // estágio do fluxo de aprovação, a outra é o quanto do trabalho já foi
+  // feito. Mostradas separadas, pareciam contraditórias ("Em Verificação"
+  // + "Concluída" ao mesmo tempo). Uma frase só deixa claro que são a
+  // mesma história contada em duas partes, não duas informações
+  // divergentes (esclarecido em 14/07/2026).
+  const statusGeral = (a.statusGeralOS || '').toLowerCase();
+  if (statusGeral.includes('conclu')) {
+    return 'EM VERIFICAÇÃO — trabalho concluído pelo técnico, aguardando confirmação final na Fracttal';
+  }
+  return `EM VERIFICAÇÃO — aguardando confirmação na Fracttal${a.percentualOS ? ` (${esc(a.percentualOS)}% da tarefa concluído)` : ''}`;
+}
+
 function _ativMudarTab(tab) {
   _ativTab = tab;
   document.getElementById('ativTabAtivas')?.classList.toggle('active', tab==='ativas');
@@ -6564,7 +6579,7 @@ function _renderAtivDrawerSomenteLeitura(a, body) {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
-    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>EM VERIFICAÇÃO — aguardando confirmação na Fracttal</span>` : ''}
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_ativTextoBadgeVerificacao(a)}</span>` : ''}
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
@@ -6613,7 +6628,7 @@ function _renderAtivDrawer() {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
-    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>EM VERIFICAÇÃO — aguardando confirmação na Fracttal</span>` : ''}
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_ativTextoBadgeVerificacao(a)}</span>` : ''}
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
