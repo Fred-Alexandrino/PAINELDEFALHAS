@@ -5588,28 +5588,43 @@ async function _atualizarOSAgora() {
   // precisam ser revistas — a partir daí calculamos quantas rodadas
   // cobrem TUDO, sempre, não importa quantas OS existam.
   const MAX_RODADAS_SEGURANCA = 12;  // trava só pra nunca rodar pra sempre
-  let totalCorrigidas = 0, totalRevalidadas = 0;
+  let totalCorrigidas = 0, totalRevalidadas = 0, rodadasComErro = 0;
   let rodadasNecessarias = 1;
   try {
     for (let r = 1; r <= rodadasNecessarias && r <= MAX_RODADAS_SEGURANCA; r++) {
       label.textContent = rodadasNecessarias > 1 ? `Verificando status… (${r}/${rodadasNecessarias})` : 'Verificando status…';
-      const ctrl = new AbortController();
-      const timeoutId = setTimeout(() => ctrl.abort(), 40000);
-      const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
-        method: 'POST', signal: ctrl.signal
-      });
-      clearTimeout(timeoutId);
-      const result = await resp.json();
-      if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
-      totalCorrigidas += (result.divergencias || []).length;
-      totalRevalidadas += (result.revalidadas_ao_vivo || []).length;
-      if (r === 1) {
-        const totalOS = result.total_desatualizadas || 0;
-        const lote = result.limite_recheck_ao_vivo || 35;
-        rodadasNecessarias = Math.min(Math.max(1, Math.ceil(totalOS / lote)), MAX_RODADAS_SEGURANCA);
+      try {
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), 55000);
+        const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
+          method: 'POST', signal: ctrl.signal
+        });
+        clearTimeout(timeoutId);
+        const result = await resp.json();
+        if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
+        totalCorrigidas += (result.divergencias || []).length;
+        totalRevalidadas += (result.revalidadas_ao_vivo || []).length;
+        if (r === 1) {
+          const totalOS = result.total_desatualizadas || 0;
+          const lote = result.limite_recheck_ao_vivo || 35;
+          rodadasNecessarias = Math.min(Math.max(1, Math.ceil(totalOS / lote)), MAX_RODADAS_SEGURANCA);
+        }
+      } catch (erroRodada) {
+        // uma rodada isolada falhando (ex.: lentidão pontual na Fracttal)
+        // não deve derrubar as rodadas seguintes — cada rodada já revalida
+        // as OSs mais desatualizadas, então a próxima tentativa naturalmente
+        // cobre o que essa perdeu.
+        rodadasComErro++;
+        console.error(`Rodada ${r}/${rodadasNecessarias} falhou:`, erroRodada.message);
       }
     }
-    label.textContent = totalCorrigidas === 0 ? `${totalRevalidadas} verificada(s), tudo certo` : `${totalCorrigidas} corrigida(s)`;
+    if (rodadasComErro > 0 && totalRevalidadas === 0 && totalCorrigidas === 0) {
+      label.textContent = 'Erro ao atualizar';
+    } else if (rodadasComErro > 0) {
+      label.textContent = `${totalCorrigidas} corrigida(s) — ${rodadasComErro} rodada(s) instável(is)`;
+    } else {
+      label.textContent = totalCorrigidas === 0 ? `${totalRevalidadas} verificada(s), tudo certo` : `${totalCorrigidas} corrigida(s)`;
+    }
     await carregarAtividades();
     setTimeout(() => { label.textContent = textoOriginal; }, 4000);
   } catch (e) {
