@@ -2809,7 +2809,7 @@ let activeCausa = null; let activeSlaFilter = false;
 // ── ABAS: 'ativas' | 'historico' ──────────────────────────────────────────
 let activeTab = 'ativas';
 
-const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida'];
+const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida','cancelado','cancelada','cancelled'];
 function isConcluido(d) { const s=(d.status||'').toLowerCase(); return STATUS_CONCLUIDO.some(x=>s.includes(x)); }
 
 async function fetchSheet() {
