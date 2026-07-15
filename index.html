@@ -1959,8 +1959,16 @@ body{
           <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           Gerar comunicados
         </button>
+        <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:14px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">Mensagem separada: o que priorizar hoje (considerando impacto na geração, prazo, dependência entre atividades e proximidade das usinas)</div>
+          <button id="comunicadoPriorizacaoBtn" onclick="_sugerirPriorizacaoIA()" style="width:100%;background:linear-gradient(135deg,rgba(45,212,191,.16),rgba(45,212,191,.06));border:1px solid rgba(45,212,191,.4);color:var(--teal);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
+            <span id="comunicadoPriorizacaoLabel">Sugerir Priorização do Dia (IA)</span>
+          </button>
+        </div>
       </div>
       <div id="comunicadoModalResult" style="display:none;"></div>
+      <div id="comunicadoPriorizacaoResult" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -6098,6 +6106,8 @@ function _abrirComunicados() {
   if (!overlay) return;
   document.getElementById('comunicadoModalIntro').style.display = 'flex';
   document.getElementById('comunicadoModalResult').style.display = 'none';
+  const priorizacaoEl = document.getElementById('comunicadoPriorizacaoResult');
+  if (priorizacaoEl) priorizacaoEl.style.display = 'none';
 
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const porEquipe = {};
@@ -6207,6 +6217,82 @@ async function _copiarComunicado(idSeguro) {
   try {
     await navigator.clipboard.writeText(texto);
     showToast('Mensagem copiada! Cole no WhatsApp.', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
+  }
+}
+
+let _priorizacaoMensagemCache = '';
+
+async function _sugerirPriorizacaoIA() {
+  const btn = document.getElementById('comunicadoPriorizacaoBtn');
+  const label = document.getElementById('comunicadoPriorizacaoLabel');
+  const resultEl = document.getElementById('comunicadoPriorizacaoResult');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const textoOriginal = label.textContent;
+  label.textContent = 'Analisando atividades…';
+
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 55000);
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-priorizacao-diaria', {
+      method: 'POST', signal: ctrl.signal
+    });
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao gerar priorização');
+
+    _priorizacaoMensagemCache = data.mensagem_pronta || '';
+    const prioridades = data.prioridades || [];
+
+    document.getElementById('comunicadoModalIntro').style.display = 'none';
+    document.getElementById('comunicadoModalResult').style.display = 'none';
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div style="border:1px solid rgba(45,212,191,.35);border-radius:10px;padding:16px;margin-bottom:16px;background:rgba(45,212,191,.04);">
+        <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
+          Panorama do dia
+        </div>
+        <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;">${esc(data.resumo_executivo || '')}</div>
+        ${data.truncado ? `<div style="font-size:10.5px;color:var(--amber);margin-top:8px;">Considerou as ${data.consideradas} atividades mais urgentes de ${data.total_atividades} no total.</div>` : ''}
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text);">Ordem de prioridade sugerida</span>
+        <button onclick="_copiarPriorizacao()" style="background:var(--teal);border:none;color:#04231e;border-radius:6px;padding:7px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copiar mensagem
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;margin-bottom:16px;">
+        ${prioridades.map(p => `
+          <div style="display:flex;gap:10px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;align-items:flex-start;">
+            <span style="font-family:'Geist Mono',monospace;font-size:12px;font-weight:700;color:var(--teal);flex:none;min-width:20px;">${esc(p.posicao)}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--text);">${p.numeroOS ? 'OS '+esc(p.numeroOS)+' — ' : ''}${esc(p.equipamento||'')}</div>
+              <div style="font-size:11px;color:var(--text-dim);margin:2px 0;">${esc(p.usina||'')}${p.cluster ? ' · '+esc(p.cluster) : ''}</div>
+              <div style="font-size:11px;color:var(--text-faint);line-height:1.4;">${esc(p.motivo||'')}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button onclick="document.getElementById('comunicadoModalIntro').style.display='flex';document.getElementById('comunicadoPriorizacaoResult').style.display='none';" style="width:100%;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:10px;font-size:12.5px;cursor:pointer;">← Voltar</button>
+    `;
+  } catch (e) {
+    showToast('Erro ao gerar priorização: ' + e.message, false);
+  } finally {
+    label.textContent = textoOriginal;
+    btn.disabled = false;
+  }
+}
+
+async function _copiarPriorizacao() {
+  if (!_priorizacaoMensagemCache) return;
+  try {
+    await navigator.clipboard.writeText(_priorizacaoMensagemCache);
+    showToast('Mensagem de priorização copiada!', true);
   } catch (e) {
     showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
   }
