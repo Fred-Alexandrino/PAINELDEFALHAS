@@ -179,6 +179,8 @@ body{
   font-weight:400;margin:1px 6px;
 }
 .sb-nav-item:hover{color:#ededed;background:rgba(255,255,255,0.04);}
+.sb-nav-sub{padding-left:26px;font-size:12.5px;}
+.sb-nav-sub svg{width:13px;height:13px;}
 .sb-nav-item.active{color:#ededed;font-weight:500;background:rgba(255,255,255,0.07);}
 .sb-nav-item.active::before{display:none;}
 .sb-nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none;opacity:.6;}
@@ -1344,26 +1346,33 @@ body{
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Controle de Processos
       </div>
-      <div class="sb-nav-item" data-nav="rondas">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Verificar Rondas
-      </div>
-      <div class="sb-nav-item" data-nav="historico-log">
-        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-        Log Histórico
-        <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
-      </div>
-      <div class="sb-nav-item" data-nav="mttr">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        MTTR
-      </div>
-      <div class="sb-nav-item" data-nav="eficiencia">
-        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Eficiência O&amp;M
-      </div>
       <div class="sb-nav-item" data-nav="boletins">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Boletins &amp; Relatórios
+      </div>
+      <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        Mais
+        <svg id="navFerramentasChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div id="grupoFerramentasSubmenu" style="display:none;">
+        <div class="sb-nav-item sb-nav-sub" data-nav="rondas">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Verificar Rondas
+        </div>
+        <div class="sb-nav-item sb-nav-sub" data-nav="historico-log">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          Log Histórico
+          <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
+        </div>
+        <div class="sb-nav-item sb-nav-sub" data-nav="mttr">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          MTTR
+        </div>
+        <div class="sb-nav-item sb-nav-sub" data-nav="eficiencia">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Eficiência O&amp;M
+        </div>
       </div>
     </nav>
 
@@ -2469,6 +2478,11 @@ function switchNav(nav) {
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
+  // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
+  // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
+  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
+    _toggleGrupoFerramentas(true);
+  }
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
   document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
@@ -2482,7 +2496,17 @@ function switchNav(nav) {
   if (nav === 'historico-log') {/* carregado via botão */}
   if (nav === 'mttr') renderMTTR();
 }
-document.querySelectorAll('.sb-nav-item:not(.disabled)').forEach(el => {
+
+function _toggleGrupoFerramentas(forcarAberto) {
+  const submenu = document.getElementById('grupoFerramentasSubmenu');
+  const chevron = document.getElementById('navFerramentasChevron');
+  if (!submenu) return;
+  const abrir = forcarAberto !== undefined ? forcarAberto : submenu.style.display === 'none';
+  submenu.style.display = abrir ? 'block' : 'none';
+  if (chevron) chevron.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+document.querySelectorAll('.sb-nav-item:not(.disabled):not(#navFerramentasToggle)').forEach(el => {
   el.addEventListener('click', () => switchNav(el.dataset.nav));
 });
 // Bottom nav: registra listeners depois que o DOM carrega completamente
@@ -2703,6 +2727,7 @@ function initDashboard(session) {
   const navMttr        = document.querySelector('.sb-nav-item[data-nav="mttr"]');
   const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
   const navBoletins    = document.querySelector('.sb-nav-item[data-nav="boletins"]');
+  const navFerramentasToggle = document.getElementById('navFerramentasToggle');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
   const ativAcoesWrap  = document.getElementById('ativAcoesWrap');
@@ -2717,6 +2742,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = '';
     if (navEficiencia) navEficiencia.style.display = '';
     if (navBoletins) navBoletins.style.display = '';
+    if (navFerramentasToggle) navFerramentasToggle.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
     if (ativAcoesWrap) ativAcoesWrap.style.display = '';
@@ -2730,6 +2756,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
+    if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
@@ -2743,6 +2770,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
+    if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
