@@ -1791,6 +1791,16 @@ body{
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section active" id="sec-atividades">
+        <div class="deslig-banner" id="ativDesligBanner" onclick="toggleAtivDesligFiltro()">
+          <div class="deslig-banner-icon"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></div>
+          <div class="deslig-banner-count" id="ativDesligCount">0</div>
+          <div class="deslig-banner-text">
+            <div class="deslig-banner-title" id="ativDesligTitle">USINAS DESLIGADAS</div>
+            <div class="deslig-banner-sub" id="ativDesligSub">Religamento/desligamento em aberto — ação imediata</div>
+          </div>
+          <span class="deslig-filter-hint">clique para filtrar ↗</span>
+        </div>
+
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
 
         <!-- Panels de breakdown -->
@@ -2452,6 +2462,59 @@ function isDesligamento(d) {
   if (/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(fc)) return true;
 
   return false;
+}
+
+/* ══ DETECÇÃO DE DESLIGAMENTO — PAINEL DE ATIVIDADES ══
+   Mesma ideia do isDesligamento() do Painel de Falhas, adaptada pros
+   campos de Atividades (descricao/observacoesOS/equipamento em vez de
+   falha/causa). Inclui "religamento" porque uma tarefa de religamento
+   da usina implica que ela está (ou estava até há pouco) desligada —
+   é o mesmo evento visto do lado da OS de religamento, não da ocorrência.
+*/
+let _ativDesligFiltro = false;
+
+function isDesligamentoAtividade(a) {
+  if (_ativIsConcluida(a)) return false;
+  const desc = (a.descricao || '').toLowerCase();
+  const obs = (a.observacoesOS || '').toLowerCase();
+  const equip = (a.equipamento || '').toLowerCase();
+  const dc = `${desc} ${obs} ${equip}`;
+
+  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/.test(dc)) return true;
+  if (/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(dc)) return true;
+  if (/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/.test(dc)) return true;
+  if (/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/.test(dc)) return true;
+  if (/religamento\s+(?:da|de)\s+(?:usina|ufv)/.test(dc)) return true;
+  if (/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(dc)) return true;
+  if (/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(dc)) return true;
+
+  return false;
+}
+
+function toggleAtivDesligFiltro() {
+  _ativDesligFiltro = !_ativDesligFiltro;
+  document.getElementById('ativDesligBanner')?.classList.toggle('active-filter', _ativDesligFiltro);
+  renderAtividadeCards();
+}
+
+function _ativAtualizarDesligBanner() {
+  const banner = document.getElementById('ativDesligBanner');
+  if (!banner) return;
+  const desligamentos = ATIVIDADES.filter(isDesligamentoAtividade);
+  if (desligamentos.length > 0) {
+    banner.classList.add('visible');
+    document.getElementById('ativDesligCount').textContent = desligamentos.length;
+    const usinas = [...new Set(desligamentos.map(a => a.usina))];
+    document.getElementById('ativDesligTitle').textContent =
+      desligamentos.length === 1
+        ? `⚡ ${(usinas[0]||'').toUpperCase()} — DESLIGADA`
+        : `⚡ ${desligamentos.length} USINAS DESLIGADAS`;
+    document.getElementById('ativDesligSub').textContent =
+      usinas.slice(0,3).join(' · ') + (usinas.length > 3 ? ` +${usinas.length-3}` : '');
+  } else {
+    banner.classList.remove('visible');
+    if (_ativDesligFiltro) { _ativDesligFiltro = false; banner.classList.remove('active-filter'); }
+  }
 }
 
 /* ══ SESSION / NAVEGAÇÃO SIDEBAR ══ */
@@ -6841,6 +6904,7 @@ function renderAtividadeCards() {
 
   _ativRenderKpis();
   _ativRenderBreakdowns();
+  _ativAtualizarDesligBanner();
 
   // aplica os mesmos filtros da sidebar (Cliente/Usina/Status) usados no Painel de Falhas
   const filtradas = ATIVIDADES.filter(a => {
@@ -6849,6 +6913,7 @@ function renderAtividadeCards() {
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
+    if (_ativDesligFiltro && !isDesligamentoAtividade(a)) return false;
     return true;
   });
 
