@@ -228,6 +228,11 @@ body{
   padding:4px;display:flex;border-radius:6px;
 }
 .central-notif-close:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.central-notif-clear{
+  background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);
+  border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;
+}
+.central-notif-clear:hover{color:var(--text);background:rgba(255,255,255,.06);}
 .central-notif-list{
   overflow-y:auto;flex:1;padding:6px;
   scrollbar-color:var(--border-strong) transparent;
@@ -674,7 +679,13 @@ body{
 /* ══════════════════════════════════════════════════════════
    GRID CONTROLS + ABAS
 ══════════════════════════════════════════════════════════ */
-.grid-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.grid-controls{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.list-header-bar{
+  background:linear-gradient(135deg,rgba(45,212,191,.08),rgba(45,212,191,.02));
+  border:1px solid rgba(45,212,191,.25);border-radius:12px;
+  padding:12px 14px 10px;margin-bottom:16px;
+}
+.list-header-bar .sort-group{margin-bottom:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(45,212,191,.15);}
 .tabs-wrapper{display:flex;align-items:center;gap:2px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:3px;flex-wrap:wrap;}
 .tab-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text-dim);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 @media(max-width:480px){
@@ -1498,9 +1509,12 @@ body{
     <div id="centralNotifModal" class="central-notif-modal" role="dialog" aria-label="Notificações não vistas">
       <div class="central-notif-header">
         <span>Notificações</span>
-        <button id="centralNotifCloseBtn" class="central-notif-close" aria-label="Fechar">
-          <svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button id="centralNotifClearBtn" class="central-notif-clear" title="Marcar todas como vistas">Limpar</button>
+          <button id="centralNotifCloseBtn" class="central-notif-close" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       </div>
       <div id="centralNotifList" class="central-notif-list"></div>
     </div>
@@ -1544,34 +1558,36 @@ body{
           <span>Exibindo ocorrências concluídas — <strong id="historicoCount">0</strong> registro(s)</span>
         </div>
 
-        <!-- Grid controls -->
-        <div class="grid-controls">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div class="tabs-wrapper">
-              <button class="tab-btn active" id="tabAtivas">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Ativas <span class="tab-count" id="tabAtivasCount">0</span>
-              </button>
-              <button class="tab-btn" id="tabHistorico">
-                <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-                Histórico <span class="tab-count" id="tabHistoricoCount">0</span>
-              </button>
+        <!-- Barra de controles da lista — visual de cabeçalho -->
+        <div class="list-header-bar">
+          <div class="grid-controls">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div class="tabs-wrapper">
+                <button class="tab-btn active" id="tabAtivas">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Ativas <span class="tab-count" id="tabAtivasCount">0</span>
+                </button>
+                <button class="tab-btn" id="tabHistorico">
+                  <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                  Histórico <span class="tab-count" id="tabHistoricoCount">0</span>
+                </button>
+              </div>
+              <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="gridSub"></span>
             </div>
-            <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;" id="gridSub"></span>
+            <div class="view-toggle">
+              <button class="view-btn active" id="viewCards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
+              <button class="view-btn" id="viewTable"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Tabela</button>
+            </div>
           </div>
-          <div class="view-toggle">
-            <button class="view-btn active" id="viewCards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
-            <button class="view-btn" id="viewTable"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Tabela</button>
+          <div class="sort-group" id="sortGroup">
+            <span class="sort-label">Ordenar:</span>
+            <button class="sort-btn" data-sort="id">ID</button>
+            <button class="sort-btn active" data-sort="newest">Mais recentes</button>
+            <button class="sort-btn" data-sort="usina">Usina</button>
+            <button class="sort-btn" data-sort="equip">Equip.</button>
+            <button class="sort-btn" data-sort="age">Mais antigas</button>
+            <button class="sort-btn" data-sort="recent">Por data</button>
           </div>
-        </div>
-        <div class="sort-group" id="sortGroup">
-          <span class="sort-label">Ordenar:</span>
-          <button class="sort-btn" data-sort="id">ID</button>
-          <button class="sort-btn active" data-sort="newest">Mais recentes</button>
-          <button class="sort-btn" data-sort="usina">Usina</button>
-          <button class="sort-btn" data-sort="equip">Equip.</button>
-          <button class="sort-btn" data-sort="age">Mais antigas</button>
-          <button class="sort-btn" data-sort="recent">Por data</button>
         </div>
 
         <div class="card-grid" id="cardGrid"></div>
@@ -3058,9 +3074,44 @@ function _fecharCentralNotificacoes() {
   document.getElementById('centralNotifBackdrop').classList.remove('open');
 }
 
+async function _limparTodasNotificacoes() {
+  const btn = document.getElementById('centralNotifClearBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Limpando…'; }
+
+  // Falhas: adiciona tudo que ainda não foi visto de uma vez só no
+  // armazenamento local (resolve de vez o acúmulo de itens antigos que
+  // nasceram "não lidos" quando essa funcionalidade foi ligada, já que
+  // o Painel de Falhas não sincroniza esse estado com o servidor).
+  try {
+    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
+    const todosIds = new Set(lidas);
+    (typeof DATA !== 'undefined' ? DATA : []).forEach(d => todosIds.add(String(d.id)));
+    localStorage.setItem(_FALHAS_LIDAS_KEY, JSON.stringify(Array.from(todosIds)));
+  } catch (e) {}
+
+  // Atividades: marca tudo que ainda estiver não-visualizado no servidor
+  // (silencioso, sem travar a UI esperando cada chamada).
+  const pendentes = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim');
+  pendentes.forEach(a => { a.visualizado = 'sim'; });
+  await Promise.allSettled(pendentes.map(a =>
+    fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id, field: 'visualizado', value: 'sim' }),
+    }).catch(() => {})
+  ));
+
+  document.querySelectorAll('.card-unread-dot').forEach(el => el.remove());
+  _atualizarBadgesNaoLidos();
+  _renderCentralNotificacoes();
+  if (btn) { btn.disabled = false; btn.textContent = 'Limpar'; }
+  showToast('Notificações limpas.', true);
+}
+
 document.getElementById('centralNotifBtn')?.addEventListener('click', _abrirCentralNotificacoes);
 document.getElementById('centralNotifCloseBtn')?.addEventListener('click', _fecharCentralNotificacoes);
 document.getElementById('centralNotifBackdrop')?.addEventListener('click', _fecharCentralNotificacoes);
+document.getElementById('centralNotifClearBtn')?.addEventListener('click', _limparTodasNotificacoes);
 
 function normalizeUsina(raw) {
   if (!raw) return raw;
