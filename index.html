@@ -5873,7 +5873,8 @@ async function _atualizarOSAgora() {
   let rodadasNecessarias = 1;
   try {
     for (let r = 1; r <= rodadasNecessarias && r <= MAX_RODADAS_SEGURANCA; r++) {
-      label.textContent = rodadasNecessarias > 1 ? `Verificando status… (${r}/${rodadasNecessarias})` : 'Verificando status…';
+      const pct = rodadasNecessarias > 1 ? Math.round(((r - 1) / rodadasNecessarias) * 100) : 0;
+      label.textContent = rodadasNecessarias > 1 ? `Verificando status… ${pct}%` : 'Verificando status…';
       try {
         const ctrl = new AbortController();
         const timeoutId = setTimeout(() => ctrl.abort(), 55000);
@@ -6737,16 +6738,50 @@ async function _ativVerificarOsAgora(id, btnEl) {
   }
 }
 
-function _ativKanbanColuna(titulo, cor, lista) {
+function _ativKanbanColuna(titulo, cor, lista, estadoKey) {
+  const idsParaVerificar = lista.filter(a => a.numeroOS).map(a => a.id);
   return `<div style="background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:2px solid ${cor};background:${cor}11;">
       <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
-      <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 9px;">${lista.length}</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 9px;">${lista.length}</span>
+        ${idsParaVerificar.length > 0 && _currentSession?.role === 'manager' ? `<button class="ativ-coluna-refresh-btn" data-estado="${esc(estadoKey)}" data-ids="${esc(idsParaVerificar.join(','))}" title="Verificar as OSs desta coluna na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:${cor};display:flex;">
+          <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>` : ''}
+      </div>
     </div>
     <div class="kanban-col-body" style="padding:12px;max-height:640px;overflow-y:auto;">
       ${lista.length === 0 ? `<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:20px 0;">Nenhuma atividade</div>` : lista.map(_ativKanbanCard).join('')}
     </div>
   </div>`;
+}
+
+async function _ativVerificarColuna(btnEl) {
+  if (btnEl.disabled) return;
+  const ids = btnEl.dataset.ids.split(',').filter(Boolean);
+  if (ids.length === 0) return;
+  btnEl.disabled = true;
+  const svg = btnEl.querySelector('svg');
+  if (svg) svg.style.animation = 'spin 0.8s linear infinite';
+  let corrigidas = 0;
+  for (const id of ids) {
+    try {
+      const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/verificar-uma-os', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await resp.json();
+      if (data.ok && data.mudou) corrigidas++;
+    } catch (e) {
+      // uma falha isolada não interrompe o restante da coluna
+    }
+  }
+  if (svg) svg.style.animation = '';
+  btnEl.disabled = false;
+  showToast(corrigidas > 0 ? `${corrigidas} OS atualizada(s) nesta coluna.` : 'Coluna já estava em dia.', true);
+  await carregarAtividades();
 }
 
 function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
@@ -6757,9 +6792,9 @@ function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
     return _ativKanbanOrdemCrescente ? diff : -diff;
   });
   kanban.innerHTML =
-    _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList)) +
-    _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList)) +
-    _ativKanbanColuna('OSs Concluídas', 'var(--teal)', ordenarPorId(historicoList));
+    _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList), 'processo') +
+    _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList), 'verificacao') +
+    _ativKanbanColuna('OSs Concluídas', 'var(--teal)', ordenarPorId(historicoList), 'concluidas');
   kanban.querySelectorAll('.card').forEach(c => {
     c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
     c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
@@ -6768,6 +6803,12 @@ function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
     b.addEventListener('click', (e) => {
       e.stopPropagation();
       _ativVerificarOsAgora(b.dataset.id, b);
+    });
+  });
+  kanban.querySelectorAll('.ativ-coluna-refresh-btn').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _ativVerificarColuna(b);
     });
   });
 
