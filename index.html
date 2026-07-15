@@ -657,9 +657,15 @@ body{
 @media(max-width:768px){.panels-ativ{grid-template-columns:1fr;}}
 .panel-bars-ativ{max-height:208px;}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
-.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;user-select:none;}
 .panel-head h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#555;font-family:'Geist Mono',monospace;font-weight:700;}
 .panel-total{font-size:10px;color:var(--text-faint);font-family:'Geist Mono',monospace;}
+.panel-head-right{display:flex;align-items:center;gap:8px;}
+.panel-chevron{width:14px;height:14px;stroke:var(--text-faint);fill:none;stroke-width:2;transition:transform .2s ease;flex-shrink:0;}
+.panel.collapsed .panel-chevron{transform:rotate(-90deg);}
+.panel.collapsed .panel-bars,.panel.collapsed .panel-bars-ativ{display:none;}
+.panel.collapsed{padding-bottom:16px;}
+.panel.collapsed .panel-head{margin-bottom:0;}
 .panel-bars{max-height:174px;overflow-y:auto;padding-right:4px;margin-right:-4px;}
 .panel-bars::-webkit-scrollbar{width:4px;}
 .panel-bars::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
@@ -1804,10 +1810,10 @@ body{
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
 
         <!-- Panels de breakdown -->
-        <div class="panel" style="margin-bottom:10px;"><div class="panel-head"><h3>Por cluster</h3><span class="panel-total" id="ativClusterTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
+        <div class="panel" id="ativPanelCluster" style="margin-bottom:10px;"><div class="panel-head" onclick="_togglePanel('ativPanelCluster')"><h3>Por cluster</h3><div class="panel-head-right"><span class="panel-total" id="ativClusterTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
         <div class="panels-ativ">
-          <div class="panel"><div class="panel-head"><h3>Atividades por usina</h3><span class="panel-total" id="ativUsinaTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
-          <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="ativStatusTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
+          <div class="panel" id="ativPanelUsina"><div class="panel-head" onclick="_togglePanel('ativPanelUsina')"><h3>Atividades por usina</h3><div class="panel-head-right"><span class="panel-total" id="ativUsinaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
+          <div class="panel" id="ativPanelStatus"><div class="panel-head" onclick="_togglePanel('ativPanelStatus')"><h3>Por status</h3><div class="panel-head-right"><span class="panel-total" id="ativStatusTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
         </div>
 
         <div class="list-header-bar">
@@ -6636,6 +6642,28 @@ function _ativRenderKpis() {
   </div>`).join('');
 }
 
+/* ══ PAINÉIS RECOLHÍVEIS (Por cluster / Atividades por usina / Por status) ══
+   Estado persistido em localStorage por painel. Sem preferência salva,
+   assume recolhido no mobile (<768px, mesmo breakpoint já usado em
+   .panels-ativ) e expandido no desktop. */
+function _togglePanel(panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const collapsed = panel.classList.toggle('collapsed');
+  try { localStorage.setItem('painelCollapsed:' + panelId, collapsed ? '1' : '0'); } catch (e) {}
+}
+
+function _ativAplicarEstadoPaineis() {
+  ['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus'].forEach(id => {
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    let saved = null;
+    try { saved = localStorage.getItem('painelCollapsed:' + id); } catch (e) {}
+    const deveRecolher = saved !== null ? saved === '1' : window.innerWidth < 768;
+    panel.classList.toggle('collapsed', deveRecolher);
+  });
+}
+
 function _ativRenderBreakdowns() {
   const filtradas = ATIVIDADES.filter(a => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
@@ -6698,6 +6726,8 @@ function _ativRenderBreakdowns() {
   document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
   document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.classList.toggle('selected', _ativClusterFiltro === r.dataset.group));
+
+  _ativAplicarEstadoPaineis();
 }
 
 function _statusGeralEstilo(status) {
