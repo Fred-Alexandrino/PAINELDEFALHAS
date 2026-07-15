@@ -1800,7 +1800,8 @@ body{
           <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="ativStatusTotal"></span></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
         </div>
 
-        <div class="grid-controls">
+        <div class="list-header-bar">
+          <div class="grid-controls">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="tabs-wrapper">
               <button class="tab-btn active" id="ativTabAtivas" onclick="_ativMudarTab('ativas')">
@@ -1861,16 +1862,17 @@ body{
               </div>
             </div>
           </div>
-        </div>
-        <div class="sort-group" id="ativSortGroup" style="display:none;">
-          <span class="sort-label">Ordenar:</span>
-          <button class="sort-btn" data-ativsort="id">ID</button>
-          <button class="sort-btn active" data-ativsort="newest">Mais recentes</button>
-          <button class="sort-btn" data-ativsort="usina">Usina</button>
-          <button class="sort-btn" data-ativsort="equip">Equip.</button>
-          <button class="sort-btn" data-ativsort="prazo">Prazo</button>
-          <button class="sort-btn" data-ativsort="prioridade">Prioridade</button>
-          <button class="sort-btn" data-ativsort="status">Status</button>
+          </div>
+          <div class="sort-group" id="ativSortGroup" style="display:none;">
+            <span class="sort-label">Ordenar:</span>
+            <button class="sort-btn" data-ativsort="id">ID</button>
+            <button class="sort-btn active" data-ativsort="newest">Mais recentes</button>
+            <button class="sort-btn" data-ativsort="usina">Usina</button>
+            <button class="sort-btn" data-ativsort="equip">Equip.</button>
+            <button class="sort-btn" data-ativsort="prazo">Prazo</button>
+            <button class="sort-btn" data-ativsort="prioridade">Prioridade</button>
+            <button class="sort-btn" data-ativsort="status">Status</button>
+          </div>
         </div>
 
         <div class="grid" id="ativGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
@@ -3502,6 +3504,7 @@ function applyFilters() {
   applySortAndRender();
   if (_activeNav === 'atividades') renderAtividadeCards();
   if (_activeNav === 'chamados') openChamadosInline();
+  if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
 }
 
 function clearFilters() {
@@ -5606,7 +5609,7 @@ function zelRenderFull(){
   sel.innerHTML='<option value="">Todos os clientes</option>'+clientes.map(c=>`<option value="${esc(c)}" ${cur===c?'selected':''}>${esc(c)}</option>`).join('');
   zelRender();
 }
-function zelGetFiltered(){const rows=zelData[zelTab]||[];const cliente=document.getElementById('zelFiltroCliente').value.trim().toLowerCase();const status=document.getElementById('zelFiltroStatus').value.trim().toLowerCase();const search=document.getElementById('zelSearch').value.trim().toLowerCase();return rows.filter(r=>{if(cliente&&r.cliente.toLowerCase()!==cliente)return false;if(status&&r.status.toLowerCase()!==status)return false;if(search&&!r.usina.toLowerCase().includes(search)&&!r.cliente.toLowerCase().includes(search))return false;return true;});}
+function zelGetFiltered(){const rows=zelData[zelTab]||[];const cliente=document.getElementById('zelFiltroCliente').value.trim().toLowerCase();const status=document.getElementById('zelFiltroStatus').value.trim().toLowerCase();const search=document.getElementById('zelSearch').value.trim().toLowerCase();return rows.filter(r=>{if(typeof selCliente!=='undefined'&&selCliente.size>0&&!selCliente.has(r.cliente))return false;if(cliente&&r.cliente.toLowerCase()!==cliente)return false;if(status&&r.status.toLowerCase()!==status)return false;if(search&&!r.usina.toLowerCase().includes(search)&&!r.cliente.toLowerCase().includes(search))return false;return true;});}
 function zelRender(){
   const allRows=zelData[zelTab]||[];const rows=zelGetFiltered();
   Object.keys(ZEL_TIPOS).forEach(t=>{const el=document.getElementById('tabBadge'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.textContent=(zelData[t]||[]).length;});
