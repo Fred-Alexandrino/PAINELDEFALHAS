@@ -2475,6 +2475,19 @@ let _ativDesligFiltro = false;
 
 function isDesligamentoAtividade(a) {
   if (_ativIsConcluida(a)) return false;
+  // Trabalho de campo já concluído (100% ou statusTarefaOS/statusGeralOS
+  // "Concluída") — mesmo que a OS ainda esteja "Em Revisão"/"Em Processo"
+  // aguardando confirmação da Fracttal, a usina já foi religada. A
+  // descrição da OS ("Religamento da usina", "Usina offline") é texto
+  // estático escrito na criação da tarefa — não reflete o status atual.
+  // Sem essa checagem, toda OS de religamento já resolvida (aguardando só
+  // aprovação administrativa) aparecia como desligamento ativo (falso
+  // positivo confirmado em 15/07/2026 com Crateús/Matão 1/Araputanga).
+  const statusTarefa = (a.statusTarefaOS || '').toLowerCase();
+  const statusGeral = (a.statusGeralOS || '').toLowerCase();
+  const percentual = parseInt(a.percentualOS, 10);
+  if (statusTarefa.includes('conclu') || statusGeral.includes('conclu') || percentual === 100) return false;
+
   const desc = (a.descricao || '').toLowerCase();
   const obs = (a.observacoesOS || '').toLowerCase();
   const equip = (a.equipamento || '').toLowerCase();
