@@ -2444,6 +2444,33 @@ function isInversorAberto(d) {
   return /\bINV\b|INV-|INV\d|INVERSOR/.test(equip);
 }
 
+/* ── Guard de negação ──
+   Texto de OS costuma trazer boilerplate do tipo "A atividade NÃO envolve
+   ... ou desligamento da usina, não sendo necessário acionar o COS" — as
+   regras de desligamento abaixo, sendo puramente léxicas, batiam nesse
+   trecho mesmo estando negado e mesmo a muitas palavras de distância do
+   "não" (falso positivo confirmado em 15/07/2026 com Nobres/OS 9506).
+   _matchSemNegacao busca todas as ocorrências do padrão e descarta
+   qualquer uma cuja CLÁUSULA/FRASE (delimitada por . ! ? ou quebra de
+   linha) contenha uma negação em qualquer ponto antes do trecho casado —
+   não só nas palavras imediatamente anteriores, já que "não" costuma vir
+   no início da frase e o gatilho ("desligamento da usina") no fim. */
+function _clauseTemNegacao(texto, matchIndex) {
+  let start = matchIndex;
+  while (start > 0 && !'.!?\n'.includes(texto[start - 1])) start--;
+  const clause = texto.slice(start, matchIndex);
+  return /\b(não|nao|sem|dispensad[ao]|descartad[ao]|nunca)\b/i.test(clause);
+}
+function _matchSemNegacao(regex, texto) {
+  const r = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g');
+  let m;
+  while ((m = r.exec(texto)) !== null) {
+    if (!_clauseTemNegacao(texto, m.index)) return true;
+    if (m.index === r.lastIndex) r.lastIndex++;
+  }
+  return false;
+}
+
 function isDesligamento(d) {
   const statusKey = (d.status || '').toLowerCase();
   if (['concluído','concluido','resolvido','fechado'].some(s => statusKey.includes(s))) return false;
@@ -2454,18 +2481,18 @@ function isDesligamento(d) {
   const fc = falha + ' ' + causa;
 
   // Regra 1: usina/UFV + desligada/parada/offline (próximos, em qualquer ordem)
-  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/.test(fc)) return true;
-  if (/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(fc)) return true;
+  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/, fc)) return true;
+  if (_matchSemNegacao(/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/, fc)) return true;
 
   // Regra 1b: usina offline / sem possibilidade de monitoramento ou religamento remoto
-  if (/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/.test(fc)) return true;
+  if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, fc)) return true;
 
   // Regra 2: desligamento + da usina/da UFV
-  if (/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/.test(fc)) return true;
+  if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, fc)) return true;
 
   // Regra 3: transformador + da usina + desligado (o "da usina" é obrigatório)
-  if (/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(fc)) return true;
-  if (/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(fc)) return true;
+  if (_matchSemNegacao(/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, fc)) return true;
+  if (_matchSemNegacao(/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, fc)) return true;
 
   return false;
 }
@@ -2499,13 +2526,13 @@ function isDesligamentoAtividade(a) {
   const equip = (a.equipamento || '').toLowerCase();
   const dc = `${desc} ${obs} ${equip}`;
 
-  if (/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/.test(dc)) return true;
-  if (/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/.test(dc)) return true;
-  if (/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/.test(dc)) return true;
-  if (/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/.test(dc)) return true;
-  if (/religamento\s+(?:da|de)\s+(?:usina|ufv)/.test(dc)) return true;
-  if (/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(dc)) return true;
-  if (/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/.test(dc)) return true;
+  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/, dc)) return true;
+  if (_matchSemNegacao(/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/, dc)) return true;
+  if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, dc)) return true;
+  if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
+  if (_matchSemNegacao(/religamento\s+(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
+  if (_matchSemNegacao(/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, dc)) return true;
+  if (_matchSemNegacao(/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, dc)) return true;
 
   return false;
 }
