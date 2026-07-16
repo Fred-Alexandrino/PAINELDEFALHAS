@@ -3,7 +3,7 @@
  * v2 — Push notifications + Cache offline
  */
 
-const CACHE_NAME   = 'painel-om-v2';
+const CACHE_NAME   = 'painel-om-v3';
 const CACHE_URLS   = [
   '/PAINELDEFALHAS/',
   '/PAINELDEFALHAS/index.html',
@@ -83,10 +83,12 @@ self.addEventListener('push', event => {
       url:  data.url || 'https://fred-alexandrino.github.io/PAINELDEFALHAS/',
       tipo: data.tipo || 'geral',
     },
-    actions: [
-      { action: 'abrir',  title: '📋 Ver no Painel' },
-      { action: 'fechar', title: 'Fechar' },
-    ],
+    // Sem botões de ação customizados — alguns Android/OEMs têm suporte
+    // inconsistente pra "actions" em notificação web, chegando a não
+    // disparar o notificationclick de jeito nenhum ao tocar num botão
+    // específico (relatado pelo Fred em 16/07/2026: nem o Chrome abria).
+    // Tocar em qualquer parte da notificação agora abre o painel — mais
+    // simples e mais confiável entre aparelhos diferentes.
   };
 
   // Vibração reforçada para desligamentos
@@ -99,10 +101,10 @@ self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// ── Clique na notificação ────────────────────────────────────────────────
+// ── Clique na notificação (agora só existe um "clique no corpo", sem
+//    botões de ação customizados) ────────────────────────────────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  if (event.action === 'fechar') return;
 
   const url = event.notification.data?.url ||
               'https://fred-alexandrino.github.io/PAINELDEFALHAS/';
@@ -122,6 +124,12 @@ self.addEventListener('notificationclick', event => {
           }
         }
         if (clients.openWindow) return clients.openWindow(url);
+      })
+      .catch(err => {
+        // Nunca deixa o erro passar em silêncio — se o navigate/openWindow
+        // falhar por qualquer motivo, pelo menos tenta abrir uma aba nova
+        // com a URL, como último recurso.
+        return clients.openWindow ? clients.openWindow(url) : null;
       })
   );
 });
