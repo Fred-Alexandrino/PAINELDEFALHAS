@@ -2901,15 +2901,41 @@ async function _abrirDeepLinkNotificacao() {
   const params = new URLSearchParams(window.location.search);
   const atividadeId  = params.get('atividade');
   const ocorrenciaId = params.get('ocorrencia');
+  if (!atividadeId && !ocorrenciaId) return;
 
-  if (atividadeId) {
-    switchNav('atividades');
-    await carregarAtividades();
-    _abrirAtivDrawer(atividadeId);
-  } else if (ocorrenciaId) {
-    switchNav('falhas');
-    openModal(ocorrenciaId);
-  }
+  // Espera um pouco pra deixar outros carregamentos concorrentes da
+  // inicialização (carregarAtividades, render inicial) assentarem antes
+  // de tentar abrir o card — evita condição de corrida onde o deep-link
+  // roda antes dos dados/estado da página estarem prontos (bug relatado
+  // pelo Fred em 16/07/2026: botão "Ver no Painel" não abria nada).
+  const tentarAbrir = async (tentativa) => {
+    try {
+      if (atividadeId) {
+        switchNav('atividades');
+        await carregarAtividades();
+        const existe = (typeof ATIVIDADES !== 'undefined') && ATIVIDADES.some(a => String(a.id) === String(atividadeId));
+        if (!existe && tentativa < 3) {
+          setTimeout(() => tentarAbrir(tentativa + 1), 600);
+          return;
+        }
+        _abrirAtivDrawer(atividadeId);
+      } else if (ocorrenciaId) {
+        switchNav('falhas');
+        if (typeof DATA === 'undefined' || DATA.length === 0) {
+          await fetchSheet();
+        }
+        const existe = (typeof DATA !== 'undefined') && DATA.some(d => String(d.id) === String(ocorrenciaId));
+        if (!existe && tentativa < 3) {
+          setTimeout(() => tentarAbrir(tentativa + 1), 600);
+          return;
+        }
+        openModal(ocorrenciaId);
+      }
+    } catch (e) {
+      console.error('[DeepLink] Falha ao abrir notificação:', e);
+    }
+  };
+  await tentarAbrir(1);
 }
 function canEdit() { return _currentSession.role==='manager'; }
 
