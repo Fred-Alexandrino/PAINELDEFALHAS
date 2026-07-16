@@ -2561,13 +2561,16 @@ function isDesligamento(d) {
   // Regra 1b: usina offline / sem possibilidade de monitoramento ou religamento remoto
   if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, fc)) return true;
 
-  // Regra 1c: falha/sem comunicação com a usina — tratada como desligamento
-  // a pedido do Fred (16/07/2026): sem comunicação, não dá pra saber se a
-  // usina está gerando, então trata como se estivesse parada até prova em
-  // contrário (e o override manual serve exatamente pra esse "prova em
-  // contrário", quando não for de fato um desligamento).
+  // Regra 1c: usina/UFV sem comunicação — tratada como desligamento a
+  // pedido do Fred (16/07/2026), mas só quando a falha menciona
+  // explicitamente "usina"/"UFV" perto de "sem comunicação". Um padrão
+  // mais genérico ("falha de comunicação" sozinho, sem exigir "usina")
+  // foi tentado antes e causou falso positivo em massa: pegava falha de
+  // comunicação de um EQUIPAMENTO específico (ex.: "Inversor com falha
+  // de comunicação") como se fosse a usina inteira desligada, inclusive
+  // reabrindo como "urgente" casos antigos (100+ dias) já em
+  // acompanhamento normal com o fabricante — corrigido no mesmo dia.
   if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}sem\s+comunica[çc][ãa]o/, fc)) return true;
-  if (_matchSemNegacao(/falha\s+(?:de\s+|na\s+)?comunica[çc][ãa]o/, fc)) return true;
   if (_matchSemNegacao(/sem\s+comunica[çc][ãa]o\s+(?:\w+\s+){0,3}(?:usina|ufv)/, fc)) return true;
 
   // Regra 2: desligamento + da usina/da UFV
@@ -2616,10 +2619,10 @@ function isDesligamentoAtividade(a) {
   if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/, dc)) return true;
   if (_matchSemNegacao(/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, dc)) return true;
-  // falha/sem comunicação — mesma regra do Painel de Falhas, aplicada aqui
-  // também pra manter os dois painéis consistentes (16/07/2026).
+  // usina/UFV sem comunicação — só quando menciona usina/UFV explicitamente
+  // perto de "sem comunicação" (mesma correção do Painel de Falhas, evita
+  // falso positivo de falha de comunicação de um equipamento específico).
   if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}sem\s+comunica[çc][ãa]o/, dc)) return true;
-  if (_matchSemNegacao(/falha\s+(?:de\s+|na\s+)?comunica[çc][ãa]o/, dc)) return true;
   if (_matchSemNegacao(/sem\s+comunica[çc][ãa]o\s+(?:\w+\s+){0,3}(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/religamento\s+(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
