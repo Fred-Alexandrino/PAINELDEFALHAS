@@ -203,6 +203,13 @@ body{
   border-radius:50%;background:var(--teal);
   box-shadow:0 0 0 2px var(--panel);
 }
+.desligtoggle-btn{
+  background:transparent;border:1px solid var(--border-strong);color:var(--text-faint);
+  border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;
+}
+.desligtoggle-btn:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.desligtoggle-btn.active-sim{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#EF4444;}
+.desligtoggle-btn.active-nao{background:rgba(45,212,191,.15);border-color:rgba(45,212,191,.4);color:var(--teal);}
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
 
@@ -2225,6 +2232,7 @@ body{
         <div class="drawer-eyebrow" id="drawerEyebrow"></div>
         <h2 id="drawerTitle"></h2>
         <div class="drawer-head-meta" id="drawerMeta"></div>
+        <div id="drawerDesligToggle" style="margin-top:8px;"></div>
       </div>
       <div class="drawer-head-btns">
         <div class="drawer-nav">
@@ -2437,6 +2445,67 @@ function agePillText(days) { if(days===null)return 'Sem data'; if(days<0)return 
 */
 let activeDesligFilter = false;
 let activeInvFilter = false;
+let _desligamentoManualMapa = {}; // chave "falha:<id>" ou "atividade:<id>" -> "sim"|"nao"
+
+async function _carregarDesligamentoManual() {
+  try {
+    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/desligamento-manual');
+    const data = await resp.json();
+    if (data.ok) {
+      _desligamentoManualMapa = {};
+      (data.itens || []).forEach(it => { _desligamentoManualMapa[`${it.origem}:${it.id}`] = it.valor; });
+    }
+  } catch (e) {
+    console.error('[DesligamentoManual] Falha ao carregar overrides:', e);
+  }
+}
+
+async function _definirDesligamentoManual(origem, id, valor) {
+  _desligamentoManualMapa[`${origem}:${id}`] = valor || undefined;
+  if (!valor) delete _desligamentoManualMapa[`${origem}:${id}`];
+  try {
+    await fetch('https://whatsapp-painel-falhas.onrender.com/marcar-desligamento-manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ origem, id, valor, editor: (_currentSession?.user || 'dashboard') }),
+    });
+  } catch (e) {
+    console.error('[DesligamentoManual] Falha ao gravar override:', e);
+  }
+}
+
+// Controle compartilhado (Falhas + Atividades) pra ver e alterar a
+// classificação de desligamento de um item específico. `detectado` é o
+// resultado já calculado (isDesligamento/isDesligamentoAtividade, que já
+// leva o override em conta) — usado só pra exibir o estado atual.
+function _renderToggleDesligamento(origem, id, containerEl, detectado) {
+  if (!containerEl) return;
+  const override = _desligamentoManualMapa[`${origem}:${id}`];
+  const ehManual = override === 'sim' || override === 'nao';
+  const corAtivo = detectado ? 'var(--red,#EF4444)' : 'var(--text-faint)';
+  containerEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${corAtivo};">
+        <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        ${detectado ? 'DESLIGAMENTO' : 'Sem desligamento'}
+        <span style="font-weight:400;color:var(--text-faint);">(${ehManual ? 'manual' : 'automático'})</span>
+      </span>
+      <div style="display:flex;gap:4px;">
+        <button class="desligtoggle-btn ${override==='sim'?'active-sim':''}" data-valor="sim" title="Forçar como desligamento">É desligamento</button>
+        <button class="desligtoggle-btn ${override==='nao'?'active-nao':''}" data-valor="nao" title="Forçar como NÃO desligamento">Não é</button>
+        ${ehManual ? `<button class="desligtoggle-btn" data-valor="" title="Voltar pra detecção automática">Automático</button>` : ''}
+      </div>
+    </div>`;
+  containerEl.querySelectorAll('.desligtoggle-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const valor = btn.dataset.valor;
+      await _definirDesligamentoManual(origem, id, valor);
+      if (origem === 'falha') { _renderDrawer(); applyFilters(); }
+      else { _renderAtivDrawer(); renderAtividadeCards(); }
+    });
+  });
+}
 
 function isInversorAberto(d) {
   if (isConcluido(d)) return false;
@@ -2472,6 +2541,10 @@ function _matchSemNegacao(regex, texto) {
 }
 
 function isDesligamento(d) {
+  const override = _desligamentoManualMapa[`falha:${d.id}`];
+  if (override === 'sim') return true;
+  if (override === 'nao') return false;
+
   const statusKey = (d.status || '').toLowerCase();
   if (['concluído','concluido','resolvido','fechado'].some(s => statusKey.includes(s))) return false;
 
@@ -2486,6 +2559,15 @@ function isDesligamento(d) {
 
   // Regra 1b: usina offline / sem possibilidade de monitoramento ou religamento remoto
   if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, fc)) return true;
+
+  // Regra 1c: falha/sem comunicação com a usina — tratada como desligamento
+  // a pedido do Fred (16/07/2026): sem comunicação, não dá pra saber se a
+  // usina está gerando, então trata como se estivesse parada até prova em
+  // contrário (e o override manual serve exatamente pra esse "prova em
+  // contrário", quando não for de fato um desligamento).
+  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}sem\s+comunica[çc][ãa]o/, fc)) return true;
+  if (_matchSemNegacao(/falha\s+(?:de\s+|na\s+)?comunica[çc][ãa]o/, fc)) return true;
+  if (_matchSemNegacao(/sem\s+comunica[çc][ãa]o\s+(?:\w+\s+){0,3}(?:usina|ufv)/, fc)) return true;
 
   // Regra 2: desligamento + da usina/da UFV
   if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, fc)) return true;
@@ -2507,6 +2589,10 @@ function isDesligamento(d) {
 let _ativDesligFiltro = false;
 
 function isDesligamentoAtividade(a) {
+  const override = _desligamentoManualMapa[`atividade:${a.id}`];
+  if (override === 'sim') return true;
+  if (override === 'nao') return false;
+
   if (_ativIsConcluida(a)) return false;
   // Trabalho de campo já concluído (100% ou statusTarefaOS/statusGeralOS
   // "Concluída") — mesmo que a OS ainda esteja "Em Revisão"/"Em Processo"
@@ -2529,6 +2615,11 @@ function isDesligamentoAtividade(a) {
   if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/, dc)) return true;
   if (_matchSemNegacao(/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, dc)) return true;
+  // falha/sem comunicação — mesma regra do Painel de Falhas, aplicada aqui
+  // também pra manter os dois painéis consistentes (16/07/2026).
+  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}sem\s+comunica[çc][ãa]o/, dc)) return true;
+  if (_matchSemNegacao(/falha\s+(?:de\s+|na\s+)?comunica[çc][ãa]o/, dc)) return true;
+  if (_matchSemNegacao(/sem\s+comunica[çc][ãa]o\s+(?:\w+\s+){0,3}(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/religamento\s+(?:da|de)\s+(?:usina|ufv)/, dc)) return true;
   if (_matchSemNegacao(/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, dc)) return true;
@@ -2888,8 +2979,10 @@ function initDashboard(session) {
   }
 
   document.getElementById('appShell').classList.add('ready');
-  fetchSheet().then(() => _abrirDeepLinkNotificacao());
-  carregarAtividades();
+  _carregarDesligamentoManual().then(() => {
+    fetchSheet().then(() => _abrirDeepLinkNotificacao());
+    carregarAtividades();
+  });
   if (session.role === 'admin' || session.role === 'manager') {
     setTimeout(initPush, 2000);
   }
@@ -4299,6 +4392,7 @@ function _renderDrawer() {
   document.getElementById('drawerEyebrow').innerHTML=`<span style="color:${cc.color}">${esc(d.cliente)}</span>`;
   document.getElementById('drawerTitle').textContent=d.equipamento;
   document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${color}">${esc(d.status)}</span>`;
+  _renderToggleDesligamento('falha', d.id, document.getElementById('drawerDesligToggle'), isDesligamento(d));
   const total=_drawerList.length;
   document.getElementById('drawerCounter').textContent=`${_drawerIndex+1} / ${total}`;
   document.getElementById('drawerPrev').disabled=_drawerIndex===0;
@@ -7223,6 +7317,7 @@ function _renderAtivDrawer() {
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
     ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_ativTextoBadgeVerificacao(a)}</span>` : ''}
+    <div id="ativDrawerDesligToggle" style="margin-bottom:10px;"></div>
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
@@ -7314,6 +7409,7 @@ function _renderAtivDrawer() {
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:6px;">Histórico</label>
     <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
   `;
+  _renderToggleDesligamento('atividade', a.id, document.getElementById('ativDrawerDesligToggle'), isDesligamentoAtividade(a));
 }
 
 async function _solicitarOSAtividade() {
