@@ -660,8 +660,9 @@ body{
 @media(max-width:1100px){.panels{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.panels{grid-template-columns:1fr;}}
 /* Painel de Atividades — 2 cards (Usina/Status) ocupando toda a largura no PC, empilhados no mobile */
-.panels-ativ{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
-@media(max-width:768px){.panels-ativ{grid-template-columns:1fr;}}
+.panels-ativ{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
+@media(max-width:1100px){.panels-ativ{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.panels-ativ{grid-template-columns:1fr;}}
 .panel-bars-ativ{max-height:208px;}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;user-select:none;}
@@ -1569,9 +1570,9 @@ body{
 
         <!-- Panels de breakdown -->
         <div class="panels">
-          <div class="panel"><div class="panel-head"><h3>Falhas por usina</h3><span class="panel-total" id="usinaTotal"></span></div><div class="panel-bars" id="usinaBars"></div></div>
-          <div class="panel"><div class="panel-head"><h3>Por status</h3><span class="panel-total" id="statusTotal"></span></div><div class="panel-bars" id="statusBars"></div></div>
-          <div class="panel"><div class="panel-head"><h3>Por causa</h3><span class="panel-total" id="causaTotal"></span></div><div class="panel-bars" id="causaBars"></div></div>
+          <div class="panel" id="panelUsina"><div class="panel-head" onclick="_togglePanel('panelUsina')"><h3>Falhas por usina</h3><div class="panel-head-right"><span class="panel-total" id="usinaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="usinaBars"></div></div>
+          <div class="panel" id="panelStatus"><div class="panel-head" onclick="_togglePanel('panelStatus')"><h3>Por status</h3><div class="panel-head-right"><span class="panel-total" id="statusTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="statusBars"></div></div>
+          <div class="panel" id="panelCausa"><div class="panel-head" onclick="_togglePanel('panelCausa')"><h3>Por causa</h3><div class="panel-head-right"><span class="panel-total" id="causaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="causaBars"></div></div>
         </div>
 
         <!-- Banner histórico -->
@@ -1817,8 +1818,8 @@ body{
         <div class="kpis" id="ativKpis" style="margin-bottom:20px;"></div>
 
         <!-- Panels de breakdown -->
-        <div class="panel" id="ativPanelCluster" style="margin-bottom:10px;"><div class="panel-head" onclick="_togglePanel('ativPanelCluster')"><h3>Por cluster</h3><div class="panel-head-right"><span class="panel-total" id="ativClusterTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
         <div class="panels-ativ">
+          <div class="panel" id="ativPanelCluster"><div class="panel-head" onclick="_togglePanel('ativPanelCluster')"><h3>Por cluster</h3><div class="panel-head-right"><span class="panel-total" id="ativClusterTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
           <div class="panel" id="ativPanelUsina"><div class="panel-head" onclick="_togglePanel('ativPanelUsina')"><h3>Atividades por usina</h3><div class="panel-head-right"><span class="panel-total" id="ativUsinaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
           <div class="panel" id="ativPanelStatus"><div class="panel-head" onclick="_togglePanel('ativPanelStatus')"><h3>Por status</h3><div class="panel-head-right"><span class="panel-total" id="ativStatusTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
         </div>
@@ -4291,6 +4292,8 @@ function renderBreakdowns() {
   document.querySelectorAll('#usinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
   document.querySelectorAll('#statusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
   document.querySelectorAll('#causaBars .bar-row').forEach(r => r.classList.toggle('selected', r.dataset.group === activeCausa));
+
+  _aplicarEstadoPaineis(['panelUsina', 'panelStatus', 'panelCausa']);
 }
 
 /* ══ CARDS — com barra de envelhecimento (200d max) ══ */
@@ -6789,7 +6792,7 @@ function _ativRenderKpis() {
   </div>`).join('');
 }
 
-/* ══ PAINÉIS RECOLHÍVEIS (Por cluster / Atividades por usina / Por status) ══
+/* ══ PAINÉIS RECOLHÍVEIS (Falhas por usina/status/causa · Por cluster/usina/status Atividades) ══
    Estado persistido em localStorage por painel. Sem preferência salva,
    assume recolhido no mobile (<768px, mesmo breakpoint já usado em
    .panels-ativ) e expandido no desktop. */
@@ -6800,8 +6803,8 @@ function _togglePanel(panelId) {
   try { localStorage.setItem('painelCollapsed:' + panelId, collapsed ? '1' : '0'); } catch (e) {}
 }
 
-function _ativAplicarEstadoPaineis() {
-  ['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus'].forEach(id => {
+function _aplicarEstadoPaineis(ids) {
+  ids.forEach(id => {
     const panel = document.getElementById(id);
     if (!panel) return;
     let saved = null;
@@ -6809,6 +6812,9 @@ function _ativAplicarEstadoPaineis() {
     const deveRecolher = saved !== null ? saved === '1' : window.innerWidth < 768;
     panel.classList.toggle('collapsed', deveRecolher);
   });
+}
+function _ativAplicarEstadoPaineis() {
+  _aplicarEstadoPaineis(['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus']);
 }
 
 function _ativRenderBreakdowns() {
