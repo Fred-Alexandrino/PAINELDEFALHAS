@@ -2450,7 +2450,7 @@ let _desligamentoManualMapa = {}; // chave "falha:<id>" ou "atividade:<id>" -> "
 
 async function _carregarDesligamentoManual() {
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/desligamento-manual');
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/desligamento-manual');
     const data = await resp.json();
     if (data.ok) {
       _desligamentoManualMapa = {};
@@ -2465,7 +2465,7 @@ async function _definirDesligamentoManual(origem, id, valor) {
   _desligamentoManualMapa[`${origem}:${id}`] = valor || undefined;
   if (!valor) delete _desligamentoManualMapa[`${origem}:${id}`];
   try {
-    await fetch('https://whatsapp-painel-falhas.onrender.com/marcar-desligamento-manual', {
+    await fetch('https://api.168.138.232.237.sslip.io/marcar-desligamento-manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ origem, id, valor, editor: (_currentSession?.user || 'dashboard') }),
@@ -2737,7 +2737,7 @@ async function carregarCompromissos() {
   if (!wrap) return;
   wrap.innerHTML = '<div class="cmp-empty">Carregando...</div>';
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos');
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos');
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
     _cmpCache = data.compromissos || [];
@@ -2875,7 +2875,7 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
   renderCompromissos();
 
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/compromissos/marcar-etapa', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/marcar-etapa', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -3356,7 +3356,7 @@ async function _limparTodasNotificacoes() {
   const pendentes = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim');
   pendentes.forEach(a => { a.visualizado = 'sim'; });
   await Promise.allSettled(pendentes.map(a =>
-    fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+    fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: a.id, field: 'visualizado', value: 'sim' }),
@@ -4484,7 +4484,7 @@ async function _saveDrawerToSheet() {
   }
   if(changed.length===0){_isSaving=false;showToast('Nenhuma alteração detectada.',true);if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}return;}
   const errors=[];
-  const SAVE_URL = 'https://whatsapp-painel-falhas.onrender.com/atualizar-campo';
+  const SAVE_URL = 'https://api.168.138.232.237.sslip.io/atualizar-campo';
 
   async function _fetchWithTimeout(url, opts, ms=12000) {
     const ctrl = new AbortController();
@@ -4549,7 +4549,7 @@ async function _addHistoryEntry() {
   try{
     let hSaved = false;
     try {
-      const hResp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo', {
+      const hResp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''}),
@@ -5286,7 +5286,7 @@ async function _converterOcorrenciaEmAtividade() {
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
 
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/converter-ocorrencia-em-atividade', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/converter-ocorrencia-em-atividade', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ id: d.id, editor })
     });
@@ -5307,7 +5307,7 @@ async function _converterOcorrenciaEmAtividade() {
 
 async function _gerarTextoOSComIA(d, tentativa = 1) {
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-texto-os-ia', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-texto-os-ia', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -5378,7 +5378,7 @@ document.getElementById('osModalCopyBtn')?.addEventListener('click', () => {
    ⚠ URL CORRIGIDA: whatsapp-painel-falhas.onrender.com
    (o nome real do serviço Python no Render)
 ══ */
-const RONDAS_URL = 'https://whatsapp-painel-falhas.onrender.com';
+const RONDAS_URL = 'https://api.168.138.232.237.sslip.io';
 
 async function verificarRondas() {
   const btn=document.getElementById('rondasInlineBtn');
@@ -5868,8 +5868,8 @@ document.getElementById('zelAddRow')?.addEventListener('click',zelAddRow);
 
 /* ══ NOTIFICAÇÕES PUSH ══ */
 const VAPID_PUBLIC_KEY = 'BJyGD9Lno29xj3_a6i5MjSHoZhHwfev7bRJRCqjnyL-o1vo9Hbf2zmrNtoONHtA92F59LGLc52HNE7oUkKqs5Yk';
-const PUSH_SUBSCRIBE_URL = 'https://whatsapp-painel-falhas.onrender.com/push/subscribe';
-const PUSH_UNSUBSCRIBE_URL = 'https://whatsapp-painel-falhas.onrender.com/push/unsubscribe';
+const PUSH_SUBSCRIBE_URL = 'https://api.168.138.232.237.sslip.io/push/subscribe';
+const PUSH_UNSUBSCRIBE_URL = 'https://api.168.138.232.237.sslip.io/push/unsubscribe';
 
 let _swRegistration = null;
 
@@ -6065,7 +6065,7 @@ async function carregarAtividades(tentativa = 1) {
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 20000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atividades', { signal: ctrl.signal });
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/atividades', { signal: ctrl.signal });
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
@@ -6113,7 +6113,7 @@ async function _atualizarOSAgora() {
       try {
         const ctrl = new AbortController();
         const timeoutId = setTimeout(() => ctrl.abort(), 55000);
-        const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-os-agora', {
+        const resp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-os-agora', {
           method: 'POST', signal: ctrl.signal
         });
         clearTimeout(timeoutId);
@@ -6162,7 +6162,7 @@ async function _rodarAuditoriaAgora() {
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 60000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/rodar-auditoria-agora', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/rodar-auditoria-agora', {
       method: 'POST', signal: ctrl.signal
     });
     clearTimeout(timeoutId);
@@ -6233,7 +6233,7 @@ async function _gerarSugestaoReprogramacao() {
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 140000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-reprogramacao', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/sugerir-reprogramacao', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ids }), signal: ctrl.signal
     });
     clearTimeout(timeoutId);
@@ -6369,7 +6369,7 @@ async function _aplicarReprogramacao(id, novaData, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = '...';
   try {
-    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+    await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ id, field: 'prazo', value: novaData, editor: 'reprogramacao-ia' })
     });
@@ -6554,7 +6554,7 @@ async function _sugerirPriorizacaoIA() {
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 55000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/sugerir-priorizacao-diaria', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/sugerir-priorizacao-diaria', {
       method: 'POST', signal: ctrl.signal
     });
     clearTimeout(timeoutId);
@@ -6624,7 +6624,7 @@ async function _dispararComunicadoCluster(cluster, idSeguro, btnEl) {
   btnEl.disabled = true;
   btnEl.innerHTML = 'Enviando…';
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/disparar-comunicado-cluster', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-cluster', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cluster, texto }),
@@ -6983,7 +6983,7 @@ async function _ativVerificarOsAgora(id, btnEl) {
   btnEl.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;animation:spin 0.8s linear infinite;"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>';
   btnEl.disabled = true;
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/verificar-uma-os', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/verificar-uma-os', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -7028,7 +7028,7 @@ async function _ativVerificarColuna(btnEl) {
   let corrigidas = 0;
   for (const id of ids) {
     try {
-      const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/verificar-uma-os', {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/verificar-uma-os', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -7226,7 +7226,7 @@ async function _marcarAtividadeVisualizada(id) {
   document.querySelectorAll(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`).forEach(el => el.remove());
   _atualizarBadgesNaoLidos();
   try {
-    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+    await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, field: 'visualizado', value: 'sim' }),
@@ -7478,7 +7478,7 @@ async function _converterAtividadeEmOcorrencia() {
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
 
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/converter-atividade-em-ocorrencia', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/converter-atividade-em-ocorrencia', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ id: a.id, editor })
     });
@@ -7499,7 +7499,7 @@ async function _converterAtividadeEmOcorrencia() {
 async function _registrarOSSolicitadaAtividade(a) {
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   try {
-    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+    await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ id: a.id, field: 'status', value: 'OS Solicitada', editor })
     });
@@ -7507,7 +7507,7 @@ async function _registrarOSSolicitadaAtividade(a) {
     const agora = new Date();
     const dateStr = agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     const entry = `${dateStr} - OS solicitada por ${editor}.`;
-    await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+    await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ id: a.id, field: 'historico', value: entry, append: true, editor })
     });
@@ -7617,42 +7617,42 @@ async function _salvarAtivDrawer() {
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   try {
     if (novoStatus !== a.status) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'status', value: novoStatus, editor })
       });
       a.status = novoStatus;
     }
     if (novoPrazo && novoPrazo !== a.prazo) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'prazo', value: novoPrazo, editor })
       });
       a.prazo = novoPrazo;
     }
     if (novoNumeroOS !== (a.numeroOS||'')) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'numeroOS', value: novoNumeroOS, editor })
       });
       a.numeroOS = novoNumeroOS;
     }
     if (novoResponsavel !== (a.responsavel||'')) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'responsavel', value: novoResponsavel, editor })
       });
       a.responsavel = novoResponsavel;
     }
     if (novaPrioridade !== a.prioridade) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'prioridade', value: novaPrioridade, editor })
       });
       a.prioridade = novaPrioridade;
     }
     if (novasAnotacoes !== (a.anotacoesPessoais||'')) {
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'anotacoesPessoais', value: novasAnotacoes, editor })
       });
@@ -7662,7 +7662,7 @@ async function _salvarAtivDrawer() {
       const agora = new Date();
       const dateStr = agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       const entry = `${dateStr} - ${novoHistTxt}`;
-      await fetch('https://whatsapp-painel-falhas.onrender.com/atualizar-campo-atividade', {
+      await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ id: a.id, field: 'historico', value: entry, append: true, editor })
       });
@@ -7743,7 +7743,7 @@ async function _submeterNovaAtividade() {
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 12000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/nova-atividade', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/nova-atividade', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload),
@@ -7792,7 +7792,7 @@ async function _submeterNovaOcorrencia() {
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 12000);
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/nova-ocorrencia', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/nova-ocorrencia', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload),
@@ -8098,7 +8098,7 @@ async function relGerarRelatorio(){
   if (btn) btn.disabled = true;
   if (status) status.textContent = 'Gerando relatório...';
   try {
-    const resp = await fetch('https://whatsapp-painel-falhas.onrender.com/gerar-relatorio-semanal', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-relatorio-semanal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cliente, dataInicio, dataFim })
