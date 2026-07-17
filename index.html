@@ -6547,6 +6547,10 @@ async function _sugerirPriorizacaoIA() {
   const label = document.getElementById('comunicadoPriorizacaoLabel');
   const resultEl = document.getElementById('comunicadoPriorizacaoResult');
   if (!btn || btn.disabled) return;
+
+  const marcadas = Array.from(document.querySelectorAll('.comunicado-equipe-check:checked')).map(cb => cb.value);
+  if (marcadas.length === 0) { showToast('Selecione ao menos uma equipe.', false); return; }
+
   btn.disabled = true;
   const textoOriginal = label.textContent;
   label.textContent = 'Analisando atividades…';
@@ -6555,7 +6559,9 @@ async function _sugerirPriorizacaoIA() {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 55000);
     const resp = await fetch('https://api.168.138.232.237.sslip.io/sugerir-priorizacao-diaria', {
-      method: 'POST', signal: ctrl.signal
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clusters: marcadas })
     });
     clearTimeout(timeoutId);
     const data = await resp.json();
