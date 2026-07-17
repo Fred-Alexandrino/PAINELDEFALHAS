@@ -1649,6 +1649,7 @@ body{
             <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);" id="chamadosSubtitle"></span>
           </div>
         </div>
+        <div id="chamadosStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
         <div id="chamadosBody"></div>
       </section>
 
@@ -5855,29 +5856,63 @@ function _atualizarBadgeChamados() {
   if (badge) badge.textContent = abertos;
 }
 
+let selChamadoStatus = new Set();
+
+function _renderChamadosStatusFiltro(dataBase) {
+  const el = document.getElementById('chamadosStatusFiltro');
+  if (!el) return;
+  const statusUnicos = [...new Set(dataBase.map(c => (c['Status'] || '').trim()).filter(Boolean))].sort();
+  el.innerHTML = statusUnicos.map(s => {
+    const ativo = selChamadoStatus.size === 0 || selChamadoStatus.has(s);
+    const sc = statusColor(s);
+    return `<button class="filter-badge chamado-status-chip" data-status="${esc(s)}" style="cursor:pointer;background:${ativo ? sc+'22' : 'transparent'};color:${ativo ? sc : 'var(--text-faint)'};border-color:${ativo ? sc+'55' : 'var(--border)'};">${esc(s)}</button>`;
+  }).join('');
+  el.querySelectorAll('.chamado-status-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.status;
+      if (selChamadoStatus.size === 0) {
+        // estava tudo selecionado (nenhum filtro) — clicar em um mostra só esse
+        selChamadoStatus = new Set(statusUnicos);
+        selChamadoStatus.delete(s);
+        selChamadoStatus = new Set([s]);
+      } else if (selChamadoStatus.has(s)) {
+        selChamadoStatus.delete(s);
+      } else {
+        selChamadoStatus.add(s);
+      }
+      if (selChamadoStatus.size === statusUnicos.length) selChamadoStatus = new Set(); // todos marcados = sem filtro
+      openChamadosInline();
+    });
+  });
+}
+
 function openChamadosInline(){
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
-  const dataFiltrada = CHAMADOS_FABRICANTE.filter(c => {
+  const dataBase = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(c['UFV'])) return false;
     if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
+  _renderChamadosStatusFiltro(dataBase);
+  const dataFiltrada = dataBase.filter(c => selChamadoStatus.size === 0 || selChamadoStatus.has((c['Status']||'').trim()));
   const body=document.getElementById('chamadosBody');const sub=document.getElementById('chamadosSubtitle');
   const totalAbertos = dataFiltrada.filter(_chamadoEstaAberto).length;
   if (sub) sub.textContent=`${dataFiltrada.length} chamado(s) · ${totalAbertos} em aberto`;
   if(dataFiltrada.length===0){body.innerHTML=`<div class="ch-empty">Nenhum chamado de fabricante encontrado.</div>`;return;}
   const porData = dataFiltrada.slice().sort((a,b) => (b['Data da abertura do chamado']||'').localeCompare(a['Data da abertura do chamado']||''));
-  body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">`+porData.map(c=>{
+  window._chamadosListaAtual = porData;
+  body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">`+porData.map((c,i)=>{
     const sc=statusColor(c['Status']||'');
     const cc=clientColor(c['Cliente']||'');
     const statusOS = c['Status OS'] || '';
     const dias = c['Dias corridos'] || '';
-    return `<div class="ch-item">
+    const equip = c['Identificação do Equipamento'] || c['Ativo'] || '';
+    return `<div class="ch-item" data-idx="${i}" style="cursor:pointer;">
       <div class="ch-ticket">${esc(c['Ticket/RMA']||'—')}</div>
       <div class="ch-info">
-        <div class="ch-equip">${esc(c['Ativo']||'')}${c['Motivo da abertura do chamado'] ? ' — '+esc(c['Motivo da abertura do chamado']) : ''}</div>
+        <div class="ch-equip">${esc(equip)}${c['Motivo da abertura do chamado'] ? ' — '+esc(c['Motivo da abertura do chamado']) : ''}</div>
         <div class="ch-meta">
           <span style="color:${cc.color}">${esc(c['UFV']||'')}</span>
           ${c['Fabricante'] ? ` · ${esc(c['Fabricante'])}` : ''}
@@ -5891,6 +5926,99 @@ function openChamadosInline(){
       </div>
     </div>`;
   }).join('')+`</div>`;
+  body.querySelectorAll('.ch-item').forEach(el => {
+    el.addEventListener('click', () => _abrirDetalheChamado(parseInt(el.dataset.idx, 10)));
+  });
+}
+
+function _abrirDetalheChamado(idx) {
+  const c = (window._chamadosListaAtual || [])[idx];
+  if (!c) return;
+  const existente = document.getElementById('chamadoDetalheOverlay');
+  if (existente) existente.remove();
+
+  const linha = (label, valor) => valor ? `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:3px;">${esc(label)}</div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;">${esc(valor)}</div>
+    </div>` : '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'chamadoDetalheOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-elevated,#151922);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;font-family:'Geist Mono',monospace;color:var(--text-faint);">TICKET/RMA</div>
+          <div style="font-size:19px;font-weight:800;">${esc(c['Ticket/RMA']||'—')}</div>
+        </div>
+        <button id="chamadoDetalheClose" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:20px;line-height:1;padding:4px;">✕</button>
+      </div>
+      ${linha('Usina', c['UFV'])}
+      ${linha('Equipamento', c['Identificação do Equipamento'] || c['Ativo'])}
+      ${linha('Fabricante', c['Fabricante'])}
+      ${linha('Equipe / Supervisor', `${c['Equipe']||''}${c['Supervisor'] ? ' · '+c['Supervisor'] : ''}`)}
+      ${linha('Motivo da abertura', c['Motivo da abertura do chamado'])}
+      ${linha('Causa da Falha', c['Causa da Falha'])}
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        ${linha('Status', c['Status'])}
+        ${linha('Status OS', c['Status OS'])}
+        ${linha('Resolução', c['Resolução'])}
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        ${linha('Data da ocorrência', c['Data da ocorrência'])}
+        ${linha('Data da abertura do chamado', c['Data da abertura do chamado'])}
+        ${linha('Data da última atualização', c['Data da Última Atualização'])}
+        ${linha('Data de finalização', c['Data de finalização'])}
+        ${linha('Dias corridos', c['Dias corridos'])}
+      </div>
+      ${linha('N° da Solicitação de OS', c['N° da Solicitação de OS'])}
+      ${linha('Identificação Supervisório', c['Identificação Supervisório'])}
+      ${linha('Serial Number', c['Serial Number'])}
+      ${linha('Título do E-mail', c['Título do E-mail'])}
+      <div style="margin-top:6px;">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Observações</div>
+        <textarea id="chamadoDetalheObsInput" rows="4" style="width:100%;background:var(--bg,#0d1017);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;font-family:inherit;resize:vertical;">${esc(c['Observações']||'')}</textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button id="chamadoDetalheSalvarObs" class="tb-btn" style="background:var(--teal);color:#04201c;border:none;">Salvar observação</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(); });
+  document.getElementById('chamadoDetalheClose').addEventListener('click', fechar);
+
+  document.getElementById('chamadoDetalheSalvarObs').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const novaObs = document.getElementById('chamadoDetalheObsInput').value;
+    btn.disabled = true;
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Salvando…';
+    try {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-observacao-chamado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket: c['Ticket/RMA'] || '',
+          ufv: c['UFV'] || '',
+          equipamento: c['Identificação do Equipamento'] || '',
+          novaObservacao: novaObs,
+        })
+      });
+      const result = await resp.json();
+      if (!result.ok) throw new Error(result.error || 'Erro ao salvar');
+      c['Observações'] = novaObs; // atualiza em memória também
+      showToast('Observação salva.', true);
+    } catch (err) {
+      showToast('Erro ao salvar observação: ' + (err.message || ''), false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
 }
 
 /* ══ MODO CLIENTE ══ */
