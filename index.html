@@ -2703,7 +2703,7 @@ function switchNav(nav) {
   const title = document.getElementById('topbarTitle');
   if (title) title.textContent = NAV_TITLES[nav] || nav;
   closeMobileSidebar();
-  if (nav === 'chamados') openChamadosInline();
+  if (nav === 'chamados') carregarChamadosFabricante();
   if (nav === 'processos') openZeladoriasInline();
   if (nav === 'historico-log') {/* carregado via botão */}
   if (nav === 'mttr') renderMTTR();
@@ -2992,6 +2992,7 @@ function initDashboard(session) {
   _carregarDesligamentoManual().then(() => {
     fetchSheet().then(() => _abrirDeepLinkNotificacao());
     carregarAtividades();
+    carregarChamadosFabricante();
   });
   if (session.role === 'admin' || session.role === 'manager') {
     setTimeout(initPush, 2000);
@@ -4139,9 +4140,6 @@ function applySortAndRender() {
   const slaBanner=document.getElementById('slaBanner');
   if(breachList.length>0){slaBanner.classList.add('visible');document.getElementById('slaBannerText').textContent=activeSlaFilter?`Filtrando ${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido · clique para limpar`:`${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — abertas há mais de ${SLA_CONFIG.BREACH_DAYS} dias sem resposta`;}
   else{slaBanner.classList.remove('visible');if(activeSlaFilter){activeSlaFilter=false;slaBanner.classList.remove('active-filter');}}
-
-  const comTicket=filtered.filter(d=>isValidTicket(d.ticketFabricante)).length;
-  const badge=document.getElementById('sbChamadosBadge');if(badge)badge.textContent=comTicket;
 
   renderKPIs();renderBreakdowns();
   _lastSorted=sorted;
@@ -5808,19 +5806,73 @@ document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilt
 document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
 
 /* ══ CHAMADOS — agora seção inline (não mais modal) ══ */
+let CHAMADOS_FABRICANTE = [];
+
+async function carregarChamadosFabricante() {
+  const body = document.getElementById('chamadosBody');
+  const sub = document.getElementById('chamadosSubtitle');
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 20000);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/chamados-fabricante', { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar chamados');
+    CHAMADOS_FABRICANTE = result.itens || [];
+  } catch (e) {
+    if (body) body.innerHTML = `<div class="ch-empty">Erro ao carregar chamados (${esc(e.message || 'falha de conexão')}). Tenta de novo em instantes.</div>`;
+    if (sub) sub.textContent = 'Erro ao carregar';
+    _atualizarBadgeChamados();
+    return;
+  }
+  _atualizarBadgeChamados();
+  openChamadosInline();
+}
+
+function _chamadoEstaAberto(c) {
+  const s = (c['Status'] || '').toLowerCase();
+  return !s.includes('conclu') && !s.includes('resolv') && !s.includes('fechad') && !s.includes('finaliz');
+}
+
+function _atualizarBadgeChamados() {
+  const abertos = CHAMADOS_FABRICANTE.filter(_chamadoEstaAberto).length;
+  const badge = document.getElementById('sbChamadosBadge');
+  if (badge) badge.textContent = abertos;
+}
+
 function openChamadosInline(){
-  const dataFiltrada = DATA.filter(d => {
-    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
-    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(d.usina)) return false;
+  const dataFiltrada = CHAMADOS_FABRICANTE.filter(c => {
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(c['UFV'])) return false;
     return true;
   });
-  const withTicket=dataFiltrada.filter(d=>isValidTicket(d.ticketFabricante));
   const body=document.getElementById('chamadosBody');const sub=document.getElementById('chamadosSubtitle');
-  const totalAbertos=withTicket.filter(d=>{const s=d.status.toLowerCase();return!s.includes('conclu')&&!s.includes('resolv')&&!s.includes('fechad');}).length;
-  if (sub) sub.textContent=`${withTicket.length} chamado(s) com ticket · ${totalAbertos} em aberto`;
-  if(withTicket.length===0){body.innerHTML=`<div class="ch-empty">Nenhum registro com ticket fabricante encontrado.</div>`;return;}
-  body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">`+withTicket.map(d=>{const sc=statusColor(d.status);const cc=clientColor(d.cliente);const ageDays=getFaultAgeDays(d);const ageTxt=ageDays!==null&&ageDays>=0?agePillText(ageDays):'';return`<div class="ch-item" data-id="${esc(d.id)}"><div class="ch-ticket">${esc(d.ticketFabricante)}</div><div class="ch-info"><div class="ch-equip">${esc(d.equipamento)}</div><div class="ch-meta"><span style="color:${cc.color}">${esc(d.usina)}</span>${d.numeroOS?` · OS: ${esc(d.numeroOS)}`:''} ${ageTxt?` · <span style="color:${getSlaClass(ageDays)==='age-breach'?'var(--red)':'var(--text-faint)'}">${esc(ageTxt)}</span>`:''}</div></div><div class="ch-status"><span style="font-size:11px;font-family:'Geist Mono',monospace;font-weight:700;padding:3px 10px;border-radius:6px;background:${sc}1A;color:${sc};border:1px solid ${sc}44;">${esc(d.status)}</span></div></div>`;}).join('')+`</div>`;
-  body.querySelectorAll('.ch-item').forEach(el=>{el.addEventListener('click',()=>{openModal(el.dataset.id);});});
+  const totalAbertos = dataFiltrada.filter(_chamadoEstaAberto).length;
+  if (sub) sub.textContent=`${dataFiltrada.length} chamado(s) · ${totalAbertos} em aberto`;
+  if(dataFiltrada.length===0){body.innerHTML=`<div class="ch-empty">Nenhum chamado de fabricante encontrado.</div>`;return;}
+  const porData = dataFiltrada.slice().sort((a,b) => (b['Data da abertura do chamado']||'').localeCompare(a['Data da abertura do chamado']||''));
+  body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">`+porData.map(c=>{
+    const sc=statusColor(c['Status']||'');
+    const cc=clientColor(c['Cliente']||'');
+    const statusOS = c['Status OS'] || '';
+    const dias = c['Dias corridos'] || '';
+    return `<div class="ch-item">
+      <div class="ch-ticket">${esc(c['Ticket/RMA']||'—')}</div>
+      <div class="ch-info">
+        <div class="ch-equip">${esc(c['Ativo']||'')}${c['Motivo da abertura do chamado'] ? ' — '+esc(c['Motivo da abertura do chamado']) : ''}</div>
+        <div class="ch-meta">
+          <span style="color:${cc.color}">${esc(c['UFV']||'')}</span>
+          ${c['Fabricante'] ? ` · ${esc(c['Fabricante'])}` : ''}
+          ${c['OS de Abertura'] ? ` · OS: ${esc(c['OS de Abertura'])}` : ''}
+          ${dias ? ` · <span style="color:var(--text-faint);">${esc(dias)} dia${dias!=='1'?'s':''} corrido${dias!=='1'?'s':''}</span>` : ''}
+        </div>
+      </div>
+      <div class="ch-status" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+        <span style="font-size:11px;font-family:'Geist Mono',monospace;font-weight:700;padding:3px 10px;border-radius:6px;background:${sc}1A;color:${sc};border:1px solid ${sc}44;">${esc(c['Status']||'—')}</span>
+        ${statusOS ? `<span style="font-size:10px;color:var(--text-faint);">OS: ${esc(statusOS)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('')+`</div>`;
 }
 
 /* ══ MODO CLIENTE ══ */
