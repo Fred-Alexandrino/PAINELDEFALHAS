@@ -5977,11 +5977,12 @@ function _abrirDetalheChamado(idx) {
       ${linha('Identificação Supervisório', c['Identificação Supervisório'])}
       ${linha('Serial Number', c['Serial Number'])}
       ${linha('Título do E-mail', c['Título do E-mail'])}
+      ${linha('Observações (da planilha)', c['Observações'])}
       <div style="margin-top:6px;">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Observações</div>
-        <textarea id="chamadoDetalheObsInput" rows="4" style="width:100%;background:var(--bg,#0d1017);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;font-family:inherit;resize:vertical;">${esc(c['Observações']||'')}</textarea>
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Nota do dashboard (não grava na planilha do SharePoint)</div>
+        <textarea id="chamadoDetalheObsInput" rows="4" style="width:100%;background:var(--bg,#0d1017);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;font-family:inherit;resize:vertical;">${esc(c['NotaDashboard']||'')}</textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-          <button id="chamadoDetalheSalvarObs" class="tb-btn" style="background:var(--teal);color:#04201c;border:none;">Salvar observação</button>
+          <button id="chamadoDetalheSalvarObs" class="tb-btn" style="background:var(--teal);color:#04201c;border:none;">Salvar nota</button>
         </div>
       </div>
     </div>`;
@@ -6010,10 +6011,10 @@ function _abrirDetalheChamado(idx) {
       });
       const result = await resp.json();
       if (!result.ok) throw new Error(result.error || 'Erro ao salvar');
-      c['Observações'] = novaObs; // atualiza em memória também
-      showToast('Observação salva.', true);
+      c['NotaDashboard'] = novaObs; // atualiza em memória também
+      showToast('Nota salva.', true);
     } catch (err) {
-      showToast('Erro ao salvar observação: ' + (err.message || ''), false);
+      showToast('Erro ao salvar nota: ' + (err.message || ''), false);
     } finally {
       btn.disabled = false;
       btn.textContent = textoOriginal;
