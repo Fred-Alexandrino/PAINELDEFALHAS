@@ -5912,7 +5912,8 @@ function openChamadosInline(){
     return `<div class="ch-item" data-idx="${i}" style="cursor:pointer;">
       <div class="ch-ticket">${esc(c['Ticket/RMA']||'—')}</div>
       <div class="ch-info">
-        <div class="ch-equip">${esc(equip)}${c['Motivo da abertura do chamado'] ? ' — '+esc(c['Motivo da abertura do chamado']) : ''}</div>
+        <div class="ch-equip">${esc(equip)}</div>
+        ${c['Motivo da abertura do chamado'] ? `<div style="font-size:11px;color:var(--text-dim);margin-bottom:3px;">${esc(c['Motivo da abertura do chamado'])}</div>` : ''}
         <div class="ch-meta">
           <span style="color:${cc.color}">${esc(c['UFV']||'')}</span>
           ${c['Fabricante'] ? ` · ${esc(c['Fabricante'])}` : ''}
