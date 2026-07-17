@@ -1639,9 +1639,15 @@ body{
 
       <!-- ── SEÇÃO: CHAMADOS ───────────────────────────────── -->
       <section class="content-section" id="sec-chamados">
-        <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <h2 style="font-size:16px;font-weight:700;">Chamados — Ticket Fabricante</h2>
-          <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);" id="chamadosSubtitle"></span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer;user-select:none;">
+              <input type="checkbox" id="chamadosSoMeus" checked style="cursor:pointer;">
+              Mostrar só meus chamados (Fred Alexandrino)
+            </label>
+            <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);" id="chamadosSubtitle"></span>
+          </div>
         </div>
         <div id="chamadosBody"></div>
       </section>
@@ -5797,6 +5803,10 @@ document.getElementById('topbarOsSearchBtn')?.addEventListener('click', _buscarP
 document.getElementById('topbarOsSearch')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') _buscarPorNumeroOS();
 });
+document.getElementById('chamadosSoMeus')?.addEventListener('change', () => {
+  _atualizarBadgeChamados();
+  openChamadosInline();
+});
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   fetchSheet();
@@ -5835,15 +5845,23 @@ function _chamadoEstaAberto(c) {
 }
 
 function _atualizarBadgeChamados() {
-  const abertos = CHAMADOS_FABRICANTE.filter(_chamadoEstaAberto).length;
+  const soMeusEl = document.getElementById('chamadosSoMeus');
+  const soMeus = soMeusEl ? soMeusEl.checked : true;
+  const base = soMeus
+    ? CHAMADOS_FABRICANTE.filter(c => (c['Supervisor'] || '').trim().toLowerCase() === 'fred alexandrino')
+    : CHAMADOS_FABRICANTE;
+  const abertos = base.filter(_chamadoEstaAberto).length;
   const badge = document.getElementById('sbChamadosBadge');
   if (badge) badge.textContent = abertos;
 }
 
 function openChamadosInline(){
+  const soMeusEl = document.getElementById('chamadosSoMeus');
+  const soMeus = soMeusEl ? soMeusEl.checked : true;
   const dataFiltrada = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(c['UFV'])) return false;
+    if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
   const body=document.getElementById('chamadosBody');const sub=document.getElementById('chamadosSubtitle');
@@ -6873,34 +6891,6 @@ function _ativAtrasada(a) {
   return d.getTime() < hoje.getTime();
 }
 
-let _ativKpiFiltro = '';
-
-function _ativMatchKpiFiltro(a) {
-  if (!_ativKpiFiltro) return true;
-  if (_ativKpiFiltro === 'aberto') return !_ativIsConcluida(a);
-  if (_ativKpiFiltro === 'atrasadas') return _ativAtrasada(a);
-  if (_ativKpiFiltro === 'altas') return !_ativIsConcluida(a) && (a.prioridade||'').toLowerCase()==='alta';
-  if (_ativKpiFiltro === 'concluidas7d') {
-    if (!_ativIsConcluida(a)) return false;
-    const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate()-7);
-    const d = _ativParseDataBR(a.dataConclusao?.split(' ')[0]) || null;
-    return d ? d.getTime() >= seteDiasAtras.getTime() : false;
-  }
-  return true;
-}
-
-function _ativToggleKpiFiltro(tipo) {
-  _ativKpiFiltro = (_ativKpiFiltro === tipo) ? '' : tipo;
-  document.getElementById('mainContent')?.scrollTo({top:0, behavior:'smooth'});
-  if (_ativKpiFiltro === 'concluidas7d' && _ativTab !== 'historico') {
-    _ativMudarTab('historico');
-  } else if (_ativKpiFiltro && _ativKpiFiltro !== 'concluidas7d' && _ativTab === 'historico') {
-    _ativMudarTab('ativas');
-  } else {
-    renderAtividadeCards();
-  }
-}
-
 function _ativRenderKpis() {
   const el = document.getElementById('ativKpis');
   if (!el) return;
@@ -6914,20 +6904,16 @@ function _ativRenderKpis() {
     return d ? d.getTime() >= seteDiasAtras.getTime() : false;
   });
   const kpisData = [
-    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--teal)', glow:'rgba(20,184,166,.1)', tipo:'', title:'Clique para limpar o filtro por card'},
-    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--amber)', glow:'rgba(245,166,35,.1)', tipo:'aberto', title:'Clique para filtrar atividades em aberto'},
-    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)', tipo:'atrasadas', title:'Clique para filtrar atividades atrasadas'},
-    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'#EF4444', glow:'rgba(239,68,68,.1)', tipo:'altas', title:'Clique para filtrar prioridade alta em aberto'},
-    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)', tipo:'concluidas7d', title:'Clique para filtrar concluídas nos últimos 7 dias'},
+    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--teal)', glow:'rgba(20,184,166,.1)'},
+    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--amber)', glow:'rgba(245,166,35,.1)'},
+    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
+    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
+    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)'},
   ];
-  el.innerHTML = kpisData.map(k => `<div class="kpi kpi-clickable${_ativKpiFiltro===k.tipo && k.tipo ? ' active-filter' : ''}" style="--kpi-color:${k.color};--kpi-glow:${k.glow}" data-kpitipo="${k.tipo}" title="${k.title}" role="button" tabindex="0">
+  el.innerHTML = kpisData.map(k => `<div class="kpi" style="--kpi-color:${k.color};--kpi-glow:${k.glow}">
     <div class="num">${String(k.num).padStart(2,'0')}</div>
     <div class="label">${k.label}</div>
   </div>`).join('');
-  el.querySelectorAll('.kpi[data-kpitipo]').forEach(elKpi => {
-    elKpi.addEventListener('click', () => _ativToggleKpiFiltro(elKpi.dataset.kpitipo));
-    elKpi.addEventListener('keydown', (e) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); _ativToggleKpiFiltro(elKpi.dataset.kpitipo); } });
-  });
 }
 
 /* ══ PAINÉIS RECOLHÍVEIS (Falhas por usina/status/causa · Por cluster/usina/status Atividades) ══
@@ -6961,7 +6947,6 @@ function _ativRenderBreakdowns() {
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
-    if (!_ativMatchKpiFiltro(a)) return false;
     return true;
   });
   const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
@@ -7249,7 +7234,6 @@ function renderAtividadeCards() {
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     if (_ativDesligFiltro && !isDesligamentoAtividade(a)) return false;
-    if (!_ativMatchKpiFiltro(a)) return false;
     return true;
   });
 
@@ -7413,7 +7397,7 @@ function _renderAtivDrawerSomenteLeitura(a, body) {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
-    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:flex-start;gap:5px;margin-bottom:8px;white-space:normal;text-align:left;line-height:1.4;width:fit-content;max-width:100%;padding:5px 10px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;flex:none;margin-top:2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${_ativTextoBadgeVerificacao(a)}</span></span>` : ''}
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_ativTextoBadgeVerificacao(a)}</span>` : ''}
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
 
@@ -7462,7 +7446,7 @@ function _renderAtivDrawer() {
   body.innerHTML = `
     <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
     <h2 style="margin:0 0 4px;font-size:18px;">${esc(a.usina||'—')} · ${esc(a.cliente)}</h2>
-    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:flex-start;gap:5px;margin-bottom:8px;white-space:normal;text-align:left;line-height:1.4;width:fit-content;max-width:100%;padding:5px 10px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;flex:none;margin-top:2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${_ativTextoBadgeVerificacao(a)}</span></span>` : ''}
+    ${emVerifDrawer ? `<span class="filter-badge" style="background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;"><svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_ativTextoBadgeVerificacao(a)}</span>` : ''}
     <div id="ativDrawerDesligToggle" style="margin-bottom:10px;"></div>
     <p style="color:var(--amber);font-size:15px;font-weight:700;margin:0 0 8px;">${esc(a.descricao)}</p>
     <p style="color:var(--text-dim);font-size:13.5px;margin:0 0 18px;">${esc(_ativEquipamento(a))}</p>
