@@ -6235,7 +6235,7 @@ function _abrirReprogramacao() {
   document.getElementById('reprogModalResult').style.display = 'none';
   document.getElementById('reprogModalError').style.display = 'none';
 
-  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const clientes = [...new Set(abertas.map(a => a.cliente).filter(Boolean))].sort();
   const selCli = document.getElementById('reprogCliente');
   const selUsi = document.getElementById('reprogUsina');
@@ -6264,7 +6264,7 @@ async function _gerarSugestaoReprogramacao() {
 
   const cliFiltro = document.getElementById('reprogCliente')?.value || '';
   const usiFiltro = document.getElementById('reprogUsina')?.value || '';
-  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const filtradas = abertas.filter(a => (!cliFiltro || a.cliente === cliFiltro) && (!usiFiltro || a.usina === usiFiltro));
   const ids = filtradas.map(a => a.id);
 
