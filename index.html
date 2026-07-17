@@ -6873,6 +6873,34 @@ function _ativAtrasada(a) {
   return d.getTime() < hoje.getTime();
 }
 
+let _ativKpiFiltro = '';
+
+function _ativMatchKpiFiltro(a) {
+  if (!_ativKpiFiltro) return true;
+  if (_ativKpiFiltro === 'aberto') return !_ativIsConcluida(a);
+  if (_ativKpiFiltro === 'atrasadas') return _ativAtrasada(a);
+  if (_ativKpiFiltro === 'altas') return !_ativIsConcluida(a) && (a.prioridade||'').toLowerCase()==='alta';
+  if (_ativKpiFiltro === 'concluidas7d') {
+    if (!_ativIsConcluida(a)) return false;
+    const seteDiasAtras = new Date(); seteDiasAtras.setDate(seteDiasAtras.getDate()-7);
+    const d = _ativParseDataBR(a.dataConclusao?.split(' ')[0]) || null;
+    return d ? d.getTime() >= seteDiasAtras.getTime() : false;
+  }
+  return true;
+}
+
+function _ativToggleKpiFiltro(tipo) {
+  _ativKpiFiltro = (_ativKpiFiltro === tipo) ? '' : tipo;
+  document.getElementById('mainContent')?.scrollTo({top:0, behavior:'smooth'});
+  if (_ativKpiFiltro === 'concluidas7d' && _ativTab !== 'historico') {
+    _ativMudarTab('historico');
+  } else if (_ativKpiFiltro && _ativKpiFiltro !== 'concluidas7d' && _ativTab === 'historico') {
+    _ativMudarTab('ativas');
+  } else {
+    renderAtividadeCards();
+  }
+}
+
 function _ativRenderKpis() {
   const el = document.getElementById('ativKpis');
   if (!el) return;
@@ -6886,16 +6914,20 @@ function _ativRenderKpis() {
     return d ? d.getTime() >= seteDiasAtras.getTime() : false;
   });
   const kpisData = [
-    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--teal)', glow:'rgba(20,184,166,.1)'},
-    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--amber)', glow:'rgba(245,166,35,.1)'},
-    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
-    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'#EF4444', glow:'rgba(239,68,68,.1)'},
-    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)'},
+    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--teal)', glow:'rgba(20,184,166,.1)', tipo:'', title:'Clique para limpar o filtro por card'},
+    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--amber)', glow:'rgba(245,166,35,.1)', tipo:'aberto', title:'Clique para filtrar atividades em aberto'},
+    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)', tipo:'atrasadas', title:'Clique para filtrar atividades atrasadas'},
+    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'#EF4444', glow:'rgba(239,68,68,.1)', tipo:'altas', title:'Clique para filtrar prioridade alta em aberto'},
+    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)', tipo:'concluidas7d', title:'Clique para filtrar concluídas nos últimos 7 dias'},
   ];
-  el.innerHTML = kpisData.map(k => `<div class="kpi" style="--kpi-color:${k.color};--kpi-glow:${k.glow}">
+  el.innerHTML = kpisData.map(k => `<div class="kpi kpi-clickable${_ativKpiFiltro===k.tipo && k.tipo ? ' active-filter' : ''}" style="--kpi-color:${k.color};--kpi-glow:${k.glow}" data-kpitipo="${k.tipo}" title="${k.title}" role="button" tabindex="0">
     <div class="num">${String(k.num).padStart(2,'0')}</div>
     <div class="label">${k.label}</div>
   </div>`).join('');
+  el.querySelectorAll('.kpi[data-kpitipo]').forEach(elKpi => {
+    elKpi.addEventListener('click', () => _ativToggleKpiFiltro(elKpi.dataset.kpitipo));
+    elKpi.addEventListener('keydown', (e) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); _ativToggleKpiFiltro(elKpi.dataset.kpitipo); } });
+  });
 }
 
 /* ══ PAINÉIS RECOLHÍVEIS (Falhas por usina/status/causa · Por cluster/usina/status Atividades) ══
@@ -6929,6 +6961,7 @@ function _ativRenderBreakdowns() {
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
+    if (!_ativMatchKpiFiltro(a)) return false;
     return true;
   });
   const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
@@ -7216,6 +7249,7 @@ function renderAtividadeCards() {
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     if (_ativDesligFiltro && !isDesligamentoAtividade(a)) return false;
+    if (!_ativMatchKpiFiltro(a)) return false;
     return true;
   });
 
