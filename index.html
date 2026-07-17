@@ -5828,7 +5828,7 @@ async function carregarChamadosFabricante() {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar chamados');
-    CHAMADOS_FABRICANTE = result.itens || [];
+    CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'] }));
   } catch (e) {
     if (body) body.innerHTML = `<div class="ch-empty">Erro ao carregar chamados (${esc(e.message || 'falha de conexão')}). Tenta de novo em instantes.</div>`;
     if (sub) sub.textContent = 'Erro ao carregar';
