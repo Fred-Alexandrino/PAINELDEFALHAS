@@ -1507,6 +1507,12 @@ body{
       <div class="topbar-row2">
         <div class="topbar-clock" id="topbarClock"></div>
         <span class="topbar-count" id="totalBadge"></span>
+        <div class="topbar-os-search" style="display:flex;align-items:center;gap:4px;flex:none;">
+          <input class="sb-search" type="text" id="topbarOsSearch" placeholder="Nº da OS…" style="max-width:110px;" inputmode="numeric">
+          <button class="tb-btn" id="topbarOsSearchBtn" title="Buscar OS" style="padding:6px 8px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
         <div class="topbar-right">
           <button class="tb-btn tb-btn-notif" id="centralNotifBtn" title="Notificações não vistas" style="position:relative;">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -5755,6 +5761,45 @@ document.getElementById('tabHistorico').addEventListener('click', () => {
   applyFilters();
 });
 
+// Busca por número de OS no cabeçalho central — procura primeiro em
+// Atividades, depois em Falhas/Ocorrências, e abre o card certo trocando
+// de seção automaticamente (mesmo padrão usado no deep-link de push:
+// switchNav + abrir o drawer específico). Aceita OS compostas tipo
+// "8467/9035" (busca em qualquer um dos números separados por barra).
+function _buscarPorNumeroOS() {
+  const input = document.getElementById('topbarOsSearch');
+  const q = (input?.value || '').trim();
+  if (!q) return;
+
+  const bateOS = (numeroOS) => {
+    if (!numeroOS) return false;
+    return String(numeroOS).split('/').map(s => s.trim()).includes(q);
+  };
+
+  const ativ = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).find(a => bateOS(a.numeroOS));
+  if (ativ) {
+    switchNav('atividades');
+    _abrirAtivDrawer(ativ.id);
+    input.value = '';
+    return;
+  }
+
+  const ocorrencia = (typeof DATA !== 'undefined' ? DATA : []).find(d => bateOS(d.numeroOS));
+  if (ocorrencia) {
+    switchNav('falhas');
+    openModal(ocorrencia.id);
+    input.value = '';
+    return;
+  }
+
+  showToast(`OS ${q} não encontrada em Atividades nem em Falhas.`, false);
+}
+
+document.getElementById('topbarOsSearchBtn')?.addEventListener('click', _buscarPorNumeroOS);
+document.getElementById('topbarOsSearch')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') _buscarPorNumeroOS();
+});
+
 document.getElementById('updateBtn').addEventListener('click', () => {
   fetchSheet();
   if (_activeNav === 'atividades') carregarAtividades();
@@ -6069,7 +6114,7 @@ async function carregarAtividades(tentativa = 1) {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
-    ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente) }));
+    ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente), usina: normalizeUsina(a.usina) }));
     const clienteRestrito = _forcedCliente || URL_CLIENTE;
     if (clienteRestrito) {
       ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
@@ -6596,7 +6641,7 @@ async function _sugerirPriorizacaoIA() {
             <span style="font-family:'Geist Mono',monospace;font-size:12px;font-weight:700;color:var(--teal);flex:none;min-width:20px;">${esc(p.posicao)}</span>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12.5px;font-weight:600;color:var(--text);">${p.numeroOS ? 'OS '+esc(p.numeroOS)+' — ' : ''}${esc(p.equipamento||'')}</div>
-              <div style="font-size:11px;color:var(--text-dim);margin:2px 0;">${esc(p.usina||'')}${p.cluster ? ' · '+esc(p.cluster) : ''}</div>
+              <div style="font-size:11px;color:var(--text-dim);margin:2px 0;">${esc(normalizeUsina(p.usina)||'')}${p.cluster ? ' · '+esc(p.cluster) : ''}</div>
               <div style="font-size:11px;color:var(--text-faint);line-height:1.4;">${esc(p.motivo||'')}</div>
             </div>
           </div>
