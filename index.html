@@ -2329,7 +2329,7 @@ window.addEventListener('unhandledrejection', function(e) {
 /* ══ PWA ══ */
 (function injectManifest() {
   try {
-    const manifest = { name:'Painel O&M — Grid Co', short_name:'O&M Painel', start_url:window.location.pathname+window.location.search, display:'standalone', background_color:'#0A0F14', theme_color:'#0A0F14', icons:[{src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#0A0F14"/><path d="M102.5 31 L37.5 109 L96 109 L89.5 161 L154.5 83 L96 83 Z" fill="#F2A93B"/></svg>'), sizes:'192x192', type:'image/svg+xml', purpose:'any maskable'}] };
+    const manifest = { name:'Central O&M — Grid Co', short_name:'Central O&M', start_url:window.location.pathname+window.location.search, display:'standalone', background_color:'#0A0F14', theme_color:'#0A0F14', icons:[{src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#0A0F14"/><path d="M102.5 31 L37.5 109 L96 109 L89.5 161 L154.5 83 L96 83 Z" fill="#00732E"/></svg>'), sizes:'192x192', type:'image/svg+xml', purpose:'any maskable'}] };
     const blob = new Blob([JSON.stringify(manifest)], { type:'application/json' });
     document.getElementById('manifestLink').href = URL.createObjectURL(blob);
   } catch(e) {}
