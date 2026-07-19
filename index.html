@@ -1866,9 +1866,9 @@ body{
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>
               </button>
             </div>
-            <button class="icon-toggle-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" title="Ordem: OS crescente">
+            <button class="icon-toggle-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" title="Ordem: OS decrescente (mais recentes primeiro)">
               <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
-              <span id="ativKanbanOrdemLabel" style="display:none;">OS crescente</span>
+              <span id="ativKanbanOrdemLabel" style="display:none;">OS decrescente</span>
             </button>
             <div id="ativAcoesWrap" style="position:relative;">
               <button class="sort-btn" id="ativAcoesBtn" onclick="_ativToggleMenuAcoes()" style="display:flex;align-items:center;gap:5px;">
@@ -6904,7 +6904,7 @@ let _ativTab = 'ativas';
 let _ativSortKey = 'newest';
 let _ativViewMode = 'kanban';
 let _ativClusterFiltro = '';
-let _ativKanbanOrdemCrescente = true;
+let _ativKanbanOrdemCrescente = false;
 
 function _ativAlternarOrdemKanban() {
   _ativKanbanOrdemCrescente = !_ativKanbanOrdemCrescente;
