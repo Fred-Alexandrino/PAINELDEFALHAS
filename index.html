@@ -7307,9 +7307,16 @@ function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
   // número da OS, que vem da Fracttal e não reflete quando a atividade foi
   // criada aqui (uma OS antiga na Fracttal pode virar atividade nova hoje).
   const ordenarPorId = arr => [...arr].sort((a, b) => {
-    const ta = _ativParseDataHoraCriacao(a.dataCriacao) ?? (+a.id || 0);
-    const tb = _ativParseDataHoraCriacao(b.dataCriacao) ?? (+b.id || 0);
-    const diff = ta - tb;
+    const ta = _ativParseDataHoraCriacao(a.dataCriacao);
+    const tb = _ativParseDataHoraCriacao(b.dataCriacao);
+    let diff;
+    if (ta !== null && tb !== null && ta !== tb) {
+      diff = ta - tb;
+    } else {
+      // datas de criação iguais/ausentes (lote de sincronização em massa) —
+      // desempata pelo número da OS, que ao menos varia entre elas
+      diff = (+a.numeroOS || +a.id || 0) - (+b.numeroOS || +b.id || 0);
+    }
     return _ativKanbanOrdemCrescente ? diff : -diff;
   });
   kanban.innerHTML =
@@ -7399,9 +7406,10 @@ function renderAtividadeCards() {
   const ordenadas = [...lista].sort((a,b) => {
     if (_ativSortKey==='id') return (+a.id||0)-(+b.id||0);
     if (_ativSortKey==='newest') {
-      const ta = _ativParseDataHoraCriacao(a.dataCriacao) ?? (+a.id||0);
-      const tb = _ativParseDataHoraCriacao(b.dataCriacao) ?? (+b.id||0);
-      return tb - ta;
+      const ta = _ativParseDataHoraCriacao(a.dataCriacao);
+      const tb = _ativParseDataHoraCriacao(b.dataCriacao);
+      if (ta !== null && tb !== null && ta !== tb) return tb - ta;
+      return (+b.numeroOS||+b.id||0) - (+a.numeroOS||+a.id||0);
     }
     if (_ativSortKey==='usina') return (a.usina||'').localeCompare(b.usina||'');
     if (_ativSortKey==='equip') return _ativEquipamento(a).localeCompare(_ativEquipamento(b));
