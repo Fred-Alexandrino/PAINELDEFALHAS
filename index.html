@@ -7303,8 +7303,13 @@ async function _ativVerificarColuna(btnEl) {
 function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
   const kanban = document.getElementById('ativKanban');
   if (!kanban) return;
-  const ordenarPorId = arr => [...arr].sort((a,b) => {
-    const diff = (+a.numeroOS||+a.id||0) - (+b.numeroOS||+b.id||0);
+  // Ordena por data/hora de CRIAÇÃO da atividade no nosso painel — não pelo
+  // número da OS, que vem da Fracttal e não reflete quando a atividade foi
+  // criada aqui (uma OS antiga na Fracttal pode virar atividade nova hoje).
+  const ordenarPorId = arr => [...arr].sort((a, b) => {
+    const ta = _ativParseDataHoraCriacao(a.dataCriacao) ?? (+a.id || 0);
+    const tb = _ativParseDataHoraCriacao(b.dataCriacao) ?? (+b.id || 0);
+    const diff = ta - tb;
     return _ativKanbanOrdemCrescente ? diff : -diff;
   });
   kanban.innerHTML =
@@ -7393,7 +7398,11 @@ function renderAtividadeCards() {
   const PRIORIDADE_ORDEM = {alta:0, média:1, media:1, baixa:2};
   const ordenadas = [...lista].sort((a,b) => {
     if (_ativSortKey==='id') return (+a.id||0)-(+b.id||0);
-    if (_ativSortKey==='newest') return (+b.id||0)-(+a.id||0);
+    if (_ativSortKey==='newest') {
+      const ta = _ativParseDataHoraCriacao(a.dataCriacao) ?? (+a.id||0);
+      const tb = _ativParseDataHoraCriacao(b.dataCriacao) ?? (+b.id||0);
+      return tb - ta;
+    }
     if (_ativSortKey==='usina') return (a.usina||'').localeCompare(b.usina||'');
     if (_ativSortKey==='equip') return _ativEquipamento(a).localeCompare(_ativEquipamento(b));
     if (_ativSortKey==='prazo') {
@@ -7782,6 +7791,25 @@ function _ativParseDataBR(txt) {
   const [d,m,a] = partes.map(Number);
   if (!d||!m||!a) return null;
   return new Date(a, m-1, d);
+}
+
+function _ativParseDataHoraCriacao(txt) {
+  // Igual a _ativParseDataBR, mas também lê a hora (ex.: "17/07/2026 21:22")
+  // — usado especificamente pra ordenar por "mais recente de verdade"
+  // (data/hora de criação da atividade no nosso painel), não pelo número
+  // da OS ou id, que não refletem quando a atividade entrou aqui.
+  if (!txt) return null;
+  const [dataParte, horaParte] = txt.trim().split(' ');
+  const partes = (dataParte || '').split('/');
+  if (partes.length !== 3) return null;
+  const [d, m, a] = partes.map(Number);
+  if (!d || !m || !a) return null;
+  let h = 0, min = 0;
+  if (horaParte) {
+    const hp = horaParte.split(':').map(Number);
+    h = hp[0] || 0; min = hp[1] || 0;
+  }
+  return new Date(a, m - 1, d, h, min).getTime();
 }
 
 function _abrirAtivCalendario() {
