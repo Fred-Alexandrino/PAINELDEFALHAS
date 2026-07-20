@@ -6346,7 +6346,19 @@ async function _atualizarOSAgora() {
   // precisam ser revistas — a partir daí calculamos quantas rodadas
   // cobrem TUDO, sempre, não importa quantas OS existam.
   const MAX_RODADAS_SEGURANCA = 12;  // trava só pra nunca rodar pra sempre
-  let totalCorrigidas = 0, totalRevalidadas = 0, rodadasComErro = 0;
+  // Timeout do fetch (por rodada) tem que ser folgado o bastante pro pior
+  // caso do backend: ORCAMENTO_SEGUNDOS=60s de recheque ao vivo + tempo de
+  // buscar token da Fracttal + ler/escrever na planilha. Ficava em 55s
+  // (menor que os 60s do orçamento do backend!) — bug identificado em
+  // 20/07/2026: com fila grande, o navegador desistia ANTES do backend
+  // terminar de responder, a rodada 1 caía no catch, e como
+  // "rodadasNecessarias" só é calculado dentro do bloco de sucesso, ficava
+  // travado em 1 pra sempre — as rodadas 2/3/4 nunca eram tentadas, mesmo
+  // com o backend tendo processado boa parte da fila (só que ninguém
+  // escutava a resposta). 90s dá folga confortável (gunicorn aguenta até
+  // 160s por request).
+  const TIMEOUT_POR_RODADA_MS = 90000;
+  let totalCorrigidas = 0, totalRevalidadas = 0, rodadasComErro = 0, errosConsecutivos = 0;
   let rodadasNecessarias = 1;
   try {
     for (let r = 1; r <= rodadasNecessarias && r <= MAX_RODADAS_SEGURANCA; r++) {
@@ -6354,7 +6366,7 @@ async function _atualizarOSAgora() {
       label.textContent = rodadasNecessarias > 1 ? `Verificando status… ${pct}%` : 'Verificando status…';
       try {
         const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 55000);
+        const timeoutId = setTimeout(() => ctrl.abort(), TIMEOUT_POR_RODADA_MS);
         const resp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-os-agora', {
           method: 'POST', signal: ctrl.signal
         });
@@ -6363,18 +6375,29 @@ async function _atualizarOSAgora() {
         if (!result.ok) throw new Error(result.error || 'Erro ao atualizar');
         totalCorrigidas += (result.divergencias || []).length;
         totalRevalidadas += (result.revalidadas_ao_vivo || []).length;
-        if (r === 1) {
-          const totalOS = result.total_desatualizadas || 0;
-          const lote = result.limite_recheck_ao_vivo || 35;
-          rodadasNecessarias = Math.min(Math.max(1, Math.ceil(totalOS / lote)), MAX_RODADAS_SEGURANCA);
-        }
+        errosConsecutivos = 0;
+        const totalOS = result.total_desatualizadas || 0;
+        const lote = result.limite_recheck_ao_vivo || 35;
+        rodadasNecessarias = Math.min(Math.max(1, Math.ceil(totalOS / lote)), MAX_RODADAS_SEGURANCA);
       } catch (erroRodada) {
-        // uma rodada isolada falhando (ex.: lentidão pontual na Fracttal)
-        // não deve derrubar as rodadas seguintes — cada rodada já revalida
-        // as OSs mais desatualizadas, então a próxima tentativa naturalmente
-        // cobre o que essa perdeu.
+        // uma rodada isolada falhando (ex.: lentidão pontual na Fracttal ou
+        // timeout do fetch) não deve derrubar as rodadas seguintes — cada
+        // rodada já revalida as OSs mais desatualizadas, então a próxima
+        // tentativa naturalmente cobre o que essa perdeu. Como não temos o
+        // total real de OS pendentes quando a rodada falha, assumimos o
+        // pior caso (MAX_RODADAS_SEGURANCA) em vez de deixar travado em 1 —
+        // é isso que garante que o clique sempre tenta cobrir a fila
+        // inteira, mesmo se a 1ª rodada (a que informa o total) falhar.
         rodadasComErro++;
+        errosConsecutivos++;
+        rodadasNecessarias = Math.max(rodadasNecessarias, Math.min(r + 1, MAX_RODADAS_SEGURANCA));
         console.error(`Rodada ${r}/${rodadasNecessarias} falhou:`, erroRodada.message);
+        // se 3 rodadas seguidas falharem, é sinal de backend fora do ar (não
+        // fila grande) — para de insistir em vez de bater a cabeça 12x.
+        if (errosConsecutivos >= 3) {
+          console.error('3 rodadas seguidas falharam — parando (provável backend indisponível).');
+          break;
+        }
       }
     }
     if (rodadasComErro > 0 && totalRevalidadas === 0 && totalCorrigidas === 0) {
