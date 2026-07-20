@@ -1685,6 +1685,7 @@ body{
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <button class="tb-btn" id="zelFotosMostrarConfirmadasBtn" style="background:transparent;">Ver confirmadas/arquivadas</button>
+              <button class="tb-btn" id="zelFotosRecalcularGrausBtn" style="background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.4);color:var(--amber);" title="Recalcula o grau de sujidade/vegetação de levas que já foram confirmadas antes dessa função existir">Recalcular graus (fotos antigas)</button>
               <button class="tb-btn tb-btn-refresh" id="zelFotosAtualizarBtn"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
               <button class="tb-btn" id="zelFotosProcessarBtn" style="background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.4);color:var(--teal);">
                 <svg viewBox="0 0 24 24"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
@@ -6419,6 +6420,55 @@ async function _zelFotosProcessarPendentes() {
 document.getElementById('zelFotosAtualizarBtn')?.addEventListener('click', () => _zelFotosCarregar(_zelFotosSemanaAtual));
 document.getElementById('zelFotosMostrarConfirmadasBtn')?.addEventListener('click', _zelFotosToggleMostrarConfirmadas);
 document.getElementById('zelFotosProcessarBtn')?.addEventListener('click', _zelFotosProcessarPendentes);
+
+async function _zelFotosChamarReclassificacaoGrau() {
+  const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-fotos-reclassificar-grau', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+    signal: AbortSignal.timeout(120000),
+  });
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`o servidor demorou demais pra responder (HTTP ${resp.status}). Tente de novo em instantes.`);
+  }
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Erro ao reclassificar');
+  return data;
+}
+
+async function _zelFotosRecalcularGrausAntigos() {
+  const btn = document.getElementById('zelFotosRecalcularGrausBtn');
+  if (!btn) return;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+
+  const MAX_ROUNDS = 12;
+  let totalProcessados = 0;
+  const todosErros = [];
+
+  try {
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      btn.innerHTML = round === 1 ? 'Recalculando…' : `Recalculando… (rodada ${round})`;
+      const data = await _zelFotosChamarReclassificacaoGrau();
+      totalProcessados += data.processados || 0;
+      if (data.erros && data.erros.length) todosErros.push(...data.erros);
+      if (!data.restantes || data.restantes === 0) break;
+    }
+
+    if (totalProcessados === 0) showToast('Nenhuma leva antiga precisando de grau encontrada.', true);
+    else showToast(`Grau recalculado em ${totalProcessados} leva(s) já confirmada(s)! Tabela de sujidade/vegetação atualizada.`, true);
+    if (todosErros.length) showToast('Alguns lotes falharam: ' + todosErros.join(' · '), false);
+    _zelGrausCarregar();
+  } catch (e) {
+    showToast('Erro ao recalcular graus: ' + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+document.getElementById('zelFotosRecalcularGrausBtn')?.addEventListener('click', _zelFotosRecalcularGrausAntigos);
 
 // ── Controle de Zeladoria — grau de sujidade e vegetação (0-5) ─────────
 let _zelGrausCache = [];
