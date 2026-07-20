@@ -1684,6 +1684,7 @@ body{
               <p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Fotos recebidas nos grupos de WhatsApp aparecem aqui depois de processadas — miniatura clicável abre a foto original, guardada no servidor.</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="tb-btn" id="zelFotosMostrarConfirmadasBtn" style="background:transparent;">Ver confirmadas/arquivadas</button>
               <button class="tb-btn tb-btn-refresh" id="zelFotosAtualizarBtn"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
               <button class="tb-btn" id="zelFotosProcessarBtn" style="background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.4);color:var(--teal);">
                 <svg viewBox="0 0 24 24"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
@@ -6238,13 +6239,18 @@ function _zelFotosUsinasConhecidas() {
   return [...set].sort();
 }
 
+let _zelFotosMostrarConfirmadas = false;
+
 async function _zelFotosCarregar(semana) {
   const grid = document.getElementById('zelFotosGrid');
   const titulo = document.getElementById('zelFotosSemanaTitulo');
   if (!grid) return;
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px 0;color:var(--text-faint);font-size:12.5px;">Carregando…</div>`;
   try {
-    const url = 'https://api.168.138.232.237.sslip.io/zeladoria-fotos-status' + (semana ? `?semana=${encodeURIComponent(semana)}` : '');
+    const params = new URLSearchParams();
+    if (semana) params.set('semana', semana);
+    if (_zelFotosMostrarConfirmadas) params.set('mostrarConfirmadas', '1');
+    const url = 'https://api.168.138.232.237.sslip.io/zeladoria-fotos-status?' + params.toString();
     const resp = await fetch(url, { signal: AbortSignal.timeout(20000) });
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
@@ -6262,6 +6268,19 @@ async function _zelFotosCarregar(semana) {
   }
 }
 
+function _zelFotosToggleMostrarConfirmadas() {
+  _zelFotosMostrarConfirmadas = !_zelFotosMostrarConfirmadas;
+  const btn = document.getElementById('zelFotosMostrarConfirmadasBtn');
+  if (btn) btn.textContent = _zelFotosMostrarConfirmadas ? 'Ocultar confirmadas/arquivadas' : 'Ver confirmadas/arquivadas';
+  _zelFotosCarregar(_zelFotosSemanaAtual);
+}
+
+function _zelFotosLabelGrau(tipo, grau) {
+  if (!grau) return '';
+  const labels = tipo === 'sujidade' ? ZEL_GRAU_SUJIDADE_LABELS : ZEL_GRAU_VEGETACAO_LABELS;
+  return labels[grau] || grau;
+}
+
 function _zelFotosRenderGrid() {
   const grid = document.getElementById('zelFotosGrid');
   if (!grid) return;
@@ -6275,6 +6294,8 @@ function _zelFotosRenderGrid() {
     const confCor = l.confiancaIA === 'alta' ? 'var(--sla-ok)' : (l.confiancaIA === 'media' ? 'var(--amber)' : 'var(--red)');
     const thumbs = (l.fotos||[]).map(f => `<a href="https://api.168.138.232.237.sslip.io${f}" target="_blank" rel="noopener"><img src="https://api.168.138.232.237.sslip.io${f}" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:5px;border:1px solid var(--border);"></a>`).join('');
     const opcoesUsina = usinasConhecidas.map(u => `<option value="${esc(u)}" ${u===l.usinaConfirmada?'selected':''}>${esc(u)}</option>`).join('');
+    const grauSujLabel = _zelFotosLabelGrau('sujidade', l.grauSujidadeIA);
+    const grauVegLabel = _zelFotosLabelGrau('vegetacao', l.grauVegetacaoIA);
     return `<div style="border:1px solid ${l.confirmadoFred?'rgba(34,197,94,.35)':'var(--border-strong)'};border-radius:10px;padding:13px;background:var(--panel);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
         <div style="min-width:0;">
@@ -6285,13 +6306,14 @@ function _zelFotosRenderGrid() {
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">${thumbs || '<span style="font-size:11px;color:var(--text-faint);">sem fotos</span>'}</div>
       <div style="font-size:10.5px;color:var(--text-dim);margin-bottom:8px;">🧼 ${l.qtdSujidade||0} sujidade · 🌿 ${l.qtdVegetacao||0} vegetação${l.qtdIndefinido>0?` · ❔ ${l.qtdIndefinido} indefinida${l.qtdIndefinido!==1?'s':''}`:''}</div>
+      ${(grauSujLabel || grauVegLabel) ? `<div style="font-size:10.5px;color:var(--amber);margin-bottom:8px;background:rgba(245,166,35,.08);border-radius:6px;padding:6px 8px;">Grau sugerido pela IA${l.confirmadoFred?' (já aplicado)':' — vai pro Controle de Sujidade/Vegetação ao confirmar'}:${grauSujLabel?`<br>🧼 Sujidade: ${esc(grauSujLabel)}`:''}${grauVegLabel?`<br>🌿 Vegetação: ${esc(grauVegLabel)}`:''}</div>` : ''}
       ${l.justificativaIA ? `<div style="font-size:10px;color:var(--text-faint);margin-bottom:8px;font-style:italic;">"${esc(l.justificativaIA)}"</div>` : ''}
-      <select class="sb-select" data-lote="${esc(l.id)}" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;" onchange="_zelFotosAtualizarUsinaSelect(this)">
+      <select class="sb-select" data-lote="${esc(l.id)}" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;" onchange="_zelFotosAtualizarUsinaSelect(this)" ${l.confirmadoFred?'disabled':''}>
         <option value="">Ajustar usina…</option>
         ${opcoesUsina}
       </select>
-      <button onclick="_zelFotosConfirmar('${esc(l.id)}')" style="width:100%;background:${l.confirmadoFred?'rgba(34,197,94,.12)':'var(--teal)'};border:${l.confirmadoFred?'1px solid rgba(34,197,94,.4)':'none'};color:${l.confirmadoFred?'var(--sla-ok)':'#04231e'};border-radius:6px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:6px;">
-        ${l.confirmadoFred ? '✓ Confirmado' : 'Confirmar recebimento'}
+      <button onclick="_zelFotosConfirmar('${esc(l.id)}')" style="width:100%;background:${l.confirmadoFred?'rgba(34,197,94,.12)':'var(--teal)'};border:${l.confirmadoFred?'1px solid rgba(34,197,94,.4)':'none'};color:${l.confirmadoFred?'var(--sla-ok)':'#04231e'};border-radius:6px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:6px;" ${l.confirmadoFred?'disabled':''}>
+        ${l.confirmadoFred ? '✓ Confirmado e arquivado' : 'Confirmar recebimento'}
       </button>
       <button onclick="_zelFotosDescartar('${esc(l.id)}')" style="width:100%;background:transparent;border:1px solid rgba(226,84,61,.35);color:var(--red);border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;">
         🗑 Descartar (capturado por engano)
@@ -6315,8 +6337,13 @@ async function _zelFotosConfirmar(loteId) {
     });
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao confirmar');
-    showToast('Recebimento confirmado!', true);
+    if (data.grauSujidadeAplicado || data.grauVegetacaoAplicado) {
+      showToast('Confirmado! Grau de sujidade/vegetação atualizado na tabela.', true);
+    } else {
+      showToast('Recebimento confirmado! (a IA não identificou grau nas fotos pra preencher a tabela)', true);
+    }
     _zelFotosCarregar(_zelFotosSemanaAtual);
+    _zelGrausCarregar();
   } catch (e) {
     showToast('Erro ao confirmar: ' + e.message, false);
   }
@@ -6390,6 +6417,7 @@ async function _zelFotosProcessarPendentes() {
 }
 
 document.getElementById('zelFotosAtualizarBtn')?.addEventListener('click', () => _zelFotosCarregar(_zelFotosSemanaAtual));
+document.getElementById('zelFotosMostrarConfirmadasBtn')?.addEventListener('click', _zelFotosToggleMostrarConfirmadas);
 document.getElementById('zelFotosProcessarBtn')?.addEventListener('click', _zelFotosProcessarPendentes);
 
 // ── Controle de Zeladoria — grau de sujidade e vegetação (0-5) ─────────
