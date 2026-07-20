@@ -6242,6 +6242,26 @@ function _zelFotosUsinasConhecidas() {
 
 let _zelFotosMostrarConfirmadas = false;
 
+// ── Fetch resiliente pra rotas de Zeladoria — depois de rodadas pesadas
+// de processamento por IA, o servidor pode ficar momentaneamente sem
+// worker livre (Gunicorn só tem 2) e devolver uma página de erro HTML em
+// vez de JSON. Em vez de estourar "Unexpected token '<'" direto pro
+// usuário, detecta isso, espera um pouco e tenta de novo antes de desistir.
+async function _zelFetchJsonResiliente(url, options = {}, tentativas = 2, esperaMs = 3000) {
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(30000), ...options });
+    const contentType = resp.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await resp.json();
+    }
+    if (tentativa < tentativas) {
+      await new Promise(r => setTimeout(r, esperaMs));
+      continue;
+    }
+    throw new Error(`o servidor demorou pra responder (HTTP ${resp.status}). Clique em "Atualizar" em alguns segundos.`);
+  }
+}
+
 async function _zelFotosCarregar(semana) {
   const grid = document.getElementById('zelFotosGrid');
   const titulo = document.getElementById('zelFotosSemanaTitulo');
@@ -6252,8 +6272,7 @@ async function _zelFotosCarregar(semana) {
     if (semana) params.set('semana', semana);
     if (_zelFotosMostrarConfirmadas) params.set('mostrarConfirmadas', '1');
     const url = 'https://api.168.138.232.237.sslip.io/zeladoria-fotos-status?' + params.toString();
-    const resp = await fetch(url, { signal: AbortSignal.timeout(20000) });
-    const data = await resp.json();
+    const data = await _zelFetchJsonResiliente(url);
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
     _zelFotosSemanaAtual = data.semana;
     _zelFotosCache = data.lotes || [];
@@ -6492,8 +6511,7 @@ async function _zelGrausCarregar() {
   if (!wrap) return;
   wrap.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-faint);font-size:12.5px;">Carregando…</div>`;
   try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-graus', { signal: AbortSignal.timeout(20000) });
-    const data = await resp.json();
+    const data = await _zelFetchJsonResiliente('https://api.168.138.232.237.sslip.io/zeladoria-graus');
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
     _zelGrausSemanaAtual = data.semanaAtual;
     _zelGrausCache = data.usinas || [];
