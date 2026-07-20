@@ -1694,40 +1694,43 @@ body{
           <div id="zelFotosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
         </div>
 
-        <!-- ── Controle de Zeladoria — grau de sujidade e vegetação (0-5) ── -->
-        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border-soft);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <!-- ── Controle de Zeladoria — grau de sujidade e vegetação (0-5) — recolhível ── -->
+        <div class="zel-collapsible" id="zelGrausPanel" style="margin-top:28px;">
+          <div class="zel-collapsible-head" onclick="_togglePanel('zelGrausPanel')">
             <div>
               <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:3px;">Classificação quinzenal</div>
               <h2 style="font-size:16px;font-weight:700;">Controle de Sujidade e Vegetação</h2>
               <p style="font-size:11px;color:var(--text-dim);margin-top:4px;" id="zelGrausSemanaLabel">Carregando…</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button class="tb-btn" id="zelGrausLegendaBtn" style="background:transparent;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Legenda</button>
-              <button class="tb-btn tb-btn-refresh" id="zelGrausAtualizarBtn"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <button class="tb-btn" id="zelGrausLegendaBtn" onclick="event.stopPropagation();" style="background:transparent;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Legenda</button>
+              <button class="tb-btn tb-btn-refresh" id="zelGrausAtualizarBtn" onclick="event.stopPropagation();"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <svg class="zel-collapsible-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-          <div id="zelGrausLegenda" style="display:none;margin-bottom:14px;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text-dim);grid-template-columns:1fr 1fr;gap:16px;">
-            <div>
-              <div style="font-weight:700;color:var(--text);margin-bottom:6px;">🧼 Sujidade</div>
-              <div>L — Limpeza em execução</div>
-              <div>1 — Leve · manter ciclo programado</div>
-              <div>2 — Moderada · agendar limpeza em breve</div>
-              <div>3 — Elevada · priorizar em ≤ 30 dias</div>
-              <div>4 — Severa · urgente em ≤ 15 dias</div>
-              <div>5 — Crítica · limpeza imediata</div>
+          <div class="zel-collapsible-body" id="zelGrausBody">
+            <div id="zelGrausLegenda" style="display:none;margin-bottom:14px;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text-dim);grid-template-columns:1fr 1fr;gap:16px;">
+              <div>
+                <div style="font-weight:700;color:var(--text);margin-bottom:6px;">🧼 Sujidade</div>
+                <div>L — Limpeza em execução</div>
+                <div>1 — Leve · manter ciclo programado</div>
+                <div>2 — Moderada · agendar limpeza em breve</div>
+                <div>3 — Elevada · priorizar em ≤ 30 dias</div>
+                <div>4 — Severa · urgente em ≤ 15 dias</div>
+                <div>5 — Crítica · limpeza imediata</div>
+              </div>
+              <div>
+                <div style="font-weight:700;color:var(--text);margin-bottom:6px;">🌿 Vegetação</div>
+                <div>R — Roçagem em andamento</div>
+                <div>1 — Muito baixa (controlada)</div>
+                <div>2 — Baixa (atenção leve)</div>
+                <div>3 — Média (alerta operacional)</div>
+                <div>4 — Alta (crítica)</div>
+                <div>5 — Muito alta (emergencial)</div>
+              </div>
             </div>
-            <div>
-              <div style="font-weight:700;color:var(--text);margin-bottom:6px;">🌿 Vegetação</div>
-              <div>R — Roçagem em andamento</div>
-              <div>1 — Muito baixa (controlada)</div>
-              <div>2 — Baixa (atenção leve)</div>
-              <div>3 — Média (alerta operacional)</div>
-              <div>4 — Alta (crítica)</div>
-              <div>5 — Muito alta (emergencial)</div>
-            </div>
+            <div class="zel-table-wrap" id="zelGrausTableWrap"></div>
           </div>
-          <div class="zel-table-wrap" id="zelGrausTableWrap"></div>
         </div>
 
         <!-- ── Programação de Zeladorias (agendamentos) — recolhível ── -->
@@ -6192,7 +6195,7 @@ async function openZeladoriasInline(){
   await zelFetchSheet();
   zelRenderFull();
   _zelLoaded = true;
-  _aplicarEstadoPaineis(['zelProgramacaoPanel']);
+  _aplicarEstadoPaineis(['zelProgramacaoPanel', 'zelGrausPanel']);
   _zelFotosCarregar();
   _zelGrausCarregar();
 }
@@ -6316,24 +6319,49 @@ async function _zelFotosConfirmar(loteId) {
   }
 }
 
+async function _zelFotosChamarProcessamento() {
+  const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-processar-fotos-pendentes', {
+    method: 'POST', signal: AbortSignal.timeout(120000),
+  });
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    // servidor devolveu HTML (ex.: página de erro 502/504 de timeout) em vez de JSON
+    throw new Error(`o servidor demorou demais pra responder (HTTP ${resp.status}). Tente de novo em instantes — cada clique processa só um pedaço das fotos pendentes.`);
+  }
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Erro ao processar');
+  return data;
+}
+
 async function _zelFotosProcessarPendentes() {
   const btn = document.getElementById('zelFotosProcessarBtn');
   if (!btn) return;
   const original = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = 'Processando…';
+
+  const MAX_ROUNDS = 12; // trava de segurança — cada round processa só algumas levas por vez
+  let totalProcessados = 0, totalLotes = 0;
+  const todosErros = [];
+
   try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-processar-fotos-pendentes', {
-      method: 'POST', signal: AbortSignal.timeout(90000),
-    });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao processar');
-    if (data.processados === 0) showToast('Nenhuma foto pendente pra processar.', true);
-    else showToast(`${data.processados} foto(s) processada(s) em ${data.lotes} leva(s)!`, true);
-    if (data.erros && data.erros.length) showToast('Alguns lotes falharam: ' + data.erros.join(' · '), false);
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      btn.innerHTML = round === 1 ? 'Processando…' : `Processando… (rodada ${round})`;
+      const data = await _zelFotosChamarProcessamento();
+      totalProcessados += data.processados || 0;
+      totalLotes += data.lotes || 0;
+      if (data.erros && data.erros.length) todosErros.push(...data.erros);
+
+      if (!data.lotesRestantes || data.lotesRestantes === 0) break;
+      // ainda tem leva pendente — segue pro próximo round automaticamente
+    }
+
+    if (totalProcessados === 0) showToast('Nenhuma foto pendente pra processar.', true);
+    else showToast(`${totalProcessados} foto(s) processada(s) em ${totalLotes} leva(s)!`, true);
+    if (todosErros.length) showToast('Alguns lotes falharam: ' + todosErros.join(' · '), false);
     _zelFotosCarregar(_zelFotosSemanaAtual);
   } catch (e) {
     showToast('Erro ao processar fotos: ' + e.message, false);
+    _zelFotosCarregar(_zelFotosSemanaAtual);
   } finally {
     btn.disabled = false;
     btn.innerHTML = original;
