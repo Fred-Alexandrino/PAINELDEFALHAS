@@ -6290,8 +6290,11 @@ function _zelFotosRenderGrid() {
         <option value="">Ajustar usina…</option>
         ${opcoesUsina}
       </select>
-      <button onclick="_zelFotosConfirmar('${esc(l.id)}')" style="width:100%;background:${l.confirmadoFred?'rgba(34,197,94,.12)':'var(--teal)'};border:${l.confirmadoFred?'1px solid rgba(34,197,94,.4)':'none'};color:${l.confirmadoFred?'var(--sla-ok)':'#04231e'};border-radius:6px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;">
+      <button onclick="_zelFotosConfirmar('${esc(l.id)}')" style="width:100%;background:${l.confirmadoFred?'rgba(34,197,94,.12)':'var(--teal)'};border:${l.confirmadoFred?'1px solid rgba(34,197,94,.4)':'none'};color:${l.confirmadoFred?'var(--sla-ok)':'#04231e'};border-radius:6px;padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;margin-bottom:6px;">
         ${l.confirmadoFred ? '✓ Confirmado' : 'Confirmar recebimento'}
+      </button>
+      <button onclick="_zelFotosDescartar('${esc(l.id)}')" style="width:100%;background:transparent;border:1px solid rgba(226,84,61,.35);color:var(--red);border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;">
+        🗑 Descartar (capturado por engano)
       </button>
     </div>`;
   }).join('');
@@ -6316,6 +6319,24 @@ async function _zelFotosConfirmar(loteId) {
     _zelFotosCarregar(_zelFotosSemanaAtual);
   } catch (e) {
     showToast('Erro ao confirmar: ' + e.message, false);
+  }
+}
+
+async function _zelFotosDescartar(loteId) {
+  if (!confirm('Descartar essa leva de fotos? Ela some do painel (mas o histórico fica guardado no servidor).')) return;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-fotos-descartar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: loteId }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao descartar');
+    showToast('Leva descartada.', true);
+    _zelFotosCarregar(_zelFotosSemanaAtual);
+  } catch (e) {
+    showToast('Erro ao descartar: ' + e.message, false);
   }
 }
 
