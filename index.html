@@ -8,8 +8,11 @@
 <meta name="theme-color" content="#0A0F14" id="themeColorMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Central O&M">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Central O&M — Grid Co</title>
-<link rel="manifest" href="#" id="manifestLink">
+<link rel="manifest" href="manifest.json" id="manifestLink">
 <style>
 /* ── FONTES ─────────────────────────────────────────────── */
 @font-face{font-family:'Geist';font-weight:100 900;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter:vf@5.2.8/latin-wght-normal.woff2') format('woff2-variations');}
@@ -2426,16 +2429,16 @@ window.addEventListener('unhandledrejection', function(e) {
   } catch(e) {}
 })();
 
-/* ══ PWA ══ */
-(function injectManifest() {
-  try {
-    const manifest = { name:'Central O&M — Grid Co', short_name:'Central O&M', start_url:window.location.pathname+window.location.search, display:'standalone', background_color:'#0A0F14', theme_color:'#0A0F14', icons:[{src:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#0A0F14"/><path d="M102.5 31 L37.5 109 L96 109 L89.5 161 L154.5 83 L96 83 Z" fill="#00732E"/></svg>'), sizes:'192x192', type:'image/svg+xml', purpose:'any maskable'}] };
-    const blob = new Blob([JSON.stringify(manifest)], { type:'application/json' });
-    document.getElementById('manifestLink').href = URL.createObjectURL(blob);
-  } catch(e) {}
-})();
+/* ══ PWA ══
+   Manifest agora é um arquivo estático (manifest.json) referenciado
+   diretamente no <head>, com ícones PNG reais em 192/512 (any + maskable).
+   Antes o link era sobrescrito aqui via blob: URL gerado em JS — isso
+   fazia o Chrome/Android não reconhecer o app como instalável de verdade
+   (critério de instalabilidade exige manifest buscável via rede/cache,
+   não um blob: efêmero), então "Adicionar à tela inicial" criava só um
+   atalho/bookmark em vez de instalar o PWA completo. */
 
-/* ══ TEMA ══ */
+/* ══ TEMA ══
 (function initTheme() {
   try { const saved = localStorage.getItem('om_theme'); const prefer = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; applyTheme(saved || prefer); } catch(e) {}
 })();
@@ -8984,3 +8987,4 @@ async function relGerarRelatorio(){
 
 </body>
 </html>
+
