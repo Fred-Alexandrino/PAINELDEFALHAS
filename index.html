@@ -6407,13 +6407,13 @@ async function _zelFotosProcessarPendentes() {
   const original = btn.innerHTML;
   btn.disabled = true;
 
-  const MAX_ROUNDS = 12; // trava de segurança — cada round processa só algumas levas por vez
+  const MAX_ROUNDS = 60; // trava de segurança — cada round processa só algumas levas por vez, mas o total de rounds precisa dar pra fila inteira num clique só
   let totalProcessados = 0, totalLotes = 0;
   const todosErros = [];
 
   try {
     for (let round = 1; round <= MAX_ROUNDS; round++) {
-      btn.innerHTML = round === 1 ? 'Processando…' : `Processando… (rodada ${round})`;
+      btn.innerHTML = round === 1 ? 'Processando…' : `Processando… ${totalProcessados} fotos (rodada ${round})`;
       const data = await _zelFotosChamarProcessamento();
       totalProcessados += data.processados || 0;
       totalLotes += data.lotes || 0;
@@ -6421,6 +6421,9 @@ async function _zelFotosProcessarPendentes() {
 
       if (!data.lotesRestantes || data.lotesRestantes === 0) break;
       // ainda tem leva pendente — segue pro próximo round automaticamente
+      if (round === MAX_ROUNDS) {
+        showToast(`Processado bastante coisa (${totalProcessados} fotos), mas ainda sobrou fila. Clique em "Processar fotos recebidas" de novo pra continuar.`, true);
+      }
     }
 
     if (totalProcessados === 0) showToast('Nenhuma foto pendente pra processar.', true);
@@ -6462,13 +6465,13 @@ async function _zelFotosRecalcularGrausAntigos() {
   const original = btn.innerHTML;
   btn.disabled = true;
 
-  const MAX_ROUNDS = 12;
+  const MAX_ROUNDS = 60;
   let totalProcessados = 0;
   const todosErros = [];
 
   try {
     for (let round = 1; round <= MAX_ROUNDS; round++) {
-      btn.innerHTML = round === 1 ? 'Recalculando…' : `Recalculando… (rodada ${round})`;
+      btn.innerHTML = round === 1 ? 'Recalculando…' : `Recalculando… ${totalProcessados} levas (rodada ${round})`;
       const data = await _zelFotosChamarReclassificacaoGrau();
       totalProcessados += data.processados || 0;
       if (data.erros && data.erros.length) todosErros.push(...data.erros);
