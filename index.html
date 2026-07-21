@@ -5940,6 +5940,36 @@ document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilt
 document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
 
 /* ══ CHAMADOS — agora seção inline (não mais modal) ══ */
+// A planilha ChamadosFabricante é preenchida manualmente e o campo UFV vem
+// como "Cliente - Usina" com grafias que nem sempre batem com o nome
+// canônico usado no resto do painel (sufixo numérico espúrio em usina
+// única, arábico vs romano, ou uma linha combinando duas unidades).
+// Mapa explícito cobre os casos conhecidos; normalizeUsina() cobre o resto.
+const CHAMADOS_USINA_ALIAS = {
+  'sete lagoas 2': ['Sete Lagoas'],
+  'nobres 1': ['Nobres'],
+  'poconé 1': ['Poconé'], 'pocone 1': ['Poconé'],
+  'matão 1': ['Matão 1'], 'matao 1': ['Matão 1'],
+  'boa esperança do sul 1 e 2': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II'],
+  'boa esperanca do sul 1 e 2': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II'],
+  'ibaté 1': ['Ibaté I'], 'ibate 1': ['Ibaté I'],
+  'ibaté 2': ['Ibaté II'], 'ibate 2': ['Ibaté II'],
+  'colíder 1': ['Colíder I'], 'colider 1': ['Colíder I'],
+  'colíder 2': ['Colíder II'], 'colider 2': ['Colíder II'],
+  'nova xavantina 1': ['Nova Xavantina I'],
+  'nova xavantina 2': ['Nova Xavantina II'],
+  'sol do norte 1': ['Sol do Norte I'],
+  'sol do norte 2': ['Sol do Norte II'],
+};
+function _chamadoUsinasCanonicas(ufvRaw) {
+  const semCliente = (ufvRaw || '').replace(/^[^-]+-\s*/, '').trim();
+  if (!semCliente) return [];
+  const chave = semCliente.toLowerCase();
+  if (CHAMADOS_USINA_ALIAS[chave]) return CHAMADOS_USINA_ALIAS[chave];
+  const norm = normalizeUsina(semCliente);
+  return norm ? [norm] : [];
+}
+
 let CHAMADOS_FABRICANTE = [];
 
 async function carregarChamadosFabricante() {
@@ -5952,7 +5982,7 @@ async function carregarChamadosFabricante() {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar chamados');
-    CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'], UFV: normalizeUsina(c['UFV']) || c['UFV'] }));
+    CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'], _usinasCanonicas: _chamadoUsinasCanonicas(c['UFV']) }));
   } catch (e) {
     if (body) body.innerHTML = `<div class="ch-empty">Erro ao carregar chamados (${esc(e.message || 'falha de conexão')}). Tenta de novo em instantes.</div>`;
     if (sub) sub.textContent = 'Erro ao carregar';
@@ -6023,8 +6053,9 @@ function openChamadosInline(){
   const usinaCluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _usinaClusterMap() : null;
   const dataBase = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
-    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(c['UFV'])) return false;
-    if (usinaCluster && usinaCluster[c['UFV']] !== _ativClusterFiltro) return false;
+    const usinasChamado = c._usinasCanonicas || [];
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !usinasChamado.some(u => selUsinaValues.has(u))) return false;
+    if (usinaCluster && !usinasChamado.some(u => usinaCluster[u] === _ativClusterFiltro)) return false;
     if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
