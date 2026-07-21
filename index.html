@@ -5941,33 +5941,33 @@ document.getElementById('desligBanner').addEventListener('click', toggleDesligFi
 
 /* ══ CHAMADOS — agora seção inline (não mais modal) ══ */
 // A planilha ChamadosFabricante é preenchida manualmente e o campo UFV vem
-// como "Cliente - Usina" com grafias que nem sempre batem com o nome
-// canônico usado no resto do painel (sufixo numérico espúrio em usina
-// única, arábico vs romano, ou uma linha combinando duas unidades).
-// Mapa explícito cobre os casos conhecidos; normalizeUsina() cobre o resto.
-const CHAMADOS_USINA_ALIAS = {
-  'sete lagoas 2': ['Sete Lagoas'],
-  'nobres 1': ['Nobres'],
-  'poconé 1': ['Poconé'], 'pocone 1': ['Poconé'],
-  'matão 1': ['Matão 1'], 'matao 1': ['Matão 1'],
-  'boa esperança do sul 1 e 2': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II'],
-  'boa esperanca do sul 1 e 2': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II'],
-  'ibaté 1': ['Ibaté I'], 'ibate 1': ['Ibaté I'],
-  'ibaté 2': ['Ibaté II'], 'ibate 2': ['Ibaté II'],
-  'colíder 1': ['Colíder I'], 'colider 1': ['Colíder I'],
-  'colíder 2': ['Colíder II'], 'colider 2': ['Colíder II'],
-  'nova xavantina 1': ['Nova Xavantina I'],
-  'nova xavantina 2': ['Nova Xavantina II'],
-  'sol do norte 1': ['Sol do Norte I'],
-  'sol do norte 2': ['Sol do Norte II'],
-};
+// como "Cliente - Usina". Em vez de manter uma lista paralela de nomes,
+// reaproveitamos a MESMA normalizeUsina() usada por Falhas/Atividades —
+// isso já resolve romano x arábico (Ibaté, Colíder, Nova Xavantina, Sol do
+// Norte, Matão) e o caso especial de Boa Esperança do Sul. Só sobram dois
+// desvios reais na planilha de Chamados, tratados abaixo:
+//  1) sufixo numérico indevido em usina de unidade única (ex.: "Poconé 1"
+//     quando não existe "Poconé 2") — corrigido comparando com a lista de
+//     usinas que sabidamente não têm mais de uma unidade;
+//  2) uma linha cobrindo duas unidades de uma vez (ex.: "Boa Esperança do
+//     Sul 1 e 2") — resolvida retornando as duas usinas canônicas.
+const USINAS_UNIDADE_UNICA = ['ABC Morada Nova','Araputanga','Crateús','Elias Fausto','Guajirú','Nobres','Poconé','Sete Lagoas','Sítio Bonfim'];
+
 function _chamadoUsinasCanonicas(ufvRaw) {
   const semCliente = (ufvRaw || '').replace(/^[^-]+-\s*/, '').trim();
   if (!semCliente) return [];
-  const chave = semCliente.toLowerCase();
-  if (CHAMADOS_USINA_ALIAS[chave]) return CHAMADOS_USINA_ALIAS[chave];
-  const norm = normalizeUsina(semCliente);
-  return norm ? [norm] : [];
+  // linha combinando duas unidades: "<base> 1 e 2", "<base> I e II" etc.
+  const combinada = semCliente.match(/^(.+?)\s+(\d+|[ivx]+)\s+e\s+(\d+|[ivx]+)$/i);
+  if (combinada) {
+    const base = combinada[1].trim();
+    return [normalizeUsina(`${base} ${combinada[2]}`), normalizeUsina(`${base} ${combinada[3]}`)].filter(Boolean);
+  }
+  let norm = normalizeUsina(semCliente);
+  if (!norm) return [];
+  // corrige sufixo espúrio em usina de unidade única (ex.: "Poconé I" -> "Poconé")
+  const semSufixo = norm.replace(/\s+(I|II)$/i, '').trim();
+  if (semSufixo !== norm && USINAS_UNIDADE_UNICA.includes(semSufixo)) norm = semSufixo;
+  return [norm];
 }
 
 let CHAMADOS_FABRICANTE = [];
