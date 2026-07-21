@@ -6388,9 +6388,14 @@ async function _zelFotosDescartar(loteId) {
 }
 
 async function _zelFotosChamarProcessamento() {
-  const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-processar-fotos-pendentes', {
-    method: 'POST', signal: AbortSignal.timeout(120000),
-  });
+  let resp;
+  try {
+    resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-processar-fotos-pendentes', {
+      method: 'POST', signal: AbortSignal.timeout(100000),
+    });
+  } catch (e) {
+    throw new Error('o servidor demorou demais pra responder e a conexão foi cortada. Isso costuma ser a cota do Google Sheets esgotada — tente de novo em alguns instantes.');
+  }
   const contentType = resp.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     // servidor devolveu HTML (ex.: página de erro 502/504 de timeout) em vez de JSON
@@ -6467,12 +6472,17 @@ document.getElementById('zelFotosMostrarConfirmadasBtn')?.addEventListener('clic
 document.getElementById('zelFotosProcessarBtn')?.addEventListener('click', _zelFotosProcessarPendentes);
 
 async function _zelFotosChamarReclassificacaoGrau() {
-  const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-fotos-reclassificar-grau', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-    signal: AbortSignal.timeout(120000),
-  });
+  let resp;
+  try {
+    resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-fotos-reclassificar-grau', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(100000),
+    });
+  } catch (e) {
+    throw new Error('o servidor demorou demais pra responder e a conexão foi cortada. Isso costuma ser a cota do Google Sheets esgotada — tente de novo em alguns instantes.');
+  }
   const contentType = resp.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     throw new Error(`o servidor demorou demais pra responder (HTTP ${resp.status}). Tente de novo em instantes.`);
