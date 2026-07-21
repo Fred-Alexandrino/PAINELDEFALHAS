@@ -6532,6 +6532,30 @@ function _zelGrausOpcoes(tipo, atual) {
   return html;
 }
 
+function _zelGrauBadgeSemana(info) {
+  if (!info.grau) return '';
+  if (info.atualizadoNaSemanaAtual) {
+    return `<div style="font-size:9px;color:var(--sla-ok);margin-top:3px;">✓ atualizado essa semana</div>`;
+  }
+  return `<div style="font-size:9px;color:var(--amber);margin-top:3px;">⏱ valor da semana ${esc(info.semana||'?')} (não atualizado ainda)</div>`;
+}
+
+function _zelGrausToggleHistorico(rowId) {
+  const el = document.getElementById(rowId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function _zelGrausRenderHistorico(u) {
+  const linha = (h, tipo) => `<div style="display:flex;gap:8px;font-size:11px;color:var(--text-dim);padding:2px 0;"><span style="width:78px;flex:none;color:var(--text-faint);font-family:'Geist Mono',monospace;">${esc(h.semana)}</span><span>${esc(_zelFotosLabelGrau(tipo, h.grau) || '—')}</span></div>`;
+  const linhasSuj = (u.sujidade.historico || []).map(h => linha(h, 'sujidade')).join('');
+  const linhasVeg = (u.vegetacao.historico || []).map(h => linha(h, 'vegetacao')).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:10px 4px;background:rgba(255,255,255,.02);border-radius:6px;">
+    <div><div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px;">🧼 Histórico de sujidade</div>${linhasSuj || '<span style="font-size:11px;color:var(--text-faint);">sem quinzenas anteriores registradas</span>'}</div>
+    <div><div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px;">🌿 Histórico de vegetação</div>${linhasVeg || '<span style="font-size:11px;color:var(--text-faint);">sem quinzenas anteriores registradas</span>'}</div>
+  </div>`;
+}
+
 function _zelGrausRenderTable() {
   const wrap = document.getElementById('zelGrausTableWrap');
   if (!wrap) return;
@@ -6539,16 +6563,20 @@ function _zelGrausRenderTable() {
     wrap.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-faint);font-size:12.5px;">Nenhuma usina cadastrada (configure "cluster_usina:&lt;Usina&gt;" na aba _Sistema).</div>`;
     return;
   }
-  const linhas = _zelGrausCache.map(u => {
+  const linhas = _zelGrausCache.map((u, i) => {
     const corSuj = ZEL_GRAU_CORES[u.sujidade.grau] || 'var(--border-strong)';
     const corVeg = ZEL_GRAU_CORES[u.vegetacao.grau] || 'var(--border-strong)';
     const obsAtual = u.sujidade.observacoes || u.vegetacao.observacoes || '';
+    const temHistorico = (u.sujidade.historico && u.sujidade.historico.length) || (u.vegetacao.historico && u.vegetacao.historico.length);
+    const rowId = `zelGrauHist_${i}`;
     return `<tr>
-      <td class="zel-usina-cell">${esc(u.usina)}<div style="font-size:9.5px;color:var(--text-faint);">${esc(u.cluster||'')}</div></td>
-      <td><select class="sb-select zel-grau-select" data-usina="${esc(u.usina)}" data-tipo="sujidade" style="border-left:3px solid ${corSuj};" onchange="_zelGrauAlterar(this)">${_zelGrausOpcoes('sujidade', u.sujidade.grau)}</select></td>
-      <td><select class="sb-select zel-grau-select" data-usina="${esc(u.usina)}" data-tipo="vegetacao" style="border-left:3px solid ${corVeg};" onchange="_zelGrauAlterar(this)">${_zelGrausOpcoes('vegetacao', u.vegetacao.grau)}</select></td>
+      <td class="zel-usina-cell">${esc(u.usina)}<div style="font-size:9.5px;color:var(--text-faint);">${esc(u.cluster||'')}</div>
+        ${temHistorico ? `<button onclick="_zelGrausToggleHistorico('${rowId}')" style="margin-top:4px;background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:5px;padding:2px 7px;font-size:9.5px;cursor:pointer;">📈 Ver evolução</button>` : ''}
+      </td>
+      <td><select class="sb-select zel-grau-select" data-usina="${esc(u.usina)}" data-tipo="sujidade" style="border-left:3px solid ${corSuj};" onchange="_zelGrauAlterar(this)">${_zelGrausOpcoes('sujidade', u.sujidade.grau)}</select>${_zelGrauBadgeSemana(u.sujidade)}</td>
+      <td><select class="sb-select zel-grau-select" data-usina="${esc(u.usina)}" data-tipo="vegetacao" style="border-left:3px solid ${corVeg};" onchange="_zelGrauAlterar(this)">${_zelGrausOpcoes('vegetacao', u.vegetacao.grau)}</select>${_zelGrauBadgeSemana(u.vegetacao)}</td>
       <td><input type="text" class="zel-obs-input" placeholder="Observação…" value="${esc(obsAtual)}" data-usina="${esc(u.usina)}" maxlength="140" onchange="_zelGrauObsAlterar(this)"></td>
-    </tr>`;
+    </tr>${temHistorico ? `<tr id="${rowId}" style="display:none;"><td colspan="4">${_zelGrausRenderHistorico(u)}</td></tr>` : ''}`;
   }).join('');
   wrap.innerHTML = `<table class="zel-table"><thead><tr><th>Usina</th><th>Sujidade</th><th>Vegetação</th><th>Observações</th></tr></thead><tbody>${linhas}</tbody></table>`;
 }
@@ -6583,9 +6611,7 @@ async function _zelGrauSalvar(usina, tipo, grau, observacoes, selEl, silencioso)
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao salvar');
     if (!silencioso) showToast('Grau atualizado!', true);
-    const item = _zelGrausCache.find(u => u.usina === usina);
-    if (item) item[tipo] = { semana: _zelGrausSemanaAtual, grau, observacoes };
-    if (selEl) selEl.style.borderLeftColor = ZEL_GRAU_CORES[grau] || 'var(--border-strong)';
+    await _zelGrausCarregar(); // recarrega pra badge "atualizado essa semana" e histórico ficarem certos
   } catch (e) {
     showToast('Erro ao salvar grau: ' + e.message, false);
   }
