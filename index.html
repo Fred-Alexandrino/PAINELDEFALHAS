@@ -5952,7 +5952,7 @@ async function carregarChamadosFabricante() {
     clearTimeout(timeoutId);
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar chamados');
-    CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'] }));
+    CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'], UFV: normalizeUsina(c['UFV']) || c['UFV'] }));
   } catch (e) {
     if (body) body.innerHTML = `<div class="ch-empty">Erro ao carregar chamados (${esc(e.message || 'falha de conexão')}). Tenta de novo em instantes.</div>`;
     if (sub) sub.textContent = 'Erro ao carregar';
@@ -6009,12 +6009,22 @@ function _renderChamadosStatusFiltro(dataBase) {
   });
 }
 
+function _usinaClusterMap() {
+  const map = {};
+  (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).forEach(a => {
+    if (a.usina && a.cluster && !map[a.usina]) map[a.usina] = a.cluster;
+  });
+  return map;
+}
+
 function openChamadosInline(){
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
+  const usinaCluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _usinaClusterMap() : null;
   const dataBase = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(c['UFV'])) return false;
+    if (usinaCluster && usinaCluster[c['UFV']] !== _ativClusterFiltro) return false;
     if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
@@ -7366,6 +7376,7 @@ document.addEventListener('click', (e) => {
 function _ativFiltrarPorCluster(valor) {
   _ativClusterFiltro = valor || '';
   renderAtividadeCards();
+  if (_activeNav === 'chamados') openChamadosInline();
 }
 
 function _ativPopularClusters() {
