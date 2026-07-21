@@ -1,0 +1,16 @@
+{
+  "name": "Central O&M — Grid Co",
+  "short_name": "Central O&M",
+  "description": "Painel de O&M — Falhas, Atividades e Chamados",
+  "start_url": "/PAINELDEFALHAS/",
+  "scope": "/PAINELDEFALHAS/",
+  "display": "standalone",
+  "background_color": "#0A0F14",
+  "theme_color": "#0A0F14",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
