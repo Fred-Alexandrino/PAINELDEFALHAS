@@ -8,11 +8,9 @@
 <meta name="theme-color" content="#0A0F14" id="themeColorMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Central O&M">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Central O&M — Grid Co</title>
-<link rel="manifest" href="manifest.json" id="manifestLink">
+<link rel="manifest" href="/PAINELDEFALHAS/manifest.json" id="manifestLink">
+<link rel="apple-touch-icon" href="/PAINELDEFALHAS/icon-192.png">
 <style>
 /* ── FONTES ─────────────────────────────────────────────── */
 @font-face{font-family:'Geist';font-weight:100 900;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter:vf@5.2.8/latin-wght-normal.woff2') format('woff2-variations');}
@@ -2429,16 +2427,18 @@ window.addEventListener('unhandledrejection', function(e) {
   } catch(e) {}
 })();
 
-/* ══ PWA ══
-   Manifest agora é um arquivo estático (manifest.json) referenciado
-   diretamente no <head>, com ícones PNG reais em 192/512 (any + maskable).
-   Antes o link era sobrescrito aqui via blob: URL gerado em JS — isso
-   fazia o Chrome/Android não reconhecer o app como instalável de verdade
-   (critério de instalabilidade exige manifest buscável via rede/cache,
-   não um blob: efêmero), então "Adicionar à tela inicial" criava só um
-   atalho/bookmark em vez de instalar o PWA completo. */
+/* ══ PWA ══ */
+/* Antes disso, o manifest era gerado dinamicamente como um "blob" via
+   JavaScript, com ícone em SVG embutido. O Android/Chrome não considera
+   isso instalável de verdade na maioria dos casos — só criava um atalho
+   simples (com o ícone do próprio Chrome), não um app instalado de
+   verdade. Corrigido em 21/07/2026: manifest.json estático de verdade,
+   com ícones PNG reais (192x192 e 512x512, incluindo versões
+   "maskable" pro Android recortar corretamente). O link já aponta pro
+   arquivo direto no HTML (ver <link rel="manifest">), então não precisa
+   de nenhum JS aqui pra isso funcionar. */
 
-/* ══ TEMA ══
+/* ══ TEMA ══ */
 (function initTheme() {
   try { const saved = localStorage.getItem('om_theme'); const prefer = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; applyTheme(saved || prefer); } catch(e) {}
 })();
@@ -8987,4 +8987,3 @@ async function relGerarRelatorio(){
 
 </body>
 </html>
-
