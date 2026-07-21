@@ -1687,6 +1687,10 @@ body{
               <p style="font-size:11px;color:var(--text-dim);margin-top:4px;">Fotos recebidas nos grupos de WhatsApp aparecem aqui depois de processadas — miniatura clicável abre a foto original, guardada no servidor.</p>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="tb-btn" id="zelFotosSincronizarPcBtn" style="background:rgba(91,155,213,.1);border-color:rgba(91,155,213,.4);color:#5B9BD5;" title="Baixa as fotos da semana atual pro seu OneDrive local">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Sincronizar fotos no PC
+              </button>
               <button class="tb-btn" id="zelFotosMostrarConfirmadasBtn" style="background:transparent;">Ver confirmadas/arquivadas</button>
               <button class="tb-btn" id="zelFotosRecalcularGrausBtn" style="background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.4);color:var(--amber);" title="Recalcula o grau de sujidade/vegetação de levas que já foram confirmadas antes dessa função existir">Recalcular graus (fotos antigas)</button>
               <button class="tb-btn tb-btn-refresh" id="zelFotosAtualizarBtn"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
@@ -6498,7 +6502,10 @@ async function _zelFotosProcessarPendentes() {
       const processadosNestaRodada = data.processados || 0;
       totalProcessados += processadosNestaRodada;
       totalLotes += data.lotes || 0;
-      const teveErroDeCota = (data.erros || []).some(e => e.includes('429') || e.toLowerCase().includes('quota'));
+      const erros = data.erros || [];
+      const teveErroDeCota = erros.some(e => e.includes('429') || e.toLowerCase().includes('quota'));
+      const teveErroGemini = erros.some(e => e.toLowerCase().includes('gemini') || e.toLowerCase().includes('generativelanguage'));
+      const rotuloCota = teveErroGemini ? 'cota da IA (Gemini)' : 'cota do Google Sheets';
       if (data.erros && data.erros.length) todosErros.push(...data.erros);
 
       if (!data.lotesRestantes || data.lotesRestantes === 0) break;
@@ -6506,11 +6513,11 @@ async function _zelFotosProcessarPendentes() {
       if (processadosNestaRodada === 0) {
         rodadasSemProgresso++;
         if (rodadasSemProgresso >= MAX_RODADAS_SEM_PROGRESSO) {
-          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ' (cota do Google Sheets esgotada)' : ''} — parei por aqui. Espera 1-2 minutos e clica em "Processar fotos recebidas" de novo.`, false);
+          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ` (${rotuloCota} esgotada)` : ''} — parei por aqui. Espera 1-2 minutos e clica em "Processar fotos recebidas" de novo.`, false);
           break;
         }
-        // dá um respiro maior quando esbarra na cota do Sheets, pra ela ter chance de liberar
-        btn.innerHTML = `Aguardando cota do Sheets liberar… (rodada ${round})`;
+        // dá um respiro maior quando esbarra em cota, pra ela ter chance de liberar
+        btn.innerHTML = `Aguardando ${rotuloCota} liberar… (rodada ${round})`;
         await new Promise(r => setTimeout(r, teveErroDeCota ? 15000 : 4000));
       } else {
         rodadasSemProgresso = 0;
@@ -6536,6 +6543,20 @@ async function _zelFotosProcessarPendentes() {
 }
 
 document.getElementById('zelFotosAtualizarBtn')?.addEventListener('click', () => _zelFotosCarregar(_zelFotosSemanaAtual));
+function _zelFotosSincronizarPc() {
+  // Aciona o protocolo customizado zeladoria-sync:// registrado no Windows
+  // (ver configuração local) — o navegador vai pedir confirmação pra abrir
+  // o programa associado (zeladoria_launcher.bat), que baixa as fotos da
+  // semana atual e organiza na pasta local do OneDrive.
+  try {
+    window.location.href = 'zeladoria-sync://run';
+    showToast('Se aparecer uma confirmação do navegador pra abrir o zeladoria_launcher.bat, clique em "Abrir".', true);
+  } catch (e) {
+    showToast('Não consegui acionar a sincronização — confirme se o protocolo zeladoria-sync:// está configurado nesse PC.', false);
+  }
+}
+
+document.getElementById('zelFotosSincronizarPcBtn')?.addEventListener('click', _zelFotosSincronizarPc);
 document.getElementById('zelFotosMostrarConfirmadasBtn')?.addEventListener('click', _zelFotosToggleMostrarConfirmadas);
 document.getElementById('zelFotosProcessarBtn')?.addEventListener('click', _zelFotosProcessarPendentes);
 
@@ -6581,7 +6602,10 @@ async function _zelFotosRecalcularGrausAntigos() {
       const data = await _zelFotosChamarReclassificacaoGrau();
       const processadosNestaRodada = data.processados || 0;
       totalProcessados += processadosNestaRodada;
-      const teveErroDeCota = (data.erros || []).some(e => e.includes('429') || e.toLowerCase().includes('quota'));
+      const erros2 = data.erros || [];
+      const teveErroDeCota = erros2.some(e => e.includes('429') || e.toLowerCase().includes('quota'));
+      const teveErroGemini = erros2.some(e => e.toLowerCase().includes('gemini') || e.toLowerCase().includes('generativelanguage'));
+      const rotuloCota = teveErroGemini ? 'cota da IA (Gemini)' : 'cota do Google Sheets';
       if (data.erros && data.erros.length) todosErros.push(...data.erros);
 
       if (!data.restantes || data.restantes === 0) break;
@@ -6589,10 +6613,10 @@ async function _zelFotosRecalcularGrausAntigos() {
       if (processadosNestaRodada === 0) {
         rodadasSemProgresso++;
         if (rodadasSemProgresso >= MAX_RODADAS_SEM_PROGRESSO) {
-          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ' (cota do Google Sheets esgotada)' : ''} — parei por aqui. Espera 1-2 minutos e clica de novo.`, false);
+          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ` (${rotuloCota} esgotada)` : ''} — parei por aqui. Espera 1-2 minutos e clica de novo.`, false);
           break;
         }
-        btn.innerHTML = `Aguardando cota do Sheets liberar… (rodada ${round})`;
+        btn.innerHTML = `Aguardando ${rotuloCota} liberar… (rodada ${round})`;
         await new Promise(r => setTimeout(r, teveErroDeCota ? 15000 : 4000));
       } else {
         rodadasSemProgresso = 0;
