@@ -1466,6 +1466,16 @@ body{
         </button>
       </div>
 
+      <!-- Campo de Comunicado livre -->
+      <div class="sb-os-box" style="margin-top:10px;">
+        <input id="sbComunicadoTema" class="sb-os-input" style="min-height:unset;" placeholder="Tema do comunicado…" type="text">
+        <textarea id="sbComunicadoObs" class="sb-os-input" placeholder="Observações (opcional)…" rows="2" style="margin-top:6px;"></textarea>
+        <button class="sb-os-btn-gen" onclick="_gerarComunicadoLivre()" style="margin-top:6px;">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Gerar Comunicado
+        </button>
+      </div>
+
       <!-- Nova Atividade -->
       <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:8px;">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -2320,6 +2330,36 @@ body{
         </button>
       </div>
       <div id="osRapidaError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Comunicado Livre -->
+<div class="ch-overlay" id="comLivreOverlay">
+  <div class="ch-modal" style="max-width:580px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><h2>Comunicado</h2></div><div class="ch-subtitle">Revise o texto, escolha os grupos e dispare</div></div>
+        <button class="modal-close-btn" id="comLivreClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div id="comLivreLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Gerando comunicado…
+      </div>
+      <div id="comLivreResult" style="display:none;">
+        <textarea id="comLivreText" style="width:100%;min-height:160px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+
+        <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
+        <div id="comLivreGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+
+        <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Disparar comunicado
+        </button>
+      </div>
+      <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
   </div>
 </div>
@@ -6834,6 +6874,102 @@ function _copiarOsRapida() {
 
 document.getElementById('osRapidaClose')?.addEventListener('click', () => { document.getElementById('osRapidaOverlay').style.display = 'none'; });
 document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(e.target.id==='osRapidaOverlay') document.getElementById('osRapidaOverlay').style.display='none'; });
+
+/* ══ COMUNICADO LIVRE (IA) ══ */
+let _comLivreGruposCache = [];
+
+async function _gerarComunicadoLivre() {
+  const tema = (document.getElementById('sbComunicadoTema')?.value || '').trim();
+  const observacoes = (document.getElementById('sbComunicadoObs')?.value || '').trim();
+  if (!tema) { showToast('Descreva o tema antes de gerar.', false); return; }
+
+  const overlay = document.getElementById('comLivreOverlay');
+  const loading = document.getElementById('comLivreLoading');
+  const result = document.getElementById('comLivreResult');
+  const errorBox = document.getElementById('comLivreError');
+  overlay.style.display = 'flex';
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+
+  try {
+    const [respTexto, respGrupos] = await Promise.all([
+      fetch('https://api.168.138.232.237.sslip.io/gerar-comunicado-livre-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tema, observacoes }),
+        signal: AbortSignal.timeout(30000),
+      }),
+      _comLivreGruposCache.length ? Promise.resolve(null) :
+        fetch('https://api.168.138.232.237.sslip.io/grupos-configurados'),
+    ]);
+
+    const dataTexto = await respTexto.json();
+    if (!dataTexto.ok) throw new Error(dataTexto.error || 'Erro ao gerar comunicado');
+
+    if (respGrupos) {
+      const dataGrupos = await respGrupos.json();
+      if (dataGrupos.ok) _comLivreGruposCache = dataGrupos.itens || [];
+    }
+
+    document.getElementById('comLivreText').value = dataTexto.texto;
+    const listaEl = document.getElementById('comLivreGrupos');
+    listaEl.innerHTML = _comLivreGruposCache.map(g => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:4px 2px;">
+        <input type="checkbox" class="com-livre-grupo-chk" value="${esc(g.id)}" style="accent-color:var(--teal);width:15px;height:15px;">
+        ${esc(g.nome)}
+      </label>
+    `).join('') || '<div style="font-size:12px;color:var(--text-faint);">Nenhum grupo configurado.</div>';
+
+    loading.style.display = 'none';
+    result.style.display = 'block';
+  } catch (err) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Erro ao gerar comunicado: ' + (err.message || '');
+  }
+}
+
+async function _dispararComunicadoLivre() {
+  const texto = (document.getElementById('comLivreText')?.value || '').trim();
+  const grupos = Array.from(document.querySelectorAll('.com-livre-grupo-chk:checked')).map(el => el.value);
+  if (!texto) { showToast('O texto do comunicado está vazio.', false); return; }
+  if (grupos.length === 0) { showToast('Selecione ao menos um grupo.', false); return; }
+
+  const btn = document.getElementById('comLivreDispararBtn');
+  btn.disabled = true;
+  const textoOriginal = btn.innerHTML;
+  btn.innerHTML = 'Enviando…';
+
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-livre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto, grupos }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao disparar');
+    const qtdEnviados = (data.enviados || []).length;
+    const qtdErros = (data.erros || []).length;
+    if (qtdErros === 0) {
+      showToast(`Comunicado enviado pra ${qtdEnviados} grupo(s)!`, true);
+      document.getElementById('comLivreOverlay').style.display = 'none';
+      document.getElementById('sbComunicadoTema').value = '';
+      document.getElementById('sbComunicadoObs').value = '';
+    } else {
+      showToast(`Enviado pra ${qtdEnviados}, mas ${qtdErros} falharam.`, false);
+    }
+  } catch (err) {
+    showToast('Erro ao disparar comunicado: ' + (err.message || ''), false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = textoOriginal;
+  }
+}
+
+document.getElementById('comLivreClose')?.addEventListener('click', () => { document.getElementById('comLivreOverlay').style.display = 'none'; });
+document.getElementById('comLivreOverlay')?.addEventListener('click', e => { if(e.target.id==='comLivreOverlay') document.getElementById('comLivreOverlay').style.display='none'; });
 
 /* ══ NOVA OCORRÊNCIA ══ */
 function _openNovaOcorrencia() {
