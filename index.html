@@ -6401,11 +6401,17 @@ async function _zelFotosChamarProcessamento() {
   return data;
 }
 
+let _zelOperacaoPesadaEmAndamento = false;
+
 async function _zelFotosProcessarPendentes() {
   const btn = document.getElementById('zelFotosProcessarBtn');
+  const btnOutro = document.getElementById('zelFotosRecalcularGrausBtn');
   if (!btn) return;
+  if (_zelOperacaoPesadaEmAndamento) { showToast('Já tem uma operação de zeladoria rodando — espera terminar.', false); return; }
+  _zelOperacaoPesadaEmAndamento = true;
   const original = btn.innerHTML;
   btn.disabled = true;
+  if (btnOutro) btnOutro.disabled = true;
 
   const MAX_ROUNDS = 60; // trava de segurança — cada round processa só algumas levas por vez, mas o total de rounds precisa dar pra fila inteira num clique só
   let totalProcessados = 0, totalLotes = 0;
@@ -6434,8 +6440,10 @@ async function _zelFotosProcessarPendentes() {
     showToast('Erro ao processar fotos: ' + e.message, false);
     _zelFotosCarregar(_zelFotosSemanaAtual);
   } finally {
+    _zelOperacaoPesadaEmAndamento = false;
     btn.disabled = false;
     btn.innerHTML = original;
+    if (btnOutro) btnOutro.disabled = false;
   }
 }
 
@@ -6461,9 +6469,13 @@ async function _zelFotosChamarReclassificacaoGrau() {
 
 async function _zelFotosRecalcularGrausAntigos() {
   const btn = document.getElementById('zelFotosRecalcularGrausBtn');
+  const btnOutro = document.getElementById('zelFotosProcessarBtn');
   if (!btn) return;
+  if (_zelOperacaoPesadaEmAndamento) { showToast('Já tem uma operação de zeladoria rodando — espera terminar.', false); return; }
+  _zelOperacaoPesadaEmAndamento = true;
   const original = btn.innerHTML;
   btn.disabled = true;
+  if (btnOutro) btnOutro.disabled = true;
 
   const MAX_ROUNDS = 60;
   let totalProcessados = 0;
@@ -6485,8 +6497,10 @@ async function _zelFotosRecalcularGrausAntigos() {
   } catch (e) {
     showToast('Erro ao recalcular graus: ' + e.message, false);
   } finally {
+    _zelOperacaoPesadaEmAndamento = false;
     btn.disabled = false;
     btn.innerHTML = original;
+    if (btnOutro) btnOutro.disabled = false;
   }
 }
 
