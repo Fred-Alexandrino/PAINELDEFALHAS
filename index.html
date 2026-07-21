@@ -6414,27 +6414,42 @@ async function _zelFotosProcessarPendentes() {
   if (btnOutro) btnOutro.disabled = true;
 
   const MAX_ROUNDS = 60; // trava de segurança — cada round processa só algumas levas por vez, mas o total de rounds precisa dar pra fila inteira num clique só
-  let totalProcessados = 0, totalLotes = 0;
+  const MAX_RODADAS_SEM_PROGRESSO = 3; // se travar (cota do Sheets, etc.) sem avançar nada, para de tentar cedo em vez de rodar as 60
+  let totalProcessados = 0, totalLotes = 0, rodadasSemProgresso = 0;
   const todosErros = [];
 
   try {
     for (let round = 1; round <= MAX_ROUNDS; round++) {
       btn.innerHTML = round === 1 ? 'Processando…' : `Processando… ${totalProcessados} fotos (rodada ${round})`;
       const data = await _zelFotosChamarProcessamento();
-      totalProcessados += data.processados || 0;
+      const processadosNestaRodada = data.processados || 0;
+      totalProcessados += processadosNestaRodada;
       totalLotes += data.lotes || 0;
+      const teveErroDeCota = (data.erros || []).some(e => e.includes('429') || e.toLowerCase().includes('quota'));
       if (data.erros && data.erros.length) todosErros.push(...data.erros);
 
       if (!data.lotesRestantes || data.lotesRestantes === 0) break;
+
+      if (processadosNestaRodada === 0) {
+        rodadasSemProgresso++;
+        if (rodadasSemProgresso >= MAX_RODADAS_SEM_PROGRESSO) {
+          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ' (cota do Google Sheets esgotada)' : ''} — parei por aqui. Espera 1-2 minutos e clica em "Processar fotos recebidas" de novo.`, false);
+          break;
+        }
+        // dá um respiro maior quando esbarra na cota do Sheets, pra ela ter chance de liberar
+        btn.innerHTML = `Aguardando cota do Sheets liberar… (rodada ${round})`;
+        await new Promise(r => setTimeout(r, teveErroDeCota ? 15000 : 4000));
+      } else {
+        rodadasSemProgresso = 0;
+      }
       // ainda tem leva pendente — segue pro próximo round automaticamente
       if (round === MAX_ROUNDS) {
         showToast(`Processado bastante coisa (${totalProcessados} fotos), mas ainda sobrou fila. Clique em "Processar fotos recebidas" de novo pra continuar.`, true);
       }
     }
 
-    if (totalProcessados === 0) showToast('Nenhuma foto pendente pra processar.', true);
-    else showToast(`${totalProcessados} foto(s) processada(s) em ${totalLotes} leva(s)!`, true);
-    if (todosErros.length) showToast('Alguns lotes falharam: ' + todosErros.join(' · '), false);
+    if (totalProcessados === 0 && rodadasSemProgresso < MAX_RODADAS_SEM_PROGRESSO) showToast('Nenhuma foto pendente pra processar.', true);
+    else if (totalProcessados > 0) showToast(`${totalProcessados} foto(s) processada(s) em ${totalLotes} leva(s)!`, true);
     _zelFotosCarregar(_zelFotosSemanaAtual);
   } catch (e) {
     showToast('Erro ao processar fotos: ' + e.message, false);
@@ -6478,21 +6493,36 @@ async function _zelFotosRecalcularGrausAntigos() {
   if (btnOutro) btnOutro.disabled = true;
 
   const MAX_ROUNDS = 60;
-  let totalProcessados = 0;
+  const MAX_RODADAS_SEM_PROGRESSO = 3;
+  let totalProcessados = 0, rodadasSemProgresso = 0;
   const todosErros = [];
 
   try {
     for (let round = 1; round <= MAX_ROUNDS; round++) {
       btn.innerHTML = round === 1 ? 'Recalculando…' : `Recalculando… ${totalProcessados} levas (rodada ${round})`;
       const data = await _zelFotosChamarReclassificacaoGrau();
-      totalProcessados += data.processados || 0;
+      const processadosNestaRodada = data.processados || 0;
+      totalProcessados += processadosNestaRodada;
+      const teveErroDeCota = (data.erros || []).some(e => e.includes('429') || e.toLowerCase().includes('quota'));
       if (data.erros && data.erros.length) todosErros.push(...data.erros);
+
       if (!data.restantes || data.restantes === 0) break;
+
+      if (processadosNestaRodada === 0) {
+        rodadasSemProgresso++;
+        if (rodadasSemProgresso >= MAX_RODADAS_SEM_PROGRESSO) {
+          showToast(`Travou sem avançar em ${rodadasSemProgresso} rodadas seguidas${teveErroDeCota ? ' (cota do Google Sheets esgotada)' : ''} — parei por aqui. Espera 1-2 minutos e clica de novo.`, false);
+          break;
+        }
+        btn.innerHTML = `Aguardando cota do Sheets liberar… (rodada ${round})`;
+        await new Promise(r => setTimeout(r, teveErroDeCota ? 15000 : 4000));
+      } else {
+        rodadasSemProgresso = 0;
+      }
     }
 
-    if (totalProcessados === 0) showToast('Nenhuma leva antiga precisando de grau encontrada.', true);
-    else showToast(`Grau recalculado em ${totalProcessados} leva(s) já confirmada(s)! Tabela de sujidade/vegetação atualizada.`, true);
-    if (todosErros.length) showToast('Alguns lotes falharam: ' + todosErros.join(' · '), false);
+    if (totalProcessados === 0 && rodadasSemProgresso < MAX_RODADAS_SEM_PROGRESSO) showToast('Nenhuma leva antiga precisando de grau encontrada.', true);
+    else if (totalProcessados > 0) showToast(`Grau recalculado em ${totalProcessados} leva(s) já confirmada(s)! Tabela de sujidade/vegetação atualizada.`, true);
     _zelGrausCarregar();
   } catch (e) {
     showToast('Erro ao recalcular graus: ' + e.message, false);
