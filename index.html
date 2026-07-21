@@ -1457,24 +1457,17 @@ body{
     <div class="sb-quick-actions" id="sbQuickActions">
       <div class="sb-section-label">AÇÕES RÁPIDAS</div>
 
-      <!-- Campo de OS genérica -->
-      <div class="sb-os-box">
-        <textarea id="sbOsInput" class="sb-os-input" placeholder="Descreva o problema para gerar OS…" rows="3"></textarea>
-        <button class="sb-os-btn-gen" onclick="_gerarOSRapida()">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-          Gerar texto OS
-        </button>
-      </div>
+      <!-- Elaborar OS -->
+      <button class="sb-action-btn" onclick="_openElaborarOS()" style="margin-bottom:8px;">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        Elaborar OS
+      </button>
 
-      <!-- Campo de Comunicado livre -->
-      <div class="sb-os-box" style="margin-top:10px;">
-        <input id="sbComunicadoTema" class="sb-os-input" style="min-height:unset;" placeholder="Tema do comunicado…" type="text">
-        <textarea id="sbComunicadoObs" class="sb-os-input" placeholder="Observações (opcional)…" rows="2" style="margin-top:6px;"></textarea>
-        <button class="sb-os-btn-gen" onclick="_gerarComunicadoLivre()" style="margin-top:6px;">
-          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Gerar Comunicado
-        </button>
-      </div>
+      <!-- Elaborar Comunicado -->
+      <button class="sb-action-btn" onclick="_openElaborarComunicado()" style="margin-bottom:8px;">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Elaborar Comunicado
+      </button>
 
       <!-- Nova Atividade -->
       <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:8px;">
@@ -2318,17 +2311,18 @@ body{
       </div>
     </div>
     <div class="ch-body">
+      <div id="osRapidaInputStep">
+        <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc…" rows="5" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <button onclick="_gerarOSRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Gerar
+        </button>
+      </div>
       <div id="osRapidaLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
         <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
         Gerando texto da OS… (pode levar até 1 min na primeira vez)
       </div>
-      <div id="osRapidaResult" style="display:none;">
-        <textarea id="osRapidaText" readonly style="width:100%;min-height:260px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
-        <button onclick="_copiarOsRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
-          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copiar texto
-        </button>
-      </div>
+      <div id="osRapidaResult" style="display:none;"></div>
       <div id="osRapidaError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
   </div>
@@ -2344,6 +2338,14 @@ body{
       </div>
     </div>
     <div class="ch-body">
+      <div id="comLivreInputStep">
+        <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;" placeholder="Tema do comunicado…" type="text">
+        <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Gerar
+        </button>
+      </div>
       <div id="comLivreLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
         <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
         Gerando comunicado…
@@ -5494,6 +5496,32 @@ async function _gerarTextoOSComIA(d, tentativa = 1) {
   }
 }
 
+// Igual à de cima, mas devolve a lista completa — usada quando o texto de
+// entrada pode descrever mais de uma frente de trabalho (usinas ou
+// equipamentos diferentes), caso em que a IA divide em várias OS.
+async function _gerarTextosOSComIA(d, tentativa = 1) {
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-texto-os-ia', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
+        falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
+        historico: d.historico||'', responsavel: d.responsavel||'',
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
+    return result.textos && result.textos.length ? result.textos : [result.texto];
+  } catch (e) {
+    if (tentativa < 2) {
+      return _gerarTextosOSComIA(d, tentativa + 1);
+    }
+    throw e;
+  }
+}
+
 async function _solicitarOS() {
   const d=_drawerList[_drawerIndex]; if(!d)return;
 
@@ -6820,8 +6848,18 @@ async function _toggleNotificacoes() {
 }
 
 /* ══ OS RÁPIDA (sidebar) ══ */
+function _openElaborarOS() {
+  document.getElementById('osRapidaOverlay').style.display = 'flex';
+  document.getElementById('osRapidaInputStep').style.display = 'block';
+  document.getElementById('osRapidaLoading').style.display = 'none';
+  document.getElementById('osRapidaResult').style.display = 'none';
+  document.getElementById('osRapidaError').style.display = 'none';
+  const input = document.getElementById('osRapidaInput');
+  if (input) input.value = '';
+}
+
 async function _gerarOSRapida() {
-  const txt = (document.getElementById('sbOsInput')?.value || '').trim();
+  const txt = (document.getElementById('osRapidaInput')?.value || '').trim();
   if (!txt) { showToast('Descreva o problema antes de gerar.', false); return; }
 
   // Usa a mesma biblioteca de templates, criando um objeto sintético
@@ -6835,23 +6873,23 @@ async function _gerarOSRapida() {
     usina: '',
   };
 
-  const overlay = document.getElementById('osRapidaOverlay');
+  const inputStep = document.getElementById('osRapidaInputStep');
   const loading = document.getElementById('osRapidaLoading');
   const result = document.getElementById('osRapidaResult');
   const errorBox = document.getElementById('osRapidaError');
-  overlay.style.display = 'flex';
+  inputStep.style.display = 'none';
   loading.style.display = 'flex';
   result.style.display = 'none';
   errorBox.style.display = 'none';
 
-  let texto;
+  let textos;
   try {
-    texto = await _gerarTextoOSComIA(pseudo);
+    textos = await _gerarTextosOSComIA(pseudo);
   } catch (errIA) {
     console.error('[Gemini] Falhou, usando fallback local:', errIA);
     showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
-      texto = _gerarTextoOS(pseudo); // fallback: gerador local baseado em regras
+      textos = [_gerarTextoOS(pseudo)]; // fallback: gerador local baseado em regras
     } catch (err) {
       loading.style.display = 'none';
       errorBox.style.display = 'block';
@@ -6860,17 +6898,28 @@ async function _gerarOSRapida() {
     }
   }
 
-  document.getElementById('osRapidaText').value = texto;
+  result.innerHTML = textos.map((t, i) => `
+    <div style="${i > 0 ? 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);' : ''}">
+      ${textos.length > 1 ? `<div style="font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;">OS ${i + 1} de ${textos.length}</div>` : ''}
+      <textarea class="os-rapida-texto-item" readonly style="width:100%;min-height:220px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;">${esc(t)}</textarea>
+      <button class="os-rapida-copiar-btn" data-idx="${i}" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar texto${textos.length > 1 ? ' desta OS' : ''}
+      </button>
+    </div>
+  `).join('');
+  result.querySelectorAll('.os-rapida-copiar-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const texto = textos[parseInt(btn.dataset.idx, 10)];
+      navigator.clipboard?.writeText(texto).then(() => showToast('Texto copiado!', true))
+        .catch(() => showToast('Não consegui copiar automaticamente.', false));
+    });
+  });
+
   loading.style.display = 'none';
   result.style.display = 'block';
 }
 
-function _copiarOsRapida() {
-  const ta = document.getElementById('osRapidaText');
-  if (!ta) return;
-  navigator.clipboard?.writeText(ta.value).then(() => showToast('Texto copiado!', true))
-    .catch(() => { ta.select(); document.execCommand('copy'); showToast('Texto copiado!', true); });
-}
 
 document.getElementById('osRapidaClose')?.addEventListener('click', () => { document.getElementById('osRapidaOverlay').style.display = 'none'; });
 document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(e.target.id==='osRapidaOverlay') document.getElementById('osRapidaOverlay').style.display='none'; });
@@ -6878,16 +6927,28 @@ document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(
 /* ══ COMUNICADO LIVRE (IA) ══ */
 let _comLivreGruposCache = [];
 
+function _openElaborarComunicado() {
+  document.getElementById('comLivreOverlay').style.display = 'flex';
+  document.getElementById('comLivreInputStep').style.display = 'block';
+  document.getElementById('comLivreLoading').style.display = 'none';
+  document.getElementById('comLivreResult').style.display = 'none';
+  document.getElementById('comLivreError').style.display = 'none';
+  const tema = document.getElementById('comLivreTemaInput');
+  const obs = document.getElementById('comLivreObsInput');
+  if (tema) tema.value = '';
+  if (obs) obs.value = '';
+}
+
 async function _gerarComunicadoLivre() {
-  const tema = (document.getElementById('sbComunicadoTema')?.value || '').trim();
-  const observacoes = (document.getElementById('sbComunicadoObs')?.value || '').trim();
+  const tema = (document.getElementById('comLivreTemaInput')?.value || '').trim();
+  const observacoes = (document.getElementById('comLivreObsInput')?.value || '').trim();
   if (!tema) { showToast('Descreva o tema antes de gerar.', false); return; }
 
-  const overlay = document.getElementById('comLivreOverlay');
+  const inputStep = document.getElementById('comLivreInputStep');
   const loading = document.getElementById('comLivreLoading');
   const result = document.getElementById('comLivreResult');
   const errorBox = document.getElementById('comLivreError');
-  overlay.style.display = 'flex';
+  inputStep.style.display = 'none';
   loading.style.display = 'flex';
   result.style.display = 'none';
   errorBox.style.display = 'none';
@@ -6955,8 +7016,6 @@ async function _dispararComunicadoLivre() {
     if (qtdErros === 0) {
       showToast(`Comunicado enviado pra ${qtdEnviados} grupo(s)!`, true);
       document.getElementById('comLivreOverlay').style.display = 'none';
-      document.getElementById('sbComunicadoTema').value = '';
-      document.getElementById('sbComunicadoObs').value = '';
     } else {
       showToast(`Enviado pra ${qtdEnviados}, mas ${qtdErros} falharam.`, false);
     }
