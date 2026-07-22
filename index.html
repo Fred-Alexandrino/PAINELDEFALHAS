@@ -1822,9 +1822,10 @@ body{
             </div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button class="rel-btn-secundario" onclick="relDefinirSemana('atual')">Semana atual</button>
             <button class="rel-btn-secundario" onclick="relDefinirSemana('passada')">Semana passada</button>
+            <button class="rel-btn-secundario" onclick="relDefinirUltimos7Dias()">Últimos 7 dias</button>
           </div>
 
           <button id="relGerarBtn" class="rel-btn-primario" onclick="relGerarRelatorio()" style="margin-top:20px;width:100%;">
@@ -8816,6 +8817,25 @@ function relDefinirSemana(qual){
   relFecharCalendario();
 }
 
+function relDefinirUltimos7Dias(){
+  const hoje = new Date();
+  const inicio = new Date(hoje);
+  inicio.setDate(hoje.getDate() - 6);
+  relPeriodo.inicio = inicio;
+  relPeriodo.fim = hoje;
+  relAtualizarCampos();
+  relFecharCalendario();
+}
+
+/* Número da semana ISO-8601 (mesmo cálculo usado no backend via isocalendar()) */
+function relSemanaISO(data){
+  const d = new Date(Date.UTC(data.getFullYear(), data.getMonth(), data.getDate()));
+  const diaSemana = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - diaSemana);
+  const inicioAno = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - inicioAno) / 86400000) + 1) / 7);
+}
+
 function relPopularClientes(){
   const sel = document.getElementById('relCliente');
   if (!sel) return;
@@ -8944,9 +8964,10 @@ async function relGerarRelatorio(){
     }
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
+    const semanaNum = relSemanaISO(relPeriodo.fim);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Relatorio_${cliente}_${dataInicio}.pptx`;
+    a.download = `Apresentação ${cliente} x Grid Co - O&M - Semana ${semanaNum}.pptx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
