@@ -2224,6 +2224,7 @@ body{
       </div>
     </div>
     <div class="ch-body">
+      <div id="novaAtivFormStep">
       <div class="nova-oc-2col">
         <div class="nova-oc-field">
           <label>Cliente</label>
@@ -2270,6 +2271,18 @@ body{
       <button class="nova-oc-submit" id="novaAtivSubmit" onclick="_submeterNovaAtividade()">
         Registrar atividade
       </button>
+      </div>
+      <div id="novaAtivFotosStep" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--teal);font-size:13px;font-weight:600;margin-bottom:14px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          Atividade registrada! Quer anexar fotos agora?
+        </div>
+        <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">📷 Fotos (opcional)</label>
+        <div id="novaAtivFotosGaleria" style="margin-bottom:16px;"></div>
+        <button class="nova-oc-submit" onclick="document.getElementById('novaAtivOverlay').style.display='none';">
+          Concluir
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -6694,6 +6707,65 @@ async function _gerarComunicadoLivre() {
   }
 }
 
+// ── Galeria de fotos de atividades (só atividades manuais, sem numeroOS) ──
+async function _renderGaleriaFotos(atividadeId, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = `<div style="font-size:11px;color:var(--text-faint);">Carregando fotos…</div>`;
+  try {
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/atividade-fotos/${encodeURIComponent(atividadeId)}`);
+    const data = await resp.json();
+    const fotos = data.ok ? (data.fotos || []) : [];
+    container.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        ${fotos.map(f => `
+          <div class="foto-ativ-thumb" style="position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+            <img src="https://api.168.138.232.237.sslip.io/foto-atividade/${encodeURIComponent(atividadeId)}/${encodeURIComponent(f)}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="window.open(this.src, '_blank')">
+            <button class="foto-ativ-remover" data-arquivo="${esc(f)}" title="Remover foto" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.65);border:none;color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+          </div>
+        `).join('')}
+        <label style="width:72px;height:72px;border-radius:8px;border:1.5px dashed var(--border-strong);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-faint);flex-direction:column;gap:2px;">
+          <svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span style="font-size:9px;">Adicionar</span>
+          <input type="file" accept="image/*" capture="environment" style="display:none;" class="foto-ativ-input">
+        </label>
+      </div>
+    `;
+    container.querySelector('.foto-ativ-input')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('id', atividadeId);
+      fd.append('foto', file);
+      try {
+        const r = await fetch('https://api.168.138.232.237.sslip.io/atividade-anexar-foto', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'Erro ao enviar foto');
+        showToast('Foto anexada!', true);
+        _renderGaleriaFotos(atividadeId, containerId);
+      } catch (err) {
+        showToast('Erro ao anexar foto: ' + (err.message || ''), false);
+      }
+    });
+    container.querySelectorAll('.foto-ativ-remover').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await fetch('https://api.168.138.232.237.sslip.io/atividade-remover-foto', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id: atividadeId, arquivo: btn.dataset.arquivo }),
+          });
+          _renderGaleriaFotos(atividadeId, containerId);
+        } catch (err) {
+          showToast('Erro ao remover foto.', false);
+        }
+      });
+    });
+  } catch (e) {
+    container.innerHTML = `<div style="font-size:11px;color:var(--red);">Erro ao carregar fotos.</div>`;
+  }
+}
+
 async function _dispararComunicadoLivre() {
   const texto = (document.getElementById('comLivreText')?.value || '').trim();
   const grupos = Array.from(document.querySelectorAll('.com-livre-grupo-chk:checked')).map(el => el.value);
@@ -8387,6 +8459,11 @@ function _renderAtivDrawer() {
     <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">📝 Minhas anotações (uso pessoal — não sincroniza com a Fracttal)</label>
     <textarea class="nova-oc-textarea" id="ativDrawerAnotacoes" rows="3" placeholder="Anotações só suas sobre essa OS/atividade…" style="width:100%;box-sizing:border-box;margin-bottom:16px;">${esc(a.anotacoesPessoais||'')}</textarea>
 
+    ${!a.numeroOS ? `
+    <label style="display:block;font-size:11px;color:var(--text-dim);margin-bottom:4px;">📷 Fotos (uso pessoal — só pra atividades manuais)</label>
+    <div id="ativDrawerFotos" style="margin-bottom:16px;"></div>
+    ` : ''}
+
     ${a.linkOS ? `<a href="${esc(a.linkOS)}" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--blue);color:var(--blue);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       Abrir OS no Fracttal
@@ -8421,6 +8498,7 @@ function _renderAtivDrawer() {
     <div style="white-space:pre-wrap;font-size:12.5px;color:var(--text-dim);line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${esc(a.historico||'Sem histórico.')}</div>
   `;
   _renderToggleDesligamento('atividade', a.id, document.getElementById('ativDrawerDesligToggle'), isDesligamentoAtividade(a));
+  if (!a.numeroOS) _renderGaleriaFotos(a.id, 'ativDrawerFotos');
 }
 
 async function _solicitarOSAtividade() {
@@ -8701,6 +8779,8 @@ async function _salvarAtivDrawer() {
 }
 
 function _openNovaAtividade() {
+  document.getElementById('novaAtivFormStep').style.display = 'block';
+  document.getElementById('novaAtivFotosStep').style.display = 'none';
   const clientes = _clientesDisponiveis();
   clientes.push('Geral', 'Administrativo');
   const selCli = document.getElementById('novaAtivCliente');
@@ -8773,8 +8853,10 @@ async function _submeterNovaAtividade() {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao registrar');
     showToast('Atividade registrada!', true);
-    document.getElementById('novaAtivOverlay').style.display = 'none';
     if (_activeNav === 'atividades') carregarAtividades();
+    document.getElementById('novaAtivFormStep').style.display = 'none';
+    document.getElementById('novaAtivFotosStep').style.display = 'block';
+    _renderGaleriaFotos(result.id, 'novaAtivFotosGaleria');
   } catch(err) {
     if(errEl){errEl.textContent='Erro ao registrar: ' + (err.message||'falha desconhecida.');errEl.style.display='block';}
   } finally {
