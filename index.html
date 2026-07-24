@@ -3509,6 +3509,7 @@ const CLIENTE_CANONICO = {
   'alves lima': 'Alves Lima',
   'gd energy': 'GD Energy',
   'renogrid': 'RENOGRID', 'reno grid': 'RENOGRID',
+  'sal energia': 'Sal Energia', 'sal': 'Sal Energia',
   'thopen': 'THOPEN',
 };
 function normalizeCliente(raw) {
@@ -3635,7 +3636,7 @@ let selStatusValues = new Set();
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
-const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'RENOGRID', 'THOPEN'];
+const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'RENOGRID', 'Sal Energia', 'THOPEN'];
 
 function _clientesDisponiveis() {
   const doFalhas = DATA.map(d => d.cliente);
