@@ -11,6 +11,8 @@
 <title>Central O&M — Grid Co</title>
 <link rel="manifest" href="/PAINELDEFALHAS/manifest.json" id="manifestLink">
 <link rel="apple-touch-icon" href="/PAINELDEFALHAS/icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 <style>
 /* ── FONTES ─────────────────────────────────────────────── */
 @font-face{font-family:'Geist';font-weight:100 900;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter:vf@5.2.8/latin-wght-normal.woff2') format('woff2-variations');}
@@ -1371,6 +1373,10 @@ body{
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </div>
+      <div class="sb-nav-item" data-nav="localizacao">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Localização
+      </div>
       <div class="sb-nav-item" data-nav="boletins">
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
@@ -1709,6 +1715,31 @@ body{
             <div class="zel-table-wrap" id="zelTableWrap"></div>
           </div>
         </div>
+      </section>
+
+      <!-- ── SEÇÃO: LOCALIZAÇÃO DAS USINAS ─────────────────── -->
+      <section class="content-section" id="sec-localizacao">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:3px;">O&amp;M · Ativos</div>
+            <h2 style="font-size:16px;font-weight:700;">Localização das Usinas</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <select class="sb-select" style="width:auto;min-width:160px;" id="locFiltroCliente" onchange="_locRender()"><option value="">Todos os clientes</option></select>
+            <button class="icon-toggle-btn active" id="locViewMapa" onclick="_locSetViewMode('mapa')" title="Ver no Mapa">
+              <svg viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Mapa
+            </button>
+            <button class="icon-toggle-btn" id="locViewLista" onclick="_locSetViewMode('lista')" title="Ver em Lista">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista
+            </button>
+            <button class="tb-btn tb-btn-refresh" onclick="carregarLocalizacoes()"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+          </div>
+        </div>
+        <div id="locStatusMsg" style="font-size:11.5px;color:var(--text-faint);margin-bottom:10px;"></div>
+        <div id="locMapaWrap" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <div id="locMapa" style="width:100%;height:520px;background:var(--panel-alt);"></div>
+        </div>
+        <div id="locListaWrap" class="zel-table-wrap" style="display:none;"></div>
       </section>
 
       <!-- ── SEÇÃO: LOG HISTÓRICO ──────────────────────────── -->
@@ -2788,6 +2819,7 @@ const NAV_TITLES = {
   'relatorios': 'Relatórios Semanais',
   'atividades': 'Painel de Atividades',
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
+  'localizacao': 'Localização das Usinas',
 };
 
 function switchNav(nav) {
@@ -2813,6 +2845,7 @@ function switchNav(nav) {
   closeMobileSidebar();
   if (nav === 'chamados') carregarChamadosFabricante();
   if (nav === 'processos') openZeladoriasInline();
+  if (nav === 'localizacao') carregarLocalizacoes();
   if (nav === 'historico-log') {/* carregado via botão */}
   if (nav === 'mttr') renderMTTR();
 }
@@ -2840,6 +2873,139 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', _initBottomNav);
 } else {
   _initBottomNav();
+}
+
+/* ══ LOCALIZAÇÃO DAS USINAS (Mapa + Lista) ══ */
+let _locCache = [];
+let _locViewMode = 'mapa';
+let _locMapInstance = null;
+let _locMarkersLayer = null;
+const LOC_CORES_CLIENTE = {
+  'Renogrid': '#F5A623', 'Thopen': '#60A5FA', '2C Energia': '#14B8A6',
+  'GD Energy': '#EF4444', 'Alves Lima': '#A78BFA', 'Sal Energia': '#34D399',
+};
+function _locCorCliente(cliente) { return LOC_CORES_CLIENTE[cliente] || '#9CA3AF'; }
+
+async function carregarLocalizacoes() {
+  const msg = document.getElementById('locStatusMsg');
+  if (msg) msg.textContent = 'Carregando…';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes');
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
+    _locCache = data.itens || [];
+    _locPopularFiltroCliente();
+    _locRender();
+    await _locGeocodificarPendentes();
+  } catch (e) {
+    if (msg) msg.textContent = 'Erro ao carregar localizações: ' + (e.message || e);
+  }
+}
+
+function _locPopularFiltroCliente() {
+  const sel = document.getElementById('locFiltroCliente');
+  if (!sel) return;
+  const atual = sel.value;
+  const clientes = [...new Set(_locCache.map(i => i.cliente).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todos os clientes</option>' +
+    clientes.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+  sel.value = atual;
+}
+
+function _locSetViewMode(mode) {
+  _locViewMode = mode;
+  document.getElementById('locViewMapa')?.classList.toggle('active', mode === 'mapa');
+  document.getElementById('locViewLista')?.classList.toggle('active', mode === 'lista');
+  document.getElementById('locMapaWrap').style.display = mode === 'mapa' ? '' : 'none';
+  document.getElementById('locListaWrap').style.display = mode === 'lista' ? '' : 'none';
+  _locRender();
+}
+
+function _locItensFiltrados() {
+  const cliente = document.getElementById('locFiltroCliente')?.value || '';
+  return cliente ? _locCache.filter(i => i.cliente === cliente) : _locCache;
+}
+
+function _locRender() {
+  if (_locViewMode === 'mapa') _locRenderMapa(); else _locRenderLista();
+}
+
+function _locRenderMapa() {
+  const itens = _locItensFiltrados().filter(i => i.lat != null && i.lng != null);
+  const el = document.getElementById('locMapa');
+  if (!el || typeof L === 'undefined') { setTimeout(_locRenderMapa, 300); return; }
+  if (!_locMapInstance) {
+    _locMapInstance = L.map(el).setView([-10, -50], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 18,
+    }).addTo(_locMapInstance);
+    _locMarkersLayer = L.layerGroup().addTo(_locMapInstance);
+  }
+  _locMarkersLayer.clearLayers();
+  const bounds = [];
+  itens.forEach(i => {
+    const cor = _locCorCliente(i.cliente);
+    const marker = L.circleMarker([i.lat, i.lng], {
+      radius: 8, color: cor, weight: 2, fillColor: cor, fillOpacity: 0.75,
+    });
+    const linkHtml = i.mapsLink ? '<a href="' + i.mapsLink + '" target="_blank" rel="noopener" style="color:#5B9BD5;">Abrir no Google Maps</a>' : '';
+    marker.bindPopup(
+      '<div style="font-family:sans-serif;font-size:12.5px;min-width:180px;">' +
+      '<div style="font-weight:700;margin-bottom:2px;">' + i.usina + '</div>' +
+      '<div style="color:#6B7280;margin-bottom:4px;">' + i.cliente + '</div>' +
+      '<div style="margin-bottom:6px;">' + (i.endereco || '') + '</div>' +
+      linkHtml + '</div>'
+    );
+    marker.addTo(_locMarkersLayer);
+    bounds.push([i.lat, i.lng]);
+  });
+  if (bounds.length) _locMapInstance.fitBounds(bounds, { padding: [30, 30] });
+  setTimeout(() => _locMapInstance && _locMapInstance.invalidateSize(), 150);
+  const msg = document.getElementById('locStatusMsg');
+  const semCoord = _locItensFiltrados().length - itens.length;
+  if (msg) msg.textContent = itens.length + ' usina(s) no mapa' + (semCoord > 0 ? ' · ' + semCoord + ' ainda sem coordenada (geocodificando…)' : '');
+}
+
+function _locRenderLista() {
+  const itens = _locItensFiltrados();
+  const rows = itens.map(i => {
+    const cor = _locCorCliente(i.cliente);
+    const linkHtml = i.mapsLink ? '<a href="' + i.mapsLink + '" target="_blank" rel="noopener" style="color:#5B9BD5;">Ver no Maps</a>' : '—';
+    return '<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + cor + ';margin-right:7px;"></span>' + i.cliente + '</td>' +
+      '<td>' + i.usina + '</td><td>' + (i.endereco || '—') + '</td><td>' + linkHtml + '</td></tr>';
+  }).join('');
+  document.getElementById('locListaWrap').innerHTML =
+    '<table class="zel-table"><thead><tr><th>Cliente</th><th>Usina</th><th>Endereço aproximado</th><th>Maps</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>') + '</tbody></table>';
+}
+
+/* Geocodifica no navegador (Nominatim/OpenStreetMap, gratuito) apenas as
+   usinas que ainda não têm lat/lng gravado na planilha, respeitando o
+   limite de 1 requisição/segundo da política de uso do Nominatim. Depois
+   de geocodificar, salva de volta via /localizacoes-atualizar-coords pra
+   não precisar repetir isso a cada carregamento da página. */
+async function _locGeocodificarPendentes() {
+  const pendentes = _locCache.filter(i => (i.lat == null || i.lng == null) && i.endereco);
+  if (!pendentes.length) return;
+  for (const item of pendentes) {
+    try {
+      const q = encodeURIComponent(item.endereco + ', Brasil');
+      const resp = await fetch('https://nominatim.openstreetmap.org/search?q=' + q + '&format=json&limit=1', {
+        headers: { 'Accept-Language': 'pt-BR' },
+      });
+      const arr = await resp.json();
+      if (arr && arr.length) {
+        const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
+        item.lat = lat; item.lng = lng;
+        fetch('https://api.168.138.232.237.sslip.io/localizacoes-atualizar-coords', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cliente: item.cliente, usina: item.usina, lat, lng }),
+        }).catch(() => {});
+        if (_locViewMode === 'mapa') _locRenderMapa();
+      }
+    } catch (e) { /* Nominatim indisponível — tenta de novo no próximo carregamento */ }
+    await new Promise(r => setTimeout(r, 1100)); // respeita 1 req/s do Nominatim
+  }
 }
 
 /* ══ COMPROMISSOS (BM / Relatórios de Performance & PCM) ══ */
