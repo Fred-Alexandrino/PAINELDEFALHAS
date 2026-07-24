@@ -2389,8 +2389,8 @@ window.addEventListener('unhandledrejection', function(e) {
   const USERS = [
     { user: 'admin',          pass: 'gridco2026',  role: 'admin'   },
     { user: 'fredalexandrino',pass: 'Fred2004@',   role: 'manager' },
-    { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'THOPEN'   },
-    { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'RENOGRID' },
+    { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'Thopen'   },
+    { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'Renogrid' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -2854,7 +2854,7 @@ async function carregarCompromissos() {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos');
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
-    _cmpCache = data.compromissos || [];
+    _cmpCache = (data.compromissos || []).map(c => ({ ...c, cliente: normalizeCliente(c.cliente) }));
     renderCompromissos();
   } catch (e) {
     wrap.innerHTML = '<div class="cmp-empty">Erro ao carregar compromissos: ' + (e.message || e) + '</div>';
@@ -3304,7 +3304,7 @@ async function fetchSheet() {
     if (dot) dot.className = 'topbar-live-dot live'; if (label) label.textContent = `ao vivo · ${ts}`;
     showToast(`${DATA.length} registros carregados`, true);
   } else {
-    DATA = SNAPSHOT.slice();
+    DATA = SNAPSHOT.map(d => ({ ...d, cliente: normalizeCliente(d.cliente) }));
     if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = 'snapshot local';
     showToast('Usando dados locais (sem conexão com planilha)', false);
   }
@@ -3508,9 +3508,9 @@ const CLIENTE_CANONICO = {
   '2c': '2C', '2c energia': '2C',
   'alves lima': 'Alves Lima',
   'gd energy': 'GD Energy',
-  'renogrid': 'RENOGRID', 'reno grid': 'RENOGRID',
+  'renogrid': 'Renogrid', 'reno grid': 'Renogrid',
   'sal energia': 'Sal Energia', 'sal': 'Sal Energia',
-  'thopen': 'THOPEN',
+  'thopen': 'Thopen',
 };
 function normalizeCliente(raw) {
   if (!raw) return raw;
@@ -3636,7 +3636,7 @@ let selStatusValues = new Set();
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
-const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'RENOGRID', 'Sal Energia', 'THOPEN'];
+const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'Renogrid', 'Sal Energia', 'Thopen'];
 
 function _clientesDisponiveis() {
   const doFalhas = DATA.map(d => d.cliente);
