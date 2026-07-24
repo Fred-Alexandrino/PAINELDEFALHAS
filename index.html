@@ -2979,33 +2979,35 @@ function _locRenderLista() {
     (rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>') + '</tbody></table>';
 }
 
-/* Geocodifica no navegador (Nominatim/OpenStreetMap, gratuito) apenas as
-   usinas que ainda não têm lat/lng gravado na planilha, respeitando o
-   limite de 1 requisição/segundo da política de uso do Nominatim. Depois
-   de geocodificar, salva de volta via /localizacoes-atualizar-coords pra
-   não precisar repetir isso a cada carregamento da página. */
+/* Geocodifica pelo SERVIDOR (não no navegador) os endereços que ainda não
+   têm lat/lng na planilha. O navegador não consegue setar um User-Agent
+   customizado no fetch (header proibido) e o Nominatim é rígido com
+   chamadas client-side sem identificação — na prática travava sempre no
+   mesmo ponto. O backend faz isso com identificação correta e persiste
+   direto na planilha (ver /localizacoes-geocodificar-servidor). */
 async function _locGeocodificarPendentes() {
   const pendentes = _locCache.filter(i => (i.lat == null || i.lng == null) && i.endereco);
   if (!pendentes.length) return;
-  for (const item of pendentes) {
-    try {
-      const q = encodeURIComponent(item.endereco + ', Brasil');
-      const resp = await fetch('https://nominatim.openstreetmap.org/search?q=' + q + '&format=json&limit=1', {
-        headers: { 'Accept-Language': 'pt-BR' },
-      });
-      const arr = await resp.json();
-      if (arr && arr.length) {
-        const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon);
-        item.lat = lat; item.lng = lng;
-        fetch('https://api.168.138.232.237.sslip.io/localizacoes-atualizar-coords', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cliente: item.cliente, usina: item.usina, lat, lng }),
-        }).catch(() => {});
-        if (_locViewMode === 'mapa') _locRenderMapa();
-      }
-    } catch (e) { /* Nominatim indisponível — tenta de novo no próximo carregamento */ }
-    await new Promise(r => setTimeout(r, 1100)); // respeita 1 req/s do Nominatim
+  const msg = document.getElementById('locStatusMsg');
+  if (msg) msg.textContent = 'Geocodificando ' + pendentes.length + ' usina(s) sem coordenada — isso roda no servidor, pode levar até ' + Math.ceil(pendentes.length * 1.2) + 's…';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes-geocodificar-servidor', { method: 'POST' });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'falha na geocodificação');
+    if (data.falhas && data.falhas.length && msg) {
+      msg.textContent = (data.atualizados || []).length + ' usina(s) geocodificada(s). Sem sucesso: ' + data.falhas.join(', ');
+    }
+    await carregarLocalizacoes_semGeocodificar();
+    _locRender();
+  } catch (e) {
+    if (msg) msg.textContent = 'Erro ao geocodificar no servidor: ' + (e.message || e);
   }
+}
+
+async function carregarLocalizacoes_semGeocodificar() {
+  const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes');
+  const data = await resp.json();
+  if (data.ok) { _locCache = data.itens || []; _locPopularFiltroCliente(); }
 }
 
 /* ══ COMPROMISSOS (BM / Relatórios de Performance & PCM) ══ */
