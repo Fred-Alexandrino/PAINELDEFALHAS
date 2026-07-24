@@ -6829,6 +6829,16 @@ function _ativDiaSemana(dataStr) {
   return dias[dt.getDay()];
 }
 
+// Abreviação de 3 letras usada no texto de reprogramação pro WhatsApp
+// (padrão corrigido 24/07/2026, confirmado por Fred): seg/ter/qua/qui/sex.
+function _ativDiaSemanaAbrev(dataStr) {
+  const m = (dataStr || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return '—';
+  const dt = new Date(+m[3], +m[2]-1, +m[1]);
+  const dias = ['dom','seg','ter','qua','qui','sex','sáb'];
+  return dias[dt.getDay()];
+}
+
 function _montarTextoReprogramacao(itens) {
   const porEquipe = {};
   itens.forEach(it => {
@@ -6840,7 +6850,14 @@ function _montarTextoReprogramacao(itens) {
     const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
     return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
   };
-  let txt = '📅 *Reprogramação de Atividades*\n\n';
+  // Padrão definitivo confirmado por Fred em 24/07/2026: cabeçalho puro
+  // (sem negrito/asterisco) com o nome do cliente; linhas no formato
+  // "XXXX; dia_abrev; tarefa; turno" — sem prefixo "OS ", dia abreviado
+  // em 3 letras, tarefa vinda do campo "tarefa" (ação real da OS, não o
+  // código do ativo).
+  const clientes = [...new Set(itens.map(it => it.cliente).filter(Boolean))];
+  const clienteLabel = clientes.length ? ' - ' + clientes.join(' / ') : '';
+  let txt = `📅 Reprogramação de Atividades${clienteLabel}\n\n`;
   Object.entries(porEquipe).forEach(([equipe, listaEquipe]) => {
     txt += `${equipe}:\n\n`;
     const porUsina = {};
@@ -6853,9 +6870,10 @@ function _montarTextoReprogramacao(itens) {
       lista = [...lista].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
       txt += `${usina}\n`;
       lista.forEach(it => {
-        const os = it.numeroOS ? `OS ${it.numeroOS}` : 'atividade';
-        const atividade = it.equipamento || it.justificativa || '—';
-        txt += `${os}; ${_ativDiaSemana(it.dataSugerida)}; ${atividade}; ${_ativTurnoLabel(it.turno)}\n`;
+        const numeroOS = it.numeroOS || '—';
+        let tarefa = it.tarefa || it.equipamento || it.justificativa || '—';
+        tarefa = tarefa.replace(/^Múltiplos equipamentos \(Preventiva (Mensal|Semestral|Anual)\)$/i, 'Preventiva $1');
+        txt += `${numeroOS}; ${_ativDiaSemanaAbrev(it.dataSugerida)}; ${tarefa}; ${_ativTurnoLabel(it.turno)}\n`;
       });
       txt += '\n';
     });
