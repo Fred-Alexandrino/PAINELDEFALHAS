@@ -1381,6 +1381,10 @@ body{
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
       </div>
+      <div class="sb-nav-item" data-nav="gestao-cliente">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Gestão Cliente
+      </div>
       <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         Mais
@@ -1950,6 +1954,60 @@ body{
             <div id="pontoErro" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;"></div>
             <div id="pontoResultado" style="display:flex;flex-direction:column;gap:12px;margin-top:16px;"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- ── SEÇÃO: GESTÃO CLIENTE ───────────────────────────── -->
+      <section class="content-section" id="sec-gestao-cliente">
+        <div style="max-width:760px;margin:0 auto;">
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+            Selecione manualmente as atividades <strong>Em Processo</strong> que devem entrar no resumo de hoje
+            pro cliente. A seleção é sempre manual — nada é enviado automaticamente — pra evitar que atividades
+            antigas apareçam sem controle.
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+            <span class="sb-filter-label" style="margin:0;">Cliente</span>
+            <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="flex:1;"></select>
+          </div>
+
+          <div id="gcListaWrap">
+            <div id="gcListaAtividades" style="display:flex;flex-direction:column;gap:14px;"></div>
+            <div id="gcListaVazia" style="display:none;font-size:12.5px;color:var(--text-faint);padding:24px 0;text-align:center;">
+              Nenhuma atividade "Em Processo" pra esse cliente no momento.
+            </div>
+          </div>
+
+          <button id="gcGerarBtn" onclick="_gcGerarResumo()" disabled
+                  style="width:100%;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;
+                         background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;
+                         font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;opacity:.5;">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Gerar resumo (<span id="gcSelecionadasCount">0</span> selecionadas)
+          </button>
+
+          <div id="gcLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+            <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+            Gerando resumo…
+          </div>
+
+          <div id="gcResult" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            <textarea id="gcResultText" style="width:100%;min-height:200px;background:rgba(255,255,255,0.04);
+                      border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;
+                      font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+
+            <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para qual grupo?</div>
+            <div id="gcGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+
+            <button id="gcEnviarBtn" onclick="_gcEnviarResumo()"
+                    style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
+                           background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;
+                           font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Enviar pro grupo
+            </button>
+          </div>
+          <div id="gcError" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;text-align:center;"></div>
         </div>
       </section>
 
@@ -2953,6 +3011,7 @@ const NAV_TITLES = {
   'atividades': 'Painel de Atividades',
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
   'localizacao': 'Localização das Usinas',
+  'gestao-cliente': 'Gestão Cliente',
 };
 
 function switchNav(nav) {
@@ -2960,6 +3019,7 @@ function switchNav(nav) {
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
   if (nav === 'atividades') { carregarAtividades(); }
   if (nav === 'boletins') { carregarCompromissos(); }
+  if (nav === 'gestao-cliente') { _gcAbrirAba(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -6951,6 +7011,175 @@ async function _dispararComunicadoLivre() {
     }
   } catch (err) {
     showToast('Erro ao disparar comunicado: ' + (err.message || ''), false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = textoOriginal;
+  }
+}
+
+/* ══ GESTÃO CLIENTE — resumo polido de atividades pro cliente final ══ */
+let _gcGruposCache = [];
+
+function _gcAbrirAba() {
+  const sel = document.getElementById('gcClienteSelect');
+  if (sel && !sel.dataset.populado) {
+    const clientes = _clientesDisponiveis();
+    sel.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    sel.dataset.populado = '1';
+  }
+  // esconde resultado de uma geração anterior ao trocar de aba/cliente
+  document.getElementById('gcResult').style.display = 'none';
+  document.getElementById('gcError').style.display = 'none';
+  _gcCarregarAtividades();
+}
+
+function _gcCarregarAtividades() {
+  const cliente = document.getElementById('gcClienteSelect')?.value || '';
+  const lista = document.getElementById('gcListaAtividades');
+  const vazia = document.getElementById('gcListaVazia');
+  document.getElementById('gcResult').style.display = 'none';
+  document.getElementById('gcError').style.display = 'none';
+  if (!lista) return;
+
+  const emProcesso = ATIVIDADES.filter(a => (a.cliente || '') === cliente && (a.statusOS || '') === 'Em Processo');
+
+  if (emProcesso.length === 0) {
+    lista.innerHTML = '';
+    vazia.style.display = 'block';
+    _gcAtualizarContagem();
+    return;
+  }
+  vazia.style.display = 'none';
+
+  const porUsina = {};
+  emProcesso.forEach(a => {
+    const usina = a.usina || 'não informado';
+    (porUsina[usina] = porUsina[usina] || []).push(a);
+  });
+
+  lista.innerHTML = Object.keys(porUsina).sort().map(usina => `
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">${esc(usina)}</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${porUsina[usina].map(a => `
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);
+                        cursor:pointer;padding:6px 8px;border:1px solid var(--border);border-radius:8px;">
+            <input type="checkbox" class="gc-ativ-chk" value="${esc(a.id)}" onchange="_gcAtualizarContagem()"
+                   style="accent-color:var(--teal);width:15px;height:15px;margin-top:1px;">
+            <span style="flex:1;">
+              ${esc(a.descricao || '(sem descrição)')}
+              <span style="display:block;font-size:10.5px;color:var(--text-faint);margin-top:2px;">
+                criada em ${esc((a.dataCriacao || '').split(' ')[0] || '—')}${a.numeroOS ? ' · OS ' + esc(a.numeroOS) : ''}
+              </span>
+            </span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  _gcAtualizarContagem();
+}
+
+function _gcAtualizarContagem() {
+  const marcadas = document.querySelectorAll('.gc-ativ-chk:checked').length;
+  const btn = document.getElementById('gcGerarBtn');
+  document.getElementById('gcSelecionadasCount').textContent = marcadas;
+  if (btn) {
+    btn.disabled = marcadas === 0;
+    btn.style.opacity = marcadas === 0 ? '.5' : '1';
+  }
+}
+
+async function _gcGerarResumo() {
+  const cliente = document.getElementById('gcClienteSelect')?.value || '';
+  const idsMarcados = Array.from(document.querySelectorAll('.gc-ativ-chk:checked')).map(el => el.value);
+  if (idsMarcados.length === 0) { showToast('Selecione ao menos uma atividade.', false); return; }
+
+  const atividadesSelecionadas = ATIVIDADES
+    .filter(a => idsMarcados.includes(String(a.id)))
+    .map(a => ({ usina: a.usina || '', descricao: a.descricao || '' }));
+
+  const loading = document.getElementById('gcLoading');
+  const result = document.getElementById('gcResult');
+  const errorBox = document.getElementById('gcError');
+  const gerarBtn = document.getElementById('gcGerarBtn');
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+  gerarBtn.disabled = true;
+
+  try {
+    const [respTexto, respGrupos] = await Promise.all([
+      fetch('https://api.168.138.232.237.sslip.io/gerar-resumo-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente, atividades: atividadesSelecionadas }),
+        signal: AbortSignal.timeout(30000),
+      }),
+      _gcGruposCache.length ? Promise.resolve(null) :
+        fetch('https://api.168.138.232.237.sslip.io/grupos-configurados'),
+    ]);
+
+    const dataTexto = await respTexto.json();
+    if (!dataTexto.ok) throw new Error(dataTexto.error || 'Erro ao gerar resumo');
+
+    if (respGrupos) {
+      const dataGrupos = await respGrupos.json();
+      if (dataGrupos.ok) _gcGruposCache = dataGrupos.itens || [];
+    }
+
+    document.getElementById('gcResultText').value = dataTexto.texto;
+    const listaEl = document.getElementById('gcGrupos');
+    listaEl.innerHTML = _gcGruposCache.map(g => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:4px 2px;">
+        <input type="radio" name="gcGrupoRadio" class="gc-grupo-radio" value="${esc(g.id)}" style="accent-color:var(--amber);width:15px;height:15px;">
+        ${esc(g.nome)}
+      </label>
+    `).join('') || '<div style="font-size:12px;color:var(--text-faint);">Nenhum grupo configurado.</div>';
+
+    loading.style.display = 'none';
+    result.style.display = 'block';
+  } catch (err) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Erro ao gerar resumo: ' + (err.message || '');
+  } finally {
+    gerarBtn.disabled = false;
+  }
+}
+
+async function _gcEnviarResumo() {
+  const texto = (document.getElementById('gcResultText')?.value || '').trim();
+  const grupoSelecionado = document.querySelector('.gc-grupo-radio:checked')?.value;
+  if (!texto) { showToast('O texto do resumo está vazio.', false); return; }
+  if (!grupoSelecionado) { showToast('Selecione o grupo de destino.', false); return; }
+
+  const btn = document.getElementById('gcEnviarBtn');
+  btn.disabled = true;
+  const textoOriginal = btn.innerHTML;
+  btn.innerHTML = 'Enviando…';
+
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-livre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto, grupos: [grupoSelecionado] }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao enviar');
+    const qtdErros = (data.erros || []).length;
+    if (qtdErros === 0) {
+      showToast('Resumo enviado pro cliente!', true);
+      document.getElementById('gcResult').style.display = 'none';
+      document.querySelectorAll('.gc-ativ-chk:checked').forEach(el => { el.checked = false; });
+      _gcAtualizarContagem();
+    } else {
+      showToast('Falha ao enviar. Tente novamente.', false);
+    }
+  } catch (err) {
+    showToast('Erro ao enviar resumo: ' + (err.message || ''), false);
   } finally {
     btn.disabled = false;
     btn.innerHTML = textoOriginal;
