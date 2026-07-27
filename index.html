@@ -1869,14 +1869,61 @@ body{
         </div>
       </section>
 
-<!-- ── SEÇÃO: COMPROMISSOS (BM / Relatórios de Terceiros) ── -->
+<!-- ── SEÇÃO: COMPROMISSOS (BM / Relatórios de Terceiros) + CONTROLE DE PONTO ── -->
       <section class="content-section" id="sec-boletins">
         <div style="max-width:900px;margin:0 auto;">
-          <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;
-                      text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
-            Boletins de Medição & Relatórios de Terceiros
+          <div class="tabs-wrapper" style="margin-bottom:18px;">
+            <button class="tab-btn active" id="gerTabBoletins" onclick="_gerMudarTab('boletins')">
+              <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Boletins de Medição & Relatórios de Terceiros
+            </button>
+            <button class="tab-btn" id="gerTabPonto" onclick="_gerMudarTab('ponto')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Controle de Ponto
+            </button>
           </div>
-          <div id="cmpLista" style="display:flex;flex-direction:column;gap:12px;"></div>
+
+          <div id="gerPainelBoletins">
+            <div id="cmpLista" style="display:flex;flex-direction:column;gap:12px;"></div>
+          </div>
+
+          <div id="gerPainelPonto" style="display:none;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Anexe um ou mais PDFs de espelho de ponto (Pontomais). A IA audita as jornadas conforme
+              as regras de negócio e aponta, por colaborador, quais estão com pendência de registro —
+              com um texto de comunicado individual pronto pra copiar e enviar.
+            </div>
+
+            <div id="pontoDropZone" onclick="document.getElementById('pontoFileInput').click()"
+                 style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:24px;
+                        text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;
+                        transition:.15s;">
+              <svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.6;margin-bottom:8px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <div>Clique para anexar os PDFs do controle de ponto (pode selecionar vários)</div>
+              <input type="file" id="pontoFileInput" accept="application/pdf" multiple style="display:none;" onchange="_pontoArquivosSelecionados(this.files)">
+            </div>
+
+            <div id="pontoListaArquivos" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
+
+            <button id="pontoAnalisarBtn" onclick="_analisarControlePonto()" disabled
+                    style="width:100%;margin-top:14px;background:var(--teal);border:none;color:#04231e;
+                           border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;
+                           display:flex;align-items:center;justify-content:center;gap:8px;opacity:.5;">
+              <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              Analisar controle de ponto
+            </button>
+
+            <div id="pontoLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:40px 0;color:var(--text-faint);font-size:12.5px;">
+              <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+              Auditando as jornadas… (pode levar até 1 min)
+            </div>
+            <div id="pontoErro" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;"></div>
+            <div id="pontoResultado" style="display:flex;flex-direction:column;gap:12px;margin-top:16px;"></div>
+          </div>
         </div>
       </section>
 
@@ -9513,6 +9560,165 @@ async function relGerarRelatorio(){
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+// ── Gerencial: sub-abas (Boletins / Controle de Ponto) ──────────────
+function _gerMudarTab(tab) {
+  const tabBol = document.getElementById('gerTabBoletins');
+  const tabPto = document.getElementById('gerTabPonto');
+  const painelBol = document.getElementById('gerPainelBoletins');
+  const painelPto = document.getElementById('gerPainelPonto');
+  if (tab === 'ponto') {
+    tabPto.classList.add('active'); tabBol.classList.remove('active');
+    painelPto.style.display = ''; painelBol.style.display = 'none';
+  } else {
+    tabBol.classList.add('active'); tabPto.classList.remove('active');
+    painelBol.style.display = ''; painelPto.style.display = 'none';
+  }
+}
+
+// ── Controle de Ponto (Gerencial) ────────────────────────────────────
+let _pontoArquivos = [];
+
+function _pontoArquivosSelecionados(fileList) {
+  for (const f of fileList) {
+    if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) _pontoArquivos.push(f);
+  }
+  document.getElementById('pontoFileInput').value = '';
+  _pontoRenderLista();
+}
+
+function _pontoRemoverArquivo(idx) {
+  _pontoArquivos.splice(idx, 1);
+  _pontoRenderLista();
+}
+
+function _pontoRenderLista() {
+  const wrap = document.getElementById('pontoListaArquivos');
+  const btn = document.getElementById('pontoAnalisarBtn');
+  wrap.innerHTML = _pontoArquivos.map((f, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+                background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+                padding:8px 12px;font-size:12px;color:var(--text-dim);">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${f.name}</span>
+      <button onclick="_pontoRemoverArquivo(${i})" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:14px;flex:none;">✕</button>
+    </div>`).join('');
+  btn.disabled = _pontoArquivos.length === 0;
+  btn.style.opacity = _pontoArquivos.length === 0 ? '.5' : '1';
+}
+
+async function _analisarControlePonto() {
+  if (_pontoArquivos.length === 0) return;
+  const loading = document.getElementById('pontoLoading');
+  const erro = document.getElementById('pontoErro');
+  const resultadoWrap = document.getElementById('pontoResultado');
+  const btn = document.getElementById('pontoAnalisarBtn');
+  loading.style.display = 'flex';
+  erro.style.display = 'none';
+  resultadoWrap.innerHTML = '';
+  btn.disabled = true;
+
+  try {
+    const fd = new FormData();
+    for (const f of _pontoArquivos) fd.append('arquivos', f, f.name);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/analisar-controle-ponto', {
+      method: 'POST',
+      body: fd,
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao analisar o controle de ponto.');
+    _pontoRenderResultado(data.resultado);
+  } catch (e) {
+    erro.textContent = e.message || 'Erro de conexão ao analisar o controle de ponto.';
+    erro.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = _pontoArquivos.length === 0;
+  }
+}
+
+function _pontoRenderResultado(resultado) {
+  const wrap = document.getElementById('pontoResultado');
+  const colaboradores = (resultado && resultado.colaboradores) || [];
+  if (colaboradores.length === 0) {
+    wrap.innerHTML = '<div style="font-size:12.5px;color:var(--text-dim);">Nenhum colaborador retornado pela análise.</div>';
+    return;
+  }
+  const comPendencia = colaboradores.filter(c => c.tem_pendencia);
+  const semPendencia = colaboradores.filter(c => !c.tem_pendencia);
+
+  const truncadoAviso = resultado.truncado ? `
+    <div style="font-size:11.5px;color:var(--amber);background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.3);
+                border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+      ⚠️ A resposta da IA foi cortada por ser grande demais. Tente novamente com menos arquivos de uma vez.
+    </div>` : '';
+
+  const cardsPendencia = comPendencia.map((c, i) => _pontoCardColaborador(c, i)).join('');
+  const listaSemPendencia = semPendencia.length ? `
+    <div style="margin-top:18px;font-size:11px;color:var(--text-faint);">
+      Sem pendência real: ${semPendencia.map(c => c.nome).join(', ')}
+    </div>` : '';
+
+  wrap.innerHTML = `
+    ${truncadoAviso}
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">
+      ${comPendencia.length} colaborador(es) com pendência de ${colaboradores.length} analisado(s)
+    </div>
+    ${cardsPendencia || '<div style="font-size:12.5px;color:var(--text-dim);">Nenhuma pendência real encontrada. ✅</div>'}
+    ${listaSemPendencia}
+  `;
+}
+
+function _pontoCardColaborador(c, idx) {
+  const secao = (titulo, itens, campo1, campo2) => {
+    if (!itens || itens.length === 0) return '';
+    return `
+      <div style="margin-top:8px;">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px;">${titulo}</div>
+        ${itens.map(it => `<div style="font-size:12px;color:var(--text-dim);padding:2px 0;">• <strong>${it[campo1] || ''}</strong> — ${it[campo2] || ''}</div>`).join('')}
+      </div>`;
+  };
+  const falhas = c.falhas_sistemicas;
+  const secaoFalhas = (falhas && (falhas.frequencia || falhas.descricao)) ? `
+    <div style="margin-top:8px;">
+      <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px;">Falhas sistêmicas</div>
+      <div style="font-size:12px;color:var(--text-dim);">Frequência: ${falhas.frequencia || 0}× — ${falhas.descricao || ''}</div>
+    </div>` : '';
+
+  const comunicadoId = `pontoComunicado_${idx}`;
+  const comunicadoBox = c.comunicado_individual ? `
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);">Comunicado individual</span>
+        <button onclick="_pontoCopiarComunicado('${comunicadoId}', this)" style="background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.35);
+                color:var(--teal);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Copiar</button>
+      </div>
+      <textarea id="${comunicadoId}" readonly style="width:100%;min-height:110px;background:var(--surface-2);border:1px solid var(--border);
+                border-radius:8px;padding:10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit;">${c.comunicado_individual}</textarea>
+    </div>` : '';
+
+  return `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text);">${c.nome || 'Colaborador'}</div>
+      ${c.resumo_tecnico ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${c.resumo_tecnico}</div>` : ''}
+      ${secao('Jornadas incompletas', c.jornadas_incompletas, 'data', 'descricao')}
+      ${secao('Ajustes indevidos (esquecimento)', c.ajustes_indevidos, 'data', 'motivo')}
+      ${secao('Anomalias de sobreaviso', c.anomalias_sobreaviso, 'data', 'descricao')}
+      ${secaoFalhas}
+      ${comunicadoBox}
+    </div>`;
+}
+
+function _pontoCopiarComunicado(id, btn) {
+  const el = document.getElementById(id);
+  el.select();
+  navigator.clipboard.writeText(el.value).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }).catch(() => {
+    document.execCommand('copy');
+  });
 }
 
 </script>
