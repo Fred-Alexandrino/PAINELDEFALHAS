@@ -2150,7 +2150,7 @@ body{
         </div>
         <div>
           <label style="font-size:11px;color:var(--text-dim);display:block;margin-bottom:6px;">Observações (opcional)</label>
-          <textarea id="zelExtrairObsInput" placeholder="Ex: Eco Clean confirmou início da limpeza em Matão 1 pra 30/07..." style="width:100%;min-height:100px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+          <textarea id="zelExtrairObsInput" placeholder="Ex: Eco Clean confirmou início da limpeza em Matão I pra 30/07..." style="width:100%;min-height:100px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
         </div>
         <button id="zelExtrairGerarBtn" onclick="_zelExtrairComIA()" style="width:100%;background:var(--teal);border:none;color:#04241f;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -3721,7 +3721,7 @@ function normalizeUsina(raw) {
   if (!raw) return raw;
   const s = raw.trim();
   const BES = /^boa\s+espe[rn]an[çc]a\s+do\s+sul\s*/i;
-  if (BES.test(s)) { const suf = s.replace(BES,'').trim().toUpperCase(); if(/^(1A?|IA?|A)$/.test(suf)||suf==='1'||suf==='I') return 'Boa Esperança do Sul 1'; if(/^(2B?|IIB?|IB|B)$/.test(suf)||suf==='2'||suf==='II') return 'Boa Esperança do Sul 2'; return 'Boa Esperança do Sul'+(suf?' '+suf:''); }
+  if (BES.test(s)) { const suf = s.replace(BES,'').trim().toUpperCase(); if(/^(1A?|IA?|A)$/.test(suf)||suf==='1'||suf==='I') return 'Boa Esperança do Sul I'; if(/^(2B?|IIB?|IB|B)$/.test(suf)||suf==='2'||suf==='II') return 'Boa Esperança do Sul II'; return 'Boa Esperança do Sul'+(suf?' '+suf:''); }
   const GENERIC = /^(.+?)\s+(1|2|i|ii|a|b)$/i;
   const gm = s.match(GENERIC);
   if (gm) { const base=gm[1].trim(); const suf=gm[2].toUpperCase(); const toRoman={'1':'I','I':'I','A':'I','2':'II','II':'II','B':'II'}; const roman=toRoman[suf]; if(roman) return base+' '+roman; }
