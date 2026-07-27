@@ -1907,6 +1907,22 @@ body{
 
             <div id="pontoListaArquivos" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
 
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
+                Opcional — anexe a planilha de escala de sobreaviso (.xlsx) pra IA cruzar quem estava
+                escalado em cada fim de semana/feriado ao validar a Etapa 3
+              </div>
+              <div id="pontoEscalaWrap" style="display:flex;align-items:center;gap:8px;">
+                <button onclick="document.getElementById('pontoEscalaInput').click()"
+                        style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
+                               border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">
+                  📎 Anexar planilha de sobreaviso
+                </button>
+                <span id="pontoEscalaNome" style="font-size:12px;color:var(--text-faint);"></span>
+                <input type="file" id="pontoEscalaInput" accept=".xlsx,.xlsm" style="display:none;" onchange="_pontoEscalaSelecionada(this.files)">
+              </div>
+            </div>
+
             <button id="pontoAnalisarBtn" onclick="_analisarControlePonto()" disabled
                     style="width:100%;margin-top:14px;background:var(--teal);border:none;color:#04231e;
                            border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;
@@ -9579,6 +9595,13 @@ function _gerMudarTab(tab) {
 
 // ── Controle de Ponto (Gerencial) ────────────────────────────────────
 let _pontoArquivos = [];
+let _pontoArquivoEscala = null;
+
+function _pontoEscalaSelecionada(fileList) {
+  _pontoArquivoEscala = fileList[0] || null;
+  document.getElementById('pontoEscalaNome').textContent = _pontoArquivoEscala ? `📄 ${_pontoArquivoEscala.name}` : '';
+  document.getElementById('pontoEscalaInput').value = '';
+}
 
 function _pontoArquivosSelecionados(fileList) {
   for (const f of fileList) {
@@ -9621,6 +9644,7 @@ async function _analisarControlePonto() {
   try {
     const fd = new FormData();
     for (const f of _pontoArquivos) fd.append('arquivos', f, f.name);
+    if (_pontoArquivoEscala) fd.append('planilha_sobreaviso', _pontoArquivoEscala, _pontoArquivoEscala.name);
     const resp = await fetch('https://api.168.138.232.237.sslip.io/analisar-controle-ponto', {
       method: 'POST',
       body: fd,
