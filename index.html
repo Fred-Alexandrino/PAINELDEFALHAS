@@ -1923,6 +1923,16 @@ body{
               </div>
             </div>
 
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
+                Opcional — orientação adicional pra IA nesta análise (complementa as regras já
+                definidas; só substitui alguma regra se você escrever isso de forma explícita)
+              </div>
+              <textarea id="pontoOrientacaoInput" placeholder="Ex.: ignore os ajustes por esquecimento do Rodolfo essa semana, ele avisou que está com o celular quebrado..."
+                        style="width:100%;min-height:70px;background:var(--surface-2);border:1px solid var(--border);
+                               border-radius:8px;padding:10px;font-size:12.5px;color:var(--text);resize:vertical;font-family:inherit;"></textarea>
+            </div>
+
             <button id="pontoAnalisarBtn" onclick="_analisarControlePonto()" disabled
                     style="width:100%;margin-top:14px;background:var(--teal);border:none;color:#04231e;
                            border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;
@@ -9645,6 +9655,8 @@ async function _analisarControlePonto() {
     const fd = new FormData();
     for (const f of _pontoArquivos) fd.append('arquivos', f, f.name);
     if (_pontoArquivoEscala) fd.append('planilha_sobreaviso', _pontoArquivoEscala, _pontoArquivoEscala.name);
+    const orientacao = (document.getElementById('pontoOrientacaoInput').value || '').trim();
+    if (orientacao) fd.append('orientacao_adicional', orientacao);
     const resp = await fetch('https://api.168.138.232.237.sslip.io/analisar-controle-ponto', {
       method: 'POST',
       body: fd,
