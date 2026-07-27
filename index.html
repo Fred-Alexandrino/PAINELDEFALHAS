@@ -7160,7 +7160,7 @@ async function _gcGerarResumo() {
 
   const atividadesSelecionadas = ATIVIDADES
     .filter(a => idsMarcados.includes(String(a.id)))
-    .map(a => ({ usina: a.usina || '', descricao: a.descricao || '' }));
+    .map(a => ({ usina: a.usina || '', descricao: a.descricao || '', numeroOS: a.numeroOS || '' }));
 
   const loading = document.getElementById('gcLoading');
   const result = document.getElementById('gcResult');
@@ -7303,7 +7303,7 @@ function _chGcCarregarChamados() {
             <span style="flex:1;">
               ${esc(c['Motivo da abertura do chamado'] || '(sem motivo registrado)')}
               <span style="display:block;font-size:10.5px;color:var(--text-faint);margin-top:2px;">
-                status: ${esc(c['Status'] || '—')}${c['Dias corridos'] ? ' · ' + esc(c['Dias corridos']) + ' dia(s) em aberto' : ''}
+                status: ${esc(c['Status'] || '—')}${c['Dias corridos'] ? ' · ' + esc(c['Dias corridos']) + ' dia(s) em aberto' : ''}${c['Ticket/RMA'] ? ' · Ticket ' + esc(c['Ticket/RMA']) : ''}
               </span>
             </span>
           </label>
@@ -7341,6 +7341,7 @@ async function _chGcGerarResumo() {
       motivo: c['Motivo da abertura do chamado'] || '',
       status: c['Status'] || '',
       diasCorridos: c['Dias corridos'] || '',
+      ticket: c['Ticket/RMA'] || '',
     };
   });
 
