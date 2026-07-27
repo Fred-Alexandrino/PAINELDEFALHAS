@@ -1682,6 +1682,7 @@ body{
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <button class="tb-btn" id="zelComunicadoBtn" onclick="_abrirComunicadosZel()" style="background:rgba(91,155,213,.1);border-color:rgba(91,155,213,.4);color:#5B9BD5;"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>Comunicado de Zeladoria</button>
+            <button class="tb-btn" id="zelExtrairBtn" onclick="_abrirZelExtrairPrint()" style="background:rgba(63,193,176,.1);border-color:rgba(63,193,176,.4);color:var(--teal);"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Enviar Print/Observação</button>
           </div>
         </div>
 
@@ -2124,6 +2125,51 @@ body{
         </button>
       </div>
       <div id="comunicadoZelModalResult" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Zeladoria — Extrair de Print/Observações via IA -->
+<div class="ch-overlay" id="zelExtrairOverlay">
+  <div class="ch-modal" style="max-width:900px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><h2>Enviar Print / Observações — Zeladoria</h2></div><div class="ch-subtitle">Mande um print (cronograma de fornecedor, conversa etc.) e/ou escreva observações — a IA extrai os dados, você revisa e confirma</div></div>
+        <button class="modal-close-btn" id="zelExtrairModalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="zelExtrairModalBody">
+      <div id="zelExtrairInputStep" style="display:flex;flex-direction:column;gap:12px;padding:6px 0 4px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);display:block;margin-bottom:6px;">Print (opcional)</label>
+          <input type="file" id="zelExtrairFileInput" accept="image/*" style="font-size:12px;color:var(--text-dim);">
+          <div id="zelExtrairPreviewWrap" style="display:none;margin-top:10px;">
+            <img id="zelExtrairPreviewImg" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid var(--border);">
+            <button onclick="_zelExtrairLimparImagem()" style="display:block;margin-top:6px;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Remover imagem</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-dim);display:block;margin-bottom:6px;">Observações (opcional)</label>
+          <textarea id="zelExtrairObsInput" placeholder="Ex: Eco Clean confirmou início da limpeza em Matão 1 pra 30/07..." style="width:100%;min-height:100px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        </div>
+        <button id="zelExtrairGerarBtn" onclick="_zelExtrairComIA()" style="width:100%;background:var(--teal);border:none;color:#04241f;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Extrair com IA
+        </button>
+      </div>
+      <div id="zelExtrairLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Analisando print/observações…
+      </div>
+      <div id="zelExtrairRevisao" style="display:none;flex-direction:column;gap:12px;">
+        <div style="font-size:11.5px;color:var(--text-dim);">Revise antes de salvar. Itens com usina não reconhecida vêm desmarcados — corrija o nome da usina ou desmarque pra ignorar.</div>
+        <div id="zelExtrairRevisaoLista" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="_zelExtrairVoltar()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:11px;font-size:12.5px;cursor:pointer;">Voltar</button>
+          <button id="zelExtrairConfirmarBtn" onclick="_zelExtrairConfirmarSalvar()" style="flex:2;background:var(--teal);border:none;color:#04241f;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Confirmar e salvar</button>
+        </div>
+      </div>
+      <div id="zelExtrairError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
   </div>
 </div>
@@ -7632,6 +7678,190 @@ async function _dispararComunicadoZelCluster(cluster, idSeguro, btnEl) {
 
 document.getElementById('comunicadoZelModalClose')?.addEventListener('click', () => { document.getElementById('comunicadoZelOverlay').style.display='none'; });
 document.getElementById('comunicadoZelOverlay')?.addEventListener('click', e => { if(e.target.id==='comunicadoZelOverlay') { document.getElementById('comunicadoZelOverlay').style.display='none'; } });
+
+/* ══ ZELADORIA — Extrair de Print/Observações via IA ══ */
+let _zelExtrairImagemB64 = null;
+let _zelExtrairImagemMime = null;
+let _zelExtrairItensRevisao = [];
+
+function _abrirZelExtrairPrint() {
+  document.getElementById('zelExtrairOverlay').style.display = 'flex';
+  document.getElementById('zelExtrairInputStep').style.display = 'flex';
+  document.getElementById('zelExtrairLoading').style.display = 'none';
+  document.getElementById('zelExtrairRevisao').style.display = 'none';
+  document.getElementById('zelExtrairError').style.display = 'none';
+  document.getElementById('zelExtrairFileInput').value = '';
+  document.getElementById('zelExtrairObsInput').value = '';
+  _zelExtrairLimparImagem();
+}
+
+document.getElementById('zelExtrairFileInput')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = reader.result; // data:image/png;base64,XXXX
+    const [meta, b64] = result.split(',');
+    _zelExtrairImagemB64 = b64;
+    _zelExtrairImagemMime = (meta.match(/data:(.*?);base64/) || [,'image/png'])[1];
+    document.getElementById('zelExtrairPreviewImg').src = result;
+    document.getElementById('zelExtrairPreviewWrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+function _zelExtrairLimparImagem() {
+  _zelExtrairImagemB64 = null;
+  _zelExtrairImagemMime = null;
+  document.getElementById('zelExtrairPreviewWrap').style.display = 'none';
+  const input = document.getElementById('zelExtrairFileInput');
+  if (input) input.value = '';
+}
+
+const _ZEL_GRUPOS_OPCOES = ['Roçada', 'Poda Química', 'Lavagem dos Módulos', 'Controle de Pragas'];
+const _ZEL_STATUS_OPCOES = ['Programado', 'Aguardando assinatura', 'Em cotação', 'Buscando cotação', 'Em andamento', 'Concluído', 'Sem informações'];
+
+async function _zelExtrairComIA() {
+  const texto = (document.getElementById('zelExtrairObsInput')?.value || '').trim();
+  if (!_zelExtrairImagemB64 && !texto) { showToast('Envie um print e/ou escreva uma observação.', false); return; }
+
+  document.getElementById('zelExtrairInputStep').style.display = 'none';
+  document.getElementById('zelExtrairLoading').style.display = 'flex';
+  document.getElementById('zelExtrairError').style.display = 'none';
+
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-extrair-print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imagemBase64: _zelExtrairImagemB64,
+        imagemMimeType: _zelExtrairImagemMime,
+        texto,
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao extrair informações');
+
+    _zelExtrairItensRevisao = (data.itens || []).map((it, i) => ({
+      _id: `zi_${i}`,
+      _incluir: it.usina_reconhecida !== false,
+      usina: it.usina || '',
+      usina_reconhecida: it.usina_reconhecida !== false,
+      grupo: _ZEL_GRUPOS_OPCOES.includes(it.grupo) ? it.grupo : (_ZEL_GRUPOS_OPCOES.find(g => g.toLowerCase().includes((it.grupo||'').toLowerCase())) || _ZEL_GRUPOS_OPCOES[2]),
+      proximaData: it.proximaData || '',
+      fornecedor: it.fornecedor || '',
+      status: it.status || 'Sem informações',
+      observacao: it.observacao || '',
+    }));
+
+    if (_zelExtrairItensRevisao.length === 0) {
+      throw new Error('A IA não encontrou nenhuma informação de zeladoria no print/observações enviados.');
+    }
+
+    _zelExtrairRenderRevisao();
+    document.getElementById('zelExtrairLoading').style.display = 'none';
+    document.getElementById('zelExtrairRevisao').style.display = 'flex';
+  } catch (err) {
+    document.getElementById('zelExtrairLoading').style.display = 'none';
+    document.getElementById('zelExtrairError').style.display = 'block';
+    document.getElementById('zelExtrairError').textContent = err.message || 'Erro ao extrair informações.';
+  }
+}
+
+function _zelExtrairRenderRevisao() {
+  const wrap = document.getElementById('zelExtrairRevisaoLista');
+  wrap.innerHTML = _zelExtrairItensRevisao.map(it => {
+    const grupoOpts = _ZEL_GRUPOS_OPCOES.map(g => `<option value="${esc(g)}" ${it.grupo===g?'selected':''}>${esc(g)}</option>`).join('');
+    const statusOpts = _ZEL_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${it.status===s?'selected':''}>${esc(s)}</option>`).join('');
+    const avisoUsina = it.usina_reconhecida ? '' : `<div style="font-size:10.5px;color:var(--red);margin-top:3px;">⚠️ Usina não reconhecida na planilha — confira o nome ou desmarque pra ignorar</div>`;
+    return `<div style="border:1px solid ${it.usina_reconhecida?'var(--border)':'rgba(226,84,61,.4)'};border-radius:8px;padding:10px;display:flex;gap:10px;align-items:flex-start;">
+      <input type="checkbox" data-zid="${it._id}" data-field="_incluir" ${it._incluir?'checked':''} style="margin-top:6px;width:16px;height:16px;flex-shrink:0;">
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:10px;color:var(--text-faint);">Usina</label>
+          <input type="text" data-zid="${it._id}" data-field="usina" value="${esc(it.usina)}" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;">
+          ${avisoUsina}
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text-faint);">Grupo</label>
+          <select data-zid="${it._id}" data-field="grupo" class="sb-select" style="width:100%;font-size:12px;">${grupoOpts}</select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text-faint);">Próxima Data</label>
+          <input type="text" data-zid="${it._id}" data-field="proximaData" value="${esc(it.proximaData)}" placeholder="DD/MM/AAAA" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text-faint);">Fornecedor</label>
+          <input type="text" data-zid="${it._id}" data-field="fornecedor" value="${esc(it.fornecedor)}" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10px;color:var(--text-faint);">Status</label>
+          <select data-zid="${it._id}" data-field="status" class="sb-select" style="width:100%;font-size:12px;">${statusOpts}</select>
+        </div>
+        ${it.observacao ? `<div style="grid-column:1/-1;font-size:11px;color:var(--text-dim);font-style:italic;">💬 ${esc(it.observacao)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('[data-zid]').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const zid = e.target.dataset.zid;
+      const field = e.target.dataset.field;
+      const item = _zelExtrairItensRevisao.find(it => it._id === zid);
+      if (!item) return;
+      item[field] = field === '_incluir' ? e.target.checked : e.target.value;
+    });
+  });
+}
+
+function _zelExtrairVoltar() {
+  document.getElementById('zelExtrairRevisao').style.display = 'none';
+  document.getElementById('zelExtrairInputStep').style.display = 'flex';
+}
+
+async function _zelExtrairConfirmarSalvar() {
+  const itens = _zelExtrairItensRevisao
+    .filter(it => it._incluir && it.usina.trim())
+    .map(it => ({ usina: it.usina.trim(), grupo: it.grupo, proximaData: it.proximaData.trim(), fornecedor: it.fornecedor.trim(), status: it.status }));
+
+  if (itens.length === 0) { showToast('Nenhum item selecionado pra salvar.', false); return; }
+
+  const btn = document.getElementById('zelExtrairConfirmarBtn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/zeladoria-atualizar-lote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itens }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao salvar');
+
+    const naoEncontradas = data.nao_encontradas || [];
+    if (naoEncontradas.length > 0) {
+      showToast(`Salvo, mas ${naoEncontradas.length} item(ns) não foram encontrados na planilha.`, false);
+    } else {
+      showToast(`${data.aplicadas.length} atualização(ões) salva(s) na Zeladoria!`, true);
+    }
+
+    document.getElementById('zelExtrairOverlay').style.display = 'none';
+    await zelFetchSheet();
+    zelRenderFull();
+  } catch (err) {
+    showToast(err.message || 'Erro ao salvar atualizações.', false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar e salvar';
+  }
+}
+
+document.getElementById('zelExtrairModalClose')?.addEventListener('click', () => { document.getElementById('zelExtrairOverlay').style.display = 'none'; });
+document.getElementById('zelExtrairOverlay')?.addEventListener('click', e => { if (e.target.id === 'zelExtrairOverlay') { document.getElementById('zelExtrairOverlay').style.display = 'none'; } });
+
 
 function _prioridadeCor(p) {
   const v = (p||'').toLowerCase();
