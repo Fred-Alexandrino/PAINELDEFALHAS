@@ -1669,6 +1669,7 @@ body{
             <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);" id="chamadosSubtitle"></span>
           </div>
         </div>
+        <div id="chamadosSyncIndicator" style="margin-bottom:12px;"></div>
         <div id="chamadosStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
         <div id="chamadosBody"></div>
       </section>
@@ -6215,6 +6216,7 @@ async function carregarChamadosFabricante() {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar chamados');
     CHAMADOS_FABRICANTE = (result.itens || []).map(c => ({ ...c, Cliente: normalizeCliente(c['Cliente']) || c['Cliente'], _usinasCanonicas: _chamadoUsinasCanonicas(c['UFV']) }));
+    _renderChamadosSyncIndicator(result.ultimaSincronizacao);
   } catch (e) {
     if (body) body.innerHTML = `<div class="ch-empty">Erro ao carregar chamados (${esc(e.message || 'falha de conexão')}). Tenta de novo em instantes.</div>`;
     if (sub) sub.textContent = 'Erro ao carregar';
@@ -6223,6 +6225,40 @@ async function carregarChamadosFabricante() {
   }
   _atualizarBadgeChamados();
   openChamadosInline();
+}
+
+function _renderChamadosSyncIndicator(ultimaSincronizacaoStr) {
+  const el = document.getElementById('chamadosSyncIndicator');
+  if (!el) return;
+  if (!ultimaSincronizacaoStr) {
+    el.innerHTML = `<div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+      <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Nunca sincronizado ainda
+    </div>`;
+    return;
+  }
+  // formato: "DD/MM/YYYY HH:MM:SS"
+  const m = ultimaSincronizacaoStr.match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+  let corBg = 'rgba(255,255,255,.04)', corTexto = 'var(--text-faint)', corBorda = 'var(--border)', rotulo = '';
+  if (m) {
+    const dataSync = new Date(m[3], m[2]-1, m[1], m[4], m[5], m[6]);
+    const horasAtras = (Date.now() - dataSync.getTime()) / 3600000;
+    if (horasAtras < 6) {
+      corBg = 'rgba(45,212,191,.1)'; corTexto = 'var(--teal)'; corBorda = 'rgba(45,212,191,.3)';
+      rotulo = horasAtras < 1 ? 'há menos de 1h' : `há ${Math.round(horasAtras)}h`;
+    } else if (horasAtras < 48) {
+      corBg = 'rgba(251,191,36,.1)'; corTexto = 'var(--amber)'; corBorda = 'rgba(251,191,36,.3)';
+      rotulo = `há ${Math.round(horasAtras)}h`;
+    } else {
+      corBg = 'rgba(239,68,68,.1)'; corTexto = 'var(--red,#EF4444)'; corBorda = 'rgba(239,68,68,.3)';
+      const dias = Math.round(horasAtras / 24);
+      rotulo = `há ${dias} dia${dias > 1 ? 's' : ''} — pode estar desatualizado`;
+    }
+  }
+  el.innerHTML = `<div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${corTexto};background:${corBg};border:1px solid ${corBorda};border-radius:20px;padding:4px 10px;">
+    <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+    Última sincronização: ${esc(ultimaSincronizacaoStr)} (${rotulo})
+  </div>`;
 }
 
 function _chamadoEstaAberto(c) {
