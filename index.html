@@ -3595,6 +3595,7 @@ function initDashboard(session) {
   }
 
   document.getElementById('appShell').classList.add('ready');
+  _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
     fetchSheet().then(() => _abrirDeepLinkNotificacao());
     carregarAtividades();
@@ -4135,12 +4136,31 @@ let selStatusValues = new Set();
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
-const CLIENTES_FIXOS = ['2C', 'Alves Lima', 'GD Energy', 'Renogrid', 'Sal Energia', 'Thopen'];
+// Fonte única de verdade: carregada do backend (mesmo catálogo que
+// reconhece OS da Fracttal), evitando a lista solta que já causou um
+// cliente (Sal Energia) ficar cadastrado aqui mas ausente lá, e OS dele
+// nunca serem reconhecidas automaticamente (corrigido em 27/07/2026).
+// O array abaixo é só o valor de reserva, usado até a busca completar
+// ou se ela falhar por algum motivo.
+let CLIENTES_CONFIGURADOS = ['2C', 'Alves Lima', 'GD Energy', 'RENOGRID', 'Sal Energia', 'THOPEN'];
+
+async function _carregarClientesConfigurados() {
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/clientes-configurados', { signal: AbortSignal.timeout(10000) });
+    const data = await resp.json();
+    if (data.ok && Array.isArray(data.clientes) && data.clientes.length) {
+      CLIENTES_CONFIGURADOS = data.clientes;
+      renderClienteChips();
+    }
+  } catch (e) {
+    console.error('[Clientes] Falha ao carregar do backend, usando lista de reserva:', e);
+  }
+}
 
 function _clientesDisponiveis() {
   const doFalhas = DATA.map(d => d.cliente);
   const daAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.cliente) : []);
-  const todos = new Set([...CLIENTES_FIXOS, ...doFalhas, ...daAtiv].filter(Boolean));
+  const todos = new Set([...CLIENTES_CONFIGURADOS, ...doFalhas, ...daAtiv].filter(Boolean));
   return [...todos].sort();
 }
 
