@@ -685,6 +685,22 @@ body{
 .zel-collapsible.collapsed .zel-collapsible-head{margin-bottom:0;}
 .zel-collapsible-chevron{width:14px;height:14px;stroke:var(--text-faint);fill:none;stroke-width:2;transition:transform .2s ease;flex-shrink:0;}
 .zel-collapsible.collapsed .zel-collapsible-chevron{transform:rotate(-90deg);}
+/* Painel de Programações (PCM) — snapshot somente leitura, agrupado por usina */
+.prog-pcm-usina{margin-bottom:14px;}
+.prog-pcm-usina:last-child{margin-bottom:0;}
+.prog-pcm-usina-head{font-family:'Geist Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border-soft);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.prog-pcm-itens{display:flex;flex-direction:column;gap:4px;}
+.prog-pcm-item{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:7px 9px;border-radius:6px;font-size:12.5px;background:var(--panel-alt);border-left:2px solid transparent;}
+.prog-pcm-item.atrasado{border-left-color:var(--sla-breach);}
+.prog-pcm-os a{color:var(--blue);text-decoration:none;font-family:'Geist Mono',monospace;font-size:11.5px;}
+.prog-pcm-os a:hover{text-decoration:underline;}
+.prog-pcm-tarefa{color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prog-pcm-estado{font-size:9.5px;font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:99px;white-space:nowrap;justify-self:end;}
+.prog-pcm-estado-ok{color:var(--sla-ok);background:rgba(34,197,94,.12);}
+.prog-pcm-estado-progresso{color:var(--blue);background:rgba(96,165,250,.12);}
+.prog-pcm-estado-pendente{color:var(--text-dim);background:rgba(255,255,255,.05);}
+.prog-pcm-estado-pausada{color:var(--amber);background:rgba(245,166,35,.12);}
+@media(max-width:600px){.prog-pcm-item{grid-template-columns:1fr auto;}.prog-pcm-tarefa{grid-column:1 / -1;white-space:normal;}}
 .bar-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s,border-radius .12s;border-radius:5px;}
 .bar-row:last-child{border-bottom:none;}
 .bar-row:hover{background:rgba(255,255,255,0.05);}
@@ -2116,6 +2132,25 @@ body{
         <div class="grid" id="ativGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
         <div id="ativKanban" style="display:grid;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
         <div id="ativKanbanDots"></div>
+
+        <!-- ── Programação PCM — espelho somente leitura do que o PCM programou para as equipes do Fred ── -->
+        <div class="zel-collapsible" id="progPcmPanel" style="margin-top:24px;">
+          <div class="zel-collapsible-head" onclick="_togglePanel('progPcmPanel')">
+            <div>
+              <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-weight:700;margin-bottom:3px;">PCM · Somente leitura</div>
+              <h2 style="font-size:15px;font-weight:700;">📅 Programação PCM <span class="tab-count" id="progPcmTotal">0</span></h2>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span id="progPcmSub" style="font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--text-faint);"></span>
+              <input type="date" id="progPcmData" onclick="event.stopPropagation();" onchange="event.stopPropagation();carregarProgramacaoPcm();" class="sb-select" style="width:auto;min-width:140px;">
+              <button class="tb-btn tb-btn-refresh" id="progPcmRefreshBtn" onclick="event.stopPropagation();carregarProgramacaoPcm(null,true);"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <svg class="zel-collapsible-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="zel-collapsible-body" id="progPcmBody">
+            <div id="progPcmGrupos"></div>
+          </div>
+        </div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -3079,7 +3114,7 @@ const NAV_TITLES = {
 function switchNav(nav) {
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
-  if (nav === 'atividades') { carregarAtividades(); }
+  if (nav === 'atividades') { carregarAtividades(); carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'gestao-cliente') { _gcAbrirAba(); }
   _activeNav = nav;
@@ -3523,6 +3558,7 @@ function initDashboard(session) {
   _carregarDesligamentoManual().then(() => {
     fetchSheet().then(() => _abrirDeepLinkNotificacao());
     carregarAtividades();
+    carregarProgramacaoPcm();
     carregarChamadosFabricante();
   });
   if (session.role === 'admin' || session.role === 'manager') {
@@ -7503,6 +7539,64 @@ async function carregarAtividades(tentativa = 1) {
   }
 }
 
+function _progPcmEstadoSlug(estado) {
+  const map = { 'Finalizada': 'ok', 'Em progresso': 'progresso', 'Não Iniciada': 'pendente', 'Pausada': 'pausada' };
+  return map[estado] || 'pendente';
+}
+
+// Espelho somente leitura do que o PCM (Fillipe Figueiro, via Power
+// Automate → gridco-pcm-data) programou para as equipes do Fred
+// Alexandrino. O backend já cacheia por hash, então chamar isto com
+// frequência é barato — só reflete de novo se o PCM publicou algo novo.
+async function carregarProgramacaoPcm(dataParam, forcar) {
+  const sub = document.getElementById('progPcmSub');
+  const totalEl = document.getElementById('progPcmTotal');
+  const gruposEl = document.getElementById('progPcmGrupos');
+  const dataInput = document.getElementById('progPcmData');
+  const data = dataParam || (dataInput && dataInput.value) || '';
+  if (sub) sub.textContent = 'Carregando…';
+  try {
+    const params = new URLSearchParams();
+    if (data) params.set('data', data);
+    if (forcar) params.set('forcar', '1');
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 25000);
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/programacao-pcm?${params.toString()}`, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar programação');
+    if (dataInput && !dataInput.value) dataInput.value = result.data;
+    if (totalEl) totalEl.textContent = result.total || 0;
+    if (sub) {
+      const atrasadasTxt = result.atrasadas ? ` · ${result.atrasadas} atrasada(s)` : '';
+      sub.textContent = `${result.total} atividade(s)${atrasadasTxt}`;
+    }
+    if (gruposEl) {
+      if (!result.grupos || result.grupos.length === 0) {
+        gruposEl.innerHTML = `<div class="empty-state">Nenhuma atividade programada pelo PCM para ${esc(result.data)}.</div>`;
+      } else {
+        gruposEl.innerHTML = result.grupos.map(g => `
+          <div class="prog-pcm-usina">
+            <div class="prog-pcm-usina-head">${esc(g.usina)} <span class="tab-count">${g.itens.length}</span></div>
+            <div class="prog-pcm-itens">
+              ${g.itens.map(it => `
+                <div class="prog-pcm-item${it.atrasado ? ' atrasado' : ''}">
+                  <span class="prog-pcm-os">${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener">OS ${esc(it.os || '—')}</a>` : `OS ${esc(it.os || '—')}`}</span>
+                  <span class="prog-pcm-tarefa" title="${esc(it.tarefa || it.tipo || '')}">${esc(it.tarefa || it.tipo || '—')}</span>
+                  <span class="prog-pcm-estado prog-pcm-estado-${_progPcmEstadoSlug(it.estado)}">${esc(it.estado || '—')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    if (sub) sub.textContent = 'Erro ao carregar.';
+    if (gruposEl) gruposEl.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar a programação PCM agora (${esc(e.message || 'falha de conexão')}). Clique em Atualizar para tentar de novo.</div>`;
+  }
+}
+
 async function _atualizarOSAgora() {
   const btn = document.getElementById('ativAtualizarOsBtn');
   const label = document.getElementById('ativAtualizarOsLabel');
@@ -8680,7 +8774,7 @@ function _aplicarEstadoPaineis(ids) {
   });
 }
 function _ativAplicarEstadoPaineis() {
-  _aplicarEstadoPaineis(['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus']);
+  _aplicarEstadoPaineis(['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus', 'progPcmPanel']);
 }
 
 function _ativRenderBreakdowns() {
