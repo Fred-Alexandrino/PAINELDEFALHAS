@@ -1371,6 +1371,10 @@ body{
         Atividades
         <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
       </div>
+      <div class="sb-nav-item" data-nav="programacao-pcm">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Programação PCM
+      </div>
       <div class="sb-nav-item" data-nav="falhas">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Falhas
@@ -2132,25 +2136,23 @@ body{
         <div class="grid" id="ativGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px;"></div>
         <div id="ativKanban" style="display:grid;margin-top:14px;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;"></div>
         <div id="ativKanbanDots"></div>
+      </section>
 
-        <!-- ── Programação PCM — espelho somente leitura do que o PCM programou para as equipes do Fred ── -->
-        <div class="zel-collapsible" id="progPcmPanel" style="margin-top:24px;">
-          <div class="zel-collapsible-head" onclick="_togglePanel('progPcmPanel')">
-            <div>
-              <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-weight:700;margin-bottom:3px;">PCM · Somente leitura</div>
-              <h2 style="font-size:15px;font-weight:700;">📅 Programação PCM <span class="tab-count" id="progPcmTotal">0</span></h2>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span id="progPcmSub" style="font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--text-faint);"></span>
-              <input type="date" id="progPcmData" onclick="event.stopPropagation();" onchange="event.stopPropagation();carregarProgramacaoPcm();" class="sb-select" style="width:auto;min-width:140px;">
-              <button class="tb-btn tb-btn-refresh" id="progPcmRefreshBtn" onclick="event.stopPropagation();carregarProgramacaoPcm(null,true);"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
-              <svg class="zel-collapsible-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
+      <!-- ── SEÇÃO: PROGRAMAÇÃO PCM — espelho somente leitura do que o PCM programou pras equipes do Fred ── -->
+      <section class="content-section" id="sec-programacao-pcm">
+        <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-weight:700;margin-bottom:3px;">PCM · Somente leitura</div>
+            <h2 style="font-size:16px;font-weight:700;">📅 Programação PCM <span class="tab-count" id="progPcmTotal">0</span></h2>
           </div>
-          <div class="zel-collapsible-body" id="progPcmBody">
-            <div id="progPcmGrupos"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span id="progPcmSub" style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);"></span>
+            <input type="date" id="progPcmData" onchange="carregarProgramacaoPcm();" class="sb-select" style="width:auto;min-width:140px;">
+            <button class="tb-btn tb-btn-refresh" id="progPcmRefreshBtn" onclick="carregarProgramacaoPcm(null,true);"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
           </div>
         </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:14px;">Espelha direto o que o PCM programou (gridco-pcm-data), filtrado pelas suas equipes — somente leitura, não altera nada na Fracttal nem no Painel de Atividades.</div>
+        <div id="progPcmGrupos"></div>
       </section>
 
       <!-- Drawer de Atividade -->
@@ -3123,6 +3125,7 @@ const NAV_TITLES = {
   'eficiencia': 'Eficiência O&M',
   'relatorios': 'Relatórios Semanais',
   'atividades': 'Painel de Atividades',
+  'programacao-pcm': 'Programação PCM',
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
   'localizacao': 'Localização das Usinas',
   'gestao-cliente': 'Gestão Cliente',
@@ -3131,7 +3134,8 @@ const NAV_TITLES = {
 function switchNav(nav) {
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
-  if (nav === 'atividades') { carregarAtividades(); carregarProgramacaoPcm(); }
+  if (nav === 'atividades') { carregarAtividades(); }
+  if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'gestao-cliente') { _gcAbrirAba(); }
   _activeNav = nav;
@@ -3522,6 +3526,7 @@ function initDashboard(session) {
   const navMttr        = document.querySelector('.sb-nav-item[data-nav="mttr"]');
   const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
   const navBoletins    = document.querySelector('.sb-nav-item[data-nav="boletins"]');
+  const navProgramacaoPcm = document.querySelector('.sb-nav-item[data-nav="programacao-pcm"]');
   const navFerramentasToggle = document.getElementById('navFerramentasToggle');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
@@ -3537,6 +3542,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = '';
     if (navEficiencia) navEficiencia.style.display = '';
     if (navBoletins) navBoletins.style.display = '';
+    if (navProgramacaoPcm) navProgramacaoPcm.style.display = '';
     if (navFerramentasToggle) navFerramentasToggle.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
@@ -3551,6 +3557,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
+    if (navProgramacaoPcm) navProgramacaoPcm.style.display = 'none';
     if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
@@ -3565,6 +3572,7 @@ function initDashboard(session) {
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
+    if (navProgramacaoPcm) navProgramacaoPcm.style.display = 'none';
     if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
@@ -8918,7 +8926,7 @@ function _aplicarEstadoPaineis(ids) {
   });
 }
 function _ativAplicarEstadoPaineis() {
-  _aplicarEstadoPaineis(['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus', 'progPcmPanel']);
+  _aplicarEstadoPaineis(['ativPanelCluster', 'ativPanelUsina', 'ativPanelStatus']);
 }
 
 function _ativRenderBreakdowns() {
