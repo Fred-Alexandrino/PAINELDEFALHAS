@@ -1986,15 +1986,30 @@ body{
       <!-- ── SEÇÃO: GESTÃO CLIENTE ───────────────────────────── -->
       <section class="content-section" id="sec-gestao-cliente">
         <div style="max-width:760px;margin:0 auto;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;" id="gcIntroText">
             Selecione manualmente as atividades <strong>Em Processo</strong> que devem entrar no resumo de hoje
-            pro cliente. A seleção é sempre manual — nada é enviado automaticamente — pra evitar que atividades
-            antigas apareçam sem controle.
+            pro cliente, ou clique em "Seguir Programação PCM" pra puxar direto o que está programado. De um jeito
+            ou de outro, nada é enviado automaticamente — o envio final é sempre uma ação explícita sua.
           </div>
 
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+          <div class="tabs-wrapper" style="width:100%;margin-bottom:14px;">
+            <button type="button" id="gcFonteAtividadesBtn" class="tab-btn active" onclick="_gcSetFonte('atividades')" style="flex:1;justify-content:center;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Selecionar Manualmente
+            </button>
+            <button type="button" id="gcFontePcmBtn" class="tab-btn" onclick="_gcSetFonte('pcm')" style="flex:1;justify-content:center;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Seguir Programação PCM
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
             <span class="sb-filter-label" style="margin:0;">Cliente</span>
-            <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="flex:1;"></select>
+            <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="flex:1;min-width:140px;"></select>
+            <div id="gcPcmDataWrap" style="display:none;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
+              <input type="date" id="gcPcmData" class="sb-select" style="width:auto;" onchange="_gcCarregarAtividadesPCM()">
+            </div>
           </div>
 
           <div id="gcListaWrap">
@@ -7142,6 +7157,8 @@ async function _dispararComunicadoLivre() {
 
 /* ══ GESTÃO CLIENTE — resumo polido de atividades pro cliente final ══ */
 let _gcGruposCache = [];
+let _gcFonte = 'atividades';   // 'atividades' | 'pcm'
+let _gcItensCache = [];        // normalizado: {id, usina, descricao, numeroOS, meta}
 
 function _gcAbrirAba() {
   const sel = document.getElementById('gcClienteSelect');
@@ -7156,29 +7173,111 @@ function _gcAbrirAba() {
   _gcCarregarAtividades();
 }
 
+// Alterna entre seleção manual (Em Processo, como sempre funcionou) e
+// "Seguir Programação PCM" — que espelha direto o que o PCM programou
+// (mesmo endpoint /programacao-pcm do painel), já filtrado pelo cliente
+// selecionado aqui.
+function _gcSetFonte(fonte) {
+  _gcFonte = fonte;
+  const btnAtiv = document.getElementById('gcFonteAtividadesBtn');
+  const btnPcm = document.getElementById('gcFontePcmBtn');
+  if (btnAtiv) btnAtiv.classList.toggle('active', fonte === 'atividades');
+  if (btnPcm) btnPcm.classList.toggle('active', fonte === 'pcm');
+  const pcmDataWrap = document.getElementById('gcPcmDataWrap');
+  if (pcmDataWrap) pcmDataWrap.style.display = fonte === 'pcm' ? 'flex' : 'none';
+  document.getElementById('gcResult').style.display = 'none';
+  document.getElementById('gcError').style.display = 'none';
+  _gcCarregarAtividades();
+}
+
 function _gcCarregarAtividades() {
+  if (_gcFonte === 'pcm') { _gcCarregarAtividadesPCM(); return; }
+  _gcCarregarAtividadesManual();
+}
+
+function _gcCarregarAtividadesManual() {
+  const cliente = document.getElementById('gcClienteSelect')?.value || '';
+  document.getElementById('gcResult').style.display = 'none';
+  document.getElementById('gcError').style.display = 'none';
+
+  const emProcesso = ATIVIDADES.filter(a => (a.cliente || '') === cliente && (a.statusOS || '') === 'Em Processo');
+  _gcItensCache = emProcesso.map(a => ({
+    id: String(a.id),
+    usina: a.usina || 'não informado',
+    descricao: a.descricao || '(sem descrição)',
+    numeroOS: a.numeroOS || '',
+    meta: `criada em ${(a.dataCriacao || '').split(' ')[0] || '—'}${a.numeroOS ? ' · OS ' + a.numeroOS : ''}`,
+  }));
+  _gcRenderLista();
+}
+
+// Puxa direto do painel de Programação PCM (mesmo endpoint /programacao-pcm),
+// filtrando pelo cliente selecionado no dropdown acima.
+async function _gcCarregarAtividadesPCM() {
   const cliente = document.getElementById('gcClienteSelect')?.value || '';
   const lista = document.getElementById('gcListaAtividades');
   const vazia = document.getElementById('gcListaVazia');
   document.getElementById('gcResult').style.display = 'none';
   document.getElementById('gcError').style.display = 'none';
+  if (lista) lista.innerHTML = `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Carregando programação do PCM…</div>`;
+  if (vazia) vazia.style.display = 'none';
+
+  const dataInput = document.getElementById('gcPcmData');
+  const data = (dataInput && dataInput.value) || '';
+  try {
+    const params = new URLSearchParams();
+    if (data) params.set('data', data);
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 25000);
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/programacao-pcm?${params.toString()}`, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar programação');
+    if (dataInput && !dataInput.value) dataInput.value = result.data;
+
+    _gcItensCache = [];
+    (result.grupos || []).forEach(g => {
+      (g.itens || []).forEach(it => {
+        if ((it.cliente || '') !== cliente) return;
+        _gcItensCache.push({
+          id: 'pcm_' + it.idWO + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
+          usina: g.usina,
+          descricao: it.tarefa || it.tipo || 'Atividade programada',
+          numeroOS: it.os || '',
+          meta: `${it.estado || ''}${it.atrasado ? ' · atrasada' : ''}`,
+        });
+      });
+    });
+    _gcRenderLista();
+  } catch (e) {
+    _gcItensCache = [];
+    if (lista) lista.innerHTML = '';
+    if (vazia) { vazia.style.display = 'block'; vazia.textContent = `Erro ao carregar programação PCM (${e.message || 'falha de conexão'}).`; }
+    _gcAtualizarContagem();
+  }
+}
+
+function _gcRenderLista() {
+  const lista = document.getElementById('gcListaAtividades');
+  const vazia = document.getElementById('gcListaVazia');
   if (!lista) return;
 
-  const emProcesso = ATIVIDADES.filter(a => (a.cliente || '') === cliente && (a.statusOS || '') === 'Em Processo');
-
-  if (emProcesso.length === 0) {
+  if (_gcItensCache.length === 0) {
     lista.innerHTML = '';
-    vazia.style.display = 'block';
+    if (vazia) {
+      vazia.style.display = 'block';
+      vazia.textContent = _gcFonte === 'pcm'
+        ? 'Nenhuma atividade programada pelo PCM pra esse cliente no dia selecionado.'
+        : 'Nenhuma atividade "Em Processo" pra esse cliente no momento.';
+    }
     _gcAtualizarContagem();
     return;
   }
-  vazia.style.display = 'none';
+  if (vazia) vazia.style.display = 'none';
 
   const porUsina = {};
-  emProcesso.forEach(a => {
-    const usina = a.usina || 'não informado';
-    (porUsina[usina] = porUsina[usina] || []).push(a);
-  });
+  _gcItensCache.forEach(a => { (porUsina[a.usina] = porUsina[a.usina] || []).push(a); });
+  const marcarPorPadrao = _gcFonte === 'pcm';
 
   lista.innerHTML = Object.keys(porUsina).sort().map(usina => `
     <div>
@@ -7187,12 +7286,12 @@ function _gcCarregarAtividades() {
         ${porUsina[usina].map(a => `
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);
                         cursor:pointer;padding:6px 8px;border:1px solid var(--border);border-radius:8px;">
-            <input type="checkbox" class="gc-ativ-chk" value="${esc(a.id)}" onchange="_gcAtualizarContagem()"
+            <input type="checkbox" class="gc-ativ-chk" value="${esc(a.id)}" onchange="_gcAtualizarContagem()"${marcarPorPadrao ? ' checked' : ''}
                    style="accent-color:var(--teal);width:15px;height:15px;margin-top:1px;">
             <span style="flex:1;">
-              ${esc(a.descricao || '(sem descrição)')}
+              ${esc(a.descricao)}
               <span style="display:block;font-size:10.5px;color:var(--text-faint);margin-top:2px;">
-                criada em ${esc((a.dataCriacao || '').split(' ')[0] || '—')}${a.numeroOS ? ' · OS ' + esc(a.numeroOS) : ''}
+                ${esc(a.meta)}${a.numeroOS && _gcFonte === 'pcm' ? ' · OS ' + esc(a.numeroOS) : ''}
               </span>
             </span>
           </label>
@@ -7219,7 +7318,7 @@ async function _gcGerarResumo() {
   const idsMarcados = Array.from(document.querySelectorAll('.gc-ativ-chk:checked')).map(el => el.value);
   if (idsMarcados.length === 0) { showToast('Selecione ao menos uma atividade.', false); return; }
 
-  const atividadesSelecionadas = ATIVIDADES
+  const atividadesSelecionadas = _gcItensCache
     .filter(a => idsMarcados.includes(String(a.id)))
     .map(a => ({ usina: a.usina || '', descricao: a.descricao || '', numeroOS: a.numeroOS || '' }));
 
