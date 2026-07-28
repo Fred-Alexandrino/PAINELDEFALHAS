@@ -2247,8 +2247,25 @@ body{
     </div>
     <div class="ch-body" id="comunicadoModalBody">
       <div id="comunicadoModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
+        <div class="tabs-wrapper" style="width:100%;">
+          <button type="button" id="comunicadoFonteAtividadesBtn" class="tab-btn active" onclick="_comunicadoSetFonte('atividades')" style="flex:1;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Minhas Atividades
+          </button>
+          <button type="button" id="comunicadoFontePcmBtn" class="tab-btn" onclick="_comunicadoSetFonte('pcm')" style="flex:1;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Seguir Programação PCM
+          </button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="comunicadoFiltroCliente" class="sb-select" style="width:auto;min-width:160px;" onchange="_comunicadoOnFiltroClienteChange(this.value)"><option value="">Todos os clientes</option></select>
+          <div id="comunicadoPcmDataWrap" style="display:none;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
+            <input type="date" id="comunicadoPcmData" class="sb-select" style="width:auto;" onchange="_comunicadoCarregarEquipesPCM()">
+          </div>
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:var(--text-dim);">Clusters com atividades em aberto</span>
+          <span style="font-size:11px;color:var(--text-dim);" id="comunicadoListaLabel">Clusters com atividades em aberto</span>
           <div style="display:flex;gap:8px;">
             <button onclick="_comunicadoSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
             <button onclick="_comunicadoSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
@@ -7969,6 +7986,11 @@ function _normalizarResponsavel(nome) {
 // devem aparecer como opção de comunicado.
 const _EQUIPES_EXCLUIDAS = new Set(['COS', 'Roger Lélis']);
 
+let _comunicadoFonte = 'atividades';               // 'atividades' | 'pcm'
+let _comunicadoPorEquipeCacheBruto = {};            // não filtrado por cliente
+let _comunicadoFiltroCliente = '';
+let _comunicadoRotuloAtual = 'aberta';
+
 function _abrirComunicados() {
   const overlay = document.getElementById('comunicadoOverlay');
   if (!overlay) return;
@@ -7976,7 +7998,28 @@ function _abrirComunicados() {
   document.getElementById('comunicadoModalResult').style.display = 'none';
   const priorizacaoEl = document.getElementById('comunicadoPriorizacaoResult');
   if (priorizacaoEl) priorizacaoEl.style.display = 'none';
+  overlay.style.display = 'flex';
+  _comunicadoSetFonte(_comunicadoFonte);
+}
 
+// Alterna entre "Minhas Atividades" (Painel de Atividades, o que já
+// funcionava) e "Seguir Programação PCM" (novo: espelha direto o painel
+// de Programação PCM — o que o PCM programou pra cada equipe/usina).
+function _comunicadoSetFonte(fonte) {
+  _comunicadoFonte = fonte;
+  const btnAtiv = document.getElementById('comunicadoFonteAtividadesBtn');
+  const btnPcm = document.getElementById('comunicadoFontePcmBtn');
+  if (btnAtiv) btnAtiv.classList.toggle('active', fonte === 'atividades');
+  if (btnPcm) btnPcm.classList.toggle('active', fonte === 'pcm');
+  const pcmDataWrap = document.getElementById('comunicadoPcmDataWrap');
+  if (pcmDataWrap) pcmDataWrap.style.display = fonte === 'pcm' ? 'flex' : 'none';
+  const label = document.getElementById('comunicadoListaLabel');
+  if (label) label.textContent = fonte === 'pcm' ? 'Clusters com programação do PCM' : 'Clusters com atividades em aberto';
+  if (fonte === 'pcm') _comunicadoCarregarEquipesPCM();
+  else _comunicadoCarregarEquipesAtividades();
+}
+
+function _comunicadoCarregarEquipesAtividades() {
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const porEquipe = {};
   abertas.forEach(a => {
@@ -7985,41 +8028,141 @@ function _abrirComunicados() {
     if (!porEquipe[eq]) porEquipe[eq] = [];
     porEquipe[eq].push(a);
   });
-  const equipes = Object.keys(porEquipe).sort((a,b) => porEquipe[b].length - porEquipe[a].length);
-  _comunicadoPorEquipeCache = porEquipe;
+  _comunicadoPorEquipeCacheBruto = porEquipe;
+  _comunicadoRotuloAtual = 'aberta';
+  _comunicadoPopularFiltroCliente();
+  _comunicadoAplicarFiltroCliente();
+}
 
+// Puxa direto do painel de Programação PCM (mesmo endpoint /programacao-pcm
+// já usado no painel "📅 Programação PCM" abaixo do Painel de Atividades),
+// agrupando por cluster/equipe — igual ao fluxo de "Minhas Atividades" —
+// pra reaproveitar toda a renderização de cards/geração de texto existente.
+async function _comunicadoCarregarEquipesPCM() {
   const lista = document.getElementById('comunicadoListaEquipes');
+  if (lista) lista.innerHTML = `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Carregando programação do PCM…</div>`;
+  const dataInput = document.getElementById('comunicadoPcmData');
+  const data = (dataInput && dataInput.value) || '';
+  try {
+    const params = new URLSearchParams();
+    if (data) params.set('data', data);
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 25000);
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/programacao-pcm?${params.toString()}`, { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar programação');
+    if (dataInput && !dataInput.value) dataInput.value = result.data;
+
+    const porEquipe = {};
+    (result.grupos || []).forEach(g => {
+      (g.itens || []).forEach(it => {
+        const eq = it.cluster || 'Sem cluster';
+        if (_EQUIPES_EXCLUIDAS.has(eq)) return;
+        if (!porEquipe[eq]) porEquipe[eq] = [];
+        porEquipe[eq].push(_pcmItemParaAtividadeLike(it));
+      });
+    });
+    _comunicadoPorEquipeCacheBruto = porEquipe;
+    _comunicadoRotuloAtual = 'programada';
+    _comunicadoPopularFiltroCliente();
+    _comunicadoAplicarFiltroCliente();
+  } catch (e) {
+    if (lista) lista.innerHTML = `<div style="font-size:12.5px;color:var(--red);text-align:center;padding:20px 0;">Erro ao carregar programação PCM (${esc(e.message || 'falha de conexão')}).</div>`;
+  }
+}
+
+// Normaliza um item do JSON de Programação PCM pro mesmo formato de uma
+// "atividade" do Painel — assim os cards, a geração de texto e o disparo
+// de comunicado funcionam sem duplicar lógica.
+function _pcmItemParaAtividadeLike(it) {
+  const prazoBR = _ativFormatarPrazoCard(it.dataProg || '');
+  return {
+    id: 'pcm_' + it.idWO + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
+    numeroOS: it.os,
+    descricao: it.tarefa || it.tipo || 'Atividade programada',
+    usina: it.usina,
+    cliente: it.cliente,
+    cluster: it.cluster,
+    prazo: prazoBR,
+    statusGeralOS: it.estado,
+    status: it.estado,
+    percentualOS: '',
+    prioridade: it.atrasado ? 'Alta' : 'Normal',
+  };
+}
+
+function _comunicadoPopularFiltroCliente() {
+  const sel = document.getElementById('comunicadoFiltroCliente');
+  if (!sel) return;
+  const clientes = new Set();
+  Object.values(_comunicadoPorEquipeCacheBruto).forEach(itens => itens.forEach(a => { if (a.cliente) clientes.add(a.cliente); }));
+  const valorAtual = sel.value;
+  const ordenados = Array.from(clientes).sort();
+  sel.innerHTML = '<option value="">Todos os clientes</option>' + ordenados.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (ordenados.includes(valorAtual)) sel.value = valorAtual;
+  else _comunicadoFiltroCliente = '';
+}
+
+function _comunicadoOnFiltroClienteChange(valor) {
+  _comunicadoFiltroCliente = valor;
+  _comunicadoAplicarFiltroCliente();
+}
+
+function _comunicadoAplicarFiltroCliente() {
+  if (!_comunicadoFiltroCliente) {
+    _comunicadoPorEquipeCache = _comunicadoPorEquipeCacheBruto;
+  } else {
+    const filtrado = {};
+    Object.keys(_comunicadoPorEquipeCacheBruto).forEach(eq => {
+      const itens = _comunicadoPorEquipeCacheBruto[eq].filter(a => (a.cliente || '') === _comunicadoFiltroCliente);
+      if (itens.length) filtrado[eq] = itens;
+    });
+    _comunicadoPorEquipeCache = filtrado;
+  }
+  _comunicadoRenderListaEquipes(_comunicadoPorEquipeCache, _comunicadoRotuloAtual);
+}
+
+function _comunicadoRenderListaEquipes(porEquipe, rotulo) {
+  const equipes = Object.keys(porEquipe).sort((a, b) => porEquipe[b].length - porEquipe[a].length);
+  const lista = document.getElementById('comunicadoListaEquipes');
+  if (!lista) return;
   lista.innerHTML = equipes.map(eq => {
     const atrasadas = porEquipe[eq].filter(a => (_diasAtraso(a.prazo) ?? -999) > 0).length;
     return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
       <input type="checkbox" class="comunicado-equipe-check" value="${esc(eq)}" checked style="width:16px;height:16px;accent-color:var(--amber);flex:none;">
       <span style="flex:1;font-size:13px;color:var(--text);">${esc(eq)}</span>
-      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;">${porEquipe[eq].length} aberta${porEquipe[eq].length!==1?'s':''}${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;">${porEquipe[eq].length} ${rotulo}${porEquipe[eq].length !== 1 ? 's' : ''}${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas !== 1 ? 's' : ''}</span>` : ''}</span>
     </label>`;
-  }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhuma atividade em aberto no momento.</div>`;
-
-  overlay.style.display = 'flex';
+  }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">${rotulo === 'programada' ? 'Nenhuma atividade programada pelo PCM para o dia selecionado.' : 'Nenhuma atividade em aberto no momento.'}</div>`;
 }
 
 function _comunicadoSelecionarTodas(marcar) {
   document.querySelectorAll('.comunicado-equipe-check').forEach(cb => cb.checked = marcar);
 }
 
-function _montarTextoComunicado(equipe, lista, hojeStr) {
+function _montarTextoComunicado(equipe, lista, hojeStr, fonte) {
   lista = lista.slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
-  let txt = `📋 *Atividades em aberto — ${equipe}*\n📅 ${hojeStr}\n\n`;
-  txt += `Você tem *${lista.length} atividade${lista.length!==1?'s':''}* pendente${lista.length!==1?'s':''}:\n\n`;
+  const ehPcm = fonte === 'pcm';
+  let txt = ehPcm
+    ? `📅 *Programação do dia — ${equipe}*\n📅 ${hojeStr}\n\n`
+    : `📋 *Atividades em aberto — ${equipe}*\n📅 ${hojeStr}\n\n`;
+  txt += ehPcm
+    ? `Segue a programação de hoje, *${lista.length} atividade${lista.length!==1?'s':''}*:\n\n`
+    : `Você tem *${lista.length} atividade${lista.length!==1?'s':''}* pendente${lista.length!==1?'s':''}:\n\n`;
   lista.forEach((a, i) => {
     const dias = _diasAtraso(a.prazo);
     const atrasada = dias !== null && dias > 0;
     txt += `${i+1}. ${atrasada ? '🔴' : '🟢'} ${a.numeroOS ? 'OS '+a.numeroOS+' — ' : ''}${a.usina||''}\n`;
     txt += `   ${a.descricao||''}\n`;
-    if (a.prazo) txt += `   📅 Prazo: ${a.prazo}${atrasada ? ` (atrasada há ${dias} dia${dias>1?'s':''})` : ''}\n`;
+    if (!ehPcm && a.prazo) txt += `   📅 Prazo: ${a.prazo}${atrasada ? ` (atrasada há ${dias} dia${dias>1?'s':''})` : ''}\n`;
     const st = a.statusGeralOS || a.status;
     if (st) txt += `   📊 Status: ${st}${a.percentualOS !== undefined && a.percentualOS !== '' ? ' — '+a.percentualOS+'%' : ''}\n`;
     txt += `\n`;
   });
-  txt += `Por favor, atualizem o andamento dessas atividades o quanto antes. Qualquer dificuldade, me avisem.`;
+  txt += ehPcm
+    ? `Essa é a programação definida pelo PCM para hoje. Qualquer impedimento em campo, me avisem.`
+    : `Por favor, atualizem o andamento dessas atividades o quanto antes. Qualquer dificuldade, me avisem.`;
   return txt;
 }
 
@@ -8040,13 +8183,14 @@ function _gerarComunicados() {
     const idSeguro = equipe.replace(/[^a-zA-Z0-9]/g, '_');
     _comunicadoEquipeMap[idSeguro] = equipe;
     _comunicadoSelecaoAtiva[idSeguro] = new Set(lista.map(a => String(a.id))); // todas selecionadas por padrão
-    _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, lista, hojeStr);
+    _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, lista, hojeStr, _comunicadoFonte);
 
+    const rotuloContagem = _comunicadoFonte === 'pcm' ? 'programada' : 'em aberto';
     html += `<div style="margin-bottom:22px;border:1px solid var(--border-strong);border-radius:10px;padding:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">📍 ${esc(equipe)}</div>
-          <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${lista.length} atividade${lista.length!==1?'s':''} em aberto${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${lista.length} atividade${lista.length!==1?'s':''} ${rotuloContagem}${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</div>
           <div id="comunicadoContagem_${idSeguro}" style="font-size:10.5px;color:var(--amber);margin-top:3px;">${lista.length} de ${lista.length} selecionada${lista.length!==1?'s':''} pro comunicado</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -8104,7 +8248,7 @@ function _comunicadoAtualizarBlocoEquipe(idSeguro) {
   const set = _comunicadoSelecaoAtiva[idSeguro] || new Set();
   const selecionadas = listaCompleta.filter(a => set.has(String(a.id)));
 
-  _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, selecionadas, hojeStr);
+  _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, selecionadas, hojeStr, _comunicadoFonte);
 
   const contagemEl = document.getElementById(`comunicadoContagem_${idSeguro}`);
   if (contagemEl) contagemEl.textContent = `${selecionadas.length} de ${listaCompleta.length} selecionada${selecionadas.length!==1?'s':''} pro comunicado`;
