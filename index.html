@@ -1402,9 +1402,9 @@ body{
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
       </div>
-      <div class="sb-nav-item" data-nav="gestao-cliente">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Gestão Cliente
+      <div class="sb-nav-item" data-nav="comunicados">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Comunicados
       </div>
       <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -1985,71 +1985,189 @@ body{
       </section>
 
       <!-- ── SEÇÃO: GESTÃO CLIENTE ───────────────────────────── -->
-      <section class="content-section" id="sec-gestao-cliente">
-        <div style="max-width:760px;margin:0 auto;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;" id="gcIntroText">
-            Selecione manualmente as atividades <strong>Em Processo</strong> que devem entrar no resumo de hoje
-            pro cliente, ou clique em "Seguir Programação PCM" pra puxar direto o que está programado. De um jeito
-            ou de outro, nada é enviado automaticamente — o envio final é sempre uma ação explícita sua.
-          </div>
-
-          <div class="tabs-wrapper" style="width:100%;margin-bottom:14px;">
-            <button type="button" id="gcFonteAtividadesBtn" class="tab-btn active" onclick="_gcSetFonte('atividades')" style="flex:1;justify-content:center;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              Selecionar Manualmente
-            </button>
-            <button type="button" id="gcFontePcmBtn" class="tab-btn" onclick="_gcSetFonte('pcm')" style="flex:1;justify-content:center;">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              Seguir Programação PCM
-            </button>
-          </div>
-
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-            <span class="sb-filter-label" style="margin:0;">Cliente</span>
-            <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="flex:1;min-width:140px;"></select>
-            <div id="gcPcmDataWrap" style="display:none;align-items:center;gap:6px;">
-              <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
-              <input type="date" id="gcPcmData" class="sb-select" style="width:auto;" onchange="_gcCarregarAtividadesPCM()">
-            </div>
-          </div>
-
-          <div id="gcListaWrap">
-            <div id="gcListaAtividades" style="display:flex;flex-direction:column;gap:14px;"></div>
-            <div id="gcListaVazia" style="display:none;font-size:12.5px;color:var(--text-faint);padding:24px 0;text-align:center;">
-              Nenhuma atividade "Em Processo" pra esse cliente no momento.
-            </div>
-          </div>
-
-          <button id="gcGerarBtn" onclick="_gcGerarResumo()" disabled
-                  style="width:100%;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;
-                         background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;
-                         font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;opacity:.5;">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            Gerar resumo (<span id="gcSelecionadasCount">0</span> selecionadas)
+      <section class="content-section" id="sec-comunicados">
+        <div class="tabs-wrapper" style="width:100%;margin-bottom:18px;">
+          <button type="button" class="tab-btn active" id="comTabBtnTecnicos" onclick="_comSetTab('tecnicos')">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Técnicos
           </button>
+          <button type="button" class="tab-btn" id="comTabBtnClientes" onclick="_comSetTab('clientes')">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Clientes
+          </button>
+          <button type="button" class="tab-btn" id="comTabBtnZeladoria" onclick="_comSetTab('zeladoria')">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            Zeladoria
+          </button>
+          <button type="button" class="tab-btn" id="comTabBtnLivre" onclick="_comSetTab('livre')">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Livre
+          </button>
+        </div>
 
-          <div id="gcLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
-            <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
-            Gerando resumo…
+        <!-- ── ABA: TÉCNICOS ── -->
+        <div id="comTabPainelTecnicos">
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Selecione os clusters e gere (ou dispare direto) um comunicado com as atividades em aberto de cada um.</div>
+          <div id="comunicadoModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
+            <div class="tabs-wrapper" style="width:100%;">
+              <button type="button" id="comunicadoFonteAtividadesBtn" class="tab-btn active" onclick="_comunicadoSetFonte('atividades')" style="flex:1;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Minhas Atividades
+              </button>
+              <button type="button" id="comunicadoFontePcmBtn" class="tab-btn" onclick="_comunicadoSetFonte('pcm')" style="flex:1;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Seguir Programação PCM
+              </button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <select id="comunicadoFiltroCliente" class="sb-select" style="width:auto;min-width:160px;" onchange="_comunicadoOnFiltroClienteChange(this.value)"><option value="">Todos os clientes</option></select>
+              <div id="comunicadoPcmDataWrap" style="display:none;align-items:center;gap:6px;">
+                <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
+                <input type="date" id="comunicadoPcmData" class="sb-select" style="width:auto;" onchange="_comunicadoCarregarEquipesPCM()">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--text-dim);" id="comunicadoListaLabel">Clusters com atividades em aberto</span>
+              <div style="display:flex;gap:8px;">
+                <button onclick="_comunicadoSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
+                <button onclick="_comunicadoSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
+              </div>
+            </div>
+            <div id="comunicadoListaEquipes" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+            <button id="comunicadoGerarBtn" onclick="_gerarComunicados()" style="width:100%;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Gerar comunicados
+            </button>
+            <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:14px;">
+              <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">Mensagem separada: o que priorizar hoje (considerando impacto na geração, prazo, dependência entre atividades e proximidade das usinas)</div>
+              <button id="comunicadoPriorizacaoBtn" onclick="_sugerirPriorizacaoIA()" style="width:100%;background:linear-gradient(135deg,rgba(45,212,191,.16),rgba(45,212,191,.06));border:1px solid rgba(45,212,191,.4);color:var(--teal);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
+                <span id="comunicadoPriorizacaoLabel">Sugerir Priorização do Dia (IA)</span>
+              </button>
+            </div>
           </div>
+          <div id="comunicadoModalResult" style="display:none;"></div>
+          <div id="comunicadoPriorizacaoResult" style="display:none;"></div>
+        </div>
 
-          <div id="gcResult" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-            <textarea id="gcResultText" style="width:100%;min-height:200px;background:rgba(255,255,255,0.04);
-                      border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;
-                      font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <!-- ── ABA: CLIENTES ── -->
+        <div id="comTabPainelClientes" style="display:none;">
+          <div style="max-width:760px;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;" id="gcIntroText">
+              Selecione manualmente as atividades <strong>Em Processo</strong> que devem entrar no resumo de hoje
+              pro cliente, ou clique em "Seguir Programação PCM" pra puxar direto o que está programado. De um jeito
+              ou de outro, nada é enviado automaticamente — o envio final é sempre uma ação explícita sua.
+            </div>
 
-            <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para qual grupo?</div>
-            <div id="gcGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+            <div class="tabs-wrapper" style="width:100%;margin-bottom:14px;">
+              <button type="button" id="gcFonteAtividadesBtn" class="tab-btn active" onclick="_gcSetFonte('atividades')" style="flex:1;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Selecionar Manualmente
+              </button>
+              <button type="button" id="gcFontePcmBtn" class="tab-btn" onclick="_gcSetFonte('pcm')" style="flex:1;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Seguir Programação PCM
+              </button>
+            </div>
 
-            <button id="gcEnviarBtn" onclick="_gcEnviarResumo()"
-                    style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
-                           background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;
-                           font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
-              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              Enviar pro grupo
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+              <span class="sb-filter-label" style="margin:0;">Cliente</span>
+              <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="flex:1;min-width:140px;"></select>
+              <div id="gcPcmDataWrap" style="display:none;align-items:center;gap:6px;">
+                <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
+                <input type="date" id="gcPcmData" class="sb-select" style="width:auto;" onchange="_gcCarregarAtividadesPCM()">
+              </div>
+            </div>
+
+            <div id="gcListaWrap">
+              <div id="gcListaAtividades" style="display:flex;flex-direction:column;gap:14px;"></div>
+              <div id="gcListaVazia" style="display:none;font-size:12.5px;color:var(--text-faint);padding:24px 0;text-align:center;">
+                Nenhuma atividade "Em Processo" pra esse cliente no momento.
+              </div>
+            </div>
+
+            <button id="gcGerarBtn" onclick="_gcGerarResumo()" disabled
+                    style="width:100%;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;
+                           background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;
+                           font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;opacity:.5;">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Gerar resumo (<span id="gcSelecionadasCount">0</span> selecionadas)
+            </button>
+
+            <div id="gcLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+              <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+              Gerando resumo…
+            </div>
+
+            <div id="gcResult" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+              <textarea id="gcResultText" style="width:100%;min-height:200px;background:rgba(255,255,255,0.04);
+                        border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;
+                        font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+
+              <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para qual grupo?</div>
+              <div id="gcGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+
+              <button id="gcEnviarBtn" onclick="_gcEnviarResumo()"
+                      style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
+                             background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;
+                             font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Enviar pro grupo
+              </button>
+            </div>
+            <div id="gcError" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;text-align:center;"></div>
+          </div>
+        </div>
+
+        <!-- ── ABA: ZELADORIA ── -->
+        <div id="comTabPainelZeladoria" style="display:none;">
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Selecione os clusters e dispare o pedido quinzenal de fotos de vegetação e sujidade dos módulos.</div>
+          <div id="comunicadoZelModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:11px;color:var(--text-dim);" id="comunicadoZelSemanaLabel">Carregando…</span>
+              <div style="display:flex;gap:8px;">
+                <button onclick="_comunicadoZelSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
+                <button onclick="_comunicadoZelSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
+              </div>
+            </div>
+            <div id="comunicadoZelListaClusters" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+            <button id="comunicadoZelGerarBtn" onclick="_gerarComunicadosZel()" style="width:100%;background:#5B9BD5;border:none;color:#04182b;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+              Gerar comunicados
             </button>
           </div>
-          <div id="gcError" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;text-align:center;"></div>
+          <div id="comunicadoZelModalResult" style="display:none;"></div>
+        </div>
+
+        <!-- ── ABA: LIVRE ── -->
+        <div id="comTabPainelLivre" style="display:none;">
+          <div style="max-width:580px;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escreva um tema livre — a IA monta o texto, você revisa e escolhe os grupos.</div>
+            <div id="comLivreInputStep">
+              <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;" placeholder="Tema do comunicado…" type="text">
+              <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+              <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                Gerar
+              </button>
+            </div>
+            <div id="comLivreLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+              <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+              Gerando comunicado…
+            </div>
+            <div id="comLivreResult" style="display:none;">
+              <textarea id="comLivreText" style="width:100%;min-height:160px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+
+              <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
+              <div id="comLivreGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+
+              <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Disparar comunicado
+              </button>
+            </div>
+            <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+          </div>
         </div>
       </section>
 
@@ -2255,88 +2373,6 @@ body{
 </div>
 
 <!-- Modal Comunicados aos Técnicos -->
-<div class="ch-overlay" id="comunicadoOverlay">
-  <div class="ch-modal" style="max-width:820px;border-top-color:var(--amber);">
-    <div class="ch-head">
-      <div class="ch-head-row">
-        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><h2>Comunicados aos Técnicos</h2></div><div class="ch-subtitle">Selecione os clusters e gere (ou dispare direto) um comunicado com as atividades em aberto de cada um</div></div>
-        <button class="modal-close-btn" id="comunicadoModalClose">✕</button>
-      </div>
-    </div>
-    <div class="ch-body" id="comunicadoModalBody">
-      <div id="comunicadoModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
-        <div class="tabs-wrapper" style="width:100%;">
-          <button type="button" id="comunicadoFonteAtividadesBtn" class="tab-btn active" onclick="_comunicadoSetFonte('atividades')" style="flex:1;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Minhas Atividades
-          </button>
-          <button type="button" id="comunicadoFontePcmBtn" class="tab-btn" onclick="_comunicadoSetFonte('pcm')" style="flex:1;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Seguir Programação PCM
-          </button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <select id="comunicadoFiltroCliente" class="sb-select" style="width:auto;min-width:160px;" onchange="_comunicadoOnFiltroClienteChange(this.value)"><option value="">Todos os clientes</option></select>
-          <div id="comunicadoPcmDataWrap" style="display:none;align-items:center;gap:6px;">
-            <span style="font-size:11px;color:var(--text-faint);">Dia:</span>
-            <input type="date" id="comunicadoPcmData" class="sb-select" style="width:auto;" onchange="_comunicadoCarregarEquipesPCM()">
-          </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:var(--text-dim);" id="comunicadoListaLabel">Clusters com atividades em aberto</span>
-          <div style="display:flex;gap:8px;">
-            <button onclick="_comunicadoSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
-            <button onclick="_comunicadoSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
-          </div>
-        </div>
-        <div id="comunicadoListaEquipes" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
-        <button id="comunicadoGerarBtn" onclick="_gerarComunicados()" style="width:100%;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Gerar comunicados
-        </button>
-        <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:14px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">Mensagem separada: o que priorizar hoje (considerando impacto na geração, prazo, dependência entre atividades e proximidade das usinas)</div>
-          <button id="comunicadoPriorizacaoBtn" onclick="_sugerirPriorizacaoIA()" style="width:100%;background:linear-gradient(135deg,rgba(45,212,191,.16),rgba(45,212,191,.06));border:1px solid rgba(45,212,191,.4);color:var(--teal);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2L9.1 9.1 2 12l7.1 2.9L12 22l2.9-7.1L22 12l-7.1-2.9z"/></svg>
-            <span id="comunicadoPriorizacaoLabel">Sugerir Priorização do Dia (IA)</span>
-          </button>
-        </div>
-      </div>
-      <div id="comunicadoModalResult" style="display:none;"></div>
-      <div id="comunicadoPriorizacaoResult" style="display:none;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Comunicado de Zeladoria -->
-<div class="ch-overlay" id="comunicadoZelOverlay">
-  <div class="ch-modal" style="max-width:820px;border-top-color:#5B9BD5;">
-    <div class="ch-head">
-      <div class="ch-head-row">
-        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><h2>Comunicado de Zeladoria</h2></div><div class="ch-subtitle">Selecione os clusters e dispare o pedido quinzenal de fotos de vegetação e sujidade dos módulos</div></div>
-        <button class="modal-close-btn" id="comunicadoZelModalClose">✕</button>
-      </div>
-    </div>
-    <div class="ch-body" id="comunicadoZelModalBody">
-      <div id="comunicadoZelModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <span style="font-size:11px;color:var(--text-dim);" id="comunicadoZelSemanaLabel">Carregando…</span>
-          <div style="display:flex;gap:8px;">
-            <button onclick="_comunicadoZelSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Selecionar todas</button>
-            <button onclick="_comunicadoZelSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;">Limpar</button>
-          </div>
-        </div>
-        <div id="comunicadoZelListaClusters" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
-        <button id="comunicadoZelGerarBtn" onclick="_gerarComunicadosZel()" style="width:100%;background:#5B9BD5;border:none;color:#04182b;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-          Gerar comunicados
-        </button>
-      </div>
-      <div id="comunicadoZelModalResult" style="display:none;"></div>
-    </div>
-  </div>
-</div>
-
 <!-- Modal Zeladoria — Extrair de Print/Observações via IA -->
 <div class="ch-overlay" id="zelExtrairOverlay">
   <div class="ch-modal" style="max-width:900px;border-top-color:var(--teal);">
@@ -2569,43 +2605,6 @@ body{
 </div>
 
 <!-- Modal Comunicado Livre -->
-<div class="ch-overlay" id="comLivreOverlay">
-  <div class="ch-modal" style="max-width:580px;border-top-color:var(--teal);">
-    <div class="ch-head">
-      <div class="ch-head-row">
-        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><h2>Comunicado</h2></div><div class="ch-subtitle">Revise o texto, escolha os grupos e dispare</div></div>
-        <button class="modal-close-btn" id="comLivreClose">✕</button>
-      </div>
-    </div>
-    <div class="ch-body">
-      <div id="comLivreInputStep">
-        <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;" placeholder="Tema do comunicado…" type="text">
-        <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
-        <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Gerar
-        </button>
-      </div>
-      <div id="comLivreLoading" style="display:none;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
-        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
-        Gerando comunicado…
-      </div>
-      <div id="comLivreResult" style="display:none;">
-        <textarea id="comLivreText" style="width:100%;min-height:160px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
-
-        <div style="font-size:11px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
-        <div id="comLivreGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
-
-        <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Disparar comunicado
-        </button>
-      </div>
-      <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
-    </div>
-  </div>
-</div>
-
 <!-- Modal Gestão Cliente — Chamados -->
 <div class="ch-overlay" id="chGcOverlay">
   <div class="ch-modal" style="max-width:620px;border-top-color:var(--teal);">
@@ -3144,7 +3143,7 @@ const NAV_TITLES = {
   'programacao-pcm': 'Programação PCM',
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
   'localizacao': 'Localização das Usinas',
-  'gestao-cliente': 'Gestão Cliente',
+  'comunicados': 'Comunicados',
 };
 
 function switchNav(nav) {
@@ -3153,7 +3152,7 @@ function switchNav(nav) {
   if (nav === 'atividades') { carregarAtividades(); }
   if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
-  if (nav === 'gestao-cliente') { _gcAbrirAba(); }
+  if (nav === 'comunicados') { _comSetTab(_comTabAtual); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -6997,8 +6996,14 @@ document.getElementById('osRapidaOverlay')?.addEventListener('click', e => { if(
 /* ══ COMUNICADO LIVRE (IA) ══ */
 let _comLivreGruposCache = [];
 
+// Ponto de entrada: usado pelo botão "Elaborar Comunicado" nas Ações
+// Rápidas da sidebar. Navega pro painel de Comunicados já na aba Livre.
 function _openElaborarComunicado() {
-  document.getElementById('comLivreOverlay').style.display = 'flex';
+  switchNav('comunicados');
+  _comSetTab('livre');
+}
+
+function _comLivreReset() {
   document.getElementById('comLivreInputStep').style.display = 'block';
   document.getElementById('comLivreLoading').style.display = 'none';
   document.getElementById('comLivreResult').style.display = 'none';
@@ -7144,7 +7149,7 @@ async function _dispararComunicadoLivre() {
     const qtdErros = (data.erros || []).length;
     if (qtdErros === 0) {
       showToast(`Comunicado enviado pra ${qtdEnviados} grupo(s)!`, true);
-      document.getElementById('comLivreOverlay').style.display = 'none';
+      _comLivreReset();
     } else {
       showToast(`Enviado pra ${qtdEnviados}, mas ${qtdErros} falharam.`, false);
     }
@@ -7593,8 +7598,6 @@ async function _chGcEnviarResumo() {
 document.getElementById('chGcClose')?.addEventListener('click', () => { document.getElementById('chGcOverlay').style.display = 'none'; });
 document.getElementById('chGcOverlay')?.addEventListener('click', e => { if (e.target.id === 'chGcOverlay') document.getElementById('chGcOverlay').style.display = 'none'; });
 
-document.getElementById('comLivreClose')?.addEventListener('click', () => { document.getElementById('comLivreOverlay').style.display = 'none'; });
-document.getElementById('comLivreOverlay')?.addEventListener('click', e => { if(e.target.id==='comLivreOverlay') document.getElementById('comLivreOverlay').style.display='none'; });
 
 /* ══ NOVA OCORRÊNCIA ══ */
 function _openNovaOcorrencia() {
@@ -8111,14 +8114,44 @@ let _comunicadoPorEquipeCacheBruto = {};            // não filtrado por cliente
 let _comunicadoFiltroCliente = '';
 let _comunicadoRotuloAtual = 'aberta';
 
+// Painel unificado de Comunicados (28/07/2026): os 4 fluxos que antes
+// viviam espalhados (modal em Atividades > Ações, seção própria "Gestão
+// Cliente", modal em Zeladoria, botão solto na sidebar) agora moram
+// juntos aqui, como abas. Cada aba reaproveita 100% da lógica que já
+// existia — só a "casca" (overlay/seção separada) mudou de lugar.
+//
+// _comSetTab troca a aba visível e recarrega o conteúdo dela chamando as
+// funções de *refresh* (não as funções de "abrir", que são os pontos de
+// entrada usados pelos atalhos — Ações do Atividades, botão da Zeladoria,
+// Ação Rápida da sidebar — pra não virar recursão).
+let _comTabAtual = 'tecnicos';
+
+function _comSetTab(tab) {
+  _comTabAtual = tab;
+  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', zeladoria: 'Zeladoria', livre: 'Livre' };
+  Object.keys(abas).forEach(t => {
+    document.getElementById('comTabBtn' + abas[t])?.classList.toggle('active', t === tab);
+    const painel = document.getElementById('comTabPainel' + abas[t]);
+    if (painel) painel.style.display = (t === tab) ? 'block' : 'none';
+  });
+  if (tab === 'tecnicos') _comTecnicosRefresh();
+  else if (tab === 'clientes') _gcAbrirAba();
+  else if (tab === 'zeladoria') _comZeladoriaRefresh();
+  else if (tab === 'livre') _comLivreReset();
+}
+
+// Ponto de entrada: usado pelo botão "Comunicados" no menu Ações do
+// Painel de Atividades. Navega pro painel de Comunicados já na aba certa.
 function _abrirComunicados() {
-  const overlay = document.getElementById('comunicadoOverlay');
-  if (!overlay) return;
+  switchNav('comunicados');
+  _comSetTab('tecnicos');
+}
+
+function _comTecnicosRefresh() {
   document.getElementById('comunicadoModalIntro').style.display = 'flex';
   document.getElementById('comunicadoModalResult').style.display = 'none';
   const priorizacaoEl = document.getElementById('comunicadoPriorizacaoResult');
   if (priorizacaoEl) priorizacaoEl.style.display = 'none';
-  overlay.style.display = 'flex';
   _comunicadoSetFonte(_comunicadoFonte);
 }
 
@@ -8507,21 +8540,24 @@ async function _dispararComunicadoCluster(cluster, idSeguro, btnEl) {
   }
 }
 
-document.getElementById('comunicadoModalClose')?.addEventListener('click', () => { document.getElementById('comunicadoOverlay').style.display='none'; });
-document.getElementById('comunicadoOverlay')?.addEventListener('click', e => { if(e.target.id==='comunicadoOverlay') { document.getElementById('comunicadoOverlay').style.display='none'; } });
 
 // ── Comunicado de Zeladoria (fotos de vegetação/sujidade) ──────────────
 let _comunicadoZelCache = null;      // {ok, semana, clusters:[{cluster, usinas, texto}]}
 let _comunicadoZelTextoCache = {};
 
-async function _abrirComunicadosZel() {
-  const overlay = document.getElementById('comunicadoZelOverlay');
-  if (!overlay) return;
+// Ponto de entrada: usado pelo botão "Comunicado de Zeladoria" dentro da
+// seção Zeladoria/Processos. Navega pro painel de Comunicados já na aba
+// Zeladoria.
+function _abrirComunicadosZel() {
+  switchNav('comunicados');
+  _comSetTab('zeladoria');
+}
+
+async function _comZeladoriaRefresh() {
   document.getElementById('comunicadoZelModalIntro').style.display = 'flex';
   document.getElementById('comunicadoZelModalResult').style.display = 'none';
   document.getElementById('comunicadoZelSemanaLabel').textContent = 'Carregando…';
   document.getElementById('comunicadoZelListaClusters').innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text-faint);font-size:12.5px;">Carregando clusters…</div>`;
-  overlay.style.display = 'flex';
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-comunicado-zeladoria', { signal: AbortSignal.timeout(20000) });
     const data = await resp.json();
@@ -8621,8 +8657,6 @@ async function _dispararComunicadoZelCluster(cluster, idSeguro, btnEl) {
   }
 }
 
-document.getElementById('comunicadoZelModalClose')?.addEventListener('click', () => { document.getElementById('comunicadoZelOverlay').style.display='none'; });
-document.getElementById('comunicadoZelOverlay')?.addEventListener('click', e => { if(e.target.id==='comunicadoZelOverlay') { document.getElementById('comunicadoZelOverlay').style.display='none'; } });
 
 /* ══ ZELADORIA — Extrair de Print/Observações via IA ══ */
 let _zelExtrairImagemB64 = null;
