@@ -690,7 +690,8 @@ body{
 .prog-pcm-usina:last-child{margin-bottom:0;}
 .prog-pcm-usina-head{font-family:'Geist Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border-soft);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
 .prog-pcm-itens{display:flex;flex-direction:column;gap:4px;}
-.prog-pcm-item{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:7px 9px;border-radius:6px;font-size:12.5px;background:var(--panel-alt);border-left:2px solid transparent;}
+.prog-pcm-item{display:grid;grid-template-columns:58px 66px 1fr auto;gap:10px;align-items:center;padding:7px 9px;border-radius:6px;font-size:12.5px;background:var(--panel-alt);border-left:2px solid transparent;}
+.prog-pcm-hora{font-family:'Geist Mono',monospace;font-size:11px;color:var(--text-faint);white-space:nowrap;}
 .prog-pcm-item.atrasado{border-left-color:var(--sla-breach);}
 .prog-pcm-os a{color:var(--blue);text-decoration:none;font-family:'Geist Mono',monospace;font-size:11.5px;}
 .prog-pcm-os a:hover{text-decoration:underline;}
@@ -700,7 +701,7 @@ body{
 .prog-pcm-estado-progresso{color:var(--blue);background:rgba(96,165,250,.12);}
 .prog-pcm-estado-pendente{color:var(--text-dim);background:rgba(255,255,255,.05);}
 .prog-pcm-estado-pausada{color:var(--amber);background:rgba(245,166,35,.12);}
-@media(max-width:600px){.prog-pcm-item{grid-template-columns:1fr auto;}.prog-pcm-tarefa{grid-column:1 / -1;white-space:normal;}}
+@media(max-width:600px){.prog-pcm-item{grid-template-columns:50px 1fr auto;}.prog-pcm-tarefa{grid-column:1 / -1;white-space:normal;}}
 .bar-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s,border-radius .12s;border-radius:5px;}
 .bar-row:last-child{border-bottom:none;}
 .bar-row:hover{background:rgba(255,255,255,0.05);}
@@ -7238,13 +7239,13 @@ async function _gcCarregarAtividadesPCM() {
     _gcItensCache = [];
     (result.grupos || []).forEach(g => {
       (g.itens || []).forEach(it => {
-        if ((it.cliente || '') !== cliente) return;
+        if (normalizeCliente(it.cliente || '') !== cliente) return;
         _gcItensCache.push({
-          id: 'pcm_' + it.idWO + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
+          id: 'pcm_' + String(it.os || '') + '_' + String(it.hIni || '') + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
           usina: g.usina,
           descricao: it.tarefa || it.tipo || 'Atividade programada',
           numeroOS: it.os || '',
-          meta: `${it.estado || ''}${it.atrasado ? ' · atrasada' : ''}`,
+          meta: `${it.hIni ? it.hIni + (it.hFim ? '–' + it.hFim + ' · ' : ' · ') : ''}${it.estado || ''}${it.atrasado ? ' · atrasada' : ''}`,
         });
       });
     });
@@ -7693,10 +7694,13 @@ async function carregarProgramacaoPcm(dataParam, forcar) {
     if (totalEl) totalEl.textContent = result.total || 0;
     if (sub) {
       const atrasadasTxt = result.atrasadas ? ` · ${result.atrasadas} atrasada(s)` : '';
-      sub.textContent = `${result.total} atividade(s)${atrasadasTxt}`;
+      const diaTxt = result.diaSemana ? ` · ${result.diaSemana}` : '';
+      sub.textContent = `${result.total} atividade(s)${atrasadasTxt}${diaTxt}`;
     }
     if (gruposEl) {
-      if (!result.grupos || result.grupos.length === 0) {
+      if (result.aviso) {
+        gruposEl.innerHTML = `<div class="empty-state">${esc(result.aviso)}</div>`;
+      } else if (!result.grupos || result.grupos.length === 0) {
         gruposEl.innerHTML = `<div class="empty-state">Nenhuma atividade programada pelo PCM para ${esc(result.data)}.</div>`;
       } else {
         gruposEl.innerHTML = result.grupos.map(g => `
@@ -7705,7 +7709,8 @@ async function carregarProgramacaoPcm(dataParam, forcar) {
             <div class="prog-pcm-itens">
               ${g.itens.map(it => `
                 <div class="prog-pcm-item${it.atrasado ? ' atrasado' : ''}">
-                  <span class="prog-pcm-os">${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener">OS ${esc(it.os || '—')}</a>` : `OS ${esc(it.os || '—')}`}</span>
+                  <span class="prog-pcm-hora">${it.hIni ? esc(it.hIni) + (it.hFim ? '–' + esc(it.hFim) : '') : ''}</span>
+                  <span class="prog-pcm-os">OS ${esc(it.os || '—')}</span>
                   <span class="prog-pcm-tarefa" title="${esc(it.tarefa || it.tipo || '')}">${esc(it.tarefa || it.tipo || '—')}</span>
                   <span class="prog-pcm-estado prog-pcm-estado-${_progPcmEstadoSlug(it.estado)}">${esc(it.estado || '—')}</span>
                 </div>
@@ -8073,6 +8078,14 @@ function _diasAtraso(prazoBR) {
   return Math.round((hoje - prazo) / 86400000); // positivo = atrasado
 }
 
+// Igual a _diasAtraso, mas também entende os itens "pseudo-atividade"
+// vindos da Programação PCM — esses não têm prazo (só dia/hora), então
+// usam a flag _pcmAtrasado (calculada pelo backend) como equivalente.
+function _itemDiasAtraso(a) {
+  if (a && a._pcmAtrasado) return 1;
+  return _diasAtraso(a && a.prazo);
+}
+
 // Mesmo técnico grafado de formas diferentes na Fracttal (apelido x nome
 // completo) — mantém uma única entrada no agrupamento por equipe.
 const _RESPONSAVEL_ALIASES = {
@@ -8167,7 +8180,7 @@ async function _comunicadoCarregarEquipesPCM() {
         const eq = it.cluster || 'Sem cluster';
         if (_EQUIPES_EXCLUIDAS.has(eq)) return;
         if (!porEquipe[eq]) porEquipe[eq] = [];
-        porEquipe[eq].push(_pcmItemParaAtividadeLike(it));
+        porEquipe[eq].push(_pcmItemParaAtividadeLike(it, g.usina));
       });
     });
     _comunicadoPorEquipeCacheBruto = porEquipe;
@@ -8181,21 +8194,24 @@ async function _comunicadoCarregarEquipesPCM() {
 
 // Normaliza um item do JSON de Programação PCM pro mesmo formato de uma
 // "atividade" do Painel — assim os cards, a geração de texto e o disparo
-// de comunicado funcionam sem duplicar lógica.
-function _pcmItemParaAtividadeLike(it) {
-  const prazoBR = _ativFormatarPrazoCard(it.dataProg || '');
+// de comunicado funcionam sem duplicar lógica. `usina` vem à parte porque
+// no /programacao-pcm ela é a chave do grupo, não um campo do item.
+function _pcmItemParaAtividadeLike(it, usina) {
   return {
-    id: 'pcm_' + it.idWO + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
+    id: 'pcm_' + String(it.os || '') + '_' + String(it.hIni || '') + '_' + String(it.tarefa || it.tipo || '').replace(/\s+/g, '_').toLowerCase(),
     numeroOS: it.os,
     descricao: it.tarefa || it.tipo || 'Atividade programada',
-    usina: it.usina,
-    cliente: it.cliente,
+    usina: usina,
+    cliente: normalizeCliente(it.cliente || '') || it.cliente,
     cluster: it.cluster,
-    prazo: prazoBR,
+    prazo: '',
+    hIni: it.hIni,
+    hFim: it.hFim,
     statusGeralOS: it.estado,
     status: it.estado,
     percentualOS: '',
     prioridade: it.atrasado ? 'Alta' : 'Normal',
+    _pcmAtrasado: !!it.atrasado,
   };
 }
 
@@ -8235,7 +8251,7 @@ function _comunicadoRenderListaEquipes(porEquipe, rotulo) {
   const lista = document.getElementById('comunicadoListaEquipes');
   if (!lista) return;
   lista.innerHTML = equipes.map(eq => {
-    const atrasadas = porEquipe[eq].filter(a => (_diasAtraso(a.prazo) ?? -999) > 0).length;
+    const atrasadas = porEquipe[eq].filter(a => (_itemDiasAtraso(a) ?? -999) > 0).length;
     return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
       <input type="checkbox" class="comunicado-equipe-check" value="${esc(eq)}" checked style="width:16px;height:16px;accent-color:var(--amber);flex:none;">
       <span style="flex:1;font-size:13px;color:var(--text);">${esc(eq)}</span>
@@ -8249,7 +8265,7 @@ function _comunicadoSelecionarTodas(marcar) {
 }
 
 function _montarTextoComunicado(equipe, lista, hojeStr, fonte) {
-  lista = lista.slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
+  lista = lista.slice().sort((a,b) => (_itemDiasAtraso(b) ?? -999) - (_itemDiasAtraso(a) ?? -999));
   const ehPcm = fonte === 'pcm';
   let txt = ehPcm
     ? `📅 *Programação do dia — ${equipe}*\n📅 ${hojeStr}\n\n`
@@ -8258,7 +8274,7 @@ function _montarTextoComunicado(equipe, lista, hojeStr, fonte) {
     ? `Segue a programação de hoje, *${lista.length} atividade${lista.length!==1?'s':''}*:\n\n`
     : `Você tem *${lista.length} atividade${lista.length!==1?'s':''}* pendente${lista.length!==1?'s':''}:\n\n`;
   lista.forEach((a, i) => {
-    const dias = _diasAtraso(a.prazo);
+    const dias = _itemDiasAtraso(a);
     const atrasada = dias !== null && dias > 0;
     txt += `${i+1}. ${atrasada ? '🔴' : '🟢'} ${a.numeroOS ? 'OS '+a.numeroOS+' — ' : ''}${a.usina||''}\n`;
     txt += `   ${a.descricao||''}\n`;
@@ -8285,8 +8301,8 @@ function _gerarComunicados() {
 
   let html = '';
   marcadas.forEach(equipe => {
-    const lista = (_comunicadoPorEquipeCache[equipe] || []).slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
-    const atrasadas = lista.filter(a => (_diasAtraso(a.prazo) ?? -999) > 0).length;
+    const lista = (_comunicadoPorEquipeCache[equipe] || []).slice().sort((a,b) => (_itemDiasAtraso(b) ?? -999) - (_itemDiasAtraso(a) ?? -999));
+    const atrasadas = lista.filter(a => (_itemDiasAtraso(a) ?? -999) > 0).length;
     const idSeguro = equipe.replace(/[^a-zA-Z0-9]/g, '_');
     _comunicadoEquipeMap[idSeguro] = equipe;
     _comunicadoSelecaoAtiva[idSeguro] = new Set(lista.map(a => String(a.id))); // todas selecionadas por padrão
@@ -8314,7 +8330,7 @@ function _gerarComunicados() {
       <div style="font-size:10px;color:var(--text-faint);margin-bottom:8px;">Clique num card pra incluir/excluir do comunicado</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
         ${lista.map(a => {
-          const dias = _diasAtraso(a.prazo);
+          const dias = _itemDiasAtraso(a);
           const atrasada = dias !== null && dias > 0;
           const cor = atrasada ? 'var(--red)' : _prioridadeCor(a.prioridade);
           return `<div id="comunicadoCard_${idSeguro}_${esc(a.id)}" class="comunicado-card" onclick="_comunicadoToggleAtividade('${idSeguro}','${esc(a.id)}')" style="border-left:3px solid ${cor};background:rgba(255,255,255,0.02);border-radius:6px;padding:9px 10px;cursor:pointer;position:relative;transition:opacity .15s,filter .15s;">
@@ -8351,7 +8367,7 @@ function _comunicadoAtualizarBlocoEquipe(idSeguro) {
   const equipe = _comunicadoEquipeMap[idSeguro];
   if (!equipe) return;
   const hojeStr = new Date().toLocaleDateString('pt-BR');
-  const listaCompleta = (_comunicadoPorEquipeCache[equipe] || []).slice().sort((a,b) => (_diasAtraso(b.prazo) ?? -999) - (_diasAtraso(a.prazo) ?? -999));
+  const listaCompleta = (_comunicadoPorEquipeCache[equipe] || []).slice().sort((a,b) => (_itemDiasAtraso(b) ?? -999) - (_itemDiasAtraso(a) ?? -999));
   const set = _comunicadoSelecaoAtiva[idSeguro] || new Set();
   const selecionadas = listaCompleta.filter(a => set.has(String(a.id)));
 
