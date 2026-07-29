@@ -1441,10 +1441,6 @@ body{
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Eficiência O&amp;M
         </div>
-        <div class="sb-nav-item sb-nav-sub" data-nav="resumos">
-          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-          Resumos Diário/Semanal
-        </div>
       </div>
     </nav>
 
@@ -1867,20 +1863,6 @@ body{
         <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
       </section>
 
-      <!-- ── SEÇÃO: RESUMOS DIÁRIO/SEMANAL ───────────────────── -->
-      <section class="content-section" id="sec-resumos">
-        <div style="display:flex;gap:8px;margin-bottom:18px;">
-          <button class="resumo-tab-btn active" data-tipo="diario" onclick="_resumoSetTab('diario')">Diários</button>
-          <button class="resumo-tab-btn" data-tipo="semanal" onclick="_resumoSetTab('semanal')">Semanais</button>
-        </div>
-        <div style="display:flex;gap:20px;align-items:flex-start;">
-          <div id="resumosLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
-          <div id="resumoConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
-            Selecione um resumo na lista ao lado.
-          </div>
-        </div>
-      </section>
-
       <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
       <section class="content-section" id="sec-relatorios">
         <div style="max-width:520px;margin:40px auto;">
@@ -1942,10 +1924,27 @@ body{
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Controle de Ponto
             </button>
+            <button class="tab-btn" id="gerTabResumos" onclick="_gerMudarTab('resumos')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+              Resumos Diário/Semanal
+            </button>
           </div>
 
           <div id="gerPainelBoletins">
             <div id="cmpLista" style="display:flex;flex-direction:column;gap:12px;"></div>
+          </div>
+
+          <div id="gerPainelResumos" style="display:none;">
+            <div style="display:flex;gap:8px;margin-bottom:18px;">
+              <button class="resumo-tab-btn active" data-tipo="diario" onclick="_resumoSetTab('diario')">Diários</button>
+              <button class="resumo-tab-btn" data-tipo="semanal" onclick="_resumoSetTab('semanal')">Semanais</button>
+            </div>
+            <div style="display:flex;gap:20px;align-items:flex-start;">
+              <div id="resumosLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
+              <div id="resumoConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
+                Selecione um resumo na lista ao lado.
+              </div>
+            </div>
           </div>
 
           <div id="gerPainelPonto" style="display:none;">
@@ -3174,7 +3173,6 @@ const NAV_TITLES = {
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
   'localizacao': 'Localização das Usinas',
   'comunicados': 'Comunicados',
-  'resumos': 'Resumos Diário/Semanal',
 };
 
 function switchNav(nav) {
@@ -3184,13 +3182,12 @@ function switchNav(nav) {
   if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'comunicados') { _comSetTab(_comTabAtual); }
-  if (nav === 'resumos') { carregarResumos(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
   // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
-  if (['rondas','historico-log','mttr','eficiencia','resumos'].includes(nav)) {
+  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
     _toggleGrupoFerramentas(true);
   }
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
@@ -10657,18 +10654,23 @@ async function relGerarRelatorio(){
   }
 }
 
-// ── Gerencial: sub-abas (Boletins / Controle de Ponto) ──────────────
+// ── Gerencial: sub-abas (Boletins / Controle de Ponto / Resumos) ────
 function _gerMudarTab(tab) {
   const tabBol = document.getElementById('gerTabBoletins');
   const tabPto = document.getElementById('gerTabPonto');
+  const tabRes = document.getElementById('gerTabResumos');
   const painelBol = document.getElementById('gerPainelBoletins');
   const painelPto = document.getElementById('gerPainelPonto');
+  const painelRes = document.getElementById('gerPainelResumos');
+  [tabBol, tabPto, tabRes].forEach(t => t.classList.remove('active'));
+  [painelBol, painelPto, painelRes].forEach(p => p.style.display = 'none');
   if (tab === 'ponto') {
-    tabPto.classList.add('active'); tabBol.classList.remove('active');
-    painelPto.style.display = ''; painelBol.style.display = 'none';
+    tabPto.classList.add('active'); painelPto.style.display = '';
+  } else if (tab === 'resumos') {
+    tabRes.classList.add('active'); painelRes.style.display = '';
+    carregarResumos();
   } else {
-    tabBol.classList.add('active'); tabPto.classList.remove('active');
-    painelBol.style.display = ''; painelPto.style.display = 'none';
+    tabBol.classList.add('active'); painelBol.style.display = '';
   }
 }
 
