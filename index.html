@@ -442,6 +442,13 @@ body{
 .nova-oc-select option{background:var(--panel);color:var(--text);}
 .nova-oc-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .nova-oc-submit{width:100%;background:var(--text);border:1px solid var(--text);color:var(--bg);border-radius:8px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-top:4px;}
+.resumo-tab-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;}
+.resumo-tab-btn.active{background:var(--teal);border-color:var(--teal);color:#04231e;}
+.resumo-item{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:12.5px;}
+.resumo-item:hover{background:rgba(255,255,255,0.06);}
+.resumo-item.active{background:rgba(20,184,166,.12);border-color:rgba(20,184,166,.4);}
+.resumo-item .resumo-item-data{font-weight:700;color:#ededed;margin-bottom:2px;}
+.resumo-item .resumo-item-meta{color:var(--text-faint);font-size:11px;}
 .nova-oc-submit:hover{background:#e8e8e8;}
 .nova-oc-submit:disabled{opacity:.5;cursor:not-allowed;}
 
@@ -1429,6 +1436,10 @@ body{
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Eficiência O&amp;M
         </div>
+        <div class="sb-nav-item sb-nav-sub" data-nav="resumos">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+          Resumos Diário/Semanal
+        </div>
       </div>
     </nav>
 
@@ -1849,6 +1860,20 @@ body{
       <section class="content-section" id="sec-eficiencia">
         <div class="kpis" style="margin-bottom:24px;" id="efKpis"></div>
         <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
+      </section>
+
+      <!-- ── SEÇÃO: RESUMOS DIÁRIO/SEMANAL ───────────────────── -->
+      <section class="content-section" id="sec-resumos">
+        <div style="display:flex;gap:8px;margin-bottom:18px;">
+          <button class="resumo-tab-btn active" data-tipo="diario" onclick="_resumoSetTab('diario')">Diários</button>
+          <button class="resumo-tab-btn" data-tipo="semanal" onclick="_resumoSetTab('semanal')">Semanais</button>
+        </div>
+        <div style="display:flex;gap:20px;align-items:flex-start;">
+          <div id="resumosLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
+          <div id="resumoConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
+            Selecione um resumo na lista ao lado.
+          </div>
+        </div>
       </section>
 
       <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
@@ -3144,6 +3169,7 @@ const NAV_TITLES = {
   'boletins': 'Boletins de Medição & Relatórios de Terceiros',
   'localizacao': 'Localização das Usinas',
   'comunicados': 'Comunicados',
+  'resumos': 'Resumos Diário/Semanal',
 };
 
 function switchNav(nav) {
@@ -3153,12 +3179,13 @@ function switchNav(nav) {
   if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'comunicados') { _comSetTab(_comTabAtual); }
+  if (nav === 'resumos') { carregarResumos(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
   // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
-  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
+  if (['rondas','historico-log','mttr','eficiencia','resumos'].includes(nav)) {
     _toggleGrupoFerramentas(true);
   }
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
@@ -7087,6 +7114,60 @@ async function _gerarComunicadoLivre() {
 }
 
 // ── Galeria de fotos de atividades (só atividades manuais, sem numeroOS) ──
+// ── Resumos Diário/Semanal ──────────────────────────────────────────
+let _resumoTabAtual = 'diario';
+let _resumosCache = [];
+
+function _resumoSetTab(tipo) {
+  _resumoTabAtual = tipo;
+  document.querySelectorAll('.resumo-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipo));
+  carregarResumos();
+}
+
+async function carregarResumos() {
+  const listaEl = document.getElementById('resumosLista');
+  const conteudoEl = document.getElementById('resumoConteudo');
+  if (!listaEl) return;
+  listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Carregando…</div>';
+  try {
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/resumos?tipo=${_resumoTabAtual}&limit=60`);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
+    _resumosCache = data.itens || [];
+    if (!_resumosCache.length) {
+      listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Nenhum resumo gerado ainda.</div>';
+      conteudoEl.textContent = 'Nenhum resumo gerado ainda.';
+      return;
+    }
+    listaEl.innerHTML = _resumosCache.map((r, i) => {
+      const dataLabel = r.tipo === 'semanal'
+        ? `${_fmtDataBr(r.data_inicio)} – ${_fmtDataBr(r.data_fim)}`
+        : _fmtDataBr(r.data_referencia);
+      const envio = r.enviado_whatsapp ? '📤 Enviado' : '📝 Gerado (não enviado)';
+      return `<div class="resumo-item${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="_resumoAbrir(${i})">
+        <div class="resumo-item-data">${esc(dataLabel)}</div>
+        <div class="resumo-item-meta">${esc(envio)} · criado ${esc(r.criado_em || '')}</div>
+      </div>`;
+    }).join('');
+    _resumoAbrir(0);
+  } catch (e) {
+    listaEl.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px;">Erro ao carregar resumos.</div>';
+  }
+}
+
+function _resumoAbrir(idx) {
+  const r = _resumosCache[idx];
+  if (!r) return;
+  document.querySelectorAll('.resumo-item').forEach(el => el.classList.toggle('active', Number(el.dataset.idx) === idx));
+  document.getElementById('resumoConteudo').textContent = r.texto;
+}
+
+function _fmtDataBr(dataISO) {
+  if (!dataISO) return '';
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
 async function _renderGaleriaFotos(atividadeId, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
