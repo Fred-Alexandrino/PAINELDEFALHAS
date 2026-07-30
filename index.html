@@ -1381,42 +1381,42 @@ body{
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-nav-item active" data-nav="atividades" draggable="true">
+      <div class="sb-nav-item active" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
         <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
       </div>
-      <div class="sb-nav-item" data-nav="programacao-pcm" draggable="true">
+      <div class="sb-nav-item" data-nav="programacao-pcm" data-label="Programação PCM" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Programação PCM
       </div>
-      <div class="sb-nav-item" data-nav="falhas" draggable="true">
+      <div class="sb-nav-item" data-nav="falhas" data-label="Falhas" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Falhas
         <span class="sb-nav-badge-unread" id="sbBadgeFalhas" style="display:none;"></span>
       </div>
-      <div class="sb-nav-item" data-nav="chamados" draggable="true">
+      <div class="sb-nav-item" data-nav="chamados" data-label="Chamados" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
         Chamados
         <span class="sb-nav-badge" id="sbChamadosBadge">0</span>
       </div>
-      <div class="sb-nav-item" data-nav="relatorios" draggable="true">
+      <div class="sb-nav-item" data-nav="relatorios" data-label="Relatórios" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Relatórios
       </div>
-      <div class="sb-nav-item" data-nav="processos" draggable="true">
+      <div class="sb-nav-item" data-nav="processos" data-label="Zeladoria" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </div>
-      <div class="sb-nav-item" data-nav="localizacao" draggable="true">
+      <div class="sb-nav-item" data-nav="localizacao" data-label="Localização" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Localização
       </div>
-      <div class="sb-nav-item" data-nav="boletins" draggable="true">
+      <div class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
       </div>
-      <div class="sb-nav-item" data-nav="comunicados" draggable="true">
+      <div class="sb-nav-item" data-nav="comunicados" data-label="Comunicados" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados
       </div>
@@ -3330,6 +3330,7 @@ function _sbNavApplyStoredOrder() {
 function _sbNavSaveOrder() {
   const order = _sbNavTopItems().map(_sbNavKeyOf);
   try { localStorage.setItem(SB_NAV_ORDER_KEY, JSON.stringify(order)); } catch (e) {}
+  _sincronizarBottomNavComSidebar();
 }
 
 function _initSidebarDragReorder() {
@@ -3389,6 +3390,36 @@ _initSidebarDragReorder();
 document.querySelectorAll('.sb-nav-item:not(.disabled):not(#navFerramentasToggle)').forEach(el => {
   el.addEventListener('click', () => switchNav(el.dataset.nav));
 });
+// Bottom nav (mobile): reconstruída dinamicamente a partir dos 4 primeiros
+// itens da sidebar, na ordem que o usuário escolheu por drag-and-drop —
+// antes era uma lista fixa em HTML, então reordenar no PC não refletia
+// no celular (corrigido 29/07/2026). O botão "Menu" continua fixo por
+// último e abre a sidebar completa (já na mesma ordem, já que reusa o
+// mesmo #sbNav) pra acessar os itens que não couberam nos 4 slots.
+function _sbTopItemsForBottomNav() {
+  return _sbNavTopItems().filter(el => el.id !== 'navFerramentasToggle');
+}
+function _sincronizarBottomNavComSidebar() {
+  const bottomNav = document.getElementById('bottomNav');
+  if (!bottomNav) return;
+  const itens = _sbTopItemsForBottomNav().slice(0, 4);
+  if (!itens.length) return; // sidebar ainda não montada — mantém o HTML padrão
+  const navAtual = document.querySelector('.sb-nav-item.active')?.dataset.nav || itens[0].dataset.nav;
+  const htmlItens = itens.map(el => {
+    const svg = el.querySelector('svg');
+    const label = el.dataset.label || el.childNodes[el.childNodes.length - 1]?.textContent?.trim() || el.dataset.nav;
+    const ativo = el.dataset.nav === navAtual ? ' active' : '';
+    return `<div class="bn-item${ativo}" data-nav="${esc(el.dataset.nav)}">${svg ? svg.outerHTML : ''}<span>${esc(label)}</span></div>`;
+  }).join('');
+  bottomNav.innerHTML = htmlItens + `
+    <div class="bn-item" id="bnMenuBtn">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span>Menu</span>
+    </div>
+  `;
+  _initBottomNav();
+}
+
 // Bottom nav: registra listeners depois que o DOM carrega completamente
 function _initBottomNav() {
   document.querySelectorAll('.bn-item[data-nav]').forEach(el => {
@@ -3397,9 +3428,9 @@ function _initBottomNav() {
   document.getElementById('bnMenuBtn')?.addEventListener('click', openMobileSidebar);
 }
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', _initBottomNav);
+  document.addEventListener('DOMContentLoaded', _sincronizarBottomNavComSidebar);
 } else {
-  _initBottomNav();
+  _sincronizarBottomNavComSidebar();
 }
 
 /* ══ LOCALIZAÇÃO DAS USINAS (Mapa + Lista) ══ */
