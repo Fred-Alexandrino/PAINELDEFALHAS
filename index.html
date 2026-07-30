@@ -8513,6 +8513,11 @@ let _comunicadoPorEquipeCacheBruto = {};            // não filtrado por cliente
 let _comunicadoFiltroCliente = '';
 let _comunicadoRotuloAtual = 'aberta';
 
+// Marca quais "equipes" do agrupamento acima na verdade são chamados de
+// garantia com fabricante (etiquetasOS contém "CHAMADOS"), agrupados por
+// responsável em vez de cluster/usina — ver _comunicadoCarregarEquipesAtividades.
+let _comunicadoTipoPorEquipe = {};
+
 // Painel unificado de Comunicados (28/07/2026): os 4 fluxos que antes
 // viviam espalhados (modal em Atividades > Ações, seção própria "Gestão
 // Cliente", modal em Zeladoria, botão solto na sidebar) agora moram
@@ -8574,8 +8579,26 @@ function _comunicadoSetFonte(fonte) {
 function _comunicadoCarregarEquipesAtividades() {
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const porEquipe = {};
+  _comunicadoTipoPorEquipe = {};
   abertas.forEach(a => {
-    const eq = a.cluster || _normalizarResponsavel(a.responsavel) || 'Sem cluster';
+    const etiquetas = (a.etiquetasOS || '').toUpperCase();
+    let eq;
+    if (etiquetas.includes('CHAMADOS')) {
+      // Chamado de garantia com fabricante: o responsável é um analista de
+      // pós-operação (ex.: Singrid Vieira), não o técnico de campo do
+      // cluster/usina onde o equipamento está fisicamente. Agrupar à parte,
+      // por responsável, independente de usina/cluster — pra gerar um
+      // comunicado dedicado que o Fred copia e envia direto pro analista,
+      // em vez de cair junto no comunicado do técnico de campo. Corrigido
+      // 30/07/2026: OS 10149 (chamado STI, responsável Singrid Vieira) tinha
+      // caído no cluster "MG Centro 01" e foi enviada por engano ao grupo
+      // do técnico de campo Daniel de Paula.
+      const resp = _normalizarResponsavel(a.responsavel) || 'Sem responsável';
+      eq = `Chamados de Garantia — ${resp}`;
+      _comunicadoTipoPorEquipe[eq] = 'chamado';
+    } else {
+      eq = a.cluster || _normalizarResponsavel(a.responsavel) || 'Sem cluster';
+    }
     if (_EQUIPES_EXCLUIDAS.has(eq)) return;
     if (!porEquipe[eq]) porEquipe[eq] = [];
     porEquipe[eq].push(a);
@@ -8699,10 +8722,16 @@ function _comunicadoSelecionarTodas(marcar) {
 function _montarTextoComunicado(equipe, lista, hojeStr, fonte) {
   lista = lista.slice().sort((a,b) => (_itemDiasAtraso(b) ?? -999) - (_itemDiasAtraso(a) ?? -999));
   const ehPcm = fonte === 'pcm';
-  let txt = ehPcm
+  const ehChamado = _comunicadoTipoPorEquipe[equipe] === 'chamado';
+  const nomeResponsavel = ehChamado ? equipe.replace('Chamados de Garantia — ', '') : equipe;
+  let txt = ehChamado
+    ? `📞 *Chamados de Garantia em aberto — ${nomeResponsavel}*\n📅 ${hojeStr}\n\n`
+    : ehPcm
     ? `📅 *Programação do dia — ${equipe}*\n📅 ${hojeStr}\n\n`
     : `📋 *Atividades em aberto — ${equipe}*\n📅 ${hojeStr}\n\n`;
-  txt += ehPcm
+  txt += ehChamado
+    ? `Seguem os chamados de garantia em aberto, *${lista.length} chamado${lista.length!==1?'s':''}*:\n\n`
+    : ehPcm
     ? `Segue a programação de hoje, *${lista.length} atividade${lista.length!==1?'s':''}*:\n\n`
     : `Você tem *${lista.length} atividade${lista.length!==1?'s':''}* pendente${lista.length!==1?'s':''}:\n\n`;
   lista.forEach((a, i) => {
@@ -8715,7 +8744,9 @@ function _montarTextoComunicado(equipe, lista, hojeStr, fonte) {
     if (st) txt += `   📊 Status: ${st}${a.percentualOS !== undefined && a.percentualOS !== '' ? ' — '+a.percentualOS+'%' : ''}\n`;
     txt += `\n`;
   });
-  txt += ehPcm
+  txt += ehChamado
+    ? `Por favor, me atualize o andamento desses chamados assim que possível.`
+    : ehPcm
     ? `Essa é a programação definida pelo PCM para hoje. Qualquer impedimento em campo, me avisem.`
     : `Por favor, atualizem o andamento dessas atividades o quanto antes. Qualquer dificuldade, me avisem.`;
   return txt;
@@ -8740,11 +8771,18 @@ function _gerarComunicados() {
     _comunicadoSelecaoAtiva[idSeguro] = new Set(lista.map(a => String(a.id))); // todas selecionadas por padrão
     _comunicadoTextoCache[idSeguro] = _montarTextoComunicado(equipe, lista, hojeStr, _comunicadoFonte);
 
+    // Chamados de garantia são agrupados por responsável (analista de
+    // pós-operação), não por cluster — não existe grupo de WhatsApp pra
+    // essa "equipe", então só faz sentido oferecer "Copiar mensagem" pro
+    // Fred colar manualmente onde precisar (ex.: direto pra Singrid Vieira).
+    const ehChamado = _comunicadoTipoPorEquipe[equipe] === 'chamado';
+    const icone = ehChamado ? '📞' : '📍';
+
     const rotuloContagem = _comunicadoFonte === 'pcm' ? 'programada' : 'em aberto';
     html += `<div style="margin-bottom:22px;border:1px solid var(--border-strong);border-radius:10px;padding:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);">📍 ${esc(equipe)}</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${icone} ${esc(equipe)}</div>
           <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${lista.length} atividade${lista.length!==1?'s':''} ${rotuloContagem}${atrasadas ? ` · <span style="color:var(--red);">${atrasadas} atrasada${atrasadas!==1?'s':''}</span>` : ''}</div>
           <div id="comunicadoContagem_${idSeguro}" style="font-size:13px;color:var(--amber);margin-top:3px;">${lista.length} de ${lista.length} selecionada${lista.length!==1?'s':''} pro comunicado</div>
         </div>
@@ -8753,10 +8791,10 @@ function _gerarComunicados() {
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Copiar mensagem
           </button>
-          <button id="dispararBtn_${idSeguro}" onclick="_dispararComunicadoCluster('${esc(equipe)}','${idSeguro}', this)" style="background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          ${ehChamado ? '' : `<button id="dispararBtn_${idSeguro}" onclick="_dispararComunicadoCluster('${esc(equipe)}','${idSeguro}', this)" style="background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Disparar comunicado
-          </button>
+          </button>`}
         </div>
       </div>
       <div style="font-size:13px;color:var(--text-faint);margin-bottom:8px;">Clique num card pra incluir/excluir do comunicado</div>
