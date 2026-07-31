@@ -8468,12 +8468,22 @@ const _PCM_SIGLA_PREVENTIVA = {
 // sigla, em vez de uma linha por atividade — "8259; seg, ter, qua; MPM".
 // Caso 2 (tarefa específica): 1 linha por atividade, com a tarefa por
 // extenso e o turno — "9579; seg; Inspeção do inversor 1.10; manhã".
-function _montarTextoReprogramacaoPCM(itens) {
-  const parseDataBRSort = (s) => {
-    const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
-  };
-  const normalizados = itens.map(it => {
+//
+// Agrupamento por Cliente > Cluster > Usina (pedido por Fred em 31/07/2026,
+// depois de ver o texto sair como uma lista única difícil de conferir) —
+// mesma lógica de blocos usada em _montarTextoReprogramacao, mas com um
+// nível a mais (Cliente) já que o texto do PCM pode reunir vários clientes
+// de uma vez.
+function _pcmParseDataBRSort(s) {
+  const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
+}
+
+// Monta as linhas no formato PCM (com o agrupamento MPM/MPS/MPA por OS) pra
+// um conjunto de itens já pertencentes à MESMA usina — retorna as linhas de
+// texto já ordenadas cronologicamente.
+function _pcmLinhasDoGrupo(itensGrupo) {
+  const normalizados = itensGrupo.map(it => {
     let tarefa = it.tarefa || it.equipamento || it.justificativa || '—';
     tarefa = tarefa.replace(/^Múltiplos equipamentos \(Preventiva (Mensal|Semestral|Anual)\)$/i, 'Preventiva $1');
     return { ...it, _tarefaNormalizada: tarefa };
@@ -8494,17 +8504,53 @@ function _montarTextoReprogramacaoPCM(itens) {
 
   const linhas = [];
   Object.entries(porOSPreventiva).forEach(([os, grupo]) => {
-    const itensOrdenados = [...grupo.itens].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
+    const itensOrdenados = [...grupo.itens].sort((a,b) => _pcmParseDataBRSort(a.dataSugerida) - _pcmParseDataBRSort(b.dataSugerida));
     const dias = [...new Set(itensOrdenados.map(it => _ativDiaSemanaAbrev(it.dataSugerida)))];
-    linhas.push({ ordem: parseDataBRSort(itensOrdenados[0]?.dataSugerida), texto: `${os}; ${dias.join(', ')}; ${grupo.sigla}` });
+    linhas.push({ ordem: _pcmParseDataBRSort(itensOrdenados[0]?.dataSugerida), texto: `${os}; ${dias.join(', ')}; ${grupo.sigla}` });
   });
   linhasCaso2.forEach(it => {
     const os = it.numeroOS || '—';
-    linhas.push({ ordem: parseDataBRSort(it.dataSugerida), texto: `${os}; ${_ativDiaSemanaAbrev(it.dataSugerida)}; ${it._tarefaNormalizada}; ${_ativTurnoLabel(it.turno)}` });
+    linhas.push({ ordem: _pcmParseDataBRSort(it.dataSugerida), texto: `${os}; ${_ativDiaSemanaAbrev(it.dataSugerida)}; ${it._tarefaNormalizada}; ${_ativTurnoLabel(it.turno)}` });
   });
 
   linhas.sort((a,b) => a.ordem - b.ordem);
-  return linhas.map(l => l.texto).join('\n');
+  return linhas.map(l => l.texto);
+}
+
+function _montarTextoReprogramacaoPCM(itens) {
+  const porCliente = {};
+  itens.forEach(it => {
+    const cli = it.cliente || 'Sem cliente';
+    if (!porCliente[cli]) porCliente[cli] = [];
+    porCliente[cli].push(it);
+  });
+
+  const blocos = [];
+  Object.keys(porCliente).sort().forEach(cliente => {
+    let bloco = `📋 Programação PCM - ${cliente}\n\n`;
+    const porCluster = {};
+    porCliente[cliente].forEach(it => {
+      const cluster = it.cluster || 'Sem cluster';
+      if (!porCluster[cluster]) porCluster[cluster] = [];
+      porCluster[cluster].push(it);
+    });
+    Object.keys(porCluster).sort().forEach(cluster => {
+      bloco += `${cluster}:\n\n`;
+      const porUsina = {};
+      porCluster[cluster].forEach(it => {
+        const usina = it.usina || 'Sem usina';
+        if (!porUsina[usina]) porUsina[usina] = [];
+        porUsina[usina].push(it);
+      });
+      Object.keys(porUsina).sort().forEach(usina => {
+        bloco += `${usina}\n`;
+        _pcmLinhasDoGrupo(porUsina[usina]).forEach(linha => { bloco += linha + '\n'; });
+        bloco += '\n';
+      });
+    });
+    blocos.push(bloco.trim());
+  });
+  return blocos.join('\n\n');
 }
 
 async function _copiarTextoReprogramacaoPCM(itens, btnEl) {
