@@ -276,14 +276,15 @@ body{
 .central-notif-empty{
   padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px;
 }
-.cmp-prazos-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;}
+.cmp-prazos-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;grid-column:1/-1;}
 .cmp-prazo-chip{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:84px;}
 .cmp-prazo-chip:hover{border-color:var(--teal);}
 .cmp-prazo-chip-urgente{border-color:var(--red);}
 .cmp-prazo-chip-cliente{font-size:13px;color:#d1d5db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
 .cmp-prazo-chip-dias{font-size:12px;font-weight:700;color:#ededed;font-family:'Geist Mono',monospace;}
 .cmp-prazo-chip-urgente .cmp-prazo-chip-dias{color:var(--red);}
-.cmp-cliente-bloco{margin-bottom:26px;scroll-margin-top:20px;}
+.cmp-cliente-bloco{scroll-margin-top:20px;background:rgba(255,255,255,.02);border:1px solid var(--border);
+  border-radius:12px;padding:16px 16px 14px;height:100%;box-sizing:border-box;}
 .cmp-cliente-nome{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-strong);}
 .cmp-card{background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:10px;padding:16px 18px;margin-bottom:10px;}
 .cmp-card.cmp-atrasado{border-color:var(--red);}
@@ -1317,6 +1318,18 @@ body{
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
 
+.rel-2col{display:grid;grid-template-columns:minmax(340px,480px) minmax(320px,1fr);gap:28px;
+  align-items:start;max-width:1080px;margin:40px auto;}
+@media(max-width:900px){.rel-2col{grid-template-columns:1fr;max-width:520px;gap:24px;}}
+.com-livre-2col{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:start;max-width:1080px;margin-top:4px;}
+@media(max-width:800px){.com-livre-2col{grid-template-columns:1fr;}}
+.com-livre-col-grupos{display:flex;flex-direction:column;}
+.ponto-2col{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch;}
+@media(max-width:800px){.ponto-2col{grid-template-columns:1fr;}}
+.ponto-col-orientacao{border-left:1px solid var(--border);padding-left:28px;display:flex;flex-direction:column;}
+@media(max-width:800px){.ponto-col-orientacao{border-left:none;padding-left:0;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}}
+.rel-card{background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:12px;
+  padding:24px;box-sizing:border-box;}
 .rel-input{width:100%;background:var(--bg-elevated);border:1px solid var(--border-strong);
   border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;box-sizing:border-box;}
 .rel-btn-primario{background:var(--teal);color:#0a0a0a;border:none;border-radius:8px;
@@ -1867,70 +1880,72 @@ body{
 
       <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
       <section class="content-section" id="sec-relatorios">
-        <div style="max-width:520px;margin:40px auto;">
-          <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                      text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
-            Relatórios Semanais
-          </div>
-
-          <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
-          <select id="relCliente" class="rel-input"></select>
-
-          <div style="display:flex;gap:12px;margin-top:12px;position:relative;">
-            <div style="flex:1;">
-              <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">De</label>
-              <div id="relDataInicio" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('inicio')">dd/mm/aaaa</div>
-            </div>
-            <div style="flex:1;">
-              <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Até</label>
-              <div id="relDataFim" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('fim')">dd/mm/aaaa</div>
+        <div class="rel-2col">
+          <div class="rel-card">
+            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
+                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
+              Relatórios Semanais
             </div>
 
-            <div id="relCalendarPopup" class="rel-cal-popup" style="display:none;">
-              <div class="rel-cal-header">
-                <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(-1)">&lsaquo;</button>
-                <div class="rel-cal-titulo" id="relCalTitulo"></div>
-                <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(1)">&rsaquo;</button>
+            <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
+            <select id="relCliente" class="rel-input"></select>
+
+            <div style="display:flex;gap:12px;margin-top:12px;position:relative;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">De</label>
+                <div id="relDataInicio" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('inicio')">dd/mm/aaaa</div>
               </div>
-              <div class="rel-cal-semana">
-                <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Até</label>
+                <div id="relDataFim" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('fim')">dd/mm/aaaa</div>
               </div>
-              <div class="rel-cal-grid" id="relCalGrid"></div>
-              <div class="rel-cal-hint" id="relCalHint">Selecione a data de início</div>
+
+              <div id="relCalendarPopup" class="rel-cal-popup" style="display:none;">
+                <div class="rel-cal-header">
+                  <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(-1)">&lsaquo;</button>
+                  <div class="rel-cal-titulo" id="relCalTitulo"></div>
+                  <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(1)">&rsaquo;</button>
+                </div>
+                <div class="rel-cal-semana">
+                  <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                </div>
+                <div class="rel-cal-grid" id="relCalGrid"></div>
+                <div class="rel-cal-hint" id="relCalHint">Selecione a data de início</div>
+              </div>
             </div>
+
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button class="rel-btn-secundario" onclick="relDefinirSemana('atual')">Semana atual</button>
+              <button class="rel-btn-secundario" onclick="relDefinirSemana('passada')">Semana passada</button>
+              <button class="rel-btn-secundario" onclick="relDefinirUltimos7Dias()">Últimos 7 dias</button>
+            </div>
+
+            <button id="relGerarBtn" class="rel-btn-primario" onclick="relGerarRelatorio()" style="margin-top:20px;width:100%;">
+              Gerar relatório (.pptx)
+            </button>
+
+            <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <button class="rel-btn-secundario" onclick="relDefinirSemana('atual')">Semana atual</button>
-            <button class="rel-btn-secundario" onclick="relDefinirSemana('passada')">Semana passada</button>
-            <button class="rel-btn-secundario" onclick="relDefinirUltimos7Dias()">Últimos 7 dias</button>
+          <div class="rel-card">
+            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
+                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
+              Relatório de Ocorrência
+            </div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Descreva brevemente o que aconteceu, anexe as fotos de evidência — a IA expande o resumo
+              pro texto formal e monta o relatório (.pptx) no padrão Grid Co.
+            </div>
+            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirRelatorioOcorrencia()">
+              Gerar Relatório de Ocorrência
+            </button>
           </div>
-
-          <button id="relGerarBtn" class="rel-btn-primario" onclick="relGerarRelatorio()" style="margin-top:20px;width:100%;">
-            Gerar relatório (.pptx)
-          </button>
-
-          <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
-        </div>
-
-        <div style="max-width:520px;margin:36px auto 0;padding-top:28px;border-top:1px solid var(--border);">
-          <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                      text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
-            Relatório de Ocorrência
-          </div>
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-            Descreva brevemente o que aconteceu, anexe as fotos de evidência — a IA expande o resumo
-            pro texto formal e monta o relatório (.pptx) no padrão Grid Co.
-          </div>
-          <button class="rel-btn-primario" style="width:100%;" onclick="_abrirRelatorioOcorrencia()">
-            Gerar Relatório de Ocorrência
-          </button>
         </div>
       </section>
 
 <!-- ── SEÇÃO: COMPROMISSOS (BM / Relatórios de Terceiros) + CONTROLE DE PONTO ── -->
       <section class="content-section" id="sec-boletins">
-        <div style="max-width:900px;margin:0 auto;">
+        <div style="max-width:1240px;margin:0 auto;">
           <div class="tabs-wrapper" style="margin-bottom:18px;">
             <button class="tab-btn active" id="gerTabBoletins" onclick="_gerMudarTab('boletins')">
               <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -1951,7 +1966,7 @@ body{
           </div>
 
           <div id="gerPainelBoletins">
-            <div id="cmpLista" style="display:flex;flex-direction:column;gap:12px;"></div>
+            <div id="cmpLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
           </div>
 
           <div id="gerPainelResumos" style="display:none;">
@@ -1975,7 +1990,7 @@ body{
             <div id="supervTemporariasAtuais" style="margin-bottom:22px;"></div>
 
             <div style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:10px;">Escolher usinas de outro supervisor</div>
-            <div id="supervOutrosSupervisores" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <div id="supervOutrosSupervisores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start;"></div>
           </div>
 
           <div id="gerPainelPonto" style="display:none;">
@@ -1985,43 +2000,47 @@ body{
               com um texto de comunicado individual pronto pra copiar e enviar.
             </div>
 
-            <div id="pontoDropZone" onclick="document.getElementById('pontoFileInput').click()"
-                 style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:24px;
-                        text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;
-                        transition:.15s;">
-              <svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.6;margin-bottom:8px;">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-              </svg>
-              <div>Clique para anexar os PDFs do controle de ponto (pode selecionar vários)</div>
-              <input type="file" id="pontoFileInput" accept="application/pdf" multiple style="display:none;" onchange="_pontoArquivosSelecionados(this.files)">
-            </div>
+            <div class="ponto-2col">
+              <div>
+                <div id="pontoDropZone" onclick="document.getElementById('pontoFileInput').click()"
+                     style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:24px;
+                            text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;
+                            transition:.15s;">
+                  <svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.6;margin-bottom:8px;">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <div>Clique para anexar os PDFs do controle de ponto (pode selecionar vários)</div>
+                  <input type="file" id="pontoFileInput" accept="application/pdf" multiple style="display:none;" onchange="_pontoArquivosSelecionados(this.files)">
+                </div>
 
-            <div id="pontoListaArquivos" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
+                <div id="pontoListaArquivos" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
 
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-              <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">
-                Opcional — anexe a planilha de escala de sobreaviso (.xlsx) pra IA cruzar quem estava
-                escalado em cada fim de semana/feriado ao validar a Etapa 3
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+                  <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">
+                    Opcional — anexe a planilha de escala de sobreaviso (.xlsx) pra IA cruzar quem estava
+                    escalado em cada fim de semana/feriado ao validar a Etapa 3
+                  </div>
+                  <div id="pontoEscalaWrap" style="display:flex;align-items:center;gap:8px;">
+                    <button onclick="document.getElementById('pontoEscalaInput').click()"
+                            style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
+                                   border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">
+                      📎 Anexar planilha de sobreaviso
+                    </button>
+                    <span id="pontoEscalaNome" style="font-size:12px;color:var(--text-faint);"></span>
+                    <input type="file" id="pontoEscalaInput" accept=".xlsx,.xlsm" style="display:none;" onchange="_pontoEscalaSelecionada(this.files)">
+                  </div>
+                </div>
               </div>
-              <div id="pontoEscalaWrap" style="display:flex;align-items:center;gap:8px;">
-                <button onclick="document.getElementById('pontoEscalaInput').click()"
-                        style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
-                               border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">
-                  📎 Anexar planilha de sobreaviso
-                </button>
-                <span id="pontoEscalaNome" style="font-size:12px;color:var(--text-faint);"></span>
-                <input type="file" id="pontoEscalaInput" accept=".xlsx,.xlsm" style="display:none;" onchange="_pontoEscalaSelecionada(this.files)">
-              </div>
-            </div>
 
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
-              <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">
-                Opcional — orientação adicional pra IA nesta análise (complementa as regras já
-                definidas; só substitui alguma regra se você escrever isso de forma explícita)
+              <div class="ponto-col-orientacao">
+                <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">
+                  Opcional — orientação adicional pra IA nesta análise (complementa as regras já
+                  definidas; só substitui alguma regra se você escrever isso de forma explícita)
+                </div>
+                <textarea id="pontoOrientacaoInput" placeholder="Ex.: ignore os ajustes por esquecimento do Rodolfo essa semana, ele avisou que está com o celular quebrado..."
+                          style="width:100%;min-height:180px;height:100%;background:var(--surface-2);border:1px solid var(--border);
+                                 border-radius:8px;padding:10px;font-size:12.5px;color:var(--text);resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
               </div>
-              <textarea id="pontoOrientacaoInput" placeholder="Ex.: ignore os ajustes por esquecimento do Rodolfo essa semana, ele avisou que está com o celular quebrado..."
-                        style="width:100%;min-height:70px;background:var(--surface-2);border:1px solid var(--border);
-                               border-radius:8px;padding:10px;font-size:12.5px;color:var(--text);resize:vertical;font-family:inherit;"></textarea>
             </div>
 
             <button id="pontoAnalisarBtn" onclick="_analisarControlePonto()" disabled
@@ -2201,7 +2220,7 @@ body{
 
         <!-- ── ABA: LIVRE ── -->
         <div id="comTabPainelLivre" style="display:none;">
-          <div style="max-width:580px;">
+          <div style="max-width:640px;">
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escreva um tema livre — a IA monta o texto, você revisa e escolhe os grupos.</div>
             <div id="comLivreInputStep">
               <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;" placeholder="Tema do comunicado…" type="text">
@@ -2215,18 +2234,23 @@ body{
               <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
               Gerando comunicado…
             </div>
-            <div id="comLivreResult" style="display:none;">
-              <textarea id="comLivreText" style="width:100%;min-height:160px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+            <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+          </div>
 
-              <div style="font-size:13px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
-              <div id="comLivreGrupos" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+          <div id="comLivreResult" style="display:none;" class="com-livre-2col">
+            <div>
+              <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Texto do comunicado</div>
+              <textarea id="comLivreText" style="width:100%;min-height:260px;height:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+            </div>
+            <div class="com-livre-col-grupos">
+              <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Enviar para quais grupos?</div>
+              <div id="comLivreGrupos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
 
               <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
                 <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Disparar comunicado
               </button>
             </div>
-            <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
           </div>
         </div>
       </section>
@@ -3258,10 +3282,10 @@ const NAV_TITLES = {
   'historico-log': 'Log Histórico',
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
-  'relatorios': 'Relatórios Semanais',
+  'relatorios': 'Relatórios',
   'atividades': 'Painel de Atividades',
   'programacao-pcm': 'Programação PCM',
-  'boletins': 'Boletins de Medição & Relatórios de Terceiros',
+  'boletins': 'Gerencial',
   'localizacao': 'Localização das Usinas',
   'comunicados': 'Comunicados',
 };
@@ -7338,7 +7362,7 @@ async function _gerarComunicadoLivre() {
     `).join('') || '<div style="font-size:12px;color:var(--text-faint);">Nenhum grupo configurado.</div>';
 
     loading.style.display = 'none';
-    result.style.display = 'block';
+    result.style.display = 'grid';
   } catch (err) {
     loading.style.display = 'none';
     errorBox.style.display = 'block';
@@ -7422,7 +7446,7 @@ async function carregarSupervisaoTemporaria() {
     } else {
       atuaisEl.innerHTML = `
         <div style="font-size:11px;color:var(--teal);font-weight:600;margin-bottom:8px;">Sob sua supervisão agora (${atuais.length})</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-items:start;">
           ${atuais.map(it => `
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);border-radius:8px;">
               <div>
