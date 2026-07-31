@@ -2409,12 +2409,24 @@ body{
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
-            <select class="nova-oc-select" id="reprogCliente" style="width:100%;"></select>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <label style="font-size:13px;color:var(--text-dim);">Clientes</label>
+              <div style="display:flex;gap:8px;">
+                <button type="button" onclick="_reprogSelecionarTodosClientes(true)" style="background:none;border:none;color:var(--teal);font-size:11px;cursor:pointer;padding:0;">Todos</button>
+                <button type="button" onclick="_reprogSelecionarTodosClientes(false)" style="background:none;border:none;color:var(--text-faint);font-size:11px;cursor:pointer;padding:0;">Nenhum</button>
+              </div>
+            </div>
+            <div id="reprogClienteChecks" style="max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
           </div>
           <div>
-            <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Usina</label>
-            <select class="nova-oc-select" id="reprogUsina" style="width:100%;"></select>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <label style="font-size:13px;color:var(--text-dim);">Usinas</label>
+              <div style="display:flex;gap:8px;">
+                <button type="button" onclick="_reprogSelecionarTodasUsinas(true)" style="background:none;border:none;color:var(--teal);font-size:11px;cursor:pointer;padding:0;">Todas</button>
+                <button type="button" onclick="_reprogSelecionarTodasUsinas(false)" style="background:none;border:none;color:var(--text-faint);font-size:11px;cursor:pointer;padding:0;">Nenhuma</button>
+              </div>
+            </div>
+            <div id="reprogUsinaChecks" style="max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
           </div>
         </div>
         <button id="reprogGerarBtn" onclick="_gerarSugestaoReprogramacao()" style="width:100%;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -8292,6 +8304,8 @@ async function _rodarAuditoriaAgora() {
   }
 }
 
+let _reprogAbertasCache = [];
+
 async function _abrirReprogramacao() {
   const overlay = document.getElementById('reprogOverlay');
   if (!overlay) return;
@@ -8306,27 +8320,50 @@ async function _abrirReprogramacao() {
   // Atividades (fonte do ATIVIDADES usado aqui pra montar os filtros de
   // Cliente/Usina). Se ATIVIDADES ainda não carregou (condição de corrida
   // na inicialização, ou seção PCM aberta antes do fetch terminar), espera
-  // o carregamento terminar antes de montar os dropdowns — evita que
-  // apareça só "Todos os clientes"/"Todas as usinas" sem opções reais.
-  const selCli = document.getElementById('reprogCliente');
-  const selUsi = document.getElementById('reprogUsina');
+  // o carregamento terminar antes de montar as listas — evita que apareça
+  // vazio sem opções reais.
+  const boxCli = document.getElementById('reprogClienteChecks');
+  const boxUsi = document.getElementById('reprogUsinaChecks');
   if (ATIVIDADES.length === 0) {
-    if (selCli) selCli.innerHTML = `<option value="">Carregando...</option>`;
-    if (selUsi) selUsi.innerHTML = `<option value="">Carregando...</option>`;
+    if (boxCli) boxCli.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px;">Carregando...</div>`;
+    if (boxUsi) boxUsi.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px;">Carregando...</div>`;
     await carregarAtividades();
   }
 
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
+  _reprogAbertasCache = abertas;
   const clientes = [...new Set(abertas.map(a => a.cliente).filter(Boolean))].sort();
-  if (selCli) {
-    selCli.innerHTML = `<option value="">Todos os clientes</option>` + clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    selCli.onchange = () => {
-      const cli = selCli.value;
-      const usinas = [...new Set(abertas.filter(a => !cli || a.cliente === cli).map(a => a.usina).filter(Boolean))].sort();
-      if (selUsi) selUsi.innerHTML = `<option value="">Todas as usinas</option>` + usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    };
-    selCli.dispatchEvent(new Event('change'));
+  if (boxCli) {
+    boxCli.innerHTML = clientes.map(c => `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" class="reprog-cliente-chk" value="${esc(c)}" checked onchange="_reprogAtualizarUsinas()" style="width:14px;height:14px;accent-color:var(--teal);flex:none;">
+      <span style="font-size:12.5px;color:var(--text);">${esc(c)}</span>
+    </label>`).join('') || `<div style="font-size:12px;color:var(--text-faint);padding:6px;">Nenhum cliente com atividade em aberto.</div>`;
   }
+  _reprogAtualizarUsinas();
+}
+
+// Reconstrói a lista de checkboxes de Usina com base nos clientes
+// marcados no momento — mantém marcadas as usinas que já estavam
+// marcadas e ainda pertencem a algum cliente selecionado.
+function _reprogAtualizarUsinas() {
+  const boxUsi = document.getElementById('reprogUsinaChecks');
+  if (!boxUsi) return;
+  const clientesMarcados = new Set(Array.from(document.querySelectorAll('.reprog-cliente-chk:checked')).map(cb => cb.value));
+  const marcadasAntes = new Set(Array.from(document.querySelectorAll('.reprog-usina-chk:checked')).map(cb => cb.value));
+  const usinas = [...new Set(_reprogAbertasCache.filter(a => clientesMarcados.has(a.cliente)).map(a => a.usina).filter(Boolean))].sort();
+  boxUsi.innerHTML = usinas.map(u => `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+    <input type="checkbox" class="reprog-usina-chk" value="${esc(u)}" ${marcadasAntes.has(u) || !marcadasAntes.size ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--teal);flex:none;">
+    <span style="font-size:12.5px;color:var(--text);">${esc(u)}</span>
+  </label>`).join('') || `<div style="font-size:12px;color:var(--text-faint);padding:6px;">Nenhuma usina com atividade em aberto.</div>`;
+}
+
+function _reprogSelecionarTodosClientes(marcar) {
+  document.querySelectorAll('.reprog-cliente-chk').forEach(cb => cb.checked = marcar);
+  _reprogAtualizarUsinas();
+}
+
+function _reprogSelecionarTodasUsinas(marcar) {
+  document.querySelectorAll('.reprog-usina-chk').forEach(cb => cb.checked = marcar);
 }
 
 async function _gerarSugestaoReprogramacao() {
@@ -8339,10 +8376,10 @@ async function _gerarSugestaoReprogramacao() {
   result.style.display = 'none';
   errorBox.style.display = 'none';
 
-  const cliFiltro = document.getElementById('reprogCliente')?.value || '';
-  const usiFiltro = document.getElementById('reprogUsina')?.value || '';
+  const clientesMarcados = new Set(Array.from(document.querySelectorAll('.reprog-cliente-chk:checked')).map(cb => cb.value));
+  const usinasMarcadas = new Set(Array.from(document.querySelectorAll('.reprog-usina-chk:checked')).map(cb => cb.value));
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
-  const filtradas = abertas.filter(a => (!cliFiltro || a.cliente === cliFiltro) && (!usiFiltro || a.usina === usiFiltro));
+  const filtradas = abertas.filter(a => clientesMarcados.has(a.cliente) && usinasMarcadas.has(a.usina));
   const ids = filtradas.map(a => a.id);
 
   if (ids.length === 0) {
