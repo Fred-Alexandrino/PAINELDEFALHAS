@@ -2295,10 +2295,6 @@ body{
                 <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
               <div id="ativAcoesMenu" class="ativ-acoes-menu">
-                <button class="ativ-acoes-item" id="ativReprogramarBtn" onclick="_abrirReprogramacao();_ativToggleMenuAcoes(false)">
-                  <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-                  Reprogramações
-                </button>
                 <button class="ativ-acoes-item" id="ativComunicadosBtn" onclick="_abrirComunicados();_ativToggleMenuAcoes(false)">
                   <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                   Comunicados
@@ -2343,6 +2339,10 @@ body{
             <span id="progPcmSub" style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--text-faint);"></span>
             <input type="date" id="progPcmData" onchange="carregarProgramacaoPcm();" class="sb-select" style="width:auto;min-width:140px;">
             <button class="tb-btn tb-btn-refresh" id="progPcmRefreshBtn" onclick="carregarProgramacaoPcm(null,true);"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+            <button class="tb-btn" id="progPcmReprogramarBtn" onclick="_abrirReprogramacao()" style="display:flex;align-items:center;gap:5px;background:var(--teal);border:none;color:#04231e;font-weight:700;">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+              Reprogramações
+            </button>
           </div>
         </div>
         <div style="font-size:13px;color:var(--text-faint);margin-bottom:14px;">Espelha direto o que o PCM programou (gridco-pcm-data), filtrado pelas suas equipes — somente leitura, não altera nada na Fracttal nem no Painel de Atividades.</div>
@@ -8436,6 +8436,76 @@ async function _copiarTextoReprogramacao(itens, btnEl) {
   }
 }
 
+// Sigla usada pelo PCM (guia "Programação Semanal - PCM", confirmado por
+// Fred em 31/07/2026) pra manutenções preventivas periódicas — mesma
+// nomenclatura já padronizada no backend (_fracttal_detectar_preventiva).
+const _PCM_SIGLA_PREVENTIVA = {
+  'preventiva mensal': 'MPM',
+  'preventiva semestral': 'MPS',
+  'preventiva anual': 'MPA',
+};
+
+// Formato de texto pro PCM (Fillipe) — Fase 1, "linha padrão" só (sem os
+// comandos especiais não/sem:/só:/divisão noite, que Fred ajusta manualmente
+// quando precisar). Coexiste com _montarTextoReprogramacao (mensagem pros
+// técnicos) — os dois textos vêm da mesma sugestão da IA, só o formato/
+// público de destino muda.
+//
+// Regra (Caso 1 do guia): quando a tarefa é uma preventiva (MPM/MPS/MPA),
+// várias atividades da MESMA OS viram 1 linha só com os dias combinados e a
+// sigla, em vez de uma linha por atividade — "8259; seg, ter, qua; MPM".
+// Caso 2 (tarefa específica): 1 linha por atividade, com a tarefa por
+// extenso e o turno — "9579; seg; Inspeção do inversor 1.10; manhã".
+function _montarTextoReprogramacaoPCM(itens) {
+  const parseDataBRSort = (s) => {
+    const m = (s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? new Date(+m[3], +m[2]-1, +m[1]).getTime() : Infinity;
+  };
+  const normalizados = itens.map(it => {
+    let tarefa = it.tarefa || it.equipamento || it.justificativa || '—';
+    tarefa = tarefa.replace(/^Múltiplos equipamentos \(Preventiva (Mensal|Semestral|Anual)\)$/i, 'Preventiva $1');
+    return { ...it, _tarefaNormalizada: tarefa };
+  });
+
+  const porOSPreventiva = {};
+  const linhasCaso2 = [];
+  normalizados.forEach(it => {
+    const os = (it.numeroOS || '').trim();
+    const sigla = _PCM_SIGLA_PREVENTIVA[(it._tarefaNormalizada || '').trim().toLowerCase()];
+    if (os && sigla) {
+      if (!porOSPreventiva[os]) porOSPreventiva[os] = { sigla, itens: [] };
+      porOSPreventiva[os].itens.push(it);
+    } else {
+      linhasCaso2.push(it);
+    }
+  });
+
+  const linhas = [];
+  Object.entries(porOSPreventiva).forEach(([os, grupo]) => {
+    const itensOrdenados = [...grupo.itens].sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
+    const dias = [...new Set(itensOrdenados.map(it => _ativDiaSemanaAbrev(it.dataSugerida)))];
+    linhas.push({ ordem: parseDataBRSort(itensOrdenados[0]?.dataSugerida), texto: `${os}; ${dias.join(', ')}; ${grupo.sigla}` });
+  });
+  linhasCaso2.forEach(it => {
+    const os = it.numeroOS || '—';
+    linhas.push({ ordem: parseDataBRSort(it.dataSugerida), texto: `${os}; ${_ativDiaSemanaAbrev(it.dataSugerida)}; ${it._tarefaNormalizada}; ${_ativTurnoLabel(it.turno)}` });
+  });
+
+  linhas.sort((a,b) => a.ordem - b.ordem);
+  return linhas.map(l => l.texto).join('\n');
+}
+
+async function _copiarTextoReprogramacaoPCM(itens, btnEl) {
+  const texto = _montarTextoReprogramacaoPCM(itens);
+  try {
+    await navigator.clipboard.writeText(texto);
+    if (btnEl) { const orig = btnEl.textContent; btnEl.textContent = '✓ Copiado!'; setTimeout(() => btnEl.textContent = orig, 1800); }
+    showToast('Texto pro PCM copiado!', true);
+  } catch (e) {
+    showToast('Não foi possível copiar automaticamente.', false);
+  }
+}
+
 function _renderSugestaoReprogramacao(sugestao, totalAtividades, truncado, totalOriginal) {
   const result = document.getElementById('reprogModalResult');
   const itens = sugestao?.reprogramacoes || [];
@@ -8460,10 +8530,16 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades, truncado, total
   ${truncado ? `<div style="font-size:12px;color:var(--amber);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
     ⚠️ Havia <strong>${esc(totalOriginal)}</strong> atividades no filtro selecionado, mas só processamos as <strong>60 mais urgentes</strong> (prioridade Alta e prazos mais próximos primeiro) de uma vez. Pra cobrir o restante, filtre por cliente/usina e rode de novo, ou repita a reprogramação depois de aplicar essas.
   </div>` : ''}
-  <button id="reprogCopiarBtn" style="width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+  <button id="reprogCopiarBtn" style="flex:1;min-width:200px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
     <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-    Copiar texto (OS - data - turno)
-  </button>`;
+    Copiar texto (p/ técnicos)
+  </button>
+  <button id="reprogCopiarPcmBtn" title="Formato 'OS; dias; tarefa; turno' pras observações semanais do PCM" style="flex:1;min-width:200px;display:flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid var(--teal);color:var(--teal);border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+    <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    Copiar texto (p/ PCM)
+  </button>
+  </div>`;
 
   Object.entries(porResponsavel).forEach(([responsavel, lista]) => {
     lista.sort((a,b) => parseDataBRSort(a.dataSugerida) - parseDataBRSort(b.dataSugerida));
@@ -8490,6 +8566,7 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades, truncado, total
   result.innerHTML = html;
   result.style.display = 'block';
   document.getElementById('reprogCopiarBtn')?.addEventListener('click', function() { _copiarTextoReprogramacao(itens, this); });
+  document.getElementById('reprogCopiarPcmBtn')?.addEventListener('click', function() { _copiarTextoReprogramacaoPCM(itens, this); });
 }
 
 async function _aplicarReprogramacao(id, novaData, btnEl) {
