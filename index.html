@@ -8448,14 +8448,14 @@ function _montarTextoReprogramacao(itens) {
   // "XXXX; dia_abrev; tarefa; turno" — sem prefixo "OS ", dia abreviado
   // em 3 letras, tarefa vinda do campo "tarefa" (ação real da OS, não o
   // código do ativo).
-  const clientes = [...new Set(itens.map(it => it.cliente).filter(Boolean))];
+  const clientes = [...new Set(itens.map(it => normalizeCliente(it.cliente)).filter(Boolean))];
   const clienteLabel = clientes.length ? ' - ' + clientes.join(' / ') : '';
   let txt = `📅 Reprogramação de Atividades${clienteLabel}\n\n`;
   Object.entries(porEquipe).forEach(([equipe, listaEquipe]) => {
     txt += `${equipe}:\n\n`;
     const porUsina = {};
     listaEquipe.forEach(it => {
-      const chaveU = it.usina || 'Sem usina';
+      const chaveU = normalizeUsina(it.usina) || 'Sem usina';
       if (!porUsina[chaveU]) porUsina[chaveU] = [];
       porUsina[chaveU].push(it);
     });
@@ -8557,7 +8557,11 @@ function _pcmLinhasDoGrupo(itensGrupo) {
 function _montarTextoReprogramacaoPCM(itens) {
   const porCliente = {};
   itens.forEach(it => {
-    const cli = it.cliente || 'Sem cliente';
+    // Normaliza cliente/usina (mesmas funções usadas pra montar ATIVIDADES)
+    // antes de agrupar — a IA às vezes devolve o texto do "cliente" com
+    // casing diferente do original (ex. "Thopen" vs "THOPEN"), o que fazia
+    // o mesmo cliente/usina aparecer em blocos separados no texto final.
+    const cli = normalizeCliente(it.cliente) || 'Sem cliente';
     if (!porCliente[cli]) porCliente[cli] = [];
     porCliente[cli].push(it);
   });
@@ -8575,7 +8579,7 @@ function _montarTextoReprogramacaoPCM(itens) {
       bloco += `${cluster}:\n\n`;
       const porUsina = {};
       porCluster[cluster].forEach(it => {
-        const usina = it.usina || 'Sem usina';
+        const usina = normalizeUsina(it.usina) || 'Sem usina';
         if (!porUsina[usina]) porUsina[usina] = [];
         porUsina[usina].push(it);
       });
