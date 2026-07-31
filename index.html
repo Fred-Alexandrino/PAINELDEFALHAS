@@ -2245,6 +2245,17 @@ body{
             <div>
               <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Texto do comunicado</div>
               <textarea id="comLivreText" style="width:100%;min-height:260px;height:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+
+              <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+                <button type="button" onclick="document.getElementById('comLivreImgInput').click()"
+                        style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
+                               border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                  📎 Anexar print(s)
+                </button>
+                <span style="font-size:12px;color:var(--text-faint);">Opcional — até 5 imagens, 8MB cada</span>
+                <input type="file" id="comLivreImgInput" accept="image/*" multiple style="display:none;" onchange="_comLivreImagensSelecionadas(this.files)">
+              </div>
+              <div id="comLivrePreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
             </div>
             <div class="com-livre-col-grupos">
               <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Enviar para quais grupos?</div>
@@ -7320,6 +7331,47 @@ function _comLivreReset() {
   const obs = document.getElementById('comLivreObsInput');
   if (tema) tema.value = '';
   if (obs) obs.value = '';
+  _comLivreImagens = [];
+  _comLivreRenderPreview();
+}
+
+// ── Anexo de prints/fotos no comunicado livre ──────────────────────────
+let _comLivreImagens = []; // [{base64, mimeType, nome}]
+
+function _comLivreImagensSelecionadas(files) {
+  const restante = 5 - _comLivreImagens.length;
+  if (restante <= 0) { showToast('Máximo de 5 imagens por comunicado.', false); return; }
+  Array.from(files).slice(0, restante).forEach(file => {
+    if (!file.type.startsWith('image/')) { showToast(`"${file.name}" não é uma imagem.`, false); return; }
+    if (file.size > 8 * 1024 * 1024) { showToast(`"${file.name}" é maior que 8MB.`, false); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = String(reader.result).split(',')[1] || '';
+      _comLivreImagens.push({ base64, mimeType: file.type, nome: file.name });
+      _comLivreRenderPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('comLivreImgInput').value = '';
+}
+
+function _comLivreRemoverImagem(idx) {
+  _comLivreImagens.splice(idx, 1);
+  _comLivreRenderPreview();
+}
+
+function _comLivreRenderPreview() {
+  const wrap = document.getElementById('comLivrePreview');
+  if (!wrap) return;
+  wrap.innerHTML = _comLivreImagens.map((img, i) => `
+    <div style="position:relative;width:64px;height:64px;flex:none;">
+      <img src="data:${img.mimeType};base64,${img.base64}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border-strong);">
+      <button type="button" onclick="_comLivreRemoverImagem(${i})" title="Remover"
+              style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+                     background:var(--red,#EF4444);color:#fff;border:none;font-size:12px;line-height:1;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">×</button>
+    </div>
+  `).join('');
 }
 
 async function _gerarComunicadoLivre() {
@@ -7622,14 +7674,17 @@ async function _dispararComunicadoLivre() {
   const btn = document.getElementById('comLivreDispararBtn');
   btn.disabled = true;
   const textoOriginal = btn.innerHTML;
-  btn.innerHTML = 'Enviando…';
+  btn.innerHTML = _comLivreImagens.length ? 'Enviando (com imagem)…' : 'Enviando…';
 
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-livre', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texto, grupos }),
-      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({
+        texto, grupos,
+        imagens: _comLivreImagens.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
+      }),
+      signal: AbortSignal.timeout(120000),
     });
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao disparar');
