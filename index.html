@@ -9214,6 +9214,7 @@ async function _zelExtrairComIA() {
       usina: it.usina || '',
       usina_reconhecida: it.usina_reconhecida !== false,
       grupo: _ZEL_GRUPOS_OPCOES.includes(it.grupo) ? it.grupo : (_ZEL_GRUPOS_OPCOES.find(g => g.toLowerCase().includes((it.grupo||'').toLowerCase())) || _ZEL_GRUPOS_OPCOES[2]),
+      ultimaData: it.ultimaData || '',
       proximaData: it.proximaData || '',
       fornecedor: it.fornecedor || '',
       status: it.status || 'Sem informações',
@@ -9253,6 +9254,10 @@ function _zelExtrairRenderRevisao() {
           <select data-zid="${it._id}" data-field="grupo" class="sb-select" style="width:100%;font-size:12px;">${grupoOpts}</select>
         </div>
         <div>
+          <label style="font-size:13px;color:var(--text-faint);">Última Data</label>
+          <input type="text" data-zid="${it._id}" data-field="ultimaData" value="${esc(it.ultimaData)}" placeholder="DD/MM/AAAA" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div>
           <label style="font-size:13px;color:var(--text-faint);">Próxima Data</label>
           <input type="text" data-zid="${it._id}" data-field="proximaData" value="${esc(it.proximaData)}" placeholder="DD/MM/AAAA" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;">
         </div>
@@ -9288,7 +9293,7 @@ function _zelExtrairVoltar() {
 async function _zelExtrairConfirmarSalvar() {
   const itens = _zelExtrairItensRevisao
     .filter(it => it._incluir && it.usina.trim())
-    .map(it => ({ usina: it.usina.trim(), grupo: it.grupo, proximaData: it.proximaData.trim(), fornecedor: it.fornecedor.trim(), status: it.status }));
+    .map(it => ({ usina: it.usina.trim(), grupo: it.grupo, ultimaData: it.ultimaData.trim(), proximaData: it.proximaData.trim(), fornecedor: it.fornecedor.trim(), status: it.status }));
 
   if (itens.length === 0) { showToast('Nenhum item selecionado pra salvar.', false); return; }
 
