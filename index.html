@@ -8292,18 +8292,32 @@ async function _rodarAuditoriaAgora() {
   }
 }
 
-function _abrirReprogramacao() {
+async function _abrirReprogramacao() {
   const overlay = document.getElementById('reprogOverlay');
   if (!overlay) return;
   document.getElementById('reprogModalIntro').style.display = 'flex';
   document.getElementById('reprogModalLoading').style.display = 'none';
   document.getElementById('reprogModalResult').style.display = 'none';
   document.getElementById('reprogModalError').style.display = 'none';
+  overlay.style.display = 'flex';
+
+  // Correção 31/07/2026: o botão agora também abre direto da seção
+  // Programação PCM, que costuma renderizar mais rápido que o Painel de
+  // Atividades (fonte do ATIVIDADES usado aqui pra montar os filtros de
+  // Cliente/Usina). Se ATIVIDADES ainda não carregou (condição de corrida
+  // na inicialização, ou seção PCM aberta antes do fetch terminar), espera
+  // o carregamento terminar antes de montar os dropdowns — evita que
+  // apareça só "Todos os clientes"/"Todas as usinas" sem opções reais.
+  const selCli = document.getElementById('reprogCliente');
+  const selUsi = document.getElementById('reprogUsina');
+  if (ATIVIDADES.length === 0) {
+    if (selCli) selCli.innerHTML = `<option value="">Carregando...</option>`;
+    if (selUsi) selUsi.innerHTML = `<option value="">Carregando...</option>`;
+    await carregarAtividades();
+  }
 
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
   const clientes = [...new Set(abertas.map(a => a.cliente).filter(Boolean))].sort();
-  const selCli = document.getElementById('reprogCliente');
-  const selUsi = document.getElementById('reprogUsina');
   if (selCli) {
     selCli.innerHTML = `<option value="">Todos os clientes</option>` + clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     selCli.onchange = () => {
@@ -8313,8 +8327,6 @@ function _abrirReprogramacao() {
     };
     selCli.dispatchEvent(new Event('change'));
   }
-
-  overlay.style.display = 'flex';
 }
 
 async function _gerarSugestaoReprogramacao() {
