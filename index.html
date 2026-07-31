@@ -2225,10 +2225,22 @@ body{
         <!-- ── ABA: LIVRE ── -->
         <div id="comTabPainelLivre" style="display:none;">
           <div class="rel-card" style="max-width:640px;margin:32px auto 0;">
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escreva um tema livre — a IA monta o texto, você revisa e escolhe os grupos.</div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escreva um tema livre e/ou anexe um print — a IA monta o texto (lendo o print, se houver), você revisa e escolhe os grupos.</div>
             <div id="comLivreInputStep">
               <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;box-sizing:border-box;" placeholder="Tema do comunicado…" type="text">
               <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <button type="button" onclick="document.getElementById('comLivreFonteImgInput').click()"
+                        style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
+                               border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                  📷 Anexar print
+                </button>
+                <span style="font-size:12px;color:var(--text-faint);">Opcional — a IA lê o conteúdo do print pra montar o texto</span>
+                <input type="file" id="comLivreFonteImgInput" accept="image/*" style="display:none;" onchange="_comLivreFonteImagemSelecionada(this.files)">
+              </div>
+              <div id="comLivreFontePreview" style="margin-top:8px;"></div>
+
               <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
                 <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Gerar
@@ -7333,6 +7345,47 @@ function _comLivreReset() {
   if (obs) obs.value = '';
   _comLivreImagens = [];
   _comLivreRenderPreview();
+  _comLivreFonteImagem = null;
+  _comLivreRenderFontePreview();
+}
+
+// ── Print anexado como FONTE pra IA ler e gerar o texto (aba Livre) ────
+let _comLivreFonteImagem = null; // {base64, mimeType, nome}
+
+function _comLivreFonteImagemSelecionada(files) {
+  const file = files && files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Selecione uma imagem.', false); return; }
+  if (file.size > 8 * 1024 * 1024) { showToast('Imagem maior que 8MB.', false); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = String(reader.result).split(',')[1] || '';
+    _comLivreFonteImagem = { base64, mimeType: file.type, nome: file.name };
+    _comLivreRenderFontePreview();
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('comLivreFonteImgInput').value = '';
+}
+
+function _comLivreRemoverFonteImagem() {
+  _comLivreFonteImagem = null;
+  _comLivreRenderFontePreview();
+}
+
+function _comLivreRenderFontePreview() {
+  const wrap = document.getElementById('comLivreFontePreview');
+  if (!wrap) return;
+  if (!_comLivreFonteImagem) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div style="position:relative;display:inline-block;width:88px;height:88px;">
+      <img src="data:${_comLivreFonteImagem.mimeType};base64,${_comLivreFonteImagem.base64}"
+           style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border-strong);">
+      <button type="button" onclick="_comLivreRemoverFonteImagem()" title="Remover"
+              style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+                     background:var(--red,#EF4444);color:#fff;border:none;font-size:12px;line-height:1;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">×</button>
+    </div>
+  `;
 }
 
 // ── Anexo de prints/fotos no comunicado livre ──────────────────────────
@@ -7377,7 +7430,7 @@ function _comLivreRenderPreview() {
 async function _gerarComunicadoLivre() {
   const tema = (document.getElementById('comLivreTemaInput')?.value || '').trim();
   const observacoes = (document.getElementById('comLivreObsInput')?.value || '').trim();
-  if (!tema) { showToast('Descreva o tema antes de gerar.', false); return; }
+  if (!tema && !_comLivreFonteImagem) { showToast('Descreva o tema ou anexe um print antes de gerar.', false); return; }
 
   const inputStep = document.getElementById('comLivreInputStep');
   const loading = document.getElementById('comLivreLoading');
@@ -7393,8 +7446,12 @@ async function _gerarComunicadoLivre() {
       fetch('https://api.168.138.232.237.sslip.io/gerar-comunicado-livre-ia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tema, observacoes }),
-        signal: AbortSignal.timeout(30000),
+        body: JSON.stringify({
+          tema, observacoes,
+          imagemBase64: _comLivreFonteImagem?.base64 || '',
+          imagemMimeType: _comLivreFonteImagem?.mimeType || '',
+        }),
+        signal: AbortSignal.timeout(45000),
       }),
       _comLivreGruposCache.length ? Promise.resolve(null) :
         fetch('https://api.168.138.232.237.sslip.io/grupos-configurados'),
