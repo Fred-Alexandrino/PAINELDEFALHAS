@@ -2638,6 +2638,26 @@ body{
     </div>
     <div class="ch-body">
       <div id="novaAtivFormStep">
+      <div class="nova-oc-field" style="margin-bottom:16px;">
+        <label>📷 Extrair de um print (IA) — opcional</label>
+        <div id="novaAtivDropZone" onclick="document.getElementById('novaAtivFileInput').click()"
+             style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:16px;
+                    text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;
+                    transition:.15s;">
+          <svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:1.6;margin-bottom:5px;">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          <div>Clique pra anexar o print da OS/tarefa — a IA preenche o formulário abaixo</div>
+          <input type="file" id="novaAtivFileInput" accept="image/*" style="display:none;" onchange="_novaAtivImagemSelecionada(this.files[0])">
+        </div>
+        <div id="novaAtivImgPreviewWrap" style="display:none;margin-top:8px;align-items:center;gap:10px;">
+          <img id="novaAtivImgPreview" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+          <div id="novaAtivImgStatus" style="font-size:12px;color:var(--text-dim);flex:1;">Lendo imagem…</div>
+        </div>
+      </div>
+      <div id="novaAtivUsinaAviso" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#F59E0B;font-size:11.5px;border-radius:7px;padding:8px 10px;margin-bottom:12px;">
+        ⚠️ Usina extraída não bate com o catálogo — confira o campo "Usina" antes de registrar.
+      </div>
       <div class="nova-oc-2col">
         <div class="nova-oc-field">
           <label>Cliente</label>
@@ -2679,6 +2699,10 @@ body{
           <label>Status inicial</label>
           <select class="nova-oc-select" id="novaAtivStatus"></select>
         </div>
+      </div>
+      <div class="nova-oc-field">
+        <label>Nº OS (opcional)</label>
+        <input class="nova-oc-input" id="novaAtivNumeroOS" placeholder="Ex: 1596">
       </div>
       <div id="novaAtivErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
       <button class="nova-oc-submit" id="novaAtivSubmit" onclick="_submeterNovaAtividade()">
@@ -10877,10 +10901,13 @@ function _openNovaAtividade() {
     };
     selCli.dispatchEvent(new Event('change'));
   }
-  ['novaAtivEquipamento','novaAtivDescricao','novaAtivResponsavel','novaAtivPrazo'].forEach(id => {
+  ['novaAtivEquipamento','novaAtivDescricao','novaAtivResponsavel','novaAtivPrazo','novaAtivNumeroOS'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('novaAtivPrioridade').value = 'Média';
+  document.getElementById('novaAtivImgPreviewWrap').style.display = 'none';
+  document.getElementById('novaAtivUsinaAviso').style.display = 'none';
+  document.getElementById('novaAtivFileInput').value = '';
   const selStatus = document.getElementById('novaAtivStatus');
   if (selStatus) {
     selStatus.innerHTML = ALL_STATUSES.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
@@ -10888,6 +10915,76 @@ function _openNovaAtividade() {
   }
   const errEl = document.getElementById('novaAtivErr'); if(errEl) errEl.style.display='none';
   document.getElementById('novaAtivOverlay').style.display = 'flex';
+}
+
+async function _novaAtivImagemSelecionada(file) {
+  if (!file) return;
+  const previewWrap = document.getElementById('novaAtivImgPreviewWrap');
+  const previewImg = document.getElementById('novaAtivImgPreview');
+  const statusEl = document.getElementById('novaAtivImgStatus');
+  const avisoEl = document.getElementById('novaAtivUsinaAviso');
+  avisoEl.style.display = 'none';
+  previewWrap.style.display = 'flex';
+  statusEl.textContent = 'Lendo imagem…';
+  previewImg.src = URL.createObjectURL(file);
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Falha ao ler o arquivo'));
+      r.readAsDataURL(file);
+    });
+    statusEl.textContent = 'Extraindo dados com IA… (pode levar até 30s)';
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 50000);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/extrair-atividade-de-imagem', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ imagemBase64: base64, imagemMimeType: file.type || 'image/png' }),
+      signal: ctrl.signal
+    });
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao extrair dados da imagem');
+    const c = data.campos || {};
+
+    const selCli = document.getElementById('novaAtivCliente');
+    if (c.cliente && selCli) {
+      if (![...selCli.options].some(o => o.value === c.cliente)) {
+        selCli.insertAdjacentHTML('beforeend', `<option value="${esc(c.cliente)}">${esc(c.cliente)}</option>`);
+      }
+      selCli.value = c.cliente;
+      selCli.dispatchEvent(new Event('change'));
+    }
+    const selU = document.getElementById('novaAtivUsina');
+    if (c.usina && selU) {
+      if (![...selU.options].some(o => o.value === c.usina)) {
+        selU.insertAdjacentHTML('beforeend', `<option value="${esc(c.usina)}">${esc(c.usina)}</option>`);
+      }
+      selU.value = c.usina;
+    }
+
+    if (c.equipamento) document.getElementById('novaAtivEquipamento').value = c.equipamento;
+    if (c.descricao) document.getElementById('novaAtivDescricao').value = c.descricao;
+    if (c.responsavel) document.getElementById('novaAtivResponsavel').value = c.responsavel;
+    if (c.numeroOS) document.getElementById('novaAtivNumeroOS').value = c.numeroOS;
+    if (c.prioridade) document.getElementById('novaAtivPrioridade').value = c.prioridade;
+    if (c.status) {
+      const selStatus = document.getElementById('novaAtivStatus');
+      if (selStatus && [...selStatus.options].some(o => o.value === c.status)) selStatus.value = c.status;
+    }
+    if (c.prazo) {
+      const m = c.prazo.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m) document.getElementById('novaAtivPrazo').value = `${m[3]}-${m[2]}-${m[1]}`;
+    }
+
+    if (!data.usinaReconhecida && c.usina) {
+      avisoEl.style.display = 'block';
+    }
+    statusEl.textContent = '✅ Dados extraídos — confira os campos abaixo antes de registrar.';
+  } catch (e) {
+    statusEl.textContent = '❌ Erro: ' + (e.message || 'falha ao processar imagem.');
+  }
 }
 
 let _isSubmittingAtiv = false;
@@ -10901,6 +10998,7 @@ async function _submeterNovaAtividade() {
   const prazo       = document.getElementById('novaAtivPrazo')?.value || '';
   const prioridade  = document.getElementById('novaAtivPrioridade')?.value || 'Média';
   const status      = document.getElementById('novaAtivStatus')?.value || 'Em Aberto';
+  const numeroOS    = document.getElementById('novaAtivNumeroOS')?.value?.trim() || '';
   const errEl = document.getElementById('novaAtivErr');
   const btn   = document.getElementById('novaAtivSubmit');
 
@@ -10914,7 +11012,7 @@ async function _submeterNovaAtividade() {
 
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   const prazoBR = prazo ? prazo.split('-').reverse().join('/') : '';
-  const payload = { cliente, usina, equipamento, descricao, responsavel, prazo: prazoBR, prioridade, status, editor };
+  const payload = { cliente, usina, equipamento, descricao, responsavel, prazo: prazoBR, prioridade, status, numeroOS, editor };
 
   try {
     const ctrl = new AbortController();
