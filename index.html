@@ -2709,6 +2709,15 @@ body{
         Registrar atividade
       </button>
       </div>
+      <div id="novaAtivMultiStep" style="display:none;">
+        <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px;" id="novaAtivMultiHint"></div>
+        <div id="novaAtivMultiList" style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;padding-right:2px;"></div>
+        <div id="novaAtivMultiErr" style="display:none;color:var(--red);font-size:12px;margin:10px 0;"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="nova-oc-submit" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);flex:0 0 auto;padding:0 14px;" onclick="_voltarNovaAtivFormUnico()">← Editar manualmente</button>
+          <button class="nova-oc-submit" id="novaAtivMultiSubmit" style="flex:1;" onclick="_submeterNovaAtividadesMulti()">Registrar atividades selecionadas</button>
+        </div>
+      </div>
       <div id="novaAtivFotosStep" style="display:none;">
         <div style="display:flex;align-items:center;gap:8px;color:var(--teal);font-size:13px;font-weight:600;margin-bottom:14px;">
           <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
@@ -10877,9 +10886,12 @@ async function _salvarAtivDrawer() {
   }
 }
 
+let _extractedAtividades = [];
 function _openNovaAtividade() {
   document.getElementById('novaAtivFormStep').style.display = 'block';
+  document.getElementById('novaAtivMultiStep').style.display = 'none';
   document.getElementById('novaAtivFotosStep').style.display = 'none';
+  _extractedAtividades = [];
   const clientes = _clientesDisponiveis();
   clientes.push('Geral', 'Administrativo');
   const selCli = document.getElementById('novaAtivCliente');
@@ -10917,6 +10929,137 @@ function _openNovaAtividade() {
   document.getElementById('novaAtivOverlay').style.display = 'flex';
 }
 
+function _preencherFormularioUnico(c) {
+  const avisoEl = document.getElementById('novaAtivUsinaAviso');
+  const selCli = document.getElementById('novaAtivCliente');
+  if (c.cliente && selCli) {
+    if (![...selCli.options].some(o => o.value === c.cliente)) {
+      selCli.insertAdjacentHTML('beforeend', `<option value="${esc(c.cliente)}">${esc(c.cliente)}</option>`);
+    }
+    selCli.value = c.cliente;
+    selCli.dispatchEvent(new Event('change'));
+  }
+  const selU = document.getElementById('novaAtivUsina');
+  if (c.usina && selU) {
+    if (![...selU.options].some(o => o.value === c.usina)) {
+      selU.insertAdjacentHTML('beforeend', `<option value="${esc(c.usina)}">${esc(c.usina)}</option>`);
+    }
+    selU.value = c.usina;
+  }
+
+  if (c.equipamento) document.getElementById('novaAtivEquipamento').value = c.equipamento;
+  if (c.descricao) document.getElementById('novaAtivDescricao').value = c.descricao;
+  if (c.responsavel) document.getElementById('novaAtivResponsavel').value = c.responsavel;
+  if (c.numeroOS) document.getElementById('novaAtivNumeroOS').value = c.numeroOS;
+  if (c.prioridade) document.getElementById('novaAtivPrioridade').value = c.prioridade;
+  if (c.status) {
+    const selStatus = document.getElementById('novaAtivStatus');
+    if (selStatus && [...selStatus.options].some(o => o.value === c.status)) selStatus.value = c.status;
+  }
+  if (c.prazo) {
+    const m = c.prazo.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) document.getElementById('novaAtivPrazo').value = `${m[3]}-${m[2]}-${m[1]}`;
+  }
+
+  if (avisoEl) avisoEl.style.display = (!c.usinaReconhecida && c.usina) ? 'block' : 'none';
+}
+
+function _renderNovaAtivMultiList(lista) {
+  const hint = document.getElementById('novaAtivMultiHint');
+  if (hint) hint.textContent = `${lista.length} atividades identificadas no print — confira, ajuste se precisar e desmarque as que não quer registrar.`;
+  const cont = document.getElementById('novaAtivMultiList');
+  if (!cont) return;
+  cont.innerHTML = lista.map((item, i) => `
+    <div class="nova-ativ-multi-card" style="border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:8px;cursor:pointer;">
+        <input type="checkbox" id="ativMulti_incl_${i}" checked>
+        <span>${esc(item.usina || 'Usina não identificada')}${item.usinaReconhecida ? '' : ' ⚠️'}</span>
+      </label>
+      <div class="nova-oc-2col" style="margin-bottom:6px;">
+        <div class="nova-oc-field"><label style="font-size:10.5px;">Cliente</label><input class="nova-oc-input" id="ativMulti_cliente_${i}" value="${esc(item.cliente||'')}"></div>
+        <div class="nova-oc-field"><label style="font-size:10.5px;">Usina</label><input class="nova-oc-input" id="ativMulti_usina_${i}" value="${esc(item.usina||'')}"></div>
+      </div>
+      <div class="nova-oc-field" style="margin-bottom:6px;">
+        <label style="font-size:10.5px;">Descrição</label>
+        <textarea class="nova-oc-textarea" id="ativMulti_descricao_${i}" rows="2">${esc(item.descricao||'')}</textarea>
+      </div>
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field"><label style="font-size:10.5px;">Equipamento</label><input class="nova-oc-input" id="ativMulti_equipamento_${i}" value="${esc(item.equipamento||'')}"></div>
+        <div class="nova-oc-field"><label style="font-size:10.5px;">Nº OS</label><input class="nova-oc-input" id="ativMulti_numeroOS_${i}" value="${esc(item.numeroOS||'')}"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function _voltarNovaAtivFormUnico() {
+  document.getElementById('novaAtivMultiStep').style.display = 'none';
+  document.getElementById('novaAtivFormStep').style.display = 'block';
+  if (_extractedAtividades && _extractedAtividades[0]) {
+    _preencherFormularioUnico(_extractedAtividades[0]);
+  }
+}
+
+let _isSubmittingAtivMulti = false;
+async function _submeterNovaAtividadesMulti() {
+  if (_isSubmittingAtivMulti) return;
+  const errEl = document.getElementById('novaAtivMultiErr');
+  const btn = document.getElementById('novaAtivMultiSubmit');
+  if (errEl) errEl.style.display = 'none';
+
+  const itens = [];
+  _extractedAtividades.forEach((_, i) => {
+    const incl = document.getElementById(`ativMulti_incl_${i}`);
+    if (!incl || !incl.checked) return;
+    const cliente     = document.getElementById(`ativMulti_cliente_${i}`)?.value?.trim() || '';
+    const usina       = document.getElementById(`ativMulti_usina_${i}`)?.value?.trim() || '';
+    const descricao   = document.getElementById(`ativMulti_descricao_${i}`)?.value?.trim() || '';
+    const equipamento = document.getElementById(`ativMulti_equipamento_${i}`)?.value?.trim() || '';
+    const numeroOS    = document.getElementById(`ativMulti_numeroOS_${i}`)?.value?.trim() || '';
+    if (!cliente || !descricao) return;
+    itens.push({ cliente, usina, equipamento, descricao, numeroOS,
+      responsavel: '', prazo: '', prioridade: 'Média', status: 'Em Aberto' });
+  });
+
+  if (itens.length === 0) {
+    if (errEl) { errEl.textContent = 'Selecione ao menos uma atividade com Cliente e Descrição preenchidos.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  _isSubmittingAtivMulti = true;
+  if (btn) { btn.disabled = true; btn.textContent = `Registrando 0/${itens.length}…`; }
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+
+  let sucesso = 0, falha = 0;
+  for (let i = 0; i < itens.length; i++) {
+    const payload = { ...itens[i], editor };
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 12000);
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/nova-atividade', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload), signal: ctrl.signal
+      });
+      clearTimeout(t);
+      const result = await resp.json();
+      if (result.ok) sucesso++; else falha++;
+    } catch (e) { falha++; }
+    if (btn) btn.textContent = `Registrando ${i+1}/${itens.length}…`;
+  }
+
+  _isSubmittingAtivMulti = false;
+  if (btn) { btn.disabled = false; btn.textContent = 'Registrar atividades selecionadas'; }
+
+  if (sucesso > 0) {
+    showToast(`${sucesso} atividade(s) registrada(s)${falha ? ` — ${falha} falharam` : ''}!`, falha === 0);
+    if (_activeNav === 'atividades') carregarAtividades();
+  }
+  if (falha > 0 && sucesso === 0) {
+    if (errEl) { errEl.textContent = `Falha ao registrar ${falha} atividade(s). Tente novamente.`; errEl.style.display = 'block'; }
+    return;
+  }
+  document.getElementById('novaAtivOverlay').style.display = 'none';
+}
+
 async function _novaAtivImagemSelecionada(file) {
   if (!file) return;
   const previewWrap = document.getElementById('novaAtivImgPreviewWrap');
@@ -10927,6 +11070,9 @@ async function _novaAtivImagemSelecionada(file) {
   previewWrap.style.display = 'flex';
   statusEl.textContent = 'Lendo imagem…';
   previewImg.src = URL.createObjectURL(file);
+  document.getElementById('novaAtivMultiStep').style.display = 'none';
+  document.getElementById('novaAtivFormStep').style.display = 'block';
+  _extractedAtividades = [];
 
   try {
     const base64 = await new Promise((res, rej) => {
@@ -10935,9 +11081,9 @@ async function _novaAtivImagemSelecionada(file) {
       r.onerror = () => rej(new Error('Falha ao ler o arquivo'));
       r.readAsDataURL(file);
     });
-    statusEl.textContent = 'Extraindo dados com IA… (pode levar até 30s)';
+    statusEl.textContent = 'Extraindo dados com IA… (pode levar até 40s)';
     const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 50000);
+    const timeoutId = setTimeout(() => ctrl.abort(), 60000);
     const resp = await fetch('https://api.168.138.232.237.sslip.io/extrair-atividade-de-imagem', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ imagemBase64: base64, imagemMimeType: file.type || 'image/png' }),
@@ -10946,42 +11092,20 @@ async function _novaAtivImagemSelecionada(file) {
     clearTimeout(timeoutId);
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao extrair dados da imagem');
-    const c = data.campos || {};
 
-    const selCli = document.getElementById('novaAtivCliente');
-    if (c.cliente && selCli) {
-      if (![...selCli.options].some(o => o.value === c.cliente)) {
-        selCli.insertAdjacentHTML('beforeend', `<option value="${esc(c.cliente)}">${esc(c.cliente)}</option>`);
-      }
-      selCli.value = c.cliente;
-      selCli.dispatchEvent(new Event('change'));
-    }
-    const selU = document.getElementById('novaAtivUsina');
-    if (c.usina && selU) {
-      if (![...selU.options].some(o => o.value === c.usina)) {
-        selU.insertAdjacentHTML('beforeend', `<option value="${esc(c.usina)}">${esc(c.usina)}</option>`);
-      }
-      selU.value = c.usina;
-    }
+    const lista = Array.isArray(data.atividades) ? data.atividades : (data.campos ? [data.campos] : []);
+    if (lista.length === 0) throw new Error('Nenhuma atividade identificada na imagem.');
 
-    if (c.equipamento) document.getElementById('novaAtivEquipamento').value = c.equipamento;
-    if (c.descricao) document.getElementById('novaAtivDescricao').value = c.descricao;
-    if (c.responsavel) document.getElementById('novaAtivResponsavel').value = c.responsavel;
-    if (c.numeroOS) document.getElementById('novaAtivNumeroOS').value = c.numeroOS;
-    if (c.prioridade) document.getElementById('novaAtivPrioridade').value = c.prioridade;
-    if (c.status) {
-      const selStatus = document.getElementById('novaAtivStatus');
-      if (selStatus && [...selStatus.options].some(o => o.value === c.status)) selStatus.value = c.status;
+    if (lista.length === 1) {
+      _preencherFormularioUnico(lista[0]);
+      statusEl.textContent = '✅ Dados extraídos — confira os campos abaixo antes de registrar.';
+    } else {
+      _extractedAtividades = lista;
+      _renderNovaAtivMultiList(lista);
+      document.getElementById('novaAtivFormStep').style.display = 'none';
+      document.getElementById('novaAtivMultiStep').style.display = 'block';
+      statusEl.textContent = `✅ ${lista.length} atividades identificadas.`;
     }
-    if (c.prazo) {
-      const m = c.prazo.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (m) document.getElementById('novaAtivPrazo').value = `${m[3]}-${m[2]}-${m[1]}`;
-    }
-
-    if (!data.usinaReconhecida && c.usina) {
-      avisoEl.style.display = 'block';
-    }
-    statusEl.textContent = '✅ Dados extraídos — confira os campos abaixo antes de registrar.';
   } catch (e) {
     statusEl.textContent = '❌ Erro: ' + (e.message || 'falha ao processar imagem.');
   }
