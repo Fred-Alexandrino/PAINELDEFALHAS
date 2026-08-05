@@ -3634,7 +3634,7 @@ async function carregarLocalizacoes() {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes');
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
-    _locCache = data.itens || [];
+    _locCache = (data.itens || []).map(i => ({ ...i, cliente: normalizeCliente(i.cliente), usina: normalizeUsina(i.usina) || i.usina }));
     _locPopularFiltroCliente();
     _locRender();
     await _locGeocodificarPendentes();
@@ -3753,7 +3753,7 @@ async function _locGeocodificarPendentes() {
 async function carregarLocalizacoes_semGeocodificar() {
   const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes');
   const data = await resp.json();
-  if (data.ok) { _locCache = data.itens || []; _locPopularFiltroCliente(); }
+  if (data.ok) { _locCache = (data.itens || []).map(i => ({ ...i, cliente: normalizeCliente(i.cliente), usina: normalizeUsina(i.usina) || i.usina })); _locPopularFiltroCliente(); }
 }
 
 /* ══ COMPROMISSOS (BM / Relatórios de Performance & PCM) ══ */
