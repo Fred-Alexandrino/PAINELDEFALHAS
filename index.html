@@ -1793,6 +1793,7 @@ body{
               <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista
             </button>
             <button class="tb-btn tb-btn-refresh" onclick="carregarLocalizacoes()"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+            <button class="tb-btn" id="locLimparRaiosBtn" onclick="_locLimparRaios()" style="display:none;">Ocultar raios (0)</button>
           </div>
         </div>
         <div id="locStatusMsg" style="font-size:13px;color:var(--text-faint);margin-bottom:10px;"></div>
@@ -3534,11 +3535,73 @@ let _locCache = [];
 let _locViewMode = 'mapa';
 let _locMapInstance = null;
 let _locMarkersLayer = null;
+let _locRaiosLayer = null;
+let _locRaiosAtivos = new Set(); // chaves "cliente|usina" com raio de 150km ligado
+const LOC_RAIO_METROS = 150000; // 150km — área de atuação da equipe, sem contar deslocamento de jornada
 const LOC_CORES_CLIENTE = {
   'Renogrid': '#F5A623', 'Thopen': '#60A5FA', '2C Energia': '#14B8A6',
   'GD Energy': '#EF4444', 'Alves Lima': '#A78BFA', 'Sal Energia': '#34D399',
 };
+let _locMarkersByChave = {};
+
 function _locCorCliente(cliente) { return LOC_CORES_CLIENTE[cliente] || '#9CA3AF'; }
+function _locEsc(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+function _locChaveRaio(cliente, usina) { return cliente + '|' + usina; }
+
+function _locPopupHtml(i) {
+  const cor = _locCorCliente(i.cliente);
+  const linkHtml = i.mapsLink ? '<a href="' + i.mapsLink + '" target="_blank" rel="noopener" style="color:#5B9BD5;">Abrir no Google Maps</a>' : '';
+  const chave = _locChaveRaio(i.cliente, i.usina);
+  const raioAtivo = _locRaiosAtivos.has(chave);
+  const raioBtnHtml = '<button onclick="_locToggleRaio(\'' + _locEsc(i.cliente) + '\',\'' + _locEsc(i.usina) + '\')" ' +
+    'style="margin-top:6px;width:100%;padding:5px 8px;border-radius:6px;border:1px solid ' + cor + ';' +
+    'background:' + (raioAtivo ? cor : 'transparent') + ';color:' + (raioAtivo ? '#fff' : cor) + ';' +
+    'font-size:11.5px;font-weight:600;cursor:pointer;">' +
+    (raioAtivo ? '✕ Ocultar raio de 150km' : '◎ Mostrar raio de 150km (área de atuação)') + '</button>';
+  return '<div style="font-family:sans-serif;font-size:12.5px;min-width:200px;">' +
+    '<div style="font-weight:700;margin-bottom:2px;">' + i.usina + '</div>' +
+    '<div style="color:#6B7280;margin-bottom:4px;">' + i.cliente + '</div>' +
+    '<div style="margin-bottom:6px;">' + (i.endereco || '') + '</div>' +
+    linkHtml + raioBtnHtml + '</div>';
+}
+
+function _locToggleRaio(cliente, usina) {
+  const chave = _locChaveRaio(cliente, usina);
+  if (_locRaiosAtivos.has(chave)) _locRaiosAtivos.delete(chave); else _locRaiosAtivos.add(chave);
+  _locRenderRaios();
+  _locAtualizarContadorRaios();
+  const item = _locCache.find(x => _locChaveRaio(x.cliente, x.usina) === chave);
+  const marker = _locMarkersByChave[chave];
+  if (item && marker) marker.setPopupContent(_locPopupHtml(item)); // atualiza o botão sem fechar o popup
+}
+
+function _locLimparRaios() {
+  _locRaiosAtivos.clear();
+  _locRenderRaios();
+  _locAtualizarContadorRaios();
+}
+
+function _locAtualizarContadorRaios() {
+  const btn = document.getElementById('locLimparRaiosBtn');
+  if (!btn) return;
+  const n = _locRaiosAtivos.size;
+  btn.style.display = n > 0 ? '' : 'none';
+  btn.textContent = 'Ocultar raios (' + n + ')';
+}
+
+function _locRenderRaios() {
+  if (!_locRaiosLayer) return;
+  _locRaiosLayer.clearLayers();
+  _locCache.forEach(i => {
+    if (i.lat == null || i.lng == null) return;
+    if (!_locRaiosAtivos.has(_locChaveRaio(i.cliente, i.usina))) return;
+    const cor = _locCorCliente(i.cliente);
+    L.circle([i.lat, i.lng], {
+      radius: LOC_RAIO_METROS, color: cor, weight: 1.5, dashArray: '6,5',
+      fillColor: cor, fillOpacity: 0.06,
+    }).addTo(_locRaiosLayer);
+  });
+}
 
 async function carregarLocalizacoes() {
   const msg = document.getElementById('locStatusMsg');
@@ -3593,28 +3656,26 @@ function _locRenderMapa() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 18,
     }).addTo(_locMapInstance);
+    _locRaiosLayer = L.layerGroup().addTo(_locMapInstance);
     _locMarkersLayer = L.layerGroup().addTo(_locMapInstance);
   }
   _locMarkersLayer.clearLayers();
+  _locMarkersByChave = {};
   const bounds = [];
   itens.forEach(i => {
     const cor = _locCorCliente(i.cliente);
     const marker = L.circleMarker([i.lat, i.lng], {
       radius: 8, color: cor, weight: 2, fillColor: cor, fillOpacity: 0.75,
     });
-    const linkHtml = i.mapsLink ? '<a href="' + i.mapsLink + '" target="_blank" rel="noopener" style="color:#5B9BD5;">Abrir no Google Maps</a>' : '';
-    marker.bindPopup(
-      '<div style="font-family:sans-serif;font-size:12.5px;min-width:180px;">' +
-      '<div style="font-weight:700;margin-bottom:2px;">' + i.usina + '</div>' +
-      '<div style="color:#6B7280;margin-bottom:4px;">' + i.cliente + '</div>' +
-      '<div style="margin-bottom:6px;">' + (i.endereco || '') + '</div>' +
-      linkHtml + '</div>'
-    );
+    marker.bindPopup(_locPopupHtml(i), { minWidth: 210 });
+    _locMarkersByChave[_locChaveRaio(i.cliente, i.usina)] = marker;
     marker.addTo(_locMarkersLayer);
     bounds.push([i.lat, i.lng]);
   });
   if (bounds.length) _locMapInstance.fitBounds(bounds, { padding: [30, 30] });
   setTimeout(() => _locMapInstance && _locMapInstance.invalidateSize(), 150);
+  _locRenderRaios();
+  _locAtualizarContadorRaios();
   const msg = document.getElementById('locStatusMsg');
   const semCoord = _locItensFiltrados().length - itens.length;
   if (msg) msg.textContent = itens.length + ' usina(s) no mapa' + (semCoord > 0 ? ' · ' + semCoord + ' ainda sem coordenada (geocodificando…)' : '');
