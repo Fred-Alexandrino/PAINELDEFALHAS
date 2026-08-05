@@ -538,6 +538,9 @@ body{
 .tb-btn-notif.enabled{background:rgba(63,193,176,.2);border-color:var(--teal);}
 .tb-btn-notif.enabled:hover{background:rgba(226,84,61,.1);border-color:rgba(226,84,61,.4);color:var(--red);}
 .tb-btn-refresh{background:rgba(242,169,59,.1);border-color:rgba(242,169,59,.35);color:var(--amber);}
+#locMapaWrap.loc-map-fullscreen{position:fixed;inset:0;z-index:9500;border-radius:0;border:none;background:var(--bg);}
+#locMapaWrap.loc-map-fullscreen #locMapa{height:100vh!important;}
+#locFullscreenBtn:hover{background:var(--panel-alt);}
 .tb-btn-refresh:hover:not(:disabled){background:rgba(242,169,59,.18);}
 .tb-btn-refresh:disabled{opacity:.5;cursor:not-allowed;}
 .tb-btn-refresh svg.spinning{animation:spin .7s linear infinite;}
@@ -1797,7 +1800,10 @@ body{
           </div>
         </div>
         <div id="locStatusMsg" style="font-size:13px;color:var(--text-faint);margin-bottom:10px;"></div>
-        <div id="locMapaWrap" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <div id="locMapaWrap" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;">
+          <button id="locFullscreenBtn" onclick="_locToggleFullscreen()" title="Tela cheia" style="position:absolute;top:10px;right:10px;z-index:500;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
           <div id="locMapa" style="width:100%;height:520px;background:var(--panel-alt);"></div>
         </div>
         <div id="locListaWrap" class="zel-table-wrap" style="display:none;"></div>
@@ -3602,6 +3608,24 @@ function _locRenderRaios() {
     }).addTo(_locRaiosLayer);
   });
 }
+
+function _locToggleFullscreen() {
+  const wrap = document.getElementById('locMapaWrap');
+  const btn = document.getElementById('locFullscreenBtn');
+  const indo = !wrap.classList.contains('loc-map-fullscreen');
+  wrap.classList.toggle('loc-map-fullscreen', indo);
+  btn.title = indo ? 'Sair da tela cheia (Esc)' : 'Tela cheia';
+  btn.innerHTML = indo
+    ? '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 3v3a2 2 0 0 1-2 2H4M15 3v3a2 2 0 0 0 2 2h3M9 21v-3a2 2 0 0 0-2-2H4M15 21v-3a2 2 0 0 1 2-2h3"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+  setTimeout(() => _locMapInstance && _locMapInstance.invalidateSize(), 200);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const wrap = document.getElementById('locMapaWrap');
+    if (wrap && wrap.classList.contains('loc-map-fullscreen')) _locToggleFullscreen();
+  }
+});
 
 async function carregarLocalizacoes() {
   const msg = document.getElementById('locStatusMsg');
