@@ -3664,7 +3664,14 @@ function _locSetViewMode(mode) {
 
 function _locItensFiltrados() {
   const cliente = document.getElementById('locFiltroCliente')?.value || '';
-  return cliente ? _locCache.filter(i => i.cliente === cliente) : _locCache;
+  const usinaCluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro && typeof _usinaClusterMap === 'function') ? _usinaClusterMap() : null;
+  return _locCache.filter(i => {
+    if (cliente && i.cliente !== cliente) return false;
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(i.cliente)) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(i.usina)) return false;
+    if (usinaCluster && usinaCluster[i.usina] !== _ativClusterFiltro) return false;
+    return true;
+  });
 }
 
 function _locRender() {
@@ -4771,10 +4778,12 @@ function applyFilters() {
     }
   }
 
+  const usinaClusterFalhas = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro && typeof _usinaClusterMap === 'function') ? _usinaClusterMap() : null;
   filtered = dataBase.filter(d => {
     if (selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
     if (selUsinaValues.size>0 && !selUsinaValues.has(d.usina)) return false;
     if (selStatusValues.size>0 && !selStatusValues.has(d.status)) return false;
+    if (usinaClusterFalhas && usinaClusterFalhas[d.usina] !== _ativClusterFiltro) return false;
     if (q) {
       const hay = (d.equipamento+' '+d.falha+' '+d.causa+' '+d.impactados+' '+d.usina+' '+d.ticketFabricante+' '+d.numeroOS).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -4801,12 +4810,16 @@ function applyFilters() {
   if (_activeNav === 'atividades') renderAtividadeCards();
   if (_activeNav === 'chamados') openChamadosInline();
   if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
+  if (_activeNav === 'localizacao' && typeof _locRender === 'function') _locRender();
 }
 
 function clearFilters() {
   selCliente.clear();
   selUsinaValues.clear(); selStatusValues.clear();
   selUsinaValue=''; selStatusValue='';
+  if (typeof _ativClusterFiltro !== 'undefined') _ativClusterFiltro = '';
+  const clusterSel = document.getElementById('ativClusterSelect');
+  if (clusterSel) clusterSel.value = '';
   _renderCbDropdown('Usina'); _renderCbDropdown('Status');
   document.getElementById('sbSelStale').value = '';
   document.getElementById('sbSearch').value = '';
@@ -4817,6 +4830,10 @@ function clearFilters() {
   document.getElementById('desligBanner')?.classList.remove('active-filter');
   populateFilters();
   applyFilters();
+  if (typeof renderAtividadeCards === 'function') renderAtividadeCards();
+  if (typeof openChamadosInline === 'function' && _activeNav === 'chamados') openChamadosInline();
+  if (typeof zelRender === 'function') zelRender();
+  if (typeof _locRender === 'function') _locRender();
 }
 
 // Filtros usina/status agora usam cb-dropdown customizado — listeners em _renderCbDropdown
@@ -7242,7 +7259,7 @@ function zelRenderFull(){
   sel.innerHTML='<option value="">Todos os clientes</option>'+clientes.map(c=>`<option value="${esc(c)}" ${cur===c?'selected':''}>${esc(c)}</option>`).join('');
   zelRender();
 }
-function zelGetFiltered(){const rows=zelData[zelTab]||[];const cliente=document.getElementById('zelFiltroCliente').value.trim().toLowerCase();const status=document.getElementById('zelFiltroStatus').value.trim().toLowerCase();const search=document.getElementById('zelSearch').value.trim().toLowerCase();return rows.filter(r=>{if(typeof selCliente!=='undefined'&&selCliente.size>0&&!selCliente.has(r.cliente))return false;if(cliente&&r.cliente.toLowerCase()!==cliente)return false;if(status&&r.status.toLowerCase()!==status)return false;if(search&&!r.usina.toLowerCase().includes(search)&&!r.cliente.toLowerCase().includes(search))return false;return true;});}
+function zelGetFiltered(){const rows=zelData[zelTab]||[];const cliente=document.getElementById('zelFiltroCliente').value.trim().toLowerCase();const status=document.getElementById('zelFiltroStatus').value.trim().toLowerCase();const search=document.getElementById('zelSearch').value.trim().toLowerCase();const usinaCluster=(typeof _ativClusterFiltro!=='undefined'&&_ativClusterFiltro&&typeof _usinaClusterMap==='function')?_usinaClusterMap():null;return rows.filter(r=>{if(typeof selCliente!=='undefined'&&selCliente.size>0&&!selCliente.has(r.cliente))return false;if(typeof selUsinaValues!=='undefined'&&selUsinaValues.size>0&&!selUsinaValues.has(r.usina))return false;if(usinaCluster&&usinaCluster[r.usina]!==_ativClusterFiltro)return false;if(cliente&&r.cliente.toLowerCase()!==cliente)return false;if(status&&r.status.toLowerCase()!==status)return false;if(search&&!r.usina.toLowerCase().includes(search)&&!r.cliente.toLowerCase().includes(search))return false;return true;});}
 function zelRender(){
   const allRows=zelData[zelTab]||[];const rows=zelGetFiltered();
   Object.keys(ZEL_TIPOS).forEach(t=>{const el=document.getElementById('tabBadge'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.textContent=(zelData[t]||[]).length;});
@@ -9864,6 +9881,9 @@ function _ativFiltrarPorCluster(valor) {
   _ativClusterFiltro = valor || '';
   renderAtividadeCards();
   if (_activeNav === 'chamados') openChamadosInline();
+  if (typeof zelRender === 'function') zelRender();
+  if (typeof _locRender === 'function') _locRender();
+  applyFilters(); // também reaplica em Falhas (agora considera Cluster)
 }
 
 function _ativPopularClusters() {
