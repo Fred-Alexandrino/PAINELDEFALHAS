@@ -1321,9 +1321,8 @@ body{
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
 
-.rel-2col{display:grid;grid-template-columns:repeat(3,minmax(320px,1fr));gap:28px;
+.rel-2col{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px;
   align-items:start;max-width:1560px;margin:40px auto;}
-@media(max-width:1240px){.rel-2col{grid-template-columns:repeat(2,minmax(320px,1fr));max-width:1080px;}}
 @media(max-width:900px){.rel-2col{grid-template-columns:1fr;max-width:520px;gap:24px;}}
 .com-livre-2col{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:start;max-width:1080px;margin-top:4px;}
 @media(max-width:800px){.com-livre-2col{grid-template-columns:1fr;}}
@@ -1969,6 +1968,21 @@ body{
             </button>
 
             <div id="handoverStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+          </div>
+
+          <div class="rel-card">
+            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
+                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
+              Handover EPC→O&M
+            </div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Relatório completo de handover de uma usina inteira (Construção/EPC → O&amp;M), no
+              modelo Grid Co. — capa, etapas, capacitação, quadro de revisões e punch list, com o
+              PDF exportado da Fracttal anexado no meio.
+            </div>
+            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirHandoverUsina()">
+              Montar Relatório de Handover de Usina
+            </button>
           </div>
         </div>
       </section>
@@ -2807,6 +2821,116 @@ body{
         Gerar Relatório (.pptx)
       </button>
       <div id="relOcorStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Relatório de Handover de Usina (EPC→O&M) -->
+<div class="ch-overlay" id="handoverUsinaOverlay">
+  <div class="ch-modal" style="max-width:780px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h2>Relatório de Handover — EPC→O&amp;M</h2></div><div class="ch-subtitle">Handover completo de uma usina — capa, etapas, capacitação, quadro de revisões e punch list (.pdf)</div></div>
+        <button class="modal-close-btn" id="handoverUsinaClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Cliente</label>
+          <select class="nova-oc-select" id="hvUsinaCliente"></select>
+        </div>
+        <div class="nova-oc-field">
+          <label>Usina</label>
+          <select class="nova-oc-select" id="hvUsinaUsina"></select>
+        </div>
+      </div>
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Data de início do handover</label>
+          <input type="date" class="nova-oc-input" id="hvDataInicio">
+        </div>
+        <div class="nova-oc-field">
+          <label>Data de conclusão do handover</label>
+          <input type="date" class="nova-oc-input" id="hvDataFim">
+        </div>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>Equipe de O&amp;M envolvida (uma pessoa por linha — ex.: "Supervisor: Fred Alexandrino")</label>
+        <textarea class="nova-oc-textarea" id="hvEquipe" rows="3"></textarea>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>3.1. Planejamento</label>
+        <textarea class="nova-oc-textarea" id="hvPlanejamento" rows="3">Foi elaborado um cronograma detalhado para o handover, contemplando todas as atividades necessárias para a transferência de responsabilidade. As equipes envolvidas foram devidamente comunicadas e as responsabilidades foram distribuídas.</textarea>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>3.2. Documentação Entregue</label>
+        <textarea class="nova-oc-textarea" id="hvDocumentacao" rows="3">Foram entregues à equipe de O&M os diagramas elétricos, layout da usina, planta de situação, documentos de comissionamento e documentos do sistema SCADA.</textarea>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>OSs de handover desta usina (marque as que entram no relatório — viram a lista "Handover – &lt;equipamento&gt;" na seção 3.3)</label>
+        <div id="hvOsLista" style="max-height:180px;overflow-y:auto;border:1px solid var(--border-strong);
+                    border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;
+                    font-size:12.5px;color:var(--text);"></div>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>4. Capacitação da Equipe (um tópico por linha)</label>
+        <textarea class="nova-oc-textarea" id="hvCapacitacao" rows="3">Procedimentos de segurança.
+Monitoramento remoto.
+Manutenção preventiva e corretiva.</textarea>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>5. Conclusão</label>
+        <textarea class="nova-oc-textarea" id="hvConclusao" rows="3">O handover foi concluído com sucesso e as pendências encontradas serão consolidadas em Punch List. A operação plena e segura da usina dependerá da correção das não conformidades.</textarea>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>6. Punch List (itens pendentes)</label>
+        <div id="hvPunchLista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+        <button type="button" class="rel-btn-secundario" style="width:100%;" onclick="_hvAdicionarPunchItem()">+ Adicionar item à Punch List</button>
+      </div>
+
+      <div class="nova-oc-2col">
+        <div class="nova-oc-field">
+          <label>Elaborador</label>
+          <input type="text" class="nova-oc-input" id="hvElaborador" placeholder="Ex.: Fred Alexandrino">
+        </div>
+        <div class="nova-oc-field">
+          <label>Verificador</label>
+          <input type="text" class="nova-oc-input" id="hvVerificador" placeholder="Ex.: Fred Alexandrino">
+        </div>
+        <div class="nova-oc-field">
+          <label>Aprovador</label>
+          <input type="text" class="nova-oc-input" id="hvAprovador" placeholder="Ex.: Marcelo Martineli">
+        </div>
+        <div class="nova-oc-field">
+          <label>Data da revisão</label>
+          <input type="date" class="nova-oc-input" id="hvDataRevisao">
+        </div>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>📎 PDF exportado da Fracttal (Ordens de Serviço de Handover — opcional)</label>
+        <div id="hvFracttalDropZone" onclick="document.getElementById('hvFracttalFileInput').click()"
+             style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:16px;
+                    text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;">
+          <div id="hvFracttalNomeArquivo">Clique para anexar o PDF exportado da Fracttal</div>
+          <input type="file" id="hvFracttalFileInput" accept="application/pdf" style="display:none;"
+                 onchange="_hvFracttalArquivoSelecionado(this.files)">
+        </div>
+      </div>
+
+      <div id="hvErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
+      <button class="nova-oc-submit" id="hvSubmit" onclick="_gerarHandoverUsina()">
+        Gerar Relatório de Handover (.pdf)
+      </button>
+      <div id="hvStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
     </div>
   </div>
 </div>
@@ -11718,6 +11842,196 @@ async function relGerarHandover(){
     if (btn) btn.disabled = false;
   }
 }
+
+// ── Relatório de Handover de Usina — EPC→O&M (Painel de Relatórios) ──
+let _hvPunchList = [];
+let _hvFracttalArquivo = null;
+
+function _abrirHandoverUsina() {
+  const clientes = _clientesDisponiveis();
+  const selCli = document.getElementById('hvUsinaCliente');
+  const selU = document.getElementById('hvUsinaUsina');
+  if (selCli) {
+    selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    selCli.onchange = () => {
+      const cli = selCli.value;
+      if (!selU) return;
+      const usinas = [...new Set((typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+        .filter(a => a.cliente === cli).map(a => a.usina).filter(Boolean))].sort();
+      selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+      selU.onchange = _hvOsListaRenderizar;
+      _hvOsListaRenderizar();
+    };
+    selCli.dispatchEvent(new Event('change'));
+  }
+  document.getElementById('hvDataInicio').value = '';
+  document.getElementById('hvDataFim').value = '';
+  document.getElementById('hvDataRevisao').value = '';
+  document.getElementById('hvEquipe').value = '';
+  document.getElementById('hvElaborador').value = '';
+  document.getElementById('hvVerificador').value = '';
+  document.getElementById('hvAprovador').value = '';
+  _hvPunchList = [];
+  _hvRenderPunchLista();
+  _hvFracttalArquivo = null;
+  document.getElementById('hvFracttalNomeArquivo').textContent = 'Clique para anexar o PDF exportado da Fracttal';
+  document.getElementById('hvFracttalFileInput').value = '';
+  const errEl = document.getElementById('hvErr'); if (errEl) errEl.style.display = 'none';
+  const statusEl = document.getElementById('hvStatus'); if (statusEl) statusEl.textContent = '';
+  document.getElementById('handoverUsinaOverlay').style.display = 'flex';
+}
+
+function _hvOsListaRenderizar() {
+  const cli = document.getElementById('hvUsinaCliente')?.value;
+  const usina = document.getElementById('hvUsinaUsina')?.value;
+  const wrap = document.getElementById('hvOsLista');
+  if (!wrap) return;
+  const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .filter(a => a.cliente === cli && a.usina === usina && (a.numeroOS || '').trim());
+  if (!lista.length) {
+    wrap.innerHTML = '<div style="color:var(--text-faint);">Nenhuma OS encontrada para essa usina no Painel de Atividades.</div>';
+    return;
+  }
+  wrap.innerHTML = lista.map(a => `
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+      <input type="checkbox" class="hv-os-check" value="${esc(a.id)}" data-equipamento="${esc(a.equipamento || a.descricao || '')}" style="margin-top:2px;">
+      <span><b>OS ${esc(a.numeroOS)}</b> — ${esc(a.equipamento || '—')} <span style="color:var(--text-faint);">(${esc(a.descricao || '')})</span></span>
+    </label>`).join('');
+}
+
+function _hvAdicionarPunchItem() {
+  _hvPunchList.push({ ativo: '', criticidade: 'Média', status: 'PENDENTE', anormalidade: '', recomendacoes: '', responsavel: '' });
+  _hvRenderPunchLista();
+}
+
+function _hvRemoverPunchItem(idx) {
+  _hvPunchList.splice(idx, 1);
+  _hvRenderPunchLista();
+}
+
+function _hvAtualizarPunchItem(idx, campo, valor) {
+  if (_hvPunchList[idx]) _hvPunchList[idx][campo] = valor;
+}
+
+function _hvRenderPunchLista() {
+  const wrap = document.getElementById('hvPunchLista');
+  if (!wrap) return;
+  if (!_hvPunchList.length) {
+    wrap.innerHTML = '<div style="color:var(--text-faint);font-size:12.5px;">Nenhum item adicionado.</div>';
+    return;
+  }
+  wrap.innerHTML = _hvPunchList.map((item, i) => `
+    <div style="border:1px solid var(--border-strong);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;gap:8px;">
+        <input class="nova-oc-input" style="flex:1;" placeholder="Ativo" value="${esc(item.ativo)}" oninput="_hvAtualizarPunchItem(${i},'ativo',this.value)">
+        <select class="nova-oc-select" style="width:110px;" onchange="_hvAtualizarPunchItem(${i},'criticidade',this.value)">
+          ${['Baixa','Média','Alta','Muito Alta'].map(c => `<option value="${c}" ${item.criticidade===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <select class="nova-oc-select" style="width:120px;" onchange="_hvAtualizarPunchItem(${i},'status',this.value)">
+          ${['PENDENTE','CONCLUÍDO'].map(s => `<option value="${s}" ${item.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <button type="button" onclick="_hvRemoverPunchItem(${i})" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <textarea class="nova-oc-textarea" rows="2" placeholder="Anormalidade" oninput="_hvAtualizarPunchItem(${i},'anormalidade',this.value)">${esc(item.anormalidade)}</textarea>
+      <textarea class="nova-oc-textarea" rows="2" placeholder="Recomendações" oninput="_hvAtualizarPunchItem(${i},'recomendacoes',this.value)">${esc(item.recomendacoes)}</textarea>
+      <input class="nova-oc-input" placeholder="Responsável (ex.: EQUIPE TÉCNICA)" value="${esc(item.responsavel)}" oninput="_hvAtualizarPunchItem(${i},'responsavel',this.value)">
+    </div>`).join('');
+}
+
+function _hvFracttalArquivoSelecionado(fileList) {
+  const f = fileList && fileList[0];
+  if (!f) return;
+  if (!f.name.toLowerCase().endsWith('.pdf')) {
+    const errEl = document.getElementById('hvErr');
+    if (errEl) { errEl.textContent = 'O arquivo precisa ser um PDF.'; errEl.style.display = 'block'; }
+    return;
+  }
+  _hvFracttalArquivo = f;
+  document.getElementById('hvFracttalNomeArquivo').textContent = `📄 ${f.name}`;
+}
+
+function _hvDataBr(iso) {
+  if (!iso) return '';
+  const [a, m, d] = iso.split('-');
+  return `${d}/${m}/${a}`;
+}
+
+let _isGerandoHandoverUsina = false;
+async function _gerarHandoverUsina() {
+  if (_isGerandoHandoverUsina) return;
+  const cliente = document.getElementById('hvUsinaCliente')?.value?.trim() || '';
+  const usina = document.getElementById('hvUsinaUsina')?.value?.trim() || '';
+  const errEl = document.getElementById('hvErr');
+  const statusEl = document.getElementById('hvStatus');
+  const btn = document.getElementById('hvSubmit');
+
+  if (!cliente || !usina) {
+    if (errEl) { errEl.textContent = 'Selecione cliente e usina.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+
+  const equipamentosSelecionados = [...document.querySelectorAll('.hv-os-check:checked')]
+    .map(cb => cb.dataset.equipamento).filter(Boolean);
+
+  const dados = {
+    cliente, usina,
+    dataInicio: _hvDataBr(document.getElementById('hvDataInicio')?.value),
+    dataFim: _hvDataBr(document.getElementById('hvDataFim')?.value),
+    equipe: (document.getElementById('hvEquipe')?.value || '').split('\n'),
+    planejamento: document.getElementById('hvPlanejamento')?.value || '',
+    documentacaoEntregue: document.getElementById('hvDocumentacao')?.value || '',
+    equipamentosHandover: equipamentosSelecionados,
+    capacitacao: (document.getElementById('hvCapacitacao')?.value || '').split('\n'),
+    conclusao: document.getElementById('hvConclusao')?.value || '',
+    revisao: {
+      revisao: '00',
+      edicao: 'Emissão inicial',
+      elaborador: document.getElementById('hvElaborador')?.value || '',
+      verificador: document.getElementById('hvVerificador')?.value || '',
+      aprovador: document.getElementById('hvAprovador')?.value || '',
+      data: _hvDataBr(document.getElementById('hvDataRevisao')?.value),
+    },
+    punchList: _hvPunchList.map(item => ({ ...item, cliente, usina })),
+  };
+
+  _isGerandoHandoverUsina = true;
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.textContent = 'Gerando relatório... (pode levar alguns segundos se houver PDF anexado)';
+
+  try {
+    const fd = new FormData();
+    fd.append('dados', JSON.stringify(dados));
+    if (_hvFracttalArquivo) fd.append('fracttalPdf', _hvFracttalArquivo);
+
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-relatorio-handover-usina', {
+      method: 'POST', body: fd
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (statusEl) statusEl.textContent = err.error || 'Erro ao gerar relatório.';
+      return;
+    }
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const nomeArquivo = match ? match[1] : `Handover_${usina}_${cliente}_GridCo.pdf`;
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeArquivo;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    if (statusEl) statusEl.textContent = 'Relatório gerado com sucesso.';
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Erro de conexão ao gerar relatório.';
+  } finally {
+    _isGerandoHandoverUsina = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.getElementById('handoverUsinaClose')?.addEventListener('click', () => { document.getElementById('handoverUsinaOverlay').style.display = 'none'; });
+document.getElementById('handoverUsinaOverlay')?.addEventListener('click', e => { if (e.target.id === 'handoverUsinaOverlay') document.getElementById('handoverUsinaOverlay').style.display = 'none'; });
 
 // ── Relatório de Ocorrência (Painel de Relatórios) ──────────────────
 let _relOcorFotos = [];
