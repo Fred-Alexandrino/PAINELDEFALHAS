@@ -2941,6 +2941,11 @@ Manutenção preventiva e corretiva.</textarea>
           <input type="file" id="hvFracttalFileInput" accept="application/pdf" style="display:none;"
                  onchange="_hvFracttalArquivoSelecionado(this.files)">
         </div>
+        <button type="button" class="rel-btn-secundario" style="width:100%;margin-top:8px;display:none;"
+                id="hvPunchFracttalBtn" onclick="_hvGerarPunchListFracttalIA()">
+          ✨ Ler checklist do PDF e gerar Punch List com IA
+        </button>
+        <div id="hvPunchFracttalStatus" style="font-size:11.5px;color:var(--text-faint);margin-top:6px;display:none;"></div>
       </div>
 
       <div id="hvErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
@@ -11944,6 +11949,8 @@ function _abrirHandoverUsina() {
   _hvFracttalArquivo = null;
   document.getElementById('hvFracttalNomeArquivo').textContent = 'Clique para anexar o PDF exportado da Fracttal';
   document.getElementById('hvFracttalFileInput').value = '';
+  const punchFracttalBtn = document.getElementById('hvPunchFracttalBtn'); if (punchFracttalBtn) punchFracttalBtn.style.display = 'none';
+  const punchFracttalStatus = document.getElementById('hvPunchFracttalStatus'); if (punchFracttalStatus) { punchFracttalStatus.style.display = 'none'; punchFracttalStatus.textContent = ''; }
   const errEl = document.getElementById('hvErr'); if (errEl) errEl.style.display = 'none';
   const statusEl = document.getElementById('hvStatus'); if (statusEl) statusEl.textContent = '';
   document.getElementById('handoverUsinaOverlay').style.display = 'flex';
@@ -12195,6 +12202,54 @@ function _hvFracttalArquivoSelecionado(fileList) {
   }
   _hvFracttalArquivo = f;
   document.getElementById('hvFracttalNomeArquivo').textContent = `📄 ${f.name}`;
+  const btn = document.getElementById('hvPunchFracttalBtn');
+  if (btn) btn.style.display = 'block';
+}
+
+let _isGerandoPunchFracttalIA = false;
+async function _hvGerarPunchListFracttalIA() {
+  if (_isGerandoPunchFracttalIA) return;
+  if (!_hvFracttalArquivo) return;
+  const cliente = document.getElementById('hvUsinaCliente')?.value?.trim() || '';
+  const usina = document.getElementById('hvUsinaUsina')?.value?.trim() || '';
+  const cluster = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .find(a => a.cliente === cliente && a.usina === usina)?.cluster || '';
+  const btn = document.getElementById('hvPunchFracttalBtn');
+  const statusEl = document.getElementById('hvPunchFracttalStatus');
+
+  _isGerandoPunchFracttalIA = true;
+  if (btn) { btn.disabled = true; btn.textContent = '✨ Lendo checklist do PDF… (pode levar 1-2 minutos, é um documento grande)'; }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Analisando ativo por ativo — cada um tem o checklist lido separadamente pra maior precisão.'; }
+
+  try {
+    const fd = new FormData();
+    fd.append('fracttalPdf', _hvFracttalArquivo);
+    fd.append('cliente', cliente);
+    fd.append('usina', usina);
+    fd.append('cluster', cluster);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/extrair-punchlist-fracttal-ia', {
+      method: 'POST', body: fd
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao processar o PDF.');
+
+    if (!data.itens.length) {
+      statusEl.textContent = `Analisei ${data.ativosProcessados} de ${data.ativosTotal} ativo(s) — nenhuma pendência encontrada (checklist todo Aprovou).`;
+    } else {
+      _hvPunchList.push(...data.itens);
+      _hvRenderPunchLista();
+      _hvSalvarRascunho();
+      let msg = `${data.itens.length} item(ns) de punch list gerado(s), a partir de ${data.ativosComPendencia} ativo(s) com pendência (de ${data.ativosProcessados}/${data.ativosTotal} analisados). Revise antes de gerar o relatório.`;
+      if (data.parouPorOrcamento) msg += ' Atenção: o PDF é grande e a análise parou antes de cobrir tudo — rode de novo se faltar algum ativo.';
+      if (data.erros && data.erros.length) msg += ` (${data.erros.length} ativo(s) com erro na leitura — verifique manualmente.)`;
+      statusEl.textContent = msg;
+    }
+  } catch (e) {
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Erro: ' + (e.message || e); }
+  } finally {
+    _isGerandoPunchFracttalIA = false;
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Ler checklist do PDF e gerar Punch List com IA'; }
+  }
 }
 
 function _hvDataBr(iso) {
