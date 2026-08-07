@@ -2852,6 +2852,10 @@ body{
           <select class="nova-oc-select" id="hvUsinaUsina"></select>
         </div>
       </div>
+      <div class="nova-oc-field">
+        <label>Localização (preenchida automaticamente pela aba Localizações)</label>
+        <input type="text" class="nova-oc-input" id="hvLocalizacao" placeholder="Selecione a usina para preencher" readonly style="opacity:.8;">
+      </div>
       <div class="nova-oc-2col">
         <div class="nova-oc-field">
           <label>Data de início do handover</label>
@@ -11914,8 +11918,9 @@ function _abrirHandoverUsina() {
       const usinas = [...new Set((typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
         .filter(a => a.cliente === cli).map(a => a.usina).filter(Boolean))].sort();
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-      selU.onchange = _hvOsListaRenderizar;
+      selU.onchange = () => { _hvOsListaRenderizar(); _hvLocalizacaoAtualizar(); };
       _hvOsListaRenderizar();
+      _hvLocalizacaoAtualizar();
     };
     selCli.dispatchEvent(new Event('change'));
   }
@@ -11926,6 +11931,8 @@ function _abrirHandoverUsina() {
   document.getElementById('hvElaborador').value = '';
   document.getElementById('hvVerificador').value = '';
   document.getElementById('hvAprovador').value = '';
+  _hvLocalizacaoAtual = '';
+  const locCampo = document.getElementById('hvLocalizacao'); if (locCampo) locCampo.value = '';
   _hvPunchList = [];
   _hvRenderPunchLista();
   _hvFracttalArquivo = null;
@@ -11952,6 +11959,38 @@ function _hvOsListaRenderizar() {
       <input type="checkbox" class="hv-os-check" value="${esc(a.id)}" data-equipamento="${esc(a.equipamento || a.descricao || '')}" style="margin-top:2px;">
       <span><b>OS ${esc(a.numeroOS)}</b> — ${esc(a.equipamento || '—')} <span style="color:var(--text-faint);">(${esc(a.descricao || '')})</span></span>
     </label>`).join('');
+}
+
+let _hvLocalizacaoAtual = '';
+async function _hvLocalizacaoAtualizar() {
+  const cli = document.getElementById('hvUsinaCliente')?.value;
+  const usina = document.getElementById('hvUsinaUsina')?.value;
+  const campo = document.getElementById('hvLocalizacao');
+  if (!campo) return;
+  _hvLocalizacaoAtual = '';
+  campo.value = 'Buscando…';
+  try {
+    // reaproveita o cache da aba Localizações se já tiver sido carregado
+    // nesta sessão (evita um fetch redundante); senão busca na hora —
+    // o formulário de handover não depende do usuário ter visitado
+    // aquela aba antes.
+    let itens = (typeof _locCache !== 'undefined' && _locCache && _locCache.length) ? _locCache : null;
+    if (!itens) {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/localizacoes');
+      const data = await resp.json();
+      itens = data.ok ? (data.itens || []) : [];
+    }
+    const item = itens.find(i => (i.cliente || '').trim().toLowerCase() === (cli || '').trim().toLowerCase()
+                               && (i.usina || '').trim().toLowerCase() === (usina || '').trim().toLowerCase());
+    if (item && item.lat && item.lng) {
+      _hvLocalizacaoAtual = `Latitude ${item.lat}, Longitude: ${item.lng}`;
+      campo.value = _hvLocalizacaoAtual;
+    } else {
+      campo.value = 'Sem coordenada cadastrada — preencha manualmente se necessário.';
+    }
+  } catch (e) {
+    campo.value = 'Erro ao buscar localização.';
+  }
 }
 
 function _hvAdicionarPunchItem() {
@@ -12031,6 +12070,7 @@ async function _gerarHandoverUsina() {
 
   const dados = {
     cliente, usina,
+    localizacao: _hvLocalizacaoAtual || '',
     dataInicio: _hvDataBr(document.getElementById('hvDataInicio')?.value),
     dataFim: _hvDataBr(document.getElementById('hvDataFim')?.value),
     equipe: (document.getElementById('hvEquipe')?.value || '').split('\n'),
