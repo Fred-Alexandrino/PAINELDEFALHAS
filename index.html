@@ -2903,6 +2903,12 @@ Manutenção preventiva e corretiva.</textarea>
 
       <div class="nova-oc-field">
         <label>6. Punch List (itens pendentes)</label>
+        <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:8px;">
+          A IA sugere itens só quando há pendência registrada no painel (observação, ressalva no
+          histórico). Ela não vê o checklist detalhado da Fracttal — revise antes de gerar o PDF.
+        </div>
+        <button type="button" class="rel-btn-secundario" style="width:100%;margin-bottom:8px;"
+                id="hvPunchIaBtn" onclick="_hvGerarPunchListIA()">✨ Sugerir itens com IA (a partir das OSs marcadas acima)</button>
         <div id="hvPunchLista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
         <button type="button" class="rel-btn-secundario" style="width:100%;" onclick="_hvAdicionarPunchItem()">+ Adicionar item à Punch List</button>
       </div>
@@ -11941,6 +11947,10 @@ function _abrirHandoverUsina() {
   const errEl = document.getElementById('hvErr'); if (errEl) errEl.style.display = 'none';
   const statusEl = document.getElementById('hvStatus'); if (statusEl) statusEl.textContent = '';
   document.getElementById('handoverUsinaOverlay').style.display = 'flex';
+  _hvAtivarAutosave();
+  // tenta restaurar rascunho DEPOIS do reset acima, senão o restore seria
+  // sobrescrito pelos valores em branco
+  setTimeout(_hvCarregarRascunhoSeExistir, 50);
 }
 
 function _hvOsListaRenderizar() {
@@ -11993,18 +12003,161 @@ async function _hvLocalizacaoAtualizar() {
   }
 }
 
+// ── Rascunho do Handover de Usina (localStorage) ──
+// Evita perder tudo digitado se a aba fechar, recarregar, ou o usuário
+// clicar fora sem querer (pedido do Fred, 07/08/2026 — formulário é
+// longo e não tinha nenhuma proteção contra perda de dados).
+const HV_RASCUNHO_KEY = 'handoverUsinaRascunho_v1';
+
+function _hvColetarRascunho() {
+  return {
+    cliente: document.getElementById('hvUsinaCliente')?.value || '',
+    usina: document.getElementById('hvUsinaUsina')?.value || '',
+    dataInicio: document.getElementById('hvDataInicio')?.value || '',
+    dataFim: document.getElementById('hvDataFim')?.value || '',
+    equipe: document.getElementById('hvEquipe')?.value || '',
+    planejamento: document.getElementById('hvPlanejamento')?.value || '',
+    documentacao: document.getElementById('hvDocumentacao')?.value || '',
+    osMarcadas: [...document.querySelectorAll('.hv-os-check:checked')].map(c => c.value),
+    capacitacao: document.getElementById('hvCapacitacao')?.value || '',
+    conclusao: document.getElementById('hvConclusao')?.value || '',
+    elaborador: document.getElementById('hvElaborador')?.value || '',
+    verificador: document.getElementById('hvVerificador')?.value || '',
+    aprovador: document.getElementById('hvAprovador')?.value || '',
+    dataRevisao: document.getElementById('hvDataRevisao')?.value || '',
+    punchList: _hvPunchList,
+    salvoEm: new Date().toISOString(),
+  };
+}
+
+let _hvSalvarTimeout = null;
+function _hvSalvarRascunho() {
+  clearTimeout(_hvSalvarTimeout);
+  _hvSalvarTimeout = setTimeout(() => {
+    try { localStorage.setItem(HV_RASCUNHO_KEY, JSON.stringify(_hvColetarRascunho())); } catch (e) {}
+  }, 400);
+}
+
+function _hvLimparRascunho() {
+  try { localStorage.removeItem(HV_RASCUNHO_KEY); } catch (e) {}
+}
+
+function _hvCarregarRascunhoSeExistir() {
+  let raw = null;
+  try { raw = localStorage.getItem(HV_RASCUNHO_KEY); } catch (e) {}
+  if (!raw) return false;
+  let r;
+  try { r = JSON.parse(raw); } catch (e) { return false; }
+  if (!r || !(r.cliente || r.usina || r.equipe || r.planejamento !== undefined && r.planejamento !== '' || (r.punchList && r.punchList.length))) return false;
+
+  const dataFmt = r.salvoEm ? new Date(r.salvoEm).toLocaleString('pt-BR') : '';
+  if (!confirm(`Encontrei um rascunho não finalizado deste formulário${dataFmt ? ' (salvo em ' + dataFmt + ')' : ''}. Quer continuar de onde parou?`)) {
+    _hvLimparRascunho();
+    return false;
+  }
+
+  if (r.cliente) document.getElementById('hvUsinaCliente').value = r.cliente;
+  document.getElementById('hvUsinaCliente')?.dispatchEvent(new Event('change'));
+  // usina/OS list depende do cliente ter disparado o change acima primeiro
+  setTimeout(() => {
+    if (r.usina) document.getElementById('hvUsinaUsina').value = r.usina;
+    document.getElementById('hvUsinaUsina')?.dispatchEvent(new Event('change'));
+    setTimeout(() => {
+      (r.osMarcadas || []).forEach(id => {
+        const cb = document.querySelector(`.hv-os-check[value="${id}"]`);
+        if (cb) cb.checked = true;
+      });
+    }, 150);
+  }, 150);
+
+  document.getElementById('hvDataInicio').value = r.dataInicio || '';
+  document.getElementById('hvDataFim').value = r.dataFim || '';
+  document.getElementById('hvEquipe').value = r.equipe || '';
+  if (r.planejamento !== undefined) document.getElementById('hvPlanejamento').value = r.planejamento;
+  if (r.documentacao !== undefined) document.getElementById('hvDocumentacao').value = r.documentacao;
+  if (r.capacitacao !== undefined) document.getElementById('hvCapacitacao').value = r.capacitacao;
+  if (r.conclusao !== undefined) document.getElementById('hvConclusao').value = r.conclusao;
+  document.getElementById('hvElaborador').value = r.elaborador || '';
+  document.getElementById('hvVerificador').value = r.verificador || '';
+  document.getElementById('hvAprovador').value = r.aprovador || '';
+  document.getElementById('hvDataRevisao').value = r.dataRevisao || '';
+  _hvPunchList = r.punchList || [];
+  _hvRenderPunchLista();
+  return true;
+}
+
+function _hvAtivarAutosave() {
+  const ids = ['hvDataInicio', 'hvDataFim', 'hvEquipe', 'hvPlanejamento', 'hvDocumentacao',
+               'hvCapacitacao', 'hvConclusao', 'hvElaborador', 'hvVerificador', 'hvAprovador', 'hvDataRevisao'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.dataset.hvAutosaveAtivo) {
+      el.addEventListener('input', _hvSalvarRascunho);
+      el.dataset.hvAutosaveAtivo = '1';
+    }
+  });
+  document.getElementById('hvOsLista')?.addEventListener('change', e => {
+    if (e.target.classList.contains('hv-os-check')) _hvSalvarRascunho();
+  });
+}
+
 function _hvAdicionarPunchItem() {
   _hvPunchList.push({ ativo: '', criticidade: 'Média', status: 'PENDENTE', anormalidade: '', recomendacoes: '', responsavel: '' });
   _hvRenderPunchLista();
+  _hvSalvarRascunho();
+}
+
+let _isGerandoPunchIA = false;
+async function _hvGerarPunchListIA() {
+  if (_isGerandoPunchIA) return;
+  const cli = document.getElementById('hvUsinaCliente')?.value;
+  const usina = document.getElementById('hvUsinaUsina')?.value;
+  const checks = [...document.querySelectorAll('.hv-os-check:checked')];
+  const btn = document.getElementById('hvPunchIaBtn');
+  const statusEl = document.getElementById('hvStatus');
+  if (!checks.length) {
+    if (statusEl) statusEl.textContent = 'Marque pelo menos uma OS na lista acima antes de gerar com IA.';
+    return;
+  }
+  const idsMarcados = new Set(checks.map(c => c.value));
+  const osLista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .filter(a => a.cliente === cli && a.usina === usina && idsMarcados.has(String(a.id)));
+
+  _isGerandoPunchIA = true;
+  if (btn) { btn.disabled = true; btn.textContent = '✨ Analisando OSs selecionadas…'; }
+  if (statusEl) statusEl.textContent = '';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-punchlist-ia', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ os: osLista })
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao gerar punch list com IA.');
+    if (!data.itens.length) {
+      if (statusEl) statusEl.textContent = 'A IA não encontrou pendências registradas nas OSs marcadas (nenhum item sugerido).';
+    } else {
+      _hvPunchList.push(...data.itens);
+      _hvRenderPunchLista();
+      _hvSalvarRascunho();
+      if (statusEl) statusEl.textContent = `${data.itens.length} item(ns) sugerido(s) — revise antes de gerar o PDF.`;
+    }
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Erro ao gerar com IA: ' + (e.message || e);
+  } finally {
+    _isGerandoPunchIA = false;
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Sugerir itens com IA (a partir das OSs marcadas acima)'; }
+  }
 }
 
 function _hvRemoverPunchItem(idx) {
   _hvPunchList.splice(idx, 1);
   _hvRenderPunchLista();
+  _hvSalvarRascunho();
 }
 
 function _hvAtualizarPunchItem(idx, campo, valor) {
   if (_hvPunchList[idx]) _hvPunchList[idx][campo] = valor;
+  _hvSalvarRascunho();
 }
 
 function _hvRenderPunchLista() {
@@ -12117,6 +12270,7 @@ async function _gerarHandoverUsina() {
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
     if (statusEl) statusEl.textContent = 'Relatório gerado com sucesso.';
+    _hvLimparRascunho();
   } catch (e) {
     if (statusEl) statusEl.textContent = 'Erro de conexão ao gerar relatório.';
   } finally {
@@ -12125,8 +12279,18 @@ async function _gerarHandoverUsina() {
   }
 }
 
-document.getElementById('handoverUsinaClose')?.addEventListener('click', () => { document.getElementById('handoverUsinaOverlay').style.display = 'none'; });
-document.getElementById('handoverUsinaOverlay')?.addEventListener('click', e => { if (e.target.id === 'handoverUsinaOverlay') document.getElementById('handoverUsinaOverlay').style.display = 'none'; });
+document.getElementById('handoverUsinaClose')?.addEventListener('click', () => {
+  // com autosave, fechar não perde nada — mas ainda assim confirma se
+  // tiver conteúdo relevante, pra evitar fechamento por engano
+  const r = _hvColetarRascunho();
+  const temConteudo = r.cliente || r.usina || r.equipe.trim() || r.punchList.length ||
+                       r.osMarcadas.length || r.elaborador.trim();
+  if (temConteudo) _hvSalvarRascunho();
+  document.getElementById('handoverUsinaOverlay').style.display = 'none';
+});
+// clique fora do card NÃO fecha mais o modal (pedido do Fred, 07/08/2026
+// — formulário longo, fechamento acidental por clique fora causava perda
+// de tudo digitado). Fechar exige o botão ✕ explicitamente.
 
 // ── Relatório de Ocorrência (Painel de Relatórios) ──────────────────
 let _relOcorFotos = [];
