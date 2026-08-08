@@ -1951,6 +1951,35 @@ body{
           <div class="rel-card">
             <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
                         text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
+              Relatório de Handover
+            </div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Selecione uma OS já registrada no Painel de Atividades — o relatório sai formatado no
+              padrão Grid Co. (.pdf), pronto para enviar ao cliente no fechamento do serviço.
+            </div>
+
+            <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Selecionar OS</label>
+            <div style="position:relative;">
+              <input type="text" id="handoverOsInput" class="rel-input" autocomplete="off"
+                     placeholder="Digite o número, equipamento ou usina…"
+                     oninput="_handoverOsBuscar(this.value)" onfocus="_handoverOsBuscar(this.value)">
+              <div id="handoverOsResultados" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;
+                   background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;margin-top:4px;
+                   max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.4);"></div>
+            </div>
+            <div id="handoverOsSelecionada" style="margin-top:6px;font-size:12px;color:var(--text-faint);"></div>
+
+            <button id="handoverGerarBtn" class="rel-btn-primario" style="width:100%;margin-top:14px;"
+                    onclick="relGerarHandover()">
+              Gerar Relatório de Handover (.pdf)
+            </button>
+
+            <div id="handoverStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+          </div>
+
+          <div class="rel-card">
+            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
+                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
               Handover EPC→O&M
             </div>
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
@@ -2858,6 +2887,10 @@ body{
         <div id="hvOsLista" style="max-height:180px;overflow-y:auto;border:1px solid var(--border-strong);
                     border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;
                     font-size:12.5px;color:var(--text);"></div>
+        <button type="button" class="rel-btn-secundario" style="width:100%;margin-top:8px;"
+                onclick="_hvPreencherDatasEquipe()">
+          📥 Preencher datas e equipe a partir das OSs marcadas (dados já sincronizados da Fracttal)
+        </button>
       </div>
 
       <div class="nova-oc-field">
@@ -11792,6 +11825,99 @@ async function relGerarRelatorio(){
 }
 
 // ── Relatório de Handover (Painel de Relatórios) ────────────────────
+// ── Relatório de Handover (Painel de Relatórios) ────────────────────
+let _handoverOsEscolhida = null;
+
+function _handoverOsBuscar(valor) {
+  _handoverOsEscolhida = null;
+  const selEl = document.getElementById('handoverOsSelecionada');
+  if (selEl) selEl.textContent = '';
+  const wrap = document.getElementById('handoverOsResultados');
+  const termo = (valor || '').trim().toLowerCase();
+  if (!wrap) return;
+  if (!termo) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .filter(a => (a.numeroOS || '').trim())
+    .filter(a => `${a.numeroOS} ${a.equipamento || ''} ${a.usina || ''} ${a.cliente || ''} ${a.descricao || ''}`
+      .toLowerCase().includes(termo))
+    .slice(0, 20);
+  if (!lista.length) {
+    wrap.innerHTML = '<div style="padding:10px;color:var(--text-faint);font-size:12.5px;">Nenhuma OS encontrada.</div>';
+    wrap.style.display = 'block';
+    return;
+  }
+  wrap.innerHTML = lista.map((a, i) => `
+    <div onclick="_handoverOsSelecionarIdx(${i})" data-idx="${i}"
+         style="padding:8px 10px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);">
+      <b>OS ${esc(a.numeroOS)}</b> — ${esc(a.equipamento || a.descricao || '')}<br>
+      <span style="color:var(--text-faint);">${esc(a.cliente)} · ${esc(a.usina)}</span>
+    </div>`).join('');
+  wrap.style.display = 'block';
+  wrap._lista = lista;
+}
+
+function _handoverOsSelecionarIdx(i) {
+  const wrap = document.getElementById('handoverOsResultados');
+  const a = wrap?._lista?.[i];
+  if (!a) return;
+  _handoverOsEscolhida = a.numeroOS;
+  document.getElementById('handoverOsInput').value = `OS ${a.numeroOS}`;
+  wrap.style.display = 'none';
+  const selEl = document.getElementById('handoverOsSelecionada');
+  if (selEl) selEl.textContent = `Selecionada: ${a.cliente} — ${a.usina}${a.equipamento ? ' — ' + a.equipamento : ''}`;
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('handoverOsResultados');
+  const input = document.getElementById('handoverOsInput');
+  if (wrap && input && !wrap.contains(e.target) && e.target !== input) wrap.style.display = 'none';
+});
+
+async function relGerarHandover(){
+  const btn = document.getElementById('handoverGerarBtn');
+  const status = document.getElementById('handoverStatus');
+  const numeroOS = _handoverOsEscolhida;
+  if (!numeroOS) {
+    if (status) status.textContent = 'Selecione uma OS na lista antes de gerar.';
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (status) status.textContent = 'Gerando relatório de handover...';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-relatorio-handover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numeroOS })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (status) status.textContent = err.error || 'Erro ao gerar relatório.';
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const nomeArquivo = match ? match[1] : `Handover_OS_${numeroOS}_GridCo.pdf`;
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    if (status) status.textContent = 'Relatório gerado com sucesso.';
+    document.getElementById('handoverOsInput').value = '';
+    document.getElementById('handoverOsSelecionada').textContent = '';
+    _handoverOsEscolhida = null;
+  } catch (e) {
+    if (status) status.textContent = 'Erro de conexão ao gerar relatório.';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ── Relatório de Handover de Usina — EPC→O&M (Painel de Relatórios) ──
 let _hvPunchList = [];
 let _hvFracttalArquivo = null;
@@ -11887,6 +12013,53 @@ async function _hvLocalizacaoAtualizar() {
   } catch (e) {
     campo.value = 'Erro ao buscar localização.';
   }
+}
+
+// Converte "dd/mm/aaaa" (formato usado no Painel de Atividades) pro
+// formato "aaaa-mm-dd" exigido pelos <input type="date">.
+function _hvDataInputISO(brDate) {
+  if (!brDate) return '';
+  const m = String(brDate).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return '';
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+// Preenche Data de Início/Conclusão do Handover e Equipe de O&M a partir
+// dos dados das OSs marcadas na lista acima — usa dataCriacao, dataConclusao
+// e responsavel, que já vêm sincronizados da Fracttal pro Painel de
+// Atividades (não faz uma chamada nova à API da Fracttal). Não sobrescreve
+// datas/equipe já preenchidas manualmente sem avisar: mostra quantas OSs
+// foram usadas no status, pra você revisar antes de gerar.
+function _hvPreencherDatasEquipe() {
+  const cli = document.getElementById('hvUsinaCliente')?.value;
+  const usina = document.getElementById('hvUsinaUsina')?.value;
+  const checks = [...document.querySelectorAll('.hv-os-check:checked')];
+  const statusEl = document.getElementById('hvStatus');
+  if (!checks.length) {
+    if (statusEl) statusEl.textContent = 'Marque pelo menos uma OS na lista acima antes de preencher.';
+    return;
+  }
+  const idsMarcados = new Set(checks.map(c => c.value));
+  const osLista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .filter(a => a.cliente === cli && a.usina === usina && idsMarcados.has(String(a.id)));
+
+  const datasAbertura = osLista.map(a => _hvDataInputISO(a.dataCriacao)).filter(Boolean).sort();
+  const datasConclusao = osLista.map(a => _hvDataInputISO(a.dataConclusao)).filter(Boolean).sort();
+  const responsaveis = [...new Set(osLista.map(a => (a.responsavel || '').trim()).filter(Boolean))];
+
+  if (datasAbertura.length) document.getElementById('hvDataInicio').value = datasAbertura[0];
+  if (datasConclusao.length) document.getElementById('hvDataFim').value = datasConclusao[datasConclusao.length - 1];
+  if (responsaveis.length) {
+    const equipeEl = document.getElementById('hvEquipe');
+    const existentes = new Set((equipeEl.value || '').split('\n').map(s => s.trim()).filter(Boolean));
+    responsaveis.forEach(r => existentes.add(r));
+    equipeEl.value = [...existentes].join('\n');
+  }
+  if (statusEl) {
+    statusEl.textContent = `Preenchido a partir de ${osLista.length} OS(s) marcada(s) — revise antes de gerar `
+      + `(o campo "responsável" da Fracttal traz 1 pessoa por OS, pode não cobrir toda a equipe).`;
+  }
+  _hvSalvarRascunho();
 }
 
 // ── Rascunho do Handover de Usina (localStorage) ──
