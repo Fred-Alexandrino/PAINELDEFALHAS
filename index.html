@@ -11827,9 +11827,11 @@ async function relGerarRelatorio(){
 // ── Relatório de Handover (Painel de Relatórios) ────────────────────
 // ── Relatório de Handover (Painel de Relatórios) ────────────────────
 let _handoverOsEscolhida = null;
+let _handoverOsAtividadeEscolhida = null;
 
 function _handoverOsBuscar(valor) {
   _handoverOsEscolhida = null;
+  _handoverOsAtividadeEscolhida = null;
   const selEl = document.getElementById('handoverOsSelecionada');
   if (selEl) selEl.textContent = '';
   const wrap = document.getElementById('handoverOsResultados');
@@ -11861,6 +11863,7 @@ function _handoverOsSelecionarIdx(i) {
   const a = wrap?._lista?.[i];
   if (!a) return;
   _handoverOsEscolhida = a.numeroOS;
+  _handoverOsAtividadeEscolhida = a;
   document.getElementById('handoverOsInput').value = `OS ${a.numeroOS}`;
   wrap.style.display = 'none';
   const selEl = document.getElementById('handoverOsSelecionada');
@@ -11887,7 +11890,7 @@ async function relGerarHandover(){
     const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-relatorio-handover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numeroOS })
+      body: JSON.stringify({ numeroOS, atividade: _handoverOsAtividadeEscolhida || undefined })
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
@@ -11911,6 +11914,7 @@ async function relGerarHandover(){
     document.getElementById('handoverOsInput').value = '';
     document.getElementById('handoverOsSelecionada').textContent = '';
     _handoverOsEscolhida = null;
+    _handoverOsAtividadeEscolhida = null;
   } catch (e) {
     if (status) status.textContent = 'Erro de conexão ao gerar relatório.';
   } finally {
