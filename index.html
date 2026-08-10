@@ -1483,6 +1483,12 @@ body{
         <option value="">Todos</option>
       </select>
 
+      <span class="sb-filter-label">Tipo de Equipamento</span>
+      <div class="sb-chips" id="sbChipsTipoEquip"></div>
+      <!-- filtra Atividades e Chamados pelo tipo de equipamento (Inversor, Tracker, etc.)
+           extraído do texto — permite comparar os dois painéis pela mesma lente
+           (pedido do Fred em 10/08/2026) -->
+
       <div style="display:none;">
         <span class="sb-filter-label">Status</span>
         <div class="cb-dropdown" id="cbDropdownStatus">
@@ -5012,6 +5018,7 @@ function clearFilters() {
   selCliente.clear();
   selUsinaValues.clear(); selStatusValues.clear();
   selUsinaValue=''; selStatusValue='';
+  selTipoEquip.clear();
   if (typeof _ativClusterFiltro !== 'undefined') _ativClusterFiltro = '';
   const clusterSel = document.getElementById('ativClusterSelect');
   if (clusterSel) clusterSel.value = '';
@@ -5024,6 +5031,7 @@ function clearFilters() {
   document.getElementById('slaBanner')?.classList.remove('active-filter');
   document.getElementById('desligBanner')?.classList.remove('active-filter');
   populateFilters();
+  _renderChipsTipoEquip();
   applyFilters();
   if (typeof renderAtividadeCards === 'function') renderAtividadeCards();
   if (typeof openChamadosInline === 'function' && _activeNav === 'chamados') openChamadosInline();
@@ -7275,12 +7283,14 @@ function openChamadosInline(){
   const soMeus = soMeusEl ? soMeusEl.checked : true;
   const ocultarSemTicketEl = document.getElementById('chamadosOcultarSemTicket');
   const ocultarSemTicket = ocultarSemTicketEl ? ocultarSemTicketEl.checked : true;
+  _renderChipsTipoEquip();
   const usinaCluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _usinaClusterMap() : null;
   const dataBasePreTicket = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
     const usinasChamado = c._usinasCanonicas || [];
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !usinasChamado.some(u => selUsinaValues.has(u))) return false;
     if (usinaCluster && !usinasChamado.some(u => usinaCluster[u] === _ativClusterFiltro)) return false;
+    if (selTipoEquip.size > 0 && !selTipoEquip.has(_chamadoTipoEquipamento(c))) return false;
     if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
@@ -10521,6 +10531,82 @@ function _ativEquipamento(a) {
   return m ? m[1].trim() : 'Equipamento não informado';
 }
 
+/* ══ TIPO DE EQUIPAMENTO — filtro compartilhado entre Atividades e Chamados ══
+   Mesma lógica de detecção usada no resumo de chamados pro cliente (INV/TKR/etc.),
+   aqui reaproveitada como filtro de sidebar pra facilitar comparar os dois painéis
+   pelo mesmo tipo de ativo (pedido do Fred em 10/08/2026). */
+const _TIPO_EQUIP_PADROES = [
+  { key: 'Inversor', regex: /invers/i },
+  { key: 'Tracker', regex: /track/i },
+  { key: 'Transformador', regex: /transformador/i },
+  { key: 'String Box', regex: /string\s*box|stringbox/i },
+  { key: 'Módulo', regex: /m[oó]dulo/i },
+  { key: 'Otimizador', regex: /otimizador/i },
+  { key: 'Medidor', regex: /medidor|medi[cç][aã]o/i },
+  { key: 'CFTV', regex: /cftv|c[aâ]mera/i },
+  { key: 'Nobreak', regex: /nobreak/i },
+  { key: 'Seccionadora', regex: /seccionadora/i },
+  { key: 'Combiner', regex: /combiner/i },
+];
+
+function _tipoEquipamentoDetectar(texto) {
+  const t = texto || '';
+  for (const { key, regex } of _TIPO_EQUIP_PADROES) {
+    if (regex.test(t)) return key;
+  }
+  return 'Outro';
+}
+
+function _ativTipoEquipamento(a) {
+  return _tipoEquipamentoDetectar(_ativEquipamento(a));
+}
+
+function _chamadoTipoEquipamento(c) {
+  return _tipoEquipamentoDetectar(`${c['Identificação do Equipamento'] || ''} ${c['Ativo'] || ''}`);
+}
+
+let selTipoEquip = new Set();
+
+function _renderChipsTipoEquip() {
+  const el = document.getElementById('sbChipsTipoEquip');
+  if (!el) return;
+  const tiposAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).map(_ativTipoEquipamento);
+  const tiposCham = (typeof CHAMADOS_FABRICANTE !== 'undefined' ? CHAMADOS_FABRICANTE : []).map(_chamadoTipoEquipamento);
+  const disponiveis = [...new Set([...tiposAtiv, ...tiposCham])].sort((a, b) => {
+    if (a === 'Outro') return 1;
+    if (b === 'Outro') return -1;
+    return a.localeCompare(b);
+  });
+  if (disponiveis.length === 0) { el.innerHTML = ''; return; }
+
+  // remove seleções que não existem mais nos dados atuais
+  for (const t of selTipoEquip) { if (!disponiveis.includes(t)) selTipoEquip.delete(t); }
+
+  el.innerHTML = disponiveis.map(t => {
+    const ativo = selTipoEquip.size === 0 || selTipoEquip.has(t);
+    return `<span class="sb-chip sbc-tipoequip" data-tipo="${esc(t)}" style="color:${ativo ? 'var(--teal)' : 'var(--text-faint)'};background:${ativo ? 'rgba(45,212,191,.15)' : 'transparent'};border-color:${ativo ? 'rgba(45,212,191,.4)' : 'var(--border)'};">${esc(t)}</span>`;
+  }).join('');
+
+  el.querySelectorAll('.sbc-tipoequip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = chip.dataset.tipo;
+      if (selTipoEquip.size === 0) {
+        selTipoEquip = new Set(disponiveis);
+        selTipoEquip.delete(t);
+        selTipoEquip = new Set([t]);
+      } else if (selTipoEquip.has(t)) {
+        selTipoEquip.delete(t);
+      } else {
+        selTipoEquip.add(t);
+      }
+      if (selTipoEquip.size === disponiveis.length) selTipoEquip = new Set(); // todos marcados = sem filtro
+      _renderChipsTipoEquip();
+      if (typeof renderAtividadeCards === 'function' && _activeNav === 'atividades') renderAtividadeCards();
+      if (typeof openChamadosInline === 'function' && _activeNav === 'chamados') openChamadosInline();
+    });
+  });
+}
+
 let _ativFiltroHoje = false;
 
 function _ativToggleFiltroHoje() {
@@ -10701,6 +10787,7 @@ function renderAtividadeCards() {
   _ativRenderKpis();
   _ativRenderBreakdowns();
   _ativAtualizarDesligBanner();
+  _renderChipsTipoEquip();
 
   // aplica os mesmos filtros da sidebar (Cliente/Usina/Status) usados no Painel de Falhas
   const filtradas = ATIVIDADES.filter(a => {
@@ -10708,6 +10795,7 @@ function renderAtividadeCards() {
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
+    if (selTipoEquip.size > 0 && !selTipoEquip.has(_ativTipoEquipamento(a))) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     if (_ativDesligFiltro && !isDesligamentoAtividade(a)) return false;
     if (_ativFiltroAtrasada && !_ativAtrasada(a)) return false;
