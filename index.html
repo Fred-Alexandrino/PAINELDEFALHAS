@@ -1721,6 +1721,13 @@ body{
               <input type="checkbox" id="chamadosSoMeus" checked style="cursor:pointer;">
               Mostrar só meus chamados (Fred Alexandrino)
             </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer;user-select:none;">
+              <input type="checkbox" id="chamadosOcultarSemTicket" checked style="cursor:pointer;">
+              Ocultar sem nº de chamado
+            </label>
+            <input type="text" id="chamadosBusca" placeholder="Buscar por motivo, equipamento ou usina…"
+                   style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
+                          padding:6px 10px;color:#ededed;font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
             <button onclick="_chGcAbrir()" style="display:flex;align-items:center;gap:6px;background:rgba(45,212,191,.08);
                     border:1px solid rgba(45,212,191,.3);color:var(--teal);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">
@@ -2999,15 +3006,30 @@ Manutenção preventiva e corretiva.</textarea>
       </div>
     </div>
     <div class="ch-body">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
         <span class="sb-filter-label" style="margin:0;">Cliente</span>
-        <select class="sb-select" id="chGcClienteSelect" onchange="_chGcCarregarChamados()" style="flex:1;"></select>
+        <select class="sb-select" id="chGcClienteSelect" onchange="_chGcClienteMudou()" style="flex:1;"></select>
+      </div>
+
+      <input type="text" id="chGcBusca" placeholder="Buscar por motivo, equipamento ou usina…"
+             oninput="_chGcBuscaMudou(this.value)"
+             style="width:100%;box-sizing:border-box;margin-bottom:10px;background:rgba(255,255,255,.04);
+                    border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:#ededed;
+                    font-size:12.5px;font-family:'Geist',sans-serif;">
+
+      <div id="chGcStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:14px;margin-bottom:8px;">
+        <button type="button" onclick="_chGcSelecionarTodos(true)"
+                style="background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:0;">Selecionar todos</button>
+        <button type="button" onclick="_chGcSelecionarTodos(false)"
+                style="background:none;border:none;color:var(--text-faint);font-size:12px;font-weight:600;cursor:pointer;padding:0;">Limpar seleção</button>
       </div>
 
       <div id="chGcListaWrap">
         <div id="chGcListaChamados" style="display:flex;flex-direction:column;gap:14px;max-height:320px;overflow-y:auto;"></div>
         <div id="chGcListaVazia" style="display:none;font-size:12.5px;color:var(--text-faint);padding:24px 0;text-align:center;">
-          Nenhum chamado em aberto (status ≠ "Finalizado") pra esse cliente no momento.
+          Nenhum chamado em aberto (status ≠ "Finalizado", com nº de chamado registrado) pra esse cliente no momento.
         </div>
       </div>
 
@@ -7074,6 +7096,17 @@ document.getElementById('chamadosSoMeus')?.addEventListener('change', () => {
   _atualizarBadgeChamados();
   openChamadosInline();
 });
+document.getElementById('chamadosOcultarSemTicket')?.addEventListener('change', () => {
+  _atualizarBadgeChamados();
+  openChamadosInline();
+});
+let _chamadosBuscaDebounce = null;
+document.getElementById('chamadosBusca')?.addEventListener('input', (e) => {
+  clearTimeout(_chamadosBuscaDebounce);
+  const v = e.target.value;
+  _chamadosBuscaDebounce = setTimeout(() => { _chamadosBuscaTexto = v; openChamadosInline(); }, 200);
+});
+let _chamadosBuscaTexto = '';
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   fetchSheet();
@@ -7176,12 +7209,24 @@ function _chamadoEstaAberto(c) {
   return !s.includes('conclu') && !s.includes('resolv') && !s.includes('fechad') && !s.includes('finaliz');
 }
 
+// Chamados sem número de ticket/RMA registrado geralmente são linhas
+// duplicadas/incompletas da planilha de origem (equipamento identificado
+// mas ainda sem chamado de fato aberto no fabricante) — por padrão são
+// desconsiderados do painel e nunca entram em resumos pro cliente
+// (pedido do Fred em 10/08/2026).
+function _chamadoTemTicket(c) {
+  return (c['Ticket/RMA'] || '').trim() !== '';
+}
+
 function _atualizarBadgeChamados() {
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
-  const base = soMeus
+  const ocultarSemTicketEl = document.getElementById('chamadosOcultarSemTicket');
+  const ocultarSemTicket = ocultarSemTicketEl ? ocultarSemTicketEl.checked : true;
+  let base = soMeus
     ? CHAMADOS_FABRICANTE.filter(c => (c['Supervisor'] || '').trim().toLowerCase() === 'fred alexandrino')
     : CHAMADOS_FABRICANTE;
+  if (ocultarSemTicket) base = base.filter(_chamadoTemTicket);
   const abertos = base.filter(_chamadoEstaAberto).length;
   const badge = document.getElementById('sbChamadosBadge');
   if (badge) badge.textContent = abertos;
@@ -7228,8 +7273,10 @@ function _usinaClusterMap() {
 function openChamadosInline(){
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
+  const ocultarSemTicketEl = document.getElementById('chamadosOcultarSemTicket');
+  const ocultarSemTicket = ocultarSemTicketEl ? ocultarSemTicketEl.checked : true;
   const usinaCluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _usinaClusterMap() : null;
-  const dataBase = CHAMADOS_FABRICANTE.filter(c => {
+  const dataBasePreTicket = CHAMADOS_FABRICANTE.filter(c => {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(c['Cliente'])) return false;
     const usinasChamado = c._usinasCanonicas || [];
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !usinasChamado.some(u => selUsinaValues.has(u))) return false;
@@ -7237,11 +7284,20 @@ function openChamadosInline(){
     if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
     return true;
   });
+  const semTicketCount = dataBasePreTicket.filter(c => !_chamadoTemTicket(c)).length;
+  const dataBase = ocultarSemTicket ? dataBasePreTicket.filter(_chamadoTemTicket) : dataBasePreTicket;
   _renderChamadosStatusFiltro(dataBase);
-  const dataFiltrada = dataBase.filter(c => selChamadoStatus.size === 0 || selChamadoStatus.has((c['Status']||'').trim()));
+  let dataFiltrada = dataBase.filter(c => selChamadoStatus.size === 0 || selChamadoStatus.has((c['Status']||'').trim()));
+  const termoBusca = (_chamadosBuscaTexto || '').trim().toLowerCase();
+  if (termoBusca) {
+    dataFiltrada = dataFiltrada.filter(c => {
+      const alvo = `${c['Motivo da abertura do chamado']||''} ${c['Identificação do Equipamento']||c['Ativo']||''} ${c['UFV']||''} ${c['Ticket/RMA']||''}`.toLowerCase();
+      return alvo.includes(termoBusca);
+    });
+  }
   const body=document.getElementById('chamadosBody');const sub=document.getElementById('chamadosSubtitle');
   const totalAbertos = dataFiltrada.filter(_chamadoEstaAberto).length;
-  if (sub) sub.textContent=`${dataFiltrada.length} chamado(s) · ${totalAbertos} em aberto`;
+  if (sub) sub.textContent=`${dataFiltrada.length} chamado(s) · ${totalAbertos} em aberto${(ocultarSemTicket && semTicketCount > 0) ? ` · ${semTicketCount} sem nº de chamado (ocultos)` : ''}`;
   if(dataFiltrada.length===0){body.innerHTML=`<div class="ch-empty">Nenhum chamado de fabricante encontrado.</div>`;return;}
   const porData = dataFiltrada.slice().sort((a,b) => (b['Data da abertura do chamado']||'').localeCompare(a['Data da abertura do chamado']||''));
   window._chamadosListaAtual = porData;
@@ -8380,6 +8436,9 @@ async function _gcEnviarResumo() {
 
 /* ══ GESTÃO CLIENTE — CHAMADOS (botão dentro do Painel de Chamados) ══ */
 let _chGcGruposCache = [];
+let _chGcSelStatus = new Set();
+let _chGcBuscaTexto = '';
+let _chGcBuscaDebounce = null;
 
 function _chGcAbrir() {
   document.getElementById('chGcOverlay').style.display = 'flex';
@@ -8391,7 +8450,54 @@ function _chGcAbrir() {
   }
   document.getElementById('chGcResult').style.display = 'none';
   document.getElementById('chGcError').style.display = 'none';
+  _chGcSelStatus = new Set();
+  _chGcBuscaTexto = '';
+  const buscaEl = document.getElementById('chGcBusca');
+  if (buscaEl) buscaEl.value = '';
   _chGcCarregarChamados();
+}
+
+function _chGcClienteMudou() {
+  // status disponíveis mudam de cliente pra cliente — reseta os filtros
+  _chGcSelStatus = new Set();
+  _chGcBuscaTexto = '';
+  const buscaEl = document.getElementById('chGcBusca');
+  if (buscaEl) buscaEl.value = '';
+  _chGcCarregarChamados();
+}
+
+function _chGcBuscaMudou(valor) {
+  clearTimeout(_chGcBuscaDebounce);
+  _chGcBuscaDebounce = setTimeout(() => { _chGcBuscaTexto = valor; _chGcCarregarChamados(); }, 200);
+}
+
+function _chGcRenderStatusFiltro(dataBase) {
+  const el = document.getElementById('chGcStatusFiltro');
+  if (!el) return;
+  const statusUnicos = [...new Set(dataBase.map(c => (c['Status'] || '').trim()).filter(Boolean))].sort();
+  if (statusUnicos.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = statusUnicos.map(s => {
+    const ativo = _chGcSelStatus.size === 0 || _chGcSelStatus.has(s);
+    const sc = statusColor(s);
+    return `<button type="button" class="filter-badge chgc-status-chip" data-status="${esc(s)}"
+                style="cursor:pointer;background:${ativo ? sc+'22' : 'transparent'};color:${ativo ? sc : 'var(--text-faint)'};border-color:${ativo ? sc+'55' : 'var(--border)'};">${esc(s)}</button>`;
+  }).join('');
+  el.querySelectorAll('.chgc-status-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.status;
+      if (_chGcSelStatus.size === 0) {
+        _chGcSelStatus = new Set(statusUnicos);
+        _chGcSelStatus.delete(s);
+        _chGcSelStatus = new Set([s]);
+      } else if (_chGcSelStatus.has(s)) {
+        _chGcSelStatus.delete(s);
+      } else {
+        _chGcSelStatus.add(s);
+      }
+      if (_chGcSelStatus.size === statusUnicos.length) _chGcSelStatus = new Set(); // todos marcados = sem filtro
+      _chGcCarregarChamados();
+    });
+  });
 }
 
 function _chGcCarregarChamados() {
@@ -8402,14 +8508,35 @@ function _chGcCarregarChamados() {
   document.getElementById('chGcError').style.display = 'none';
   if (!lista) return;
 
-  const emAberto = CHAMADOS_FABRICANTE.filter(c =>
+  // base: cliente selecionado + não finalizado + com nº de chamado registrado.
+  // Chamados sem Ticket/RMA são desconsiderados aqui sempre (sem exceção) —
+  // não faz sentido reportar pro cliente algo sem referência rastreável
+  // (pedido do Fred em 10/08/2026).
+  const baseCliente = CHAMADOS_FABRICANTE.filter(c =>
     (c['Cliente'] || '') === cliente &&
-    (c['Status'] || '').trim().toLowerCase() !== 'finalizado'
+    (c['Status'] || '').trim().toLowerCase() !== 'finalizado' &&
+    _chamadoTemTicket(c)
   );
+
+  _chGcRenderStatusFiltro(baseCliente);
+
+  let emAberto = baseCliente.filter(c => _chGcSelStatus.size === 0 || _chGcSelStatus.has((c['Status']||'').trim()));
+
+  const termo = (_chGcBuscaTexto || '').trim().toLowerCase();
+  if (termo) {
+    emAberto = emAberto.filter(c => {
+      const alvo = `${c['Motivo da abertura do chamado']||''} ${c['Identificação do Equipamento']||c['Ativo']||''} ${c['UFV']||''} ${c['Ticket/RMA']||''}`.toLowerCase();
+      return alvo.includes(termo);
+    });
+  }
 
   if (emAberto.length === 0) {
     lista.innerHTML = '';
     vazia.style.display = 'block';
+    vazia.textContent = baseCliente.length === 0
+      ? 'Nenhum chamado em aberto (status ≠ "Finalizado", com nº de chamado registrado) pra esse cliente no momento.'
+      : 'Nenhum chamado corresponde aos filtros selecionados.';
+    lista._chGcEmAberto = [];
     _chGcAtualizarContagem();
     return;
   }
@@ -8423,12 +8550,18 @@ function _chGcCarregarChamados() {
 
   lista.innerHTML = Object.keys(porUsina).sort().map(usina => `
     <div>
-      <div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">${esc(usina)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-dim);">${esc(usina)}</div>
+        <button type="button" class="chgc-usina-toggle" data-usina="${esc(usina)}"
+                style="background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:2px 4px;">
+          Selecionar todos
+        </button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
         ${porUsina[usina].map(c => `
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);
                         cursor:pointer;padding:6px 8px;border:1px solid var(--border);border-radius:8px;">
-            <input type="checkbox" class="chgc-chamado-chk" value="${c._chGcIdx}" onchange="_chGcAtualizarContagem()"
+            <input type="checkbox" class="chgc-chamado-chk" data-usina="${esc(usina)}" value="${c._chGcIdx}" onchange="_chGcAtualizarContagem()"
                    style="accent-color:var(--teal);width:15px;height:15px;margin-top:1px;">
             <span style="flex:1;">
               ${esc(c['Motivo da abertura do chamado'] || '(sem motivo registrado)')}
@@ -8442,8 +8575,23 @@ function _chGcCarregarChamados() {
     </div>
   `).join('');
 
+  lista.querySelectorAll('.chgc-usina-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const usina = btn.dataset.usina;
+      const chks = lista.querySelectorAll(`.chgc-chamado-chk[data-usina="${CSS.escape(usina)}"]`);
+      const todasMarcadas = Array.from(chks).every(chk => chk.checked);
+      chks.forEach(chk => chk.checked = !todasMarcadas);
+      _chGcAtualizarContagem();
+    });
+  });
+
   // guarda a lista corrente filtrada pra recuperar pelos índices marcados
   lista._chGcEmAberto = emAberto;
+  _chGcAtualizarContagem();
+}
+
+function _chGcSelecionarTodos(marcar) {
+  document.querySelectorAll('.chgc-chamado-chk').forEach(chk => { chk.checked = marcar; });
   _chGcAtualizarContagem();
 }
 
