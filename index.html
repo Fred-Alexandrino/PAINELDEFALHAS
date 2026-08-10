@@ -152,7 +152,7 @@ body{
 
 /* Zona 1 — Logo */
 .sb-logo{
-  padding:16px 14px 12px;
+  padding:10px 14px 8px;
   flex:none;
 }
 .sb-logo-eyebrow{
@@ -167,19 +167,19 @@ body{
 
 /* Zona 2 — Navegação */
 .sb-nav{
-  padding:4px 0 8px;flex:none;
+  padding:3px 0 4px;flex:none;
   border-bottom:1px solid var(--border);
 }
 .sb-nav-item{
   display:flex;align-items:center;gap:9px;
-  padding:7px 10px;cursor:pointer;
-  font-size:13.5px;color:#888;
+  padding:5px 10px;cursor:pointer;
+  font-size:13px;color:#888;
   transition:color .1s,background .1s;position:relative;
   border-radius:6px;user-select:none;
-  font-weight:400;margin:1px 6px;
+  font-weight:400;margin:0 6px;
 }
 .sb-nav-item:hover{color:#ededed;background:rgba(255,255,255,0.04);}
-.sb-nav-sub{padding-left:26px;font-size:12.5px;}
+.sb-nav-sub{padding-left:26px;font-size:12px;}
 .sb-nav-sub svg{width:13px;height:13px;}
 .sb-nav-item.active{color:#ededed;font-weight:500;background:rgba(255,255,255,0.07);}
 .sb-nav-item.active::before{display:none;}
@@ -311,37 +311,37 @@ body{
 
 /* Zona 3 — Filtros */
 .sb-filters{
-  flex:1;overflow-y:auto;padding:12px 12px 8px;
+  flex:1;overflow-y:auto;padding:8px 10px 6px;
 }
 .sb-filters::-webkit-scrollbar{width:3px;}
 .sb-filters::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 
 .sb-filter-label{
-  font-family:'Geist Mono',monospace;font-size:13px;
+  font-family:'Geist Mono',monospace;font-size:12px;
   text-transform:uppercase;letter-spacing:.1em;
   color:var(--text-faint);font-weight:700;
-  margin:7px 0 4px;display:block;
+  margin:5px 0 3px;display:block;
 }
 .sb-filter-label:first-child{margin-top:0;}
 
 /* Chips de cliente */
-.sb-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+.sb-chips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px;}
 .sb-toggle-all-btn{width:100%;background:transparent;border:1px dashed var(--border);color:var(--text-faint);border-radius:6px;padding:4px 8px;font-size:13px;font-family:'Geist Mono',monospace;cursor:pointer;transition:.15s;margin-bottom:6px;text-align:center;}
 .filter-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:13px;font-weight:700;font-family:'Geist Mono',monospace;background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.3);white-space:nowrap;flex:none;}
 .sb-toggle-all-btn:hover{border-color:var(--teal);color:var(--teal);}
 .sb-toggle-all-btn.active{border-color:var(--teal);border-style:solid;color:var(--teal);background:rgba(63,193,176,.06);}
 .sb-chip{
-  font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;
-  padding:3px 8px;border-radius:5px;cursor:pointer;
+  font-family:'Geist Mono',monospace;font-size:12px;font-weight:700;
+  padding:2px 7px;border-radius:5px;cursor:pointer;
   border:1px solid;transition:.15s;
 }
 
 /* Select compacto */
 .sb-select{
   width:100%;background:var(--panel-alt);border:1px solid var(--border);
-  color:var(--text);border-radius:7px;padding:6px 9px;
+  color:var(--text);border-radius:7px;padding:5px 9px;
   font-size:12px;font-family:'Geist',sans-serif;
-  outline:none;cursor:pointer;margin-bottom:4px;
+  outline:none;cursor:pointer;margin-bottom:3px;
   -webkit-appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%23888' fill='none' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;background-size:12px;
@@ -351,11 +351,11 @@ body{
 .sb-select option{color:var(--text);background:var(--panel);}
 
 /* Custom checkbox dropdown */
-.cb-dropdown{position:relative;margin-bottom:5px;}
+.cb-dropdown{position:relative;margin-bottom:3px;}
 .cb-trigger{
   width:100%;display:flex;align-items:center;justify-content:space-between;
   background:var(--panel-alt);border:1px solid var(--border);
-  color:var(--text);border-radius:7px;padding:6px 9px;
+  color:var(--text);border-radius:7px;padding:5px 9px;
   font-size:12px;font-family:'Geist',sans-serif;cursor:pointer;
   transition:border-color .15s;text-align:left;
 }
@@ -417,15 +417,15 @@ body{
 /* Botão limpar */
 .sb-clear-btn{
   width:100%;background:transparent;border:1px solid var(--border);
-  color:var(--text-faint);border-radius:7px;padding:7px;
-  font-size:13px;font-family:'Geist Mono',monospace;cursor:pointer;
-  transition:.15s;margin-top:6px;
+  color:var(--text-faint);border-radius:7px;padding:5px;
+  font-size:12px;font-family:'Geist Mono',monospace;cursor:pointer;
+  transition:.15s;margin-top:4px;
 }
 .sb-clear-btn:hover{border-color:var(--red);color:var(--red);}
 
 /* Ações rápidas na sidebar */
-.sb-quick-actions{padding:12px 10px 8px;border-top:1px solid var(--border);flex:none;}
-.sb-section-label{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);font-family:'Geist Mono',monospace;font-weight:700;margin-bottom:8px;}
+.sb-quick-actions{padding:8px 10px 6px;border-top:1px solid var(--border);flex:none;}
+.sb-section-label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);font-family:'Geist Mono',monospace;font-weight:700;margin-bottom:5px;}
 .sb-os-box{margin-bottom:8px;}
 .sb-os-input{width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-size:12px;font-family:'Geist',sans-serif;resize:none;outline:none;transition:border-color .15s;line-height:1.4;}
 .sb-os-input:focus{border-color:var(--border-strong);}
@@ -433,7 +433,7 @@ body{
 .sb-os-btn-gen{width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text-dim);border-radius:7px;padding:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;}
 .sb-os-btn-gen:hover{background:var(--border-soft);color:var(--text);}
 .sb-os-btn-gen svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.sb-action-btn{width:100%;display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);color:#F5A623;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-bottom:6px;}
+.sb-action-btn{width:100%;display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);color:#F5A623;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-bottom:4px;}
 .sb-action-btn:hover{background:rgba(245,166,35,.14);border-color:rgba(245,166,35,.35);}
 .sb-action-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
 
@@ -462,7 +462,7 @@ body{
 
 /* Zona 4 — Footer do sidebar */
 .sb-footer{
-  padding:12px 14px;border-top:1px solid var(--border-soft);
+  padding:8px 14px;border-top:1px solid var(--border-soft);
   display:flex;align-items:center;gap:10px;flex:none;
 }
 .sb-avatar{
@@ -1520,19 +1520,19 @@ body{
       <div class="sb-section-label">AÇÕES RÁPIDAS</div>
 
       <!-- Elaborar OS -->
-      <button class="sb-action-btn" onclick="_openElaborarOS()" style="margin-bottom:6px;">
+      <button class="sb-action-btn" onclick="_openElaborarOS()" style="margin-bottom:4px;">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
         Elaborar OS
       </button>
 
       <!-- Elaborar Comunicado -->
-      <button class="sb-action-btn" onclick="_openElaborarComunicado()" style="margin-bottom:6px;">
+      <button class="sb-action-btn" onclick="_openElaborarComunicado()" style="margin-bottom:4px;">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Elaborar Comunicado
       </button>
 
       <!-- Nova Atividade -->
-      <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:6px;">
+      <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:4px;">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Nova Atividade
       </button>
