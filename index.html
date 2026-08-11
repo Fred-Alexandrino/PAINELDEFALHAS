@@ -12131,6 +12131,21 @@ function _hvDataInputISO(brDate) {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
+// Procura a ÚLTIMA data mencionada no texto do histórico de uma OS
+// (formato "dd/mm" ou "dd/mm/aaaa" solto no texto — ex.: "04/08 -
+// Substituição realizada, geração normalizada.") — usada como
+// fallback pra "Data de Conclusão" quando o campo estruturado
+// dataConclusao está vazio (a OS ainda não virou "Concluída" no nosso
+// sistema, mas o histórico já mostra a data real do último evento).
+function _hvUltimaDataHistorico(historico) {
+  if (!historico) return '';
+  const anoAtual = new Date().getFullYear();
+  const matches = [...String(historico).matchAll(/(\d{2})\/(\d{2})(?:\/(\d{4}))?/g)];
+  if (!matches.length) return '';
+  const [, dd, mm, aaaa] = matches[matches.length - 1];
+  return `${aaaa || anoAtual}-${mm}-${dd}`;
+}
+
 // Preenche Data de Início/Conclusão do Handover e Equipe de O&M a partir
 // dos dados das OSs marcadas na lista acima — usa dataCriacao, dataConclusao
 // e responsavel, que já vêm sincronizados da Fracttal pro Painel de
@@ -12151,7 +12166,12 @@ function _hvPreencherDatasEquipe() {
     .filter(a => a.cliente === cli && a.usina === usina && idsMarcados.has(String(a.id)));
 
   const datasAbertura = osLista.map(a => _hvDataInputISO(a.dataCriacao)).filter(Boolean).sort();
-  const datasConclusao = osLista.map(a => _hvDataInputISO(a.dataConclusao)).filter(Boolean).sort();
+  let datasConclusao = osLista.map(a => _hvDataInputISO(a.dataConclusao)).filter(Boolean).sort();
+  let usouFallbackHistorico = false;
+  if (!datasConclusao.length) {
+    datasConclusao = osLista.map(a => _hvUltimaDataHistorico(a.historico)).filter(Boolean).sort();
+    if (datasConclusao.length) usouFallbackHistorico = true;
+  }
   const responsaveis = [...new Set(osLista.map(a => (a.responsavel || '').trim()).filter(Boolean))];
 
   if (datasAbertura.length) document.getElementById('hvDataInicio').value = datasAbertura[0];
@@ -12163,8 +12183,12 @@ function _hvPreencherDatasEquipe() {
     equipeEl.value = [...existentes].join('\n');
   }
   if (statusEl) {
-    statusEl.textContent = `Preenchido a partir de ${osLista.length} OS(s) marcada(s) — revise antes de gerar `
+    let msg = `Preenchido a partir de ${osLista.length} OS(s) marcada(s) — revise antes de gerar `
       + `(o campo "responsável" da Fracttal traz 1 pessoa por OS, pode não cobrir toda a equipe).`;
+    if (usouFallbackHistorico) {
+      msg += ' Data de conclusão veio do texto do histórico (a OS ainda não está "Concluída" no nosso sistema) — confira se bate.';
+    }
+    statusEl.textContent = msg;
   }
   _hvSalvarRascunho();
 }
@@ -12434,6 +12458,9 @@ async function _gerarHandoverUsina() {
   const equipamentosSelecionados = [...document.querySelectorAll('.hv-os-check:checked')]
     .map(cb => cb.dataset.equipamento).filter(Boolean);
 
+  const clusterAtual = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
+    .find(a => a.cliente === cliente && a.usina === usina)?.cluster || '';
+
   const dados = {
     cliente, usina,
     localizacao: _hvLocalizacaoAtual || '',
@@ -12453,7 +12480,7 @@ async function _gerarHandoverUsina() {
       aprovador: document.getElementById('hvAprovador')?.value || '',
       data: _hvDataBr(document.getElementById('hvDataRevisao')?.value),
     },
-    punchList: _hvPunchList.map(item => ({ ...item, cliente, usina })),
+    punchList: _hvPunchList.map(item => ({ ...item, cliente, usina, cluster: item.cluster || clusterAtual })),
   };
 
   _isGerandoHandoverUsina = true;
