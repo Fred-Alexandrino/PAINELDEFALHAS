@@ -1961,35 +1961,6 @@ body{
               Relatório de Handover
             </div>
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-              Selecione uma OS já registrada no Painel de Atividades — o relatório sai formatado no
-              padrão Grid Co. (.pdf), pronto para enviar ao cliente no fechamento do serviço.
-            </div>
-
-            <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Selecionar OS</label>
-            <div style="position:relative;">
-              <input type="text" id="handoverOsInput" class="rel-input" autocomplete="off"
-                     placeholder="Digite o número, equipamento ou usina…"
-                     oninput="_handoverOsBuscar(this.value)" onfocus="_handoverOsBuscar(this.value)">
-              <div id="handoverOsResultados" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;
-                   background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;margin-top:4px;
-                   max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.4);"></div>
-            </div>
-            <div id="handoverOsSelecionada" style="margin-top:6px;font-size:12px;color:var(--text-faint);"></div>
-
-            <button id="handoverGerarBtn" class="rel-btn-primario" style="width:100%;margin-top:14px;"
-                    onclick="relGerarHandover()">
-              Gerar Relatório de Handover (.pdf)
-            </button>
-
-            <div id="handoverStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
-          </div>
-
-          <div class="rel-card">
-            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
-              Handover EPC→O&M
-            </div>
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
               Relatório completo de handover de uma usina inteira (Construção/EPC → O&amp;M), no
               modelo Grid Co. — capa, etapas, capacitação, quadro de revisões e punch list, com o
               PDF exportado da Fracttal anexado no meio.
@@ -2844,7 +2815,7 @@ body{
   <div class="ch-modal" style="max-width:780px;border-top-color:var(--teal);">
     <div class="ch-head">
       <div class="ch-head-row">
-        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h2>Relatório de Handover — EPC→O&amp;M</h2></div><div class="ch-subtitle">Handover completo de uma usina — capa, etapas, capacitação, quadro de revisões e punch list (.pdf)</div></div>
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h2>Relatório de Handover</h2></div><div class="ch-subtitle">Handover completo de uma usina — capa, etapas, capacitação, quadro de revisões e punch list (.pdf)</div></div>
         <button class="modal-close-btn" id="handoverUsinaClose">✕</button>
       </div>
     </div>
@@ -12047,104 +12018,6 @@ async function relGerarRelatorio(){
     a.remove();
     URL.revokeObjectURL(url);
     if (status) status.textContent = 'Relatório gerado com sucesso.';
-  } catch (e) {
-    if (status) status.textContent = 'Erro de conexão ao gerar relatório.';
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-}
-
-// ── Relatório de Handover (Painel de Relatórios) ────────────────────
-// ── Relatório de Handover (Painel de Relatórios) ────────────────────
-let _handoverOsEscolhida = null;
-let _handoverOsAtividadeEscolhida = null;
-
-function _handoverOsBuscar(valor) {
-  _handoverOsEscolhida = null;
-  _handoverOsAtividadeEscolhida = null;
-  const selEl = document.getElementById('handoverOsSelecionada');
-  if (selEl) selEl.textContent = '';
-  const wrap = document.getElementById('handoverOsResultados');
-  const termo = (valor || '').trim().toLowerCase();
-  if (!wrap) return;
-  if (!termo) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-  const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .filter(a => (a.numeroOS || '').trim())
-    .filter(a => `${a.numeroOS} ${a.equipamento || ''} ${a.usina || ''} ${a.cliente || ''} ${a.descricao || ''}`
-      .toLowerCase().includes(termo))
-    .slice(0, 20);
-  if (!lista.length) {
-    wrap.innerHTML = '<div style="padding:10px;color:var(--text-faint);font-size:12.5px;">Nenhuma OS encontrada.</div>';
-    wrap.style.display = 'block';
-    return;
-  }
-  wrap.innerHTML = lista.map((a, i) => `
-    <div onclick="_handoverOsSelecionarIdx(${i})" data-idx="${i}"
-         style="padding:8px 10px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);">
-      <b>OS ${esc(a.numeroOS)}</b> — ${esc(a.equipamento || a.descricao || '')}<br>
-      <span style="color:var(--text-faint);">${esc(a.cliente)} · ${esc(a.usina)}</span>
-    </div>`).join('');
-  wrap.style.display = 'block';
-  wrap._lista = lista;
-}
-
-function _handoverOsSelecionarIdx(i) {
-  const wrap = document.getElementById('handoverOsResultados');
-  const a = wrap?._lista?.[i];
-  if (!a) return;
-  _handoverOsEscolhida = a.numeroOS;
-  _handoverOsAtividadeEscolhida = a;
-  document.getElementById('handoverOsInput').value = `OS ${a.numeroOS}`;
-  wrap.style.display = 'none';
-  const selEl = document.getElementById('handoverOsSelecionada');
-  if (selEl) selEl.textContent = `Selecionada: ${a.cliente} — ${a.usina}${a.equipamento ? ' — ' + a.equipamento : ''}`;
-}
-
-document.addEventListener('click', (e) => {
-  const wrap = document.getElementById('handoverOsResultados');
-  const input = document.getElementById('handoverOsInput');
-  if (wrap && input && !wrap.contains(e.target) && e.target !== input) wrap.style.display = 'none';
-});
-
-async function relGerarHandover(){
-  const btn = document.getElementById('handoverGerarBtn');
-  const status = document.getElementById('handoverStatus');
-  const numeroOS = _handoverOsEscolhida;
-  if (!numeroOS) {
-    if (status) status.textContent = 'Selecione uma OS na lista antes de gerar.';
-    return;
-  }
-  if (btn) btn.disabled = true;
-  if (status) status.textContent = 'Gerando relatório de handover...';
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-relatorio-handover', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numeroOS, atividade: _handoverOsAtividadeEscolhida || undefined })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      if (status) status.textContent = err.error || 'Erro ao gerar relatório.';
-      if (btn) btn.disabled = false;
-      return;
-    }
-    const disposition = resp.headers.get('Content-Disposition') || '';
-    const match = disposition.match(/filename="?([^"]+)"?/);
-    const nomeArquivo = match ? match[1] : `Handover_OS_${numeroOS}_GridCo.pdf`;
-    const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nomeArquivo;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    if (status) status.textContent = 'Relatório gerado com sucesso.';
-    document.getElementById('handoverOsInput').value = '';
-    document.getElementById('handoverOsSelecionada').textContent = '';
-    _handoverOsEscolhida = null;
-    _handoverOsAtividadeEscolhida = null;
   } catch (e) {
     if (status) status.textContent = 'Erro de conexão ao gerar relatório.';
   } finally {
