@@ -2915,7 +2915,7 @@ Manutenção preventiva e corretiva.</textarea>
       </div>
 
       <div class="nova-oc-field">
-        <label>📎 PDF exportado da Fracttal (Ordens de Serviço de Handover — opcional)</label>
+        <label>📎 PDF exportado da Fracttal (usado para sugerir a Punch List com IA — não entra no .docx final)</label>
         <div id="hvFracttalDropZone" onclick="document.getElementById('hvFracttalFileInput').click()"
              style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:16px;
                     text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;">
@@ -2932,7 +2932,7 @@ Manutenção preventiva e corretiva.</textarea>
 
       <div id="hvErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
       <button class="nova-oc-submit" id="hvSubmit" onclick="_gerarHandoverUsina()">
-        Gerar Relatório de Handover (.pdf)
+        Gerar Relatório de Handover (.docx)
       </button>
       <div id="hvStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
     </div>
@@ -12475,7 +12475,7 @@ async function _gerarHandoverUsina() {
     }
     const disposition = resp.headers.get('Content-Disposition') || '';
     const match = disposition.match(/filename="?([^"]+)"?/);
-    const nomeArquivo = match ? match[1] : `Handover_${usina}_${cliente}_GridCo.pdf`;
+    const nomeArquivo = match ? match[1] : `UFV ${usina} - Relatório Handover - Grid Co.docx`;
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
