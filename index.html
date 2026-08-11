@@ -12377,8 +12377,8 @@ async function _hvGerarPunchListFracttalIA() {
   const statusEl = document.getElementById('hvPunchFracttalStatus');
 
   _isGerandoPunchFracttalIA = true;
-  if (btn) { btn.disabled = true; btn.textContent = '✨ Lendo checklist do PDF… (pode levar 1-2 minutos, é um documento grande)'; }
-  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Analisando ativo por ativo — cada um tem o checklist lido separadamente pra maior precisão.'; }
+  if (btn) { btn.disabled = true; btn.textContent = '✨ Lendo o PDF… (pode levar 1-2 minutos em documentos grandes)'; }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Enviando o PDF direto pra IA ler (texto e imagem, sem OCR) — documentos grandes são divididos em partes processadas em paralelo.'; }
 
   try {
     const fd = new FormData();
@@ -12386,21 +12386,20 @@ async function _hvGerarPunchListFracttalIA() {
     fd.append('cliente', cliente);
     fd.append('usina', usina);
     fd.append('cluster', cluster);
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/extrair-punchlist-fracttal-ia', {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/extrair-punchlist-pdf-nativo', {
       method: 'POST', body: fd
     });
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao processar o PDF.');
 
     if (!data.itens.length) {
-      statusEl.textContent = `Analisei ${data.ativosProcessados} de ${data.ativosTotal} ativo(s) — nenhuma pendência encontrada (checklist todo Aprovou).`;
+      statusEl.textContent = `Analisei o documento (${data.totalPaginas} página(s), ${data.trechosProcessados}/${data.trechosTotal} trecho(s)) — nenhuma pendência encontrada.`;
     } else {
       _hvPunchList.push(...data.itens);
       _hvRenderPunchLista();
       _hvSalvarRascunho();
-      let msg = `${data.itens.length} item(ns) de punch list gerado(s), a partir de ${data.ativosComPendencia} ativo(s) com pendência (de ${data.ativosProcessados}/${data.ativosTotal} analisados). Revise antes de gerar o relatório.`;
-      if (data.parouPorOrcamento) msg += ' Atenção: o PDF é grande e a análise parou antes de cobrir tudo — rode de novo se faltar algum ativo.';
-      if (data.erros && data.erros.length) msg += ` (${data.erros.length} ativo(s) com erro na leitura — verifique manualmente.)`;
+      let msg = `${data.itens.length} item(ns) de punch list gerado(s), a partir de ${data.totalPaginas} página(s) (${data.trechosProcessados}/${data.trechosTotal} trecho(s) analisados). Revise antes de gerar o relatório.`;
+      if (data.erros && data.erros.length) msg += ` (${data.erros.length} trecho(s) com erro na leitura — verifique manualmente.)`;
       statusEl.textContent = msg;
     }
   } catch (e) {
