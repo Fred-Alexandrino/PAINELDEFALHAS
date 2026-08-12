@@ -4762,8 +4762,28 @@ async function _carregarClientesConfigurados() {
 function _clientesDisponiveis() {
   const doFalhas = DATA.map(d => d.cliente);
   const daAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.cliente) : []);
-  const todos = new Set([...CLIENTES_CONFIGURADOS, ...doFalhas, ...daAtiv].filter(Boolean));
-  return [...todos].sort();
+  const todosBrutos = [...CLIENTES_CONFIGURADOS, ...doFalhas, ...daAtiv].filter(Boolean);
+  // A planilha tem grafias inconsistentes do mesmo cliente (ex.: "RENOGRID"
+  // vs "Renogrid", "THOPEN" vs "Thopen") — sem isso, cada variação de caixa
+  // vira uma entrada duplicada nos dropdowns/chips de cliente. Agrupa por
+  // versão normalizada (maiúscula) e usa a grafia de CLIENTES_CONFIGURADOS
+  // como oficial quando existir; senão fica com a primeira grafia vista.
+  const porChaveNormalizada = new Map();
+  for (const c of todosBrutos) {
+    const chave = c.trim().toUpperCase();
+    if (!porChaveNormalizada.has(chave)) porChaveNormalizada.set(chave, c);
+  }
+  for (const oficial of CLIENTES_CONFIGURADOS) {
+    porChaveNormalizada.set(oficial.trim().toUpperCase(), oficial);
+  }
+  return [...porChaveNormalizada.values()].sort();
+}
+
+// Compara nomes de cliente ignorando maiúsculas/minúsculas — usar em vez
+// de "===" ao filtrar ATIVIDADES/DATA por cliente, já que a mesma planilha
+// tem grafias diferentes pro mesmo cliente (ver _clientesDisponiveis).
+function _mesmoCliente(a, b) {
+  return (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
 }
 
 function renderClienteChips() {
@@ -12039,7 +12059,7 @@ function _abrirHandoverUsina() {
       const cli = selCli.value;
       if (!selU) return;
       const usinas = [...new Set((typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-        .filter(a => a.cliente === cli).map(a => a.usina).filter(Boolean))].sort();
+        .filter(a => _mesmoCliente(a.cliente, cli)).map(a => a.usina).filter(Boolean))].sort();
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
       selU.onchange = () => { _hvOsListaRenderizar(); _hvLocalizacaoAtualizar(); };
       _hvOsListaRenderizar();
@@ -12078,7 +12098,7 @@ function _hvOsListaRenderizar() {
   const wrap = document.getElementById('hvOsLista');
   if (!wrap) return;
   const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .filter(a => a.cliente === cli && a.usina === usina && (a.numeroOS || '').trim());
+    .filter(a => _mesmoCliente(a.cliente, cli) && a.usina === usina && (a.numeroOS || '').trim());
   if (!lista.length) {
     wrap.innerHTML = '<div style="color:var(--text-faint);">Nenhuma OS encontrada para essa usina no Painel de Atividades.</div>';
     return;
@@ -12163,7 +12183,7 @@ function _hvPreencherDatasEquipe() {
   }
   const idsMarcados = new Set(checks.map(c => c.value));
   const osLista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .filter(a => a.cliente === cli && a.usina === usina && idsMarcados.has(String(a.id)));
+    .filter(a => _mesmoCliente(a.cliente, cli) && a.usina === usina && idsMarcados.has(String(a.id)));
 
   const datasAbertura = osLista.map(a => _hvDataInputISO(a.dataCriacao)).filter(Boolean).sort();
   let datasConclusao = osLista.map(a => _hvDataInputISO(a.dataConclusao)).filter(Boolean).sort();
@@ -12311,7 +12331,7 @@ async function _hvGerarPunchListIA() {
   }
   const idsMarcados = new Set(checks.map(c => c.value));
   const osLista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .filter(a => a.cliente === cli && a.usina === usina && idsMarcados.has(String(a.id)));
+    .filter(a => _mesmoCliente(a.cliente, cli) && a.usina === usina && idsMarcados.has(String(a.id)));
 
   _isGerandoPunchIA = true;
   if (btn) { btn.disabled = true; btn.textContent = '✨ Analisando OSs selecionadas…'; }
@@ -12396,7 +12416,7 @@ async function _hvGerarPunchListFracttalIA() {
   const cliente = document.getElementById('hvUsinaCliente')?.value?.trim() || '';
   const usina = document.getElementById('hvUsinaUsina')?.value?.trim() || '';
   const cluster = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .find(a => a.cliente === cliente && a.usina === usina)?.cluster || '';
+    .find(a => _mesmoCliente(a.cliente, cliente) && a.usina === usina)?.cluster || '';
   const btn = document.getElementById('hvPunchFracttalBtn');
   const statusEl = document.getElementById('hvPunchFracttalStatus');
 
@@ -12476,7 +12496,7 @@ async function _gerarHandoverUsina() {
     .map(cb => cb.dataset.equipamento).filter(Boolean);
 
   const clusterAtual = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .find(a => a.cliente === cliente && a.usina === usina)?.cluster || '';
+    .find(a => _mesmoCliente(a.cliente, cliente) && a.usina === usina)?.cluster || '';
 
   const dados = {
     cliente, usina,
@@ -12562,7 +12582,7 @@ function _abrirRelatorioOcorrencia() {
       const cli = selCli.value;
       if (!selU) return;
       const usinasFalhas = DATA.filter(d => d.cliente === cli).map(d => d.usina);
-      const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => a.cliente === cli).map(a => a.usina) : []);
+      const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => _mesmoCliente(a.cliente, cli)).map(a => a.usina) : []);
       const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
