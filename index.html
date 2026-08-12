@@ -12426,6 +12426,23 @@ async function _hvGerarPunchListFracttalIA() {
       if (data.erros && data.erros.length) msg += ` (${data.erros.length} trecho(s) com erro na leitura — verifique manualmente.)`;
       statusEl.textContent = msg;
     }
+
+    // Preenche Data de Início/Fim do Handover com o que a IA achou nos
+    // campos "Data e Hora de Início/Fim" do próprio PDF da Fracttal —
+    // só quando o campo ainda está vazio, pra não sobrescrever algo que
+    // você já preencheu manualmente.
+    const campoInicio = document.getElementById('hvDataInicio');
+    const campoFim = document.getElementById('hvDataFim');
+    if (data.dataHoraInicio && campoInicio && !campoInicio.value) {
+      campoInicio.value = data.dataHoraInicio.split(' ')[0];
+    }
+    if (data.dataHoraFim && campoFim && !campoFim.value) {
+      campoFim.value = data.dataHoraFim.split(' ')[0];
+    }
+    if ((data.dataHoraInicio || data.dataHoraFim) && statusEl) {
+      statusEl.textContent += ' Datas de início/fim preenchidas a partir do próprio PDF.';
+    }
+    _hvSalvarRascunho();
   } catch (e) {
     if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Erro: ' + (e.message || e); }
   } finally {
