@@ -2886,11 +2886,9 @@ Manutenção preventiva e corretiva.</textarea>
       <div class="nova-oc-field">
         <label>6. Punch List (itens pendentes)</label>
         <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:8px;">
-          A IA sugere itens só quando há pendência registrada no painel (observação, ressalva no
-          histórico). Ela não vê o checklist detalhado da Fracttal — revise antes de gerar o PDF.
+          Adicione itens manualmente, ou anexe o PDF exportado da Fracttal mais abaixo e use
+          "Ler checklist do PDF e gerar Punch List com IA" — revise antes de gerar o relatório.
         </div>
-        <button type="button" class="rel-btn-secundario" style="width:100%;margin-bottom:8px;"
-                id="hvPunchIaBtn" onclick="_hvGerarPunchListIA()">✨ Sugerir itens com IA (a partir das OSs marcadas acima)</button>
         <div id="hvPunchLista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
         <button type="button" class="rel-btn-secundario" style="width:100%;" onclick="_hvAdicionarPunchItem()">+ Adicionar item à Punch List</button>
       </div>
@@ -12315,48 +12313,6 @@ function _hvAdicionarPunchItem() {
   _hvPunchList.push({ ativo: '', criticidade: 'Média', status: 'PENDENTE', anormalidade: '', recomendacoes: '', responsavel: '' });
   _hvRenderPunchLista();
   _hvSalvarRascunho();
-}
-
-let _isGerandoPunchIA = false;
-async function _hvGerarPunchListIA() {
-  if (_isGerandoPunchIA) return;
-  const cli = document.getElementById('hvUsinaCliente')?.value;
-  const usina = document.getElementById('hvUsinaUsina')?.value;
-  const checks = [...document.querySelectorAll('.hv-os-check:checked')];
-  const btn = document.getElementById('hvPunchIaBtn');
-  const statusEl = document.getElementById('hvStatus');
-  if (!checks.length) {
-    if (statusEl) statusEl.textContent = 'Marque pelo menos uma OS na lista acima antes de gerar com IA.';
-    return;
-  }
-  const idsMarcados = new Set(checks.map(c => c.value));
-  const osLista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
-    .filter(a => _mesmoCliente(a.cliente, cli) && a.usina === usina && idsMarcados.has(String(a.id)));
-
-  _isGerandoPunchIA = true;
-  if (btn) { btn.disabled = true; btn.textContent = '✨ Analisando OSs selecionadas…'; }
-  if (statusEl) statusEl.textContent = '';
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-punchlist-ia', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ os: osLista })
-    });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao gerar punch list com IA.');
-    if (!data.itens.length) {
-      if (statusEl) statusEl.textContent = 'A IA não encontrou pendências registradas nas OSs marcadas (nenhum item sugerido).';
-    } else {
-      _hvPunchList.push(...data.itens);
-      _hvRenderPunchLista();
-      _hvSalvarRascunho();
-      if (statusEl) statusEl.textContent = `${data.itens.length} item(ns) sugerido(s) — revise antes de gerar o PDF.`;
-    }
-  } catch (e) {
-    if (statusEl) statusEl.textContent = 'Erro ao gerar com IA: ' + (e.message || e);
-  } finally {
-    _isGerandoPunchIA = false;
-    if (btn) { btn.disabled = false; btn.textContent = '✨ Sugerir itens com IA (a partir das OSs marcadas acima)'; }
-  }
 }
 
 function _hvRemoverPunchItem(idx) {
