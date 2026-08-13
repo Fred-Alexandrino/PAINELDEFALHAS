@@ -1728,6 +1728,12 @@ body{
             <input type="text" id="chamadosBusca" placeholder="Buscar por motivo, equipamento ou usina…"
                    style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
                           padding:6px 10px;color:#ededed;font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
+            <button onclick="_abrirResumoChamadosPainel()" style="display:flex;align-items:center;gap:6px;background:rgba(251,191,36,.08);
+                    border:1px solid rgba(251,191,36,.3);color:var(--amber);border-radius:8px;padding:7px 12px;
+                    font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+              Resumo
+            </button>
             <button onclick="_chGcAbrir()" style="display:flex;align-items:center;gap:6px;background:rgba(45,212,191,.08);
                     border:1px solid rgba(45,212,191,.3);color:var(--teal);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">
@@ -7409,6 +7415,117 @@ function _abrirDetalheChamado(idx) {
       btn.disabled = false;
       btn.textContent = textoOriginal;
     }
+  });
+}
+
+/* ══ RESUMO DE CHAMADOS (botão "Resumo" dentro do Painel de Chamados) ══
+   Diferente da "Gestão Cliente" (seleção manual, texto com saudação/assinatura
+   pra enviar ao cliente): este resumo é automático, reflete exatamente os
+   filtros já aplicados no painel (cliente/usina/cluster/tipo equip/status/
+   busca/checkboxes) e mostra só os blocos por usina, sem saudação nem
+   assinatura — uso interno do Fred. Pedido em 13/08/2026.
+
+   Formato de linha fixo (mesmo padrão do backend em
+   _codigo_equipamento_chamado / _montar_resumo_chamados_cliente):
+     INVXX - #TICKET - STATUS   (sem ticket: INVXX - STATUS, ex. "Testes em campo") */
+const _EQUIP_ABREV_CHAMADO_JS = [
+  [/invers/i, 'INV'],
+  [/track/i, 'TKR'],
+  [/transformador/i, 'TRAFO'],
+  [/string\s*box|stringbox/i, 'SB'],
+  [/m[oó]dulo/i, 'MOD'],
+  [/otimizador/i, 'OTM'],
+  [/medidor|medi[cç][aã]o/i, 'MED'],
+  [/cftv|c[aâ]mera/i, 'CAM'],
+  [/nobreak/i, 'NBK'],
+  [/seccionadora/i, 'SEC'],
+  [/combiner/i, 'CMB'],
+];
+
+function _codigoEquipamentoChamado(ativo, identificacao) {
+  const fonte = `${identificacao || ''} ${ativo || ''}`.trim();
+  if (!fonte) return '';
+  const numMatch = fonte.match(/\d+/);
+  const numero = numMatch ? numMatch[0].padStart(2, '0') : '';
+  for (const [padrao, abrev] of _EQUIP_ABREV_CHAMADO_JS) {
+    if (padrao.test(fonte)) return numero ? `${abrev}${numero}` : abrev;
+  }
+  const bruto = (identificacao || ativo || '').trim();
+  return bruto ? bruto.replace(/\s+/g, '').toUpperCase() : '';
+}
+
+function _montarBlocosResumoChamadosPainel(lista) {
+  const porUsina = {};
+  lista.forEach(c => {
+    const usina = (c['UFV'] || '').trim() || 'não informado';
+    const status = (c['Status'] || '').trim() || 'em andamento';
+    const ticket = (c['Ticket/RMA'] || '').trim();
+    const codigo = _codigoEquipamentoChamado(c['Ativo'], c['Identificação do Equipamento']) || 'Equipamento';
+    let linha = codigo;
+    if (ticket) linha += ` - #${ticket}`;
+    linha += ` - ${status}`;
+    (porUsina[usina] = porUsina[usina] || []).push({ codigo, linha });
+  });
+  return Object.keys(porUsina).sort().map(usina => ({
+    usina,
+    itens: porUsina[usina].slice().sort((a, b) => a.codigo.localeCompare(b.codigo)),
+  }));
+}
+
+function _textoResumoChamadosPainel(blocos) {
+  return blocos.map(b => `*${b.usina}*\n` + b.itens.map(i => `• ${i.linha}`).join('\n')).join('\n\n');
+}
+
+function _abrirResumoChamadosPainel() {
+  const existente = document.getElementById('resumoChamadosOverlay');
+  if (existente) existente.remove();
+
+  const listaBase = (window._chamadosListaAtual || []).filter(_chamadoEstaAberto);
+  if (listaBase.length === 0) {
+    showToast('Nenhum chamado em aberto para os filtros selecionados.', false);
+    return;
+  }
+  const blocos = _montarBlocosResumoChamadosPainel(listaBase);
+  const texto = _textoResumoChamadosPainel(blocos);
+  const totalItens = listaBase.length;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'resumoChamadosOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-elevated,#151922);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div style="font-size:13px;font-family:'Geist Mono',monospace;color:var(--text-faint);">RESUMO DE CHAMADOS</div>
+          <div style="font-size:19px;font-weight:800;">${totalItens} item${totalItens !== 1 ? 's' : ''} em aberto · ${blocos.length} usina${blocos.length !== 1 ? 's' : ''}</div>
+        </div>
+        <button id="resumoChamadosClose" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:20px;line-height:1;padding:4px;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;">
+        ${blocos.map(b => `
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">${esc(b.usina)}</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              ${b.itens.map(i => `<div style="font-size:13px;color:var(--text-dim);font-family:'Geist Mono',monospace;">• ${esc(i.linha)}</div>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Texto pra copiar</div>
+      <textarea id="resumoChamadosTexto" readonly rows="8" style="width:100%;background:var(--bg,#0d1017);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:12.5px;font-family:'Geist Mono',monospace;resize:vertical;margin-bottom:10px;">${esc(texto)}</textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button id="resumoChamadosCopiar" class="tb-btn" style="background:var(--teal);color:#04201c;border:none;">Copiar texto</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(); });
+  document.getElementById('resumoChamadosClose').addEventListener('click', fechar);
+  document.getElementById('resumoChamadosCopiar').addEventListener('click', () => {
+    navigator.clipboard.writeText(texto)
+      .then(() => showToast('Texto copiado.', true))
+      .catch(() => showToast('Erro ao copiar.', false));
   });
 }
 
