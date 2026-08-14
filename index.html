@@ -2010,6 +2010,10 @@ body{
               <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               Supervisão Temporária
             </button>
+            <button class="tab-btn" id="gerTabPreparacao" onclick="_gerMudarTab('preparacao')">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Preparação Diária/Semanal
+            </button>
           </div>
 
           <div id="gerPainelBoletins">
@@ -2038,6 +2042,21 @@ body{
 
             <div style="font-size:11px;color:var(--text-dim);font-weight:600;margin-bottom:10px;">Escolher usinas de outro supervisor</div>
             <div id="supervOutrosSupervisores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start;"></div>
+          </div>
+
+          <div id="gerPainelPreparacao" style="display:none;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:18px;">
+              A Ronda roda automaticamente todo dia às 8h (antes do expediente) e é enviada no mesmo
+              grupo dos resumos — junta OSs em aberto (priorizadas por criticidade: eficiência primeiro,
+              depois segurança), desligamentos ativos, prazos vencendo e pontos críticos identificados
+              nas conversas dos grupos de ontem. Aqui embaixo fica o histórico, igual aos Resumos.
+            </div>
+            <div style="display:flex;gap:20px;align-items:flex-start;">
+              <div id="rondasLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
+              <div id="rondaConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
+                Selecione uma ronda na lista ao lado.
+              </div>
+            </div>
           </div>
 
           <div id="gerPainelPonto" style="display:none;">
@@ -8022,6 +8041,44 @@ function _fmtDataBr(dataISO) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// ── Preparação Diária/Semanal (Ronda) ────────────────────────────────
+let _rondasCache = [];
+
+async function carregarRondas() {
+  const listaEl = document.getElementById('rondasLista');
+  const conteudoEl = document.getElementById('rondaConteudo');
+  if (!listaEl) return;
+  listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Carregando…</div>';
+  try {
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/resumos?tipo=ronda&limit=60`);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
+    _rondasCache = data.itens || [];
+    if (!_rondasCache.length) {
+      listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Nenhuma ronda gerada ainda.</div>';
+      conteudoEl.textContent = 'Nenhuma ronda gerada ainda.';
+      return;
+    }
+    listaEl.innerHTML = _rondasCache.map((r, i) => {
+      const envio = r.enviado_whatsapp ? '📤 Enviada' : '📝 Gerada (não enviada)';
+      return `<div class="resumo-item${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="_rondaAbrir(${i})">
+        <div class="resumo-item-data">${esc(_fmtDataBr(r.data_referencia))}</div>
+        <div class="resumo-item-meta">${esc(envio)} · criado ${esc(r.criado_em || '')}</div>
+      </div>`;
+    }).join('');
+    _rondaAbrir(0);
+  } catch (e) {
+    listaEl.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px;">Erro ao carregar rondas.</div>';
+  }
+}
+
+function _rondaAbrir(idx) {
+  const r = _rondasCache[idx];
+  if (!r) return;
+  document.querySelectorAll('#rondasLista .resumo-item').forEach(el => el.classList.toggle('active', Number(el.dataset.idx) === idx));
+  document.getElementById('rondaConteudo').textContent = r.texto;
+}
+
 // ── Supervisão Temporária (cobertura de férias de outro supervisor) ──
 let _gruposDisponiveis = [];
 let _supervTemporariasAtuaisCache = [];
@@ -12804,12 +12861,14 @@ function _gerMudarTab(tab) {
   const tabPto = document.getElementById('gerTabPonto');
   const tabRes = document.getElementById('gerTabResumos');
   const tabSup = document.getElementById('gerTabSupervisao');
+  const tabPrep = document.getElementById('gerTabPreparacao');
   const painelBol = document.getElementById('gerPainelBoletins');
   const painelPto = document.getElementById('gerPainelPonto');
   const painelRes = document.getElementById('gerPainelResumos');
   const painelSup = document.getElementById('gerPainelSupervisao');
-  [tabBol, tabPto, tabRes, tabSup].forEach(t => t.classList.remove('active'));
-  [painelBol, painelPto, painelRes, painelSup].forEach(p => p.style.display = 'none');
+  const painelPrep = document.getElementById('gerPainelPreparacao');
+  [tabBol, tabPto, tabRes, tabSup, tabPrep].forEach(t => t.classList.remove('active'));
+  [painelBol, painelPto, painelRes, painelSup, painelPrep].forEach(p => p.style.display = 'none');
   if (tab === 'ponto') {
     tabPto.classList.add('active'); painelPto.style.display = '';
   } else if (tab === 'resumos') {
@@ -12818,6 +12877,9 @@ function _gerMudarTab(tab) {
   } else if (tab === 'supervisao') {
     tabSup.classList.add('active'); painelSup.style.display = '';
     carregarSupervisaoTemporaria();
+  } else if (tab === 'preparacao') {
+    tabPrep.classList.add('active'); painelPrep.style.display = '';
+    carregarRondas();
   } else {
     tabBol.classList.add('active'); painelBol.style.display = '';
   }
