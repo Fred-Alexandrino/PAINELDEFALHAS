@@ -12175,6 +12175,8 @@ async function relGerarRelatorio(){
 // ── Relatório de Handover de Usina — EPC→O&M (Painel de Relatórios) ──
 let _hvPunchList = [];
 let _hvFracttalArquivo = null;
+let _hvAtivosAnalisadosIA = [];  // inventário completo (não só os com pendência),
+// preenchido pela leitura do PDF da Fracttal — usado na seção 3.3 do relatório
 
 function _abrirHandoverUsina() {
   const clientes = _clientesDisponiveis();
@@ -12205,6 +12207,7 @@ function _abrirHandoverUsina() {
   const locCampo = document.getElementById('hvLocalizacao'); if (locCampo) locCampo.value = '';
   _hvPunchList = [];
   _hvRenderPunchLista();
+  _hvAtivosAnalisadosIA = [];
   _hvFracttalArquivo = null;
   document.getElementById('hvFracttalNomeArquivo').textContent = 'Clique para anexar o PDF exportado da Fracttal';
   document.getElementById('hvFracttalFileInput').value = '';
@@ -12544,6 +12547,14 @@ async function _hvGerarPunchListFracttalIA() {
     if (data.dataHoraFim && campoFim && !campoFim.value) {
       campoFim.value = data.dataHoraFim.split(' ')[0];
     }
+    // Inventário completo de ativos analisados (rótulo literal "Handover
+    // — X" da própria Fracttal) — usado na seção 3.3 do relatório em vez
+    // do texto genérico "Múltiplas atividades" das OSs marcadas.
+    if (data.ativosAnalisados && data.ativosAnalisados.length) {
+      const existentes = new Set(_hvAtivosAnalisadosIA);
+      data.ativosAnalisados.forEach(a => existentes.add(a));
+      _hvAtivosAnalisadosIA = [...existentes].sort();
+    }
     if ((data.dataHoraInicio || data.dataHoraFim) && statusEl) {
       statusEl.textContent += ' Datas de início/fim preenchidas a partir do próprio PDF.';
     }
@@ -12577,8 +12588,20 @@ async function _gerarHandoverUsina() {
   }
   if (errEl) errEl.style.display = 'none';
 
-  const equipamentosSelecionados = [...document.querySelectorAll('.hv-os-check:checked')]
-    .map(cb => cb.dataset.equipamento).filter(Boolean);
+  // Se tem PDF da Fracttal anexado mas a leitura de ativos/punch list
+  // ainda não rodou, roda agora automaticamente — sem isso, a seção
+  // "3.3 Inspeções e Testes" ficava com "Handover – Múltiplas
+  // atividades" (rótulo genérico da OS) em vez da lista real de
+  // equipamentos, sempre que o usuário esquecia de clicar em "Ler
+  // checklist do PDF" antes de gerar o relatório.
+  if (_hvFracttalArquivo && !_hvAtivosAnalisadosIA.length) {
+    if (statusEl) statusEl.textContent = 'Lendo o PDF da Fracttal pra listar os equipamentos analisados (pode levar um pouco)...';
+    await _hvGerarPunchListFracttalIA();
+  }
+
+  const equipamentosSelecionados = _hvAtivosAnalisadosIA.length
+    ? _hvAtivosAnalisadosIA
+    : [...document.querySelectorAll('.hv-os-check:checked')].map(cb => cb.dataset.equipamento).filter(Boolean);
 
   const clusterAtual = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : [])
     .find(a => _mesmoCliente(a.cliente, cliente) && a.usina === usina)?.cluster || '';
