@@ -410,14 +410,11 @@ function posicionarSol(potenciaAtual, potenciaPico){
   let fracao = (minutosDoDia - inicio) / (fim - inicio);
   fracao = Math.max(0, Math.min(1, fracao));
 
-  const cx = 20 + fracao * 520;
-  const anguloRad = Math.PI * (1 - fracao);
-  const cy = 160 - Math.sin(anguloRad) * 0; // placeholder, recalculado abaixo
-
-  // Arco real: centro (280,160), raio 260, de 180° (esquerda) a 0° (direita)
+  // Arco real: centro (280,160), raio 260, de 180° (esquerda, início do
+  // dia) a 0° (direita, fim do dia) — mesma curva do path pontilhado.
   const centroX = 280, centroY = 160, raio = 260;
   const anguloArco = Math.PI * (1 - fracao); // 180°→0°
-  const x = centroX - raio * Math.cos(anguloArco);
+  const x = centroX + raio * Math.cos(anguloArco);
   const y = centroY - raio * Math.sin(anguloArco);
 
   const sol = document.getElementById('solPonto');
