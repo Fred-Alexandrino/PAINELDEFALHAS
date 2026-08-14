@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FV Energias Renováveis — Monitoramento</title>
 <meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -440,9 +443,11 @@ async function carregarStatus(){
     document.getElementById('potenciaAtualizado').textContent =
       d.ultima_atualizacao ? `Atualizado às ${d.ultima_atualizacao.split(' ')[1] || d.ultima_atualizacao}` : '';
 
-    // Potência de pico estimada ~ capacidade instalada (95.16 kWp) pra
-    // calibrar o brilho do sol no arco.
-    posicionarSol(potencia, 95.16);
+    // Potência de referência pro brilho do arco: 66 kW é a potência
+    // aparente CA máxima real da usina (3 inversores de 20kW CA cada,
+    // ~66kVA no total) — não os 95.16 kWp de módulos (potência CC dos
+    // painéis, que é maior que o que os inversores conseguem entregar).
+    posicionarSol(potencia, 66);
 
     // Inversores
     const contInv = document.getElementById('inversores');
