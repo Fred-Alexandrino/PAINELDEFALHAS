@@ -183,6 +183,68 @@
     padding: 20px 16px 12px;
     margin-top: 8px;
   }
+  .grafico-card canvas{
+    width: 100% !important;
+    height: 260px !important;
+  }
+  .periodo-seletor{
+    display:flex; gap:8px; flex-wrap:wrap;
+    margin-bottom: 12px;
+  }
+  .periodo-btn{
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .periodo-btn:hover{ border-color: var(--border-strong); color: var(--text); }
+  .periodo-btn.ativo{
+    background: var(--sun);
+    color: #1A1305;
+    border-color: var(--sun);
+    font-weight: 600;
+  }
+  .periodo-custom{
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+  .periodo-custom.mostrar{ display: flex; }
+  .periodo-custom input[type="date"]{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+  .periodo-custom button{
+    background: var(--sky);
+    color: #072522;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .grafico-aviso{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: none;
+  }
+  .grafico-aviso.mostrar{ display: block; }
   .grafico-legenda{
     display:flex; gap: 18px; flex-wrap: wrap;
     font-size: 12px; color: var(--text-muted);
@@ -263,13 +325,27 @@
     <div class="skeleton">Carregando dados de geração…</div>
   </div>
 
-  <div class="secao-titulo">Geração × Irradiação (últimos dias)</div>
+  <div class="secao-titulo">Geração × Irradiação</div>
+  <div class="periodo-seletor" id="periodoSeletor">
+    <button class="periodo-btn ativo" data-periodo="7">Semana</button>
+    <button class="periodo-btn" data-periodo="30">Mês</button>
+    <button class="periodo-btn" data-periodo="90">Trimestre</button>
+    <button class="periodo-btn" data-periodo="ano">Ano</button>
+    <button class="periodo-btn" data-periodo="custom">Período…</button>
+  </div>
+  <div id="periodoCustom" class="periodo-custom">
+    <input type="date" id="dataInicio">
+    <span>até</span>
+    <input type="date" id="dataFim">
+    <button id="aplicarCustom">Aplicar</button>
+  </div>
   <div class="grafico-card">
     <div class="grafico-legenda">
       <span><i class="dot-legenda" style="background:var(--sun)"></i>Geração (kWh)</span>
       <span><i class="dot-legenda" style="background:var(--sky)"></i>Irradiação (kWh/m²)</span>
     </div>
-    <canvas id="graficoCanvas" height="220"></canvas>
+    <div id="graficoAviso" class="grafico-aviso"></div>
+    <canvas id="graficoCanvas"></canvas>
   </div>
 
   <div class="rodape">
@@ -376,69 +452,155 @@ async function carregarStatus(){
 }
 
 let grafico = null;
-async function carregarGrafico(){
-  try{
-    const [rGer, rIrr] = await Promise.all([
-      fetch(`${API_BASE}/fv-energias/historico-geracao?dias=14`),
-      fetch(`${API_BASE}/fv-energias/irradiacao?dias=14`),
-    ]);
-    const dGer = await rGer.json();
-    const dIrr = await rIrr.json();
-    if(!dGer.ok || !dIrr.ok) throw new Error('dados históricos indisponíveis');
+let periodoAtual = "7";
 
-    const labels = dGer.historico.map(p => p.data.slice(5).split('-').reverse().join('/'));
-    const geracao = dGer.historico.map(p => p.geracao_kwh);
-    const mapaIrr = {};
-    dIrr.historico.forEach(p => mapaIrr[p.data] = p.irradiacao_kwh_m2);
-    const irradiacao = dGer.historico.map(p => mapaIrr[p.data] ?? null);
-
-    const ctx = document.getElementById('graficoCanvas').getContext('2d');
-    if(grafico) grafico.destroy();
-    grafico = new Chart(ctx, {
-      data: {
-        labels,
-        datasets: [
-          {
-            type: 'bar',
-            label: 'Geração (kWh)',
-            data: geracao,
-            backgroundColor: 'rgba(242,169,59,0.75)',
-            borderRadius: 4,
-            yAxisID: 'y',
-          },
-          {
-            type: 'line',
-            label: 'Irradiação (kWh/m²)',
-            data: irradiacao,
-            borderColor: '#5FD3C4',
-            backgroundColor: 'transparent',
-            tension: 0.35,
-            pointRadius: 3,
-            pointBackgroundColor: '#5FD3C4',
-            yAxisID: 'y1',
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#8C9AB5', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' } },
-          y: { position: 'left', ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kWh', color: '#8C9AB5' } },
-          y1: { position: 'right', ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'kWh/m²', color: '#8C9AB5' } },
-        },
-      },
-    });
-  }catch(e){
-    console.error(e);
-  }
+function formatarLabel(dataStr, granularidade){
+  const [y, m, d] = dataStr.split('-');
+  if(granularidade === 'mes') return `${m}/${y.slice(2)}`;
+  return `${d}/${m}`;
 }
 
+async function buscarSerieGeracao(inicio, fim){
+  const r = await fetch(`${API_BASE}/fv-energias/historico-geracao?inicio=${inicio}&fim=${fim}`);
+  const d = await r.json();
+  if(!d.ok) throw new Error(d.error || 'erro ao buscar geração');
+  return d.historico;
+}
+async function buscarSerieGeracaoPropria(inicio, fim){
+  const r = await fetch(`${API_BASE}/fv-energias/historico-proprio?inicio=${inicio}&fim=${fim}`);
+  const d = await r.json();
+  if(!d.ok) throw new Error(d.error || 'erro ao buscar histórico próprio');
+  return d.historico;
+}
+async function buscarSerieIrradiacao(dias){
+  const r = await fetch(`${API_BASE}/fv-energias/irradiacao?dias=${dias}`);
+  const d = await r.json();
+  if(!d.ok) throw new Error(d.error || 'erro ao buscar irradiação');
+  return d.historico;
+}
+
+function toISO(date){ return date.toISOString().slice(0,10); }
+
+async function carregarGrafico(periodo, inicioCustom, fimCustom){
+  const aviso = document.getElementById('graficoAviso');
+  aviso.classList.remove('mostrar');
+  aviso.textContent = '';
+
+  const hoje = new Date();
+  let historicoGer, historicoIrr, granularidade = 'dia';
+
+  try{
+    if(periodo === 'custom'){
+      const inicio = inicioCustom, fim = fimCustom;
+      const dias = Math.round((new Date(fim) - new Date(inicio)) / 86400000) + 1;
+      if(dias > 90){
+        // Período longo: usa o histórico próprio (construído dia a dia
+        // desde que o sistema entrou no ar), sem sobrecarregar a Solplanet.
+        historicoGer = await buscarSerieGeracaoPropria(inicio, fim);
+        aviso.textContent = 'Período longo: usando o histórico próprio, construído dia a dia a partir de quando o monitoramento entrou no ar. Dias anteriores a isso aparecem em branco.';
+        aviso.classList.add('mostrar');
+      }else{
+        historicoGer = await buscarSerieGeracao(inicio, fim);
+      }
+      const diasIrr = Math.min(dias, 90);
+      historicoIrr = await buscarSerieIrradiacao(diasIrr);
+      granularidade = dias > 60 ? 'mes' : 'dia';
+    }else if(periodo === 'ano'){
+      const fim = toISO(hoje);
+      const inicioDate = new Date(hoje); inicioDate.setDate(inicioDate.getDate() - 364);
+      const inicio = toISO(inicioDate);
+      historicoGer = await buscarSerieGeracaoPropria(inicio, fim);
+      historicoIrr = await buscarSerieIrradiacao(90); // últimos 90 dias de irradiação (limite da fonte)
+      granularidade = 'mes';
+      aviso.textContent = 'Visão anual usa o histórico próprio (1 ponto por dia, capturado às 18h) — dias antes do início do monitoramento aparecem em branco. Irradiação mostrada apenas para os últimos 90 dias (limite da fonte de dados).';
+      aviso.classList.add('mostrar');
+    }else{
+      const dias = parseInt(periodo, 10);
+      historicoGer = await buscarSerieGeracao(dias);
+      historicoIrr = await buscarSerieIrradiacao(dias);
+      granularidade = dias > 60 ? 'mes' : 'dia';
+    }
+  }catch(e){
+    aviso.textContent = `Não foi possível carregar o gráfico (${e.message}).`;
+    aviso.classList.add('mostrar');
+    return;
+  }
+
+  const labels = historicoGer.map(p => formatarLabel(p.data, granularidade));
+  const geracao = historicoGer.map(p => p.geracao_kwh);
+  const mapaIrr = {};
+  historicoIrr.forEach(p => mapaIrr[p.data] = p.irradiacao_kwh_m2);
+  const irradiacao = historicoGer.map(p => mapaIrr[p.data] ?? null);
+
+  const ctx = document.getElementById('graficoCanvas').getContext('2d');
+  if(grafico) grafico.destroy();
+  grafico = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Geração (kWh)',
+          data: geracao,
+          backgroundColor: 'rgba(242,169,59,0.75)',
+          borderRadius: 4,
+          yAxisID: 'y',
+        },
+        {
+          type: 'line',
+          label: 'Irradiação (kWh/m²)',
+          data: irradiacao,
+          borderColor: '#5FD3C4',
+          backgroundColor: 'transparent',
+          tension: 0.35,
+          pointRadius: labels.length > 40 ? 0 : 3,
+          pointBackgroundColor: '#5FD3C4',
+          spanGaps: true,
+          yAxisID: 'y1',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8C9AB5', font: { family: 'IBM Plex Mono', size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: 'rgba(245,240,230,0.05)' } },
+        y: { position: 'left', ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kWh', color: '#8C9AB5' } },
+        y1: { position: 'right', ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'kWh/m²', color: '#8C9AB5' } },
+      },
+    },
+  });
+}
+
+document.getElementById('periodoSeletor').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.periodo-btn');
+  if(!btn) return;
+  document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  const periodo = btn.dataset.periodo;
+  periodoAtual = periodo;
+  const customEl = document.getElementById('periodoCustom');
+  if(periodo === 'custom'){
+    customEl.classList.add('mostrar');
+  }else{
+    customEl.classList.remove('mostrar');
+    carregarGrafico(periodo);
+  }
+});
+document.getElementById('aplicarCustom').addEventListener('click', () => {
+  const inicio = document.getElementById('dataInicio').value;
+  const fim = document.getElementById('dataFim').value;
+  if(!inicio || !fim) return;
+  carregarGrafico('custom', inicio, fim);
+});
+
 carregarStatus();
-carregarGrafico();
+carregarGrafico('7');
 setInterval(carregarStatus, 60000);
-setInterval(carregarGrafico, 5 * 60000);
+setInterval(() => carregarGrafico(periodoAtual), 5 * 60000);
 </script>
 </body>
 </html>
