@@ -590,20 +590,20 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
       plugins: { legend: { display: false } },
       scales: {
         x: {
+          afterBuildTicks: (axis) => {
+            // Remove de verdade os ticks fora do intervalo de 3h — em
+            // vez de só esconder o texto via callback (isso deixava os
+            // rótulos visíveis grudados uns nos outros, sem o espaçamento
+            // correto). Com os ticks removidos de fato, o Chart.js
+            // recalcula a posição de cada um proporcionalmente à largura
+            // total, com espaçamento correto entre eles.
+            axis.ticks = axis.ticks.filter(t => t.value % 36 === 0); // 36 * 5min = 3h
+          },
           ticks: {
             color: '#8C9AB5',
             font: { family: 'IBM Plex Mono', size: 11 },
             maxRotation: 0,
             autoSkip: false,
-            // Mostra só os horários redondos de 3 em 3h (00:00, 03:00,
-            // 06:00...) — esconde os outros 287 rótulos da grade de 5min
-            // pra não sobrepor/concatenar visualmente.
-            callback: function(value){
-              const label = this.getLabelForValue(value);
-              const [hh, mm] = label.split(':');
-              if(mm === '00' && parseInt(hh, 10) % 3 === 0) return label;
-              return null;
-            },
           },
           grid: { color: 'rgba(245,240,230,0.05)' },
         },
