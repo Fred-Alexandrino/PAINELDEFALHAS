@@ -530,35 +530,43 @@ async function carregarCurvaDia(date){
     const d = await r.json();
     if(!d.ok) throw new Error(d.error || 'erro ao buscar curva do dia');
 
-    const labelsPot = d.potencia.map(p => p.hora);
-    const potencia = d.potencia.map(p => p.potencia_kw);
+    const paraMinutos = (horaStr) => {
+      const [h, m] = horaStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const potenciaPontos = d.potencia.map(p => ({ x: paraMinutos(p.hora), y: p.potencia_kw }));
     const mapaIrr = {};
     d.irradiancia.forEach(p => mapaIrr[p.hora.slice(0,2)] = p.irradiancia_w_m2);
-    const irradiancia = labelsPot.map(hora => mapaIrr[hora.slice(0,2)] ?? null);
+    const irradiacaoPontos = d.potencia.map(p => ({ x: paraMinutos(p.hora), y: mapaIrr[p.hora.slice(0,2)] ?? null }));
 
-    if(potencia.length === 0){
+    if(d.potencia.length === 0){
       aviso.textContent = 'Sem leituras de potência para este dia.';
       aviso.classList.add('mostrar');
     }
 
-    renderizarGraficoCurva(labelsPot, potencia, irradiancia);
+    renderizarGraficoCurva(potenciaPontos, irradiacaoPontos);
   }catch(e){
     aviso.textContent = `Não foi possível carregar a curva do dia (${e.message}).`;
     aviso.classList.add('mostrar');
   }
 }
 
-function renderizarGraficoCurva(labels, potencia, irradiancia){
+function formatarMinutosHHMM(minutos){
+  const h = String(Math.floor(minutos / 60)).padStart(2, '0');
+  const m = String(minutos % 60).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function renderizarGraficoCurva(potenciaPontos, irradiacaoPontos){
   const ctx = document.getElementById('graficoCanvas').getContext('2d');
   if(grafico) grafico.destroy();
   grafico = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
       datasets: [
         {
           label: 'Potência (kW)',
-          data: potencia,
+          data: potenciaPontos,
           borderColor: '#F2A93B',
           backgroundColor: 'rgba(242,169,59,0.22)',
           fill: true,
@@ -569,7 +577,7 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
         },
         {
           label: 'Irradiação (W/m²)',
-          data: irradiancia,
+          data: irradiacaoPontos,
           borderColor: '#5FD3C4',
           backgroundColor: 'transparent',
           fill: false,
@@ -590,20 +598,16 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
       plugins: { legend: { display: false } },
       scales: {
         x: {
-          afterBuildTicks: (axis) => {
-            // Remove de verdade os ticks fora do intervalo de 3h — em
-            // vez de só esconder o texto via callback (isso deixava os
-            // rótulos visíveis grudados uns nos outros, sem o espaçamento
-            // correto). Com os ticks removidos de fato, o Chart.js
-            // recalcula a posição de cada um proporcionalmente à largura
-            // total, com espaçamento correto entre eles.
-            axis.ticks = axis.ticks.filter(t => t.value % 36 === 0); // 36 * 5min = 3h
-          },
+          type: 'linear',
+          min: 0,
+          max: 1439,
           ticks: {
             color: '#8C9AB5',
             font: { family: 'IBM Plex Mono', size: 11 },
-            maxRotation: 0,
-            autoSkip: false,
+            stepSize: 180, // 3h em minutos — eixo numérico de verdade,
+            // o Chart.js posiciona e espaça os rótulos sozinho, sem
+            // precisar filtrar tick por tick.
+            callback: (valor) => formatarMinutosHHMM(valor),
           },
           grid: { color: 'rgba(245,240,230,0.05)' },
         },
