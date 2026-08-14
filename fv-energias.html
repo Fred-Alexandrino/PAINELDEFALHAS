@@ -549,6 +549,7 @@ async function carregarCurvaDia(date){
 }
 
 function formatarMinutosHHMM(minutos){
+  minutos = Math.round(minutos);
   const h = String(Math.floor(minutos / 60)).padStart(2, '0');
   const m = String(minutos % 60).padStart(2, '0');
   return `${h}:${m}`;
@@ -598,13 +599,17 @@ function renderizarGraficoCurva(potenciaPontos, irradiacaoPontos){
           type: 'linear',
           min: 0,
           max: 1439,
+          afterBuildTicks: (axis) => {
+            // Define os 8 horários manualmente (múltiplos exatos de 3h em
+            // minutos) — o cálculo automático do Chart.js (stepSize) não
+            // dividia 1439 de forma exata e gerava valores fracionados
+            // (ex.: "179.875" min), aparecendo como horários sem sentido.
+            axis.ticks = [0, 180, 360, 540, 720, 900, 1080, 1260].map(v => ({ value: v }));
+          },
           ticks: {
             color: '#8C9AB5',
             font: { family: 'IBM Plex Mono', size: 11 },
-            stepSize: 180, // 3h em minutos — eixo numérico de verdade,
-            // o Chart.js posiciona e espaça os rótulos sozinho, sem
-            // precisar filtrar tick por tick.
-            callback: (valor) => formatarMinutosHHMM(valor),
+            callback: (valor) => formatarMinutosHHMM(Math.round(valor)),
           },
           grid: { color: 'rgba(245,240,230,0.05)' },
         },
