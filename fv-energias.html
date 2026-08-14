@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FV Energias Renováveis — Monitoramento</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0A0F1C;
+    --bg-grad: radial-gradient(120% 90% at 15% -10%, #14203a 0%, #0A0F1C 55%);
+    --surface: #121A2B;
+    --surface-2: #1A2438;
+    --border: rgba(245,240,230,0.08);
+    --border-strong: rgba(245,240,230,0.16);
+    --sun: #F2A93B;
+    --sun-soft: #F7C873;
+    --sky: #5FD3C4;
+    --text: #F5F0E6;
+    --text-muted: #8C9AB5;
+    --ok: #3ECF8E;
+    --danger: #E5646A;
+    --radius: 16px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg-grad), var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  body{
+    min-height:100vh;
+    padding: 28px 20px 64px;
+  }
+  .wrap{ max-width: 920px; margin: 0 auto; }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sky);
+    margin: 0 0 6px;
+  }
+  h1{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 40px);
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .subtitulo{
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 28px;
+  }
+
+  /* ── Arco solar (elemento de assinatura) ───────────────────────── */
+  .arco-card{
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .arco-svg-wrap{
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .sol{
+    filter: drop-shadow(0 0 6px var(--sun));
+    transition: filter 0.6s ease, cx 1.2s ease, cy 1.2s ease;
+  }
+  .arco-linha{ stroke: var(--border-strong); stroke-dasharray: 4 6; }
+  .arco-horizonte{ stroke: var(--border-strong); }
+  .arco-legenda{
+    display:flex; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: -6px auto 0;
+    padding: 0 4px;
+  }
+
+  .potencia-hero{
+    text-align: center;
+    margin-top: 4px;
+  }
+  .potencia-valor{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(40px, 9vw, 64px);
+    color: var(--sun-soft);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .potencia-label{
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Inversores ─────────────────────────────────────────────────── */
+  .secao-titulo{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 32px 0 12px;
+  }
+  .inversores{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .inv-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .inv-topo{
+    display:flex; align-items:center; gap:8px;
+    margin-bottom: 8px;
+  }
+  .status-dot{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+    flex-shrink:0;
+  }
+  .status-dot.off{ background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .inv-nome{ font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .inv-sn{ font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .inv-status-texto{ font-size: 13px; margin-top: 6px; }
+  .inv-status-texto.ok{ color: var(--ok); }
+  .inv-status-texto.off{ color: var(--danger); }
+
+  /* ── Estatísticas ───────────────────────────────────────────────── */
+  .stats{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .stat-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .stat-valor{
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--text);
+  }
+  .stat-label{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Gráfico ────────────────────────────────────────────────────── */
+  .grafico-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px 12px;
+    margin-top: 8px;
+  }
+  .grafico-legenda{
+    display:flex; gap: 18px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .grafico-legenda span{ display:flex; align-items:center; gap:6px; }
+  .dot-legenda{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .rodape{
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .rodape a{ color: var(--sky); text-decoration: none; }
+
+  .erro{
+    background: rgba(229,100,106,0.1);
+    border: 1px solid rgba(229,100,106,0.3);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .erro.mostrar{ display: block; }
+
+  .skeleton{
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sol{ transition: none; }
+  }
+
+  @media (max-width: 480px){
+    .arco-legenda{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Usina Fotovoltaica · Aquiraz, Ceará</p>
+  <h1>FV Energias Renováveis</h1>
+  <p class="subtitulo">Monitoramento em tempo real — visualização exclusiva deste painel.</p>
+
+  <div id="erro" class="erro"></div>
+
+  <div class="arco-card">
+    <div class="arco-svg-wrap">
+      <svg viewBox="0 0 560 190" width="100%" style="overflow:visible">
+        <line class="arco-horizonte" x1="20" y1="160" x2="540" y2="160" stroke-width="1"/>
+        <path class="arco-linha" d="M 20 160 A 260 260 0 0 1 540 160" fill="none" stroke-width="1.5"/>
+        <circle id="solPonto" class="sol" cx="20" cy="160" r="9" fill="var(--sun)"/>
+      </svg>
+    </div>
+    <div class="arco-legenda">
+      <span>06:00</span><span>12:00</span><span>18:00</span>
+    </div>
+    <div class="potencia-hero">
+      <div id="potenciaValor" class="potencia-valor skeleton">—</div>
+      <div class="potencia-label" id="potenciaAtualizado">carregando…</div>
+    </div>
+  </div>
+
+  <div class="secao-titulo">Inversores</div>
+  <div id="inversores" class="inversores">
+    <div class="skeleton">Carregando status dos inversores…</div>
+  </div>
+
+  <div class="secao-titulo">Geração</div>
+  <div id="stats" class="stats">
+    <div class="skeleton">Carregando dados de geração…</div>
+  </div>
+
+  <div class="secao-titulo">Geração × Irradiação (últimos dias)</div>
+  <div class="grafico-card">
+    <div class="grafico-legenda">
+      <span><i class="dot-legenda" style="background:var(--sun)"></i>Geração (kWh)</span>
+      <span><i class="dot-legenda" style="background:var(--sky)"></i>Irradiação (kWh/m²)</span>
+    </div>
+    <canvas id="graficoCanvas" height="220"></canvas>
+  </div>
+
+  <div class="rodape">
+    Dados: API Solplanet/AISWEI (usina) · Open-Meteo (irradiação solar)<br>
+    Atualiza automaticamente a cada 60 segundos.
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "https://api.168.138.232.237.sslip.io";
+
+function mostrarErro(msg){
+  const el = document.getElementById('erro');
+  el.textContent = msg;
+  el.classList.add('mostrar');
+}
+function limparErro(){
+  document.getElementById('erro').classList.remove('mostrar');
+}
+
+function posicionarSol(potenciaAtual, potenciaPico){
+  const agora = new Date();
+  const horaBR = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const minutosDoDia = horaBR.getHours() * 60 + horaBR.getMinutes();
+  const inicio = 6 * 60, fim = 18 * 60;
+  let fracao = (minutosDoDia - inicio) / (fim - inicio);
+  fracao = Math.max(0, Math.min(1, fracao));
+
+  const cx = 20 + fracao * 520;
+  const anguloRad = Math.PI * (1 - fracao);
+  const cy = 160 - Math.sin(anguloRad) * 0; // placeholder, recalculado abaixo
+
+  // Arco real: centro (280,160), raio 260, de 180° (esquerda) a 0° (direita)
+  const centroX = 280, centroY = 160, raio = 260;
+  const anguloArco = Math.PI * (1 - fracao); // 180°→0°
+  const x = centroX - raio * Math.cos(anguloArco);
+  const y = centroY - raio * Math.sin(anguloArco);
+
+  const sol = document.getElementById('solPonto');
+  sol.setAttribute('cx', x);
+  sol.setAttribute('cy', y);
+
+  const intensidade = potenciaPico > 0 ? Math.min(1, potenciaAtual / potenciaPico) : 0;
+  const raioGlow = 7 + intensidade * 6;
+  sol.setAttribute('r', raioGlow);
+  sol.style.opacity = fracao > 0 && fracao < 1 ? (0.35 + intensidade * 0.65) : 0.25;
+}
+
+async function carregarStatus(){
+  try{
+    const r = await fetch(`${API_BASE}/fv-energias/status`);
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error || 'erro desconhecido');
+    limparErro();
+
+    const potencia = d.potencia_atual_kw ?? 0;
+    document.getElementById('potenciaValor').textContent = `${potencia.toFixed(2)} kW`;
+    document.getElementById('potenciaValor').classList.remove('skeleton');
+    document.getElementById('potenciaAtualizado').textContent =
+      d.ultima_atualizacao ? `Atualizado às ${d.ultima_atualizacao.split(' ')[1] || d.ultima_atualizacao}` : '';
+
+    // Potência de pico estimada ~ capacidade instalada (95.16 kWp) pra
+    // calibrar o brilho do sol no arco.
+    posicionarSol(potencia, 95.16);
+
+    // Inversores
+    const contInv = document.getElementById('inversores');
+    contInv.innerHTML = '';
+    (d.inversores || []).sort((a,b) => a.sn.localeCompare(b.sn)).forEach((inv, i) => {
+      const apelidos = {"SP002087G2560054":"INV01","SP002087G2560052":"INV02","SP002087G2560056":"INV03"};
+      const apelido = apelidos[inv.sn] || inv.sn;
+      const div = document.createElement('div');
+      div.className = 'inv-card';
+      div.innerHTML = `
+        <div class="inv-topo">
+          <span class="status-dot ${inv.online ? '' : 'off'}"></span>
+          <span class="inv-nome">${apelido}</span>
+        </div>
+        <div class="inv-sn">${inv.sn}</div>
+        <div class="inv-status-texto ${inv.online ? 'ok' : 'off'}">${inv.online ? 'Em Geração' : 'Offline'}</div>
+      `;
+      contInv.appendChild(div);
+    });
+    // reordenar por apelido (INV01, INV02, INV03)
+    const ordem = ["INV01","INV02","INV03"];
+    const cards = Array.from(contInv.children);
+    cards.sort((a,b) => ordem.indexOf(a.querySelector('.inv-nome').textContent) - ordem.indexOf(b.querySelector('.inv-nome').textContent));
+    cards.forEach(c => contInv.appendChild(c));
+
+    // Stats
+    const stats = document.getElementById('stats');
+    const fmt = (obj, sufixo) => obj && obj.value !== undefined ? `${obj.value} ${obj.unit || sufixo || ''}` : '—';
+    stats.innerHTML = `
+      <div class="stat-card"><div class="stat-valor">${d.geracao_hoje_kwh ?? '—'} kWh</div><div class="stat-label">Hoje</div></div>
+      <div class="stat-card"><div class="stat-valor">${fmt(d.geracao_mes)}</div><div class="stat-label">Este mês</div></div>
+      <div class="stat-card"><div class="stat-valor">${fmt(d.geracao_ano)}</div><div class="stat-label">Este ano</div></div>
+      <div class="stat-card"><div class="stat-valor">${fmt(d.geracao_total)}</div><div class="stat-label">Total (vida útil)</div></div>
+      <div class="stat-card"><div class="stat-valor">${fmt(d.co2_evitado)}</div><div class="stat-label">CO₂ evitado</div></div>
+    `;
+  }catch(e){
+    mostrarErro(`Não foi possível carregar os dados da usina agora (${e.message}). Tentando novamente em instantes…`);
+  }
+}
+
+let grafico = null;
+async function carregarGrafico(){
+  try{
+    const [rGer, rIrr] = await Promise.all([
+      fetch(`${API_BASE}/fv-energias/historico-geracao?dias=14`),
+      fetch(`${API_BASE}/fv-energias/irradiacao?dias=14`),
+    ]);
+    const dGer = await rGer.json();
+    const dIrr = await rIrr.json();
+    if(!dGer.ok || !dIrr.ok) throw new Error('dados históricos indisponíveis');
+
+    const labels = dGer.historico.map(p => p.data.slice(5).split('-').reverse().join('/'));
+    const geracao = dGer.historico.map(p => p.geracao_kwh);
+    const mapaIrr = {};
+    dIrr.historico.forEach(p => mapaIrr[p.data] = p.irradiacao_kwh_m2);
+    const irradiacao = dGer.historico.map(p => mapaIrr[p.data] ?? null);
+
+    const ctx = document.getElementById('graficoCanvas').getContext('2d');
+    if(grafico) grafico.destroy();
+    grafico = new Chart(ctx, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Geração (kWh)',
+            data: geracao,
+            backgroundColor: 'rgba(242,169,59,0.75)',
+            borderRadius: 4,
+            yAxisID: 'y',
+          },
+          {
+            type: 'line',
+            label: 'Irradiação (kWh/m²)',
+            data: irradiacao,
+            borderColor: '#5FD3C4',
+            backgroundColor: 'transparent',
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#5FD3C4',
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8C9AB5', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' } },
+          y: { position: 'left', ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kWh', color: '#8C9AB5' } },
+          y1: { position: 'right', ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'kWh/m²', color: '#8C9AB5' } },
+        },
+      },
+    });
+  }catch(e){
+    console.error(e);
+  }
+}
+
+carregarStatus();
+carregarGrafico();
+setInterval(carregarStatus, 60000);
+setInterval(carregarGrafico, 5 * 60000);
+</script>
+</body>
+</html>
