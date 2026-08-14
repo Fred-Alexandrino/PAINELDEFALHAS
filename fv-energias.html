@@ -490,14 +490,29 @@ async function carregarStatus(){
 
 let grafico = null;
 let periodoAtual = "dia";
-let dataDiaAtual = new Date();
+let dataDiaAtual = agoraBR();
 
 function formatarLabel(dataStr, granularidade){
   const [y, m, d] = dataStr.split('-');
   if(granularidade === 'mes') return `${m}/${y.slice(2)}`;
   return `${d}/${m}`;
 }
-function toISO(date){ return date.toISOString().slice(0,10); }
+function toISO(date){
+  // NUNCA usar date.toISOString() aqui — ela converte pra UTC, e como
+  // Brasília é UTC-3, à noite isso pula pro dia seguinte incorretamente
+  // (ex.: 21:54 em Brasília = 00:54 UTC do dia seguinte). Formata a
+  // partir dos componentes locais do Date em vez disso.
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function agoraBR(){
+  // Constrói um Date cujos componentes locais (getFullYear/getMonth/
+  // getDate) já refletem o horário de Brasília, independente do fuso
+  // configurado no aparelho.
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+}
 function formatarDataBR(date){
   return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
@@ -507,7 +522,7 @@ async function carregarCurvaDia(date){
   aviso.classList.remove('mostrar');
   document.getElementById('diaAtualLabel').textContent = formatarDataBR(date);
 
-  const hoje = new Date();
+  const hoje = agoraBR();
   document.getElementById('diaProximo').disabled = toISO(date) >= toISO(hoje);
 
   try{
@@ -615,7 +630,7 @@ async function carregarGrafico(periodo, inicioCustom, fimCustom){
   aviso.classList.remove('mostrar');
   aviso.textContent = '';
 
-  const hoje = new Date();
+  const hoje = agoraBR();
   let historicoGer, historicoIrr, granularidade = 'dia';
 
   try{
@@ -737,7 +752,7 @@ document.getElementById('diaAnterior').addEventListener('click', () => {
   carregarCurvaDia(dataDiaAtual);
 });
 document.getElementById('diaProximo').addEventListener('click', () => {
-  const hoje = new Date();
+  const hoje = agoraBR();
   if(toISO(dataDiaAtual) >= toISO(hoje)) return;
   dataDiaAtual.setDate(dataDiaAtual.getDate() + 1);
   carregarCurvaDia(dataDiaAtual);
