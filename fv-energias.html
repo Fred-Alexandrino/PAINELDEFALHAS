@@ -72,10 +72,10 @@
     background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 60px 24px 20px;
+    padding: 28px 24px 20px;
     margin-bottom: 20px;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
   }
   .arco-svg-wrap{
     width: 100%;
@@ -331,7 +331,7 @@
     <div class="arco-svg-wrap">
       <svg viewBox="0 0 560 190" width="100%" style="overflow:visible">
         <line class="arco-horizonte" x1="20" y1="160" x2="540" y2="160" stroke-width="1"/>
-        <path class="arco-linha" d="M 20 160 A 260 260 0 0 1 540 160" fill="none" stroke-width="1.5"/>
+        <path class="arco-linha" d="M 20 160 A 260 140 0 0 1 540 160" fill="none" stroke-width="1.5"/>
         <circle id="solPonto" class="sol" cx="20" cy="160" r="9" fill="var(--sun)"/>
       </svg>
     </div>
@@ -410,12 +410,13 @@ function posicionarSol(potenciaAtual, potenciaPico){
   let fracao = (minutosDoDia - inicio) / (fim - inicio);
   fracao = Math.max(0, Math.min(1, fracao));
 
-  // Arco real: centro (280,160), raio 260, de 180° (esquerda, início do
-  // dia) a 0° (direita, fim do dia) — mesma curva do path pontilhado.
-  const centroX = 280, centroY = 160, raio = 260;
+  // Arco achatado (elipse, não círculo) — rx=260, ry=140 — cabe dentro
+  // da viewBox (altura 190) em qualquer largura de tela, sem precisar de
+  // overflow. Pico fica em y=160-140=20, com folga de 20 no topo.
+  const centroX = 280, centroY = 160, rx = 260, ry = 140;
   const anguloArco = Math.PI * (1 - fracao); // 180°→0°
-  const x = centroX + raio * Math.cos(anguloArco);
-  const y = centroY - raio * Math.sin(anguloArco);
+  const x = centroX + rx * Math.cos(anguloArco);
+  const y = centroY - ry * Math.sin(anguloArco);
 
   const sol = document.getElementById('solPonto');
   sol.setAttribute('cx', x);
@@ -556,6 +557,17 @@ function formatarMinutosHHMM(minutos){
 }
 
 function renderizarGraficoCurva(potenciaPontos, irradiacaoPontos){
+  // Geração acumulada até cada ponto (kWh) — cada leitura representa um
+  // intervalo de 5min, então energia do intervalo = potência(kW) * (5/60)h.
+  // Usado só pro tooltip, não muda a curva desenhada.
+  let acumulado = 0;
+  const cumulativoPorIndice = potenciaPontos.map(p => {
+    if(p.y !== null && p.y !== undefined){
+      acumulado += p.y * (5 / 60);
+    }
+    return acumulado;
+  });
+
   const ctx = document.getElementById('graficoCanvas').getContext('2d');
   if(grafico) grafico.destroy();
   grafico = new Chart(ctx, {
@@ -593,7 +605,20 @@ function renderizarGraficoCurva(potenciaPontos, irradiacaoPontos){
       maintainAspectRatio: false,
       layout: { padding: { bottom: 8, right: 4, top: 8 } },
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items.length ? formatarMinutosHHMM(Math.round(items[0].parsed.x)) : '',
+            afterBody: (items) => {
+              if(!items.length) return [];
+              const idx = items[0].dataIndex;
+              const total = cumulativoPorIndice[idx];
+              return total !== undefined ? [`Total gerado até agora: ${total.toFixed(2)} kWh`] : [];
+            },
+          },
+        },
+      },
       scales: {
         x: {
           type: 'linear',
