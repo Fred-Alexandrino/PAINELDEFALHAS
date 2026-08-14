@@ -3,7 +3,7 @@
  * v2 — Push notifications + Cache offline
  */
 
-const CACHE_NAME   = 'painel-om-v3';
+const CACHE_NAME   = 'painel-om-v4';
 const CACHE_URLS   = [
   '/PAINELDEFALHAS/',
   '/PAINELDEFALHAS/index.html',
@@ -34,6 +34,13 @@ self.addEventListener('activate', event => {
 // Para Google Sheets (dados): tenta rede → se offline, retorna último cache
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+
+  // FV Energias é um painel isolado e à parte, atualizado com frequência
+  // — nunca deve passar pelo service worker/cache do app principal, senão
+  // fica preso em versões antigas mesmo depois de deploys novos. Deixa a
+  // requisição seguir pro comportamento padrão do navegador (sem
+  // interceptar) chamando return sem event.respondWith().
+  if (url.pathname.includes('fv-energias.html')) return;
 
   // Ignora requisições de outros domínios que não sejam Sheets ou o próprio app
   const ehApp    = url.origin === self.location.origin;
