@@ -188,7 +188,7 @@
   }
   .grafico-card canvas{
     width: 100% !important;
-    height: 260px !important;
+    height: 320px !important;
   }
   .periodo-seletor{
     display:flex; gap:8px; flex-wrap:wrap;
@@ -570,10 +570,20 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { bottom: 8, right: 4 } },
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#8C9AB5', font: { family: 'IBM Plex Mono', size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { color: 'rgba(245,240,230,0.05)' } },
+        x: {
+          ticks: {
+            color: '#8C9AB5',
+            font: { family: 'IBM Plex Mono', size: 11 },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 6,
+          },
+          grid: { color: 'rgba(245,240,230,0.05)' },
+        },
         y: { position: 'left', beginAtZero: true, ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kW', color: '#8C9AB5' } },
         y1: { position: 'right', beginAtZero: true, ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'W/m²', color: '#8C9AB5' } },
       },
