@@ -209,6 +209,32 @@
     border-color: var(--sun);
     font-weight: 600;
   }
+  .dia-nav{
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .dia-nav.mostrar{ display: flex; }
+  .dia-nav button{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    width: 32px; height: 32px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .dia-nav button:hover{ border-color: var(--border-strong); }
+  .dia-nav button:disabled{ opacity: 0.35; cursor: default; }
+  #diaAtualLabel{
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text-muted);
+    min-width: 100px;
+    text-align: center;
+  }
   .periodo-custom{
     display: none;
     align-items: center;
@@ -327,11 +353,17 @@
 
   <div class="secao-titulo">Geração × Irradiação</div>
   <div class="periodo-seletor" id="periodoSeletor">
-    <button class="periodo-btn ativo" data-periodo="7">Semana</button>
+    <button class="periodo-btn ativo" data-periodo="dia">Dia</button>
+    <button class="periodo-btn" data-periodo="7">Semana</button>
     <button class="periodo-btn" data-periodo="30">Mês</button>
     <button class="periodo-btn" data-periodo="90">Trimestre</button>
     <button class="periodo-btn" data-periodo="ano">Ano</button>
     <button class="periodo-btn" data-periodo="custom">Período…</button>
+  </div>
+  <div id="diaNav" class="dia-nav">
+    <button id="diaAnterior" aria-label="Dia anterior">‹</button>
+    <span id="diaAtualLabel">—</span>
+    <button id="diaProximo" aria-label="Próximo dia">›</button>
   </div>
   <div id="periodoCustom" class="periodo-custom">
     <input type="date" id="dataInicio">
@@ -452,12 +484,96 @@ async function carregarStatus(){
 }
 
 let grafico = null;
-let periodoAtual = "7";
+let periodoAtual = "dia";
+let dataDiaAtual = new Date();
 
 function formatarLabel(dataStr, granularidade){
   const [y, m, d] = dataStr.split('-');
   if(granularidade === 'mes') return `${m}/${y.slice(2)}`;
   return `${d}/${m}`;
+}
+function toISO(date){ return date.toISOString().slice(0,10); }
+function formatarDataBR(date){
+  return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+async function carregarCurvaDia(date){
+  const aviso = document.getElementById('graficoAviso');
+  aviso.classList.remove('mostrar');
+  document.getElementById('diaAtualLabel').textContent = formatarDataBR(date);
+
+  const hoje = new Date();
+  document.getElementById('diaProximo').disabled = toISO(date) >= toISO(hoje);
+
+  try{
+    const r = await fetch(`${API_BASE}/fv-energias/curva-dia?data=${toISO(date)}`);
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error || 'erro ao buscar curva do dia');
+
+    const labelsPot = d.potencia.map(p => p.hora);
+    const potencia = d.potencia.map(p => p.potencia_kw);
+    const mapaIrr = {};
+    d.irradiancia.forEach(p => mapaIrr[p.hora.slice(0,2)] = p.irradiancia_w_m2);
+    const irradiancia = labelsPot.map(hora => mapaIrr[hora.slice(0,2)] ?? null);
+
+    if(potencia.length === 0){
+      aviso.textContent = 'Sem leituras de potência para este dia.';
+      aviso.classList.add('mostrar');
+    }
+
+    renderizarGraficoCurva(labelsPot, potencia, irradiancia);
+  }catch(e){
+    aviso.textContent = `Não foi possível carregar a curva do dia (${e.message}).`;
+    aviso.classList.add('mostrar');
+  }
+}
+
+function renderizarGraficoCurva(labels, potencia, irradiancia){
+  const ctx = document.getElementById('graficoCanvas').getContext('2d');
+  if(grafico) grafico.destroy();
+  grafico = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Potência (kW)',
+          data: potencia,
+          borderColor: '#F2A93B',
+          backgroundColor: 'rgba(242,169,59,0.22)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 2,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Irradiação (W/m²)',
+          data: irradiancia,
+          borderColor: '#5FD3C4',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderDash: [4, 3],
+          spanGaps: true,
+          yAxisID: 'y1',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8C9AB5', font: { family: 'IBM Plex Mono', size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { color: 'rgba(245,240,230,0.05)' } },
+        y: { position: 'left', beginAtZero: true, ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kW', color: '#8C9AB5' } },
+        y1: { position: 'right', beginAtZero: true, ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'W/m²', color: '#8C9AB5' } },
+      },
+    },
+  });
 }
 
 async function buscarSerieGeracao(inicio, fim){
@@ -479,8 +595,6 @@ async function buscarSerieIrradiacao(dias){
   return d.historico;
 }
 
-function toISO(date){ return date.toISOString().slice(0,10); }
-
 async function carregarGrafico(periodo, inicioCustom, fimCustom){
   const aviso = document.getElementById('graficoAviso');
   aviso.classList.remove('mostrar');
@@ -494,8 +608,6 @@ async function carregarGrafico(periodo, inicioCustom, fimCustom){
       const inicio = inicioCustom, fim = fimCustom;
       const dias = Math.round((new Date(fim) - new Date(inicio)) / 86400000) + 1;
       if(dias > 90){
-        // Período longo: usa o histórico próprio (construído dia a dia
-        // desde que o sistema entrou no ar), sem sobrecarregar a Solplanet.
         historicoGer = await buscarSerieGeracaoPropria(inicio, fim);
         aviso.textContent = 'Período longo: usando o histórico próprio, construído dia a dia a partir de quando o monitoramento entrou no ar. Dias anteriores a isso aparecem em branco.';
         aviso.classList.add('mostrar');
@@ -510,7 +622,7 @@ async function carregarGrafico(periodo, inicioCustom, fimCustom){
       const inicioDate = new Date(hoje); inicioDate.setDate(inicioDate.getDate() - 364);
       const inicio = toISO(inicioDate);
       historicoGer = await buscarSerieGeracaoPropria(inicio, fim);
-      historicoIrr = await buscarSerieIrradiacao(90); // últimos 90 dias de irradiação (limite da fonte)
+      historicoIrr = await buscarSerieIrradiacao(90);
       granularidade = 'mes';
       aviso.textContent = 'Visão anual usa o histórico próprio (1 ponto por dia, capturado às 18h) — dias antes do início do monitoramento aparecem em branco. Irradiação mostrada apenas para os últimos 90 dias (limite da fonte de dados).';
       aviso.classList.add('mostrar');
@@ -575,20 +687,29 @@ async function carregarGrafico(periodo, inicioCustom, fimCustom){
   });
 }
 
+function alternarPeriodo(periodo){
+  const customEl = document.getElementById('periodoCustom');
+  const diaNavEl = document.getElementById('diaNav');
+  customEl.classList.remove('mostrar');
+  diaNavEl.classList.remove('mostrar');
+
+  if(periodo === 'dia'){
+    diaNavEl.classList.add('mostrar');
+    carregarCurvaDia(dataDiaAtual);
+  }else if(periodo === 'custom'){
+    customEl.classList.add('mostrar');
+  }else{
+    carregarGrafico(periodo);
+  }
+}
+
 document.getElementById('periodoSeletor').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.periodo-btn');
   if(!btn) return;
   document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('ativo'));
   btn.classList.add('ativo');
-  const periodo = btn.dataset.periodo;
-  periodoAtual = periodo;
-  const customEl = document.getElementById('periodoCustom');
-  if(periodo === 'custom'){
-    customEl.classList.add('mostrar');
-  }else{
-    customEl.classList.remove('mostrar');
-    carregarGrafico(periodo);
-  }
+  periodoAtual = btn.dataset.periodo;
+  alternarPeriodo(periodoAtual);
 });
 document.getElementById('aplicarCustom').addEventListener('click', () => {
   const inicio = document.getElementById('dataInicio').value;
@@ -596,11 +717,24 @@ document.getElementById('aplicarCustom').addEventListener('click', () => {
   if(!inicio || !fim) return;
   carregarGrafico('custom', inicio, fim);
 });
+document.getElementById('diaAnterior').addEventListener('click', () => {
+  dataDiaAtual.setDate(dataDiaAtual.getDate() - 1);
+  carregarCurvaDia(dataDiaAtual);
+});
+document.getElementById('diaProximo').addEventListener('click', () => {
+  const hoje = new Date();
+  if(toISO(dataDiaAtual) >= toISO(hoje)) return;
+  dataDiaAtual.setDate(dataDiaAtual.getDate() + 1);
+  carregarCurvaDia(dataDiaAtual);
+});
 
 carregarStatus();
-carregarGrafico('7');
+alternarPeriodo('dia');
 setInterval(carregarStatus, 60000);
-setInterval(() => carregarGrafico(periodoAtual), 5 * 60000);
+setInterval(() => {
+  if(periodoAtual === 'dia') carregarCurvaDia(dataDiaAtual);
+  else if(periodoAtual !== 'custom') carregarGrafico(periodoAtual);
+}, 5 * 60000);
 </script>
 </body>
 </html>
