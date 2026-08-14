@@ -585,7 +585,7 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { bottom: 8, right: 4 } },
+      layout: { padding: { bottom: 8, right: 4, top: 8 } },
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
@@ -594,13 +594,35 @@ function renderizarGraficoCurva(labels, potencia, irradiancia){
             color: '#8C9AB5',
             font: { family: 'IBM Plex Mono', size: 11 },
             maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 6,
+            autoSkip: false,
+            // Mostra só os horários redondos de 3 em 3h (00:00, 03:00,
+            // 06:00...) — esconde os outros 287 rótulos da grade de 5min
+            // pra não sobrepor/concatenar visualmente.
+            callback: function(value){
+              const label = this.getLabelForValue(value);
+              const [hh, mm] = label.split(':');
+              if(mm === '00' && parseInt(hh, 10) % 3 === 0) return label;
+              return null;
+            },
           },
           grid: { color: 'rgba(245,240,230,0.05)' },
         },
-        y: { position: 'left', beginAtZero: true, ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { color: 'rgba(245,240,230,0.05)' }, title: { display: true, text: 'kW', color: '#8C9AB5' } },
-        y1: { position: 'right', beginAtZero: true, ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'W/m²', color: '#8C9AB5' } },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          grace: '12%',
+          ticks: { color: '#F7C873', font: { family: 'IBM Plex Mono', size: 11 } },
+          grid: { color: 'rgba(245,240,230,0.05)' },
+          title: { display: true, text: 'kW', color: '#8C9AB5' },
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grace: '12%',
+          ticks: { color: '#5FD3C4', font: { family: 'IBM Plex Mono', size: 11 } },
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'W/m²', color: '#8C9AB5' },
+        },
       },
     },
   });
