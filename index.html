@@ -1987,6 +1987,20 @@ body{
               Montar Relatório de Handover de Usina
             </button>
           </div>
+
+          <div class="rel-card">
+            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
+                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
+              Atas de Reunião
+            </div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Anexe a transcrição exportada do Teams (.docx ou .txt) — a IA estrutura os tópicos,
+              ações e decisões e monta a ata (.docx) no padrão Grid Co., pronta pra enviar ao cliente.
+            </div>
+            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirAtaReuniao()">
+              Gerar Ata de Reunião
+            </button>
+          </div>
         </div>
       </section>
 
@@ -2970,6 +2984,43 @@ Manutenção preventiva e corretiva.</textarea>
         Gerar Relatório de Handover
       </button>
       <div id="hvStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ata de Reunião -->
+<div class="ch-overlay" id="ataReuniaoOverlay">
+  <div class="ch-modal" style="max-width:640px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg><h2>Ata de Reunião</h2></div><div class="ch-subtitle">Anexe a transcrição do Teams — a IA estrutura tópicos, ações e decisões no padrão Grid Co. (.docx)</div></div>
+        <button class="modal-close-btn" id="ataReuniaoClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div class="nova-oc-field">
+        <label>Cliente / contraparte da reunião (opcional — ajuda a IA a rotular a capa corretamente)</label>
+        <select class="nova-oc-select" id="ataCliente">
+          <option value="">A IA identifica pelo contexto</option>
+        </select>
+      </div>
+
+      <div class="nova-oc-field">
+        <label>📎 Transcrição exportada do Teams (.docx ou .txt)</label>
+        <div id="ataDropZone" onclick="document.getElementById('ataFileInput').click()"
+             style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:20px;
+                    text-align:center;cursor:pointer;color:var(--text-dim);font-size:12.5px;">
+          <div id="ataNomeArquivo">Clique para anexar a transcrição (.docx ou .txt)</div>
+          <input type="file" id="ataFileInput" accept=".docx,.txt" style="display:none;"
+                 onchange="_ataArquivoSelecionado(this.files)">
+        </div>
+      </div>
+
+      <div id="ataErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px;"></div>
+      <button class="nova-oc-submit" id="ataSubmit" onclick="_gerarAtaReuniao()">
+        Gerar Ata de Reunião
+      </button>
+      <div id="ataStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
     </div>
   </div>
 </div>
@@ -12733,6 +12784,87 @@ document.getElementById('handoverUsinaClose')?.addEventListener('click', () => {
 // clique fora do card NÃO fecha mais o modal (pedido do Fred, 07/08/2026
 // — formulário longo, fechamento acidental por clique fora causava perda
 // de tudo digitado). Fechar exige o botão ✕ explicitamente.
+
+// ── Ata de Reunião (Painel de Relatórios) ────────────────────────────
+let _ataArquivo = null;
+
+function _abrirAtaReuniao() {
+  const sel = document.getElementById('ataCliente');
+  if (sel) {
+    const clientes = _clientesDisponiveis();
+    sel.innerHTML = '<option value="">A IA identifica pelo contexto</option>' +
+      clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  }
+  _ataArquivo = null;
+  const nomeEl = document.getElementById('ataNomeArquivo');
+  if (nomeEl) nomeEl.textContent = 'Clique para anexar a transcrição (.docx ou .txt)';
+  const fileInput = document.getElementById('ataFileInput');
+  if (fileInput) fileInput.value = '';
+  const errEl = document.getElementById('ataErr'); if (errEl) errEl.style.display = 'none';
+  const statusEl = document.getElementById('ataStatus'); if (statusEl) statusEl.textContent = '';
+  document.getElementById('ataReuniaoOverlay').style.display = 'flex';
+}
+
+function _ataArquivoSelecionado(files) {
+  if (!files || !files.length) return;
+  _ataArquivo = files[0];
+  const nomeEl = document.getElementById('ataNomeArquivo');
+  if (nomeEl) nomeEl.textContent = `📄 ${_ataArquivo.name}`;
+}
+
+let _isGerandoAtaReuniao = false;
+async function _gerarAtaReuniao() {
+  if (_isGerandoAtaReuniao) return;
+  const errEl = document.getElementById('ataErr');
+  const statusEl = document.getElementById('ataStatus');
+  const btn = document.getElementById('ataSubmit');
+
+  if (!_ataArquivo) {
+    if (errEl) { errEl.textContent = 'Anexe o arquivo de transcrição (.docx ou .txt).'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+
+  const cliente = document.getElementById('ataCliente')?.value?.trim() || '';
+
+  _isGerandoAtaReuniao = true;
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.textContent = 'Lendo a transcrição e estruturando a ata com IA... (pode levar até 1 minuto)';
+
+  try {
+    const fd = new FormData();
+    fd.append('transcricao', _ataArquivo);
+    if (cliente) fd.append('cliente', cliente);
+
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-ata-reuniao', {
+      method: 'POST', body: fd
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (statusEl) statusEl.textContent = err.error || 'Erro ao gerar a ata.';
+      return;
+    }
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const nomeArquivo = match ? match[1] : 'Ata de Reunião - Grid Co..docx';
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeArquivo;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    if (statusEl) statusEl.textContent = 'Ata gerada com sucesso.';
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Erro de conexão ao gerar a ata.';
+  } finally {
+    _isGerandoAtaReuniao = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.getElementById('ataReuniaoClose')?.addEventListener('click', () => {
+  document.getElementById('ataReuniaoOverlay').style.display = 'none';
+});
 
 // ── Relatório de Ocorrência (Painel de Relatórios) ──────────────────
 let _relOcorFotos = [];
