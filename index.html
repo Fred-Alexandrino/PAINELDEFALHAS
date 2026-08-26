@@ -13197,5 +13197,178 @@ function _pontoCopiarComunicado(id, btn) {
   </div>
 </nav>
 
+
+<!-- ══ ASSISTENTE IA (chat flutuante) ══ -->
+<style>
+#chatIaBubble{position:fixed;bottom:22px;right:22px;z-index:600;width:52px;height:52px;border-radius:50%;
+  background:var(--teal);color:#08090B;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);transition:transform .18s ease;}
+#chatIaBubble:hover{transform:scale(1.06);}
+#chatIaBubble svg{width:24px;height:24px;}
+#chatIaPanel{position:fixed;bottom:86px;right:22px;z-index:601;width:380px;max-width:calc(100vw - 32px);
+  height:540px;max-height:calc(100vh - 120px);background:var(--panel);border:1px solid var(--border-strong);
+  border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;}
+#chatIaPanel.open{display:flex;}
+#chatIaHeader{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+  border-bottom:1px solid var(--border);background:var(--panel-alt);flex-shrink:0;}
+#chatIaHeader .title{display:flex;align-items:center;gap:8px;font:600 13.5px 'Geist',sans-serif;color:var(--text);}
+#chatIaHeader .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+#chatIaClose{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;line-height:0;}
+#chatIaClose:hover{color:var(--text);}
+#chatIaMsgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.chatIaMsg{max-width:88%;padding:9px 12px;border-radius:10px;font:400 13px/1.5 'Geist',sans-serif;white-space:pre-wrap;word-break:break-word;}
+.chatIaMsg.user{align-self:flex-end;background:var(--teal);color:#08090B;border-bottom-right-radius:3px;}
+.chatIaMsg.model{align-self:flex-start;background:var(--panel-alt);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:3px;}
+.chatIaMsg.erro{align-self:flex-start;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.chatIaMsg.loading{align-self:flex-start;color:var(--text-dim);font-style:italic;}
+#chatIaEmpty{color:var(--text-dim);font:400 12.5px/1.5 'Geist',sans-serif;text-align:center;margin:auto;padding:0 20px;}
+#chatIaInputRow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);flex-shrink:0;background:var(--panel);}
+#chatIaInput{flex:1;resize:none;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font:400 13px/1.4 'Geist',sans-serif;padding:9px 10px;max-height:90px;}
+#chatIaInput:focus{outline:none;border-color:var(--teal);}
+#chatIaSend{background:var(--teal);border:none;border-radius:8px;width:38px;height:38px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#08090B;}
+#chatIaSend:disabled{opacity:.5;cursor:not-allowed;}
+#chatIaSend svg{width:17px;height:17px;}
+@media (max-width:520px){
+  #chatIaPanel{right:10px;left:10px;width:auto;bottom:80px;}
+  #chatIaBubble{right:14px;bottom:14px;}
+}
+</style>
+
+<button id="chatIaBubble" title="Assistente IA do painel" aria-label="Abrir assistente IA">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7Z"/><path d="M9 21h6"/><path d="M10 18v1M14 18v1"/></svg>
+</button>
+
+<div id="chatIaPanel">
+  <div id="chatIaHeader">
+    <div class="title"><span class="dot"></span>Assistente IA — Painel</div>
+    <button id="chatIaClose" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="chatIaMsgs">
+    <div id="chatIaEmpty">Pergunte sobre atividades, zeladoria, chamados ou programação PCM.<br>Ex.: "o que está em aberto na Nova Xavantina I?"</div>
+  </div>
+  <div id="chatIaInputRow">
+    <textarea id="chatIaInput" rows="1" placeholder="Pergunte algo sobre o painel..."></textarea>
+    <button id="chatIaSend" aria-label="Enviar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CHAT_IA_URL = 'https://api.168.138.232.237.sslip.io/chat-ia';
+  let chatIaHistorico = [];   // [{role:'user'|'model', texto:'...'}]
+  let chatIaEnviando = false;
+
+  const elBubble = document.getElementById('chatIaBubble');
+  const elPanel  = document.getElementById('chatIaPanel');
+  const elMsgs   = document.getElementById('chatIaMsgs');
+  const elEmpty  = document.getElementById('chatIaEmpty');
+  const elInput  = document.getElementById('chatIaInput');
+  const elSend   = document.getElementById('chatIaSend');
+  const elClose  = document.getElementById('chatIaClose');
+
+  function escaparHtml(s){
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  // negrito simples (**texto**) sem markdown completo, pra não precisar de lib extra
+  function formatarTexto(s){
+    return escaparHtml(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  }
+
+  function adicionarMensagem(texto, tipo){
+    if (elEmpty) elEmpty.remove();
+    const div = document.createElement('div');
+    div.className = 'chatIaMsg ' + tipo;
+    div.innerHTML = formatarTexto(texto);
+    elMsgs.appendChild(div);
+    elMsgs.scrollTop = elMsgs.scrollHeight;
+    return div;
+  }
+
+  async function enviarPergunta(){
+    const pergunta = elInput.value.trim();
+    if (!pergunta || chatIaEnviando) return;
+    chatIaEnviando = true;
+    elSend.disabled = true;
+    elInput.value = '';
+    elInput.style.height = 'auto';
+    adicionarMensagem(pergunta, 'user');
+    const loadingEl = adicionarMensagem('Consultando o painel...', 'loading');
+
+    try {
+      const resp = await fetch(CHAT_IA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pergunta: pergunta, historico: chatIaHistorico }),
+        signal: AbortSignal.timeout(60000),
+      });
+      const data = await resp.json();
+      loadingEl.remove();
+      if (data.ok) {
+        adicionarMensagem(data.resposta, 'model');
+        chatIaHistorico.push({ role: 'user', texto: pergunta });
+        chatIaHistorico.push({ role: 'model', texto: data.resposta });
+        if (chatIaHistorico.length > 20) chatIaHistorico = chatIaHistorico.slice(-20);
+      } else {
+        adicionarMensagem('Erro: ' + (data.error || 'falha desconhecida'), 'erro');
+      }
+    } catch (e) {
+      loadingEl.remove();
+      adicionarMensagem('Não consegui falar com o servidor. Tente de novo em instantes.', 'erro');
+      console.error('[chat-ia] erro:', e);
+    } finally {
+      chatIaEnviando = false;
+      elSend.disabled = false;
+      elInput.focus();
+    }
+  }
+
+  elSend.addEventListener('click', enviarPergunta);
+  elInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarPergunta(); }
+  });
+  elInput.addEventListener('input', function(){
+    elInput.style.height = 'auto';
+    elInput.style.height = Math.min(elInput.scrollHeight, 90) + 'px';
+  });
+  elBubble.addEventListener('click', function(){
+    elPanel.classList.toggle('open');
+    if (elPanel.classList.contains('open')) elInput.focus();
+  });
+  elClose.addEventListener('click', function(){ elPanel.classList.remove('open'); });
+
+  // Visível só pra uso interno da Grid Co. (roles 'manager'/'admin') —
+  // nunca aparece pra sessões de cliente ('client').
+  window._chatIaAtualizarVisibilidade = function(){
+    let role = null;
+    try { role = localStorage.getItem('om_role'); } catch(e){}
+    const visivel = role && role !== 'client';
+    elBubble.style.display = visivel ? 'flex' : 'none';
+    if (!visivel) elPanel.classList.remove('open');
+  };
+
+  // Cobre login feito nesta mesma carga de página (initDashboard é uma
+  // function declaration hoisted, então já existe no momento em que este
+  // script roda — envolvemos ela pra reavaliar a visibilidade sempre que
+  // uma sessão for iniciada, sem depender de ordem de carregamento).
+  if (typeof window.initDashboard === 'function') {
+    const _initDashboardOriginal = window.initDashboard;
+    window.initDashboard = function(session){
+      const r = _initDashboardOriginal.apply(this, arguments);
+      window._chatIaAtualizarVisibilidade();
+      return r;
+    };
+  }
+
+  // Cobre sessão já restaurada (localStorage) antes deste script rodar.
+  window._chatIaAtualizarVisibilidade();
+})();
+</script>
+
 </body>
 </html>
