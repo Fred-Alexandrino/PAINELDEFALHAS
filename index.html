@@ -7512,7 +7512,6 @@ function _abrirDetalheChamado(idx) {
      INVXX - #TICKET - STATUS   (sem ticket: INVXX - STATUS, ex. "Testes em campo") */
 const _EQUIP_ABREV_CHAMADO_JS = [
   [/invers/i, 'INV'],
-  [/track/i, 'TKR'],
   [/transformador/i, 'TRAFO'],
   [/string\s*box|stringbox/i, 'SB'],
   [/m[oó]dulo/i, 'MOD'],
@@ -7529,11 +7528,19 @@ function _codigoEquipamentoChamado(ativo, identificacao) {
   if (!fonte) return '';
   const numMatch = fonte.match(/\d+/);
   const numero = numMatch ? numMatch[0].padStart(2, '0') : '';
+  // Tracker: usa o prefixo real de fabricante/modelo já presente no texto
+  // (ex.: "TCU Tracker 38.200" -> "TCU 38", "TXU Tracker 51.200" -> "TXU 51"),
+  // em vez de um código genérico fixo — pedido do Fred em 31/08/2026.
+  const trackMatch = fonte.match(/\b([A-Za-zÀ-ÿ]{2,8})\s+track/i);
+  if (trackMatch) {
+    const prefixo = trackMatch[1].toUpperCase();
+    return numero ? `${prefixo} ${numero}` : prefixo;
+  }
   for (const [padrao, abrev] of _EQUIP_ABREV_CHAMADO_JS) {
     if (padrao.test(fonte)) return numero ? `${abrev}${numero}` : abrev;
   }
   const bruto = (identificacao || ativo || '').trim();
-  return bruto ? bruto.replace(/\s+/g, '').toUpperCase() : '';
+  return bruto ? bruto.replace(/\s+/g, ' ').toUpperCase() : '';
 }
 
 function _montarBlocosResumoChamadosPainel(lista) {
