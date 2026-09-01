@@ -13228,6 +13228,13 @@ function _pontoCopiarComunicado(id, btn) {
 .chatIaMsg.model{align-self:flex-start;background:var(--panel-alt);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:3px;}
 .chatIaMsg.erro{align-self:flex-start;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);}
 .chatIaMsg.loading{align-self:flex-start;color:var(--text-dim);font-style:italic;}
+.chatIaMsg-texto{white-space:pre-wrap;word-break:break-word;}
+.chatIaCopyBtn{display:flex;align-items:center;gap:4px;margin-top:7px;padding:3px 7px;border-radius:6px;
+  background:none;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;
+  font:400 11px 'Geist',sans-serif;line-height:1;}
+.chatIaCopyBtn:hover{color:var(--text);border-color:var(--border-strong);}
+.chatIaCopyBtn svg{width:12px;height:12px;flex-shrink:0;}
+.chatIaCopyBtn.copiado{color:var(--teal);border-color:var(--teal);}
 #chatIaEmpty{color:var(--text-dim);font:400 12.5px/1.5 'Geist',sans-serif;text-align:center;margin:auto;padding:0 20px;}
 #chatIaInputRow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);flex-shrink:0;background:var(--panel);}
 #chatIaInput{flex:1;resize:none;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;
@@ -13291,7 +13298,40 @@ function _pontoCopiarComunicado(id, btn) {
     if (elEmpty) elEmpty.remove();
     const div = document.createElement('div');
     div.className = 'chatIaMsg ' + tipo;
-    div.innerHTML = formatarTexto(texto);
+
+    const textoEl = document.createElement('div');
+    textoEl.className = 'chatIaMsg-texto';
+    textoEl.innerHTML = formatarTexto(texto);
+    div.appendChild(textoEl);
+
+    if (tipo === 'model') {
+      const btn = document.createElement('button');
+      btn.className = 'chatIaCopyBtn';
+      btn.type = 'button';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copiar</span>';
+      btn.addEventListener('click', async () => {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(texto);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+          }
+          btn.classList.add('copiado');
+          btn.querySelector('span').textContent = 'Copiado!';
+          setTimeout(() => {
+            btn.classList.remove('copiado');
+            btn.querySelector('span').textContent = 'Copiar';
+          }, 1600);
+        } catch (e) {
+          console.error('[chat-ia] erro ao copiar:', e);
+        }
+      });
+      div.appendChild(btn);
+    }
+
     elMsgs.appendChild(div);
     elMsgs.scrollTop = elMsgs.scrollHeight;
     return div;
