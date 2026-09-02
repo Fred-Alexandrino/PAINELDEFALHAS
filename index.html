@@ -2647,6 +2647,26 @@ body{
   </div>
 </div>
 
+<!-- Modal Histórico Fracttal -->
+<div class="ch-overlay" id="histFracttalOverlay">
+  <div class="ch-modal" style="max-width:560px;border-top-color:#5B9BD5;">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><h2>Histórico Fracttal <span id="histFracttalOSNum" style="color:var(--text-dim);font-weight:400;"></span></h2></div><div class="ch-subtitle">Datas reais de criação, início e conclusão, direto da Fracttal (ao vivo)</div></div>
+        <button class="modal-close-btn" id="histFracttalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="histFracttalBody">
+      <div id="histFracttalLoading" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Buscando histórico na Fracttal…
+      </div>
+      <div id="histFracttalResult" style="display:none;"></div>
+      <div id="histFracttalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Nova Ocorrência -->
 <div class="ch-overlay" id="novaOcOverlay">
   <div class="ch-modal" style="max-width:540px;border-top-color:var(--amber);">
@@ -11323,6 +11343,11 @@ function _renderAtivDrawer() {
       Abrir portal Fracttal
     </a>` : ''}
 
+    ${a.numeroOS ? `<button class="nova-oc-submit" onclick="_abrirHistoricoFracttal('${esc(a.numeroOS)}')" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Histórico Fracttal
+    </button>` : ''}
+
     <button class="nova-oc-submit" onclick="_solicitarOSAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Solicitar OS
@@ -11349,6 +11374,55 @@ function _renderAtivDrawer() {
   _renderToggleDesligamento('atividade', a.id, document.getElementById('ativDrawerDesligToggle'), isDesligamentoAtividade(a));
   if (!a.numeroOS) _renderGaleriaFotos(a.id, 'ativDrawerFotos');
 }
+
+async function _abrirHistoricoFracttal(numeroOS) {
+  if (!numeroOS) return;
+  const overlay = document.getElementById('histFracttalOverlay');
+  const loading = document.getElementById('histFracttalLoading');
+  const result = document.getElementById('histFracttalResult');
+  const errorBox = document.getElementById('histFracttalError');
+  document.getElementById('histFracttalOSNum').textContent = '#' + numeroOS;
+  overlay.style.display = 'flex';
+  loading.style.display = 'flex';
+  result.style.display = 'none';
+  errorBox.style.display = 'none';
+
+  try {
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/os-historico-fracttal/${encodeURIComponent(numeroOS)}`);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao buscar histórico');
+
+    const eventos = data.eventos || [];
+    if (!eventos.length) {
+      result.innerHTML = `<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0;">Nenhum evento com data disponível pra essa OS na Fracttal.</div>`;
+    } else {
+      result.innerHTML = `
+        <div style="position:relative;padding-left:18px;">
+          <div style="position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border);"></div>
+          ${eventos.map(ev => `
+            <div style="position:relative;margin-bottom:16px;">
+              <div style="position:absolute;left:-18px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--blue);border:2px solid var(--panel);"></div>
+              <div style="font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:2px;">${esc(ev.titulo)}</div>
+              <div style="font-size:12px;color:var(--text-dim);font-family:'Geist Mono',monospace;margin-bottom:2px;">${esc(ev.dataFormatada || '—')}</div>
+              <div style="font-size:12.5px;color:var(--text-dim);line-height:1.4;">${esc(ev.detalhe || '')}</div>
+              ${ev.autor && ev.autor !== '—' ? `<div style="font-size:12px;color:var(--text-faint);margin-top:2px;">👤 ${esc(ev.autor)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        <div style="font-size:11.5px;color:var(--text-faint);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+          ${data.totalTarefas || 0} tarefa(s)/equipamento(s) nessa OS. Datas convertidas pro horário de Brasília.
+        </div>`;
+    }
+    loading.style.display = 'none';
+    result.style.display = 'block';
+  } catch (e) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Erro ao buscar histórico na Fracttal: ' + (e.message || '');
+  }
+}
+document.getElementById('histFracttalClose')?.addEventListener('click', () => { document.getElementById('histFracttalOverlay').style.display='none'; });
+document.getElementById('histFracttalOverlay')?.addEventListener('click', e => { if(e.target.id==='histFracttalOverlay') document.getElementById('histFracttalOverlay').style.display='none'; });
 
 async function _solicitarOSAtividade() {
   const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
