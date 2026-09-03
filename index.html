@@ -7249,10 +7249,10 @@ document.getElementById('desligBanner').addEventListener('click', toggleDesligFi
 /* ══ SKETCHBOOK / ANOTAÇÕES ══ */
 let ANOTACOES = [];
 
-async function carregarAnotacoes() {
+async function carregarAnotacoes(_tentativa = 0) {
   const lista = document.getElementById('anotLista');
   const total = document.getElementById('anotListTotal');
-  if (lista) lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Carregando...</p></div>`;
+  if (lista && _tentativa === 0) lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Carregando...</p></div>`;
   try {
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 20000);
@@ -7262,6 +7262,10 @@ async function carregarAnotacoes() {
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar anotações');
     ANOTACOES = result.anotacoes || [];
   } catch (e) {
+    // rede/planilha pode ter um pico passageiro de 429 (cota do Sheets) mesmo
+    // com retry no backend — uma segunda tentativa aqui absorve a maioria
+    // dos casos antes de incomodar o usuário com um erro na tela
+    if (_tentativa === 0) { await new Promise(r => setTimeout(r, 5000)); return carregarAnotacoes(1); }
     if (lista) lista.innerHTML = `<div class="ch-empty">Erro ao carregar anotações (${esc(e.message || 'falha de conexão')}).</div>`;
     return;
   }
@@ -7297,12 +7301,12 @@ function renderAnotacoesLista() {
   }).join('');
 }
 
-async function salvarAnotacao() {
+async function salvarAnotacao(_tentativa = 0) {
   const textoEl = document.getElementById('anotTexto');
   const texto = (textoEl?.value || '').trim();
   if (!texto) { textoEl?.focus(); return; }
   const btn = document.getElementById('anotSalvarBtn');
-  if (btn) btn.disabled = true;
+  if (btn && _tentativa === 0) btn.disabled = true;
   try {
     const body = {
       texto,
@@ -7320,11 +7324,16 @@ async function salvarAnotacao() {
     document.getElementById('anotCategoria').value = '';
     document.getElementById('anotUsina').value = '';
     document.getElementById('anotCliente').value = '';
+    if (btn) btn.disabled = false;
     await carregarAnotacoes();
   } catch (e) {
-    alert(`Erro ao salvar anotação: ${e.message || 'falha de conexão'}`);
-  } finally {
+    // mesma lógica de segunda chance do carregarAnotacoes — evita que um
+    // pico passageiro de 429 na planilha vire um erro visível à toa.
+    // Botão continua desabilitado durante a tentativa extra pra evitar
+    // duplo envio.
+    if (_tentativa === 0) { await new Promise(r => setTimeout(r, 5000)); return salvarAnotacao(1); }
     if (btn) btn.disabled = false;
+    alert(`Erro ao salvar anotação: ${e.message || 'falha de conexão'}`);
   }
 }
 
