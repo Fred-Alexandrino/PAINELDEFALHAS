@@ -5144,6 +5144,7 @@ function applyFilters() {
   if (_activeNav === 'chamados') openChamadosInline();
   if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
   if (_activeNav === 'localizacao' && typeof _locRender === 'function') _locRender();
+  if (_activeNav === 'anotacoes') renderAnotacoesLista();
 }
 
 function clearFilters() {
@@ -7331,18 +7332,32 @@ async function carregarAnotacoes(_tentativa = 0) {
     if (lista) lista.innerHTML = `<div class="ch-empty">Erro ao carregar anotações (${esc(e.message || 'falha de conexão')}).</div>`;
     return;
   }
-  if (total) total.textContent = `${ANOTACOES.length} ${ANOTACOES.length === 1 ? 'anotação' : 'anotações'}`;
   renderAnotacoesLista();
 }
 
 function renderAnotacoesLista() {
   const lista = document.getElementById('anotLista');
   if (!lista) return;
-  if (!ANOTACOES.length) {
-    lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Nenhuma anotação ainda. Escreva a primeira acima.</p></div>`;
+  // Filtros laterais (Cliente/Usina) também valem pra Anotações — mas uma
+  // anotação geral, sem usina/cliente vinculado, continua aparecendo
+  // sempre, já que não pertence a nenhum filtro específico pra ser excluída.
+  const itens = ANOTACOES.filter(a => {
+    if (selCliente.size > 0 && a.Cliente && !selCliente.has(a.Cliente)) return false;
+    if (selUsinaValues.size > 0 && a.Usina && !selUsinaValues.has(a.Usina)) return false;
+    return true;
+  });
+  const total = document.getElementById('anotListTotal');
+  if (total) {
+    const filtrando = selCliente.size > 0 || selUsinaValues.size > 0;
+    total.textContent = filtrando
+      ? `${itens.length} de ${ANOTACOES.length} ${ANOTACOES.length === 1 ? 'anotação' : 'anotações'}`
+      : `${ANOTACOES.length} ${ANOTACOES.length === 1 ? 'anotação' : 'anotações'}`;
+  }
+  if (!itens.length) {
+    lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>${ANOTACOES.length ? 'Nenhuma anotação para os filtros atuais.' : 'Nenhuma anotação ainda. Escreva a primeira acima.'}</p></div>`;
     return;
   }
-  lista.innerHTML = ANOTACOES.map(a => {
+  lista.innerHTML = itens.map(a => {
     const tags = [a.Categoria, a.Usina, a.Cliente].filter(Boolean)
       .map(t => `<span class="sb-nav-badge" style="position:static;">${esc(t)}</span>`).join(' ');
     return `
