@@ -436,6 +436,7 @@ body{
 .sb-action-btn{width:100%;display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);color:#F5A623;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-bottom:4px;}
 .sb-action-btn:hover{background:rgba(245,166,35,.14);border-color:rgba(245,166,35,.35);}
 .sb-action-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
+#sbSketchbookBtn.active{background:rgba(155,135,245,.22)!important;border-color:rgba(155,135,245,.55)!important;}
 
 /* Modal de Nova Ocorrência e OS rápida — reutiliza ch-overlay */
 .nova-oc-field{margin-bottom:12px;}
@@ -1459,10 +1460,6 @@ body{
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Eficiência O&amp;M
         </div>
-        <div class="sb-nav-item sb-nav-sub" data-nav="anotacoes">
-          <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-          Sketchbook
-        </div>
       </div>
     </nav>
 
@@ -1517,6 +1514,15 @@ body{
       </div>
 
       <button class="sb-clear-btn" id="sbClearBtn">✕ Limpar filtros</button>
+    </div>
+
+    <!-- Zona 3.5: Sketchbook — atalho direto, acima de Ações Rápidas -->
+    <div style="padding:8px 10px 4px;border-top:1px solid var(--border);flex:none;">
+      <button class="sb-action-btn" id="sbSketchbookBtn" onclick="switchNav('anotacoes')"
+         style="background:rgba(155,135,245,.08);border-color:rgba(155,135,245,.25);color:#9B87F5;margin-bottom:0;">
+        <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+        Sketchbook
+      </button>
     </div>
 
     <!-- Zona 4: Ações rápidas -->
@@ -3675,9 +3681,10 @@ function switchNav(nav) {
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
   // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
-  if (['rondas','historico-log','mttr','eficiencia','anotacoes'].includes(nav)) {
+  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
     _toggleGrupoFerramentas(true);
   }
+  document.getElementById('sbSketchbookBtn')?.classList.toggle('active', nav === 'anotacoes');
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
   document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
