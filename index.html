@@ -309,6 +309,8 @@ body{
 .cmp-check{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;}
 .cmp-step-done .cmp-check{background:var(--sla-ok);border-color:var(--sla-ok);}
 .cmp-step-done .cmp-check svg{width:11px;height:11px;stroke:#0a0a0a;stroke-width:3;}
+.cmp-etapa-prazo{color:var(--text-faint);font-size:12px;}
+.cmp-etapa-prazo-atrasado{color:var(--red);}
 .cmp-historico-toggle{font-size:13px;color:var(--text-dim);cursor:pointer;padding:4px 0;}
 .cmp-historico-toggle:hover{color:#ededed;}
 .cmp-historico-lista{margin-top:6px;}
@@ -4177,6 +4179,24 @@ function cmpToggleHistorico(cliente) {
   renderCompromissos();
 }
 
+/* Prazo individual de cada etapa do BM (Envio/Aprovação) — só existe pra
+   tipo BM, calculado no backend a partir da DataLimite da NF (03/09/2026:
+   nenhum contrato analisado tem essas datas explícitas, então é regra
+   padrão: envio 5 dias úteis antes da NF, aprovação 2 dias úteis após o
+   envio). Emissão da NF (idx 2) já usa cmpPrazoTexto como subtítulo do
+   card, não precisa repetir aqui. */
+function cmpEtapaPrazoTexto(c, idx) {
+  if (c.tipo !== 'BM') return '';
+  let data = null, dias = null;
+  if (idx === 0) { data = c.dataLimiteEnvioBM; dias = c.diasRestantesEnvioBM; }
+  else if (idx === 1) { data = c.dataLimiteAprovacao; dias = c.diasRestantesAprovacao; }
+  else return '';
+  if (!data) return '';
+  if (dias != null && dias < 0) return ' <span class="cmp-etapa-prazo cmp-etapa-prazo-atrasado">— prazo era ' + data + '</span>';
+  if (dias === 0) return ' <span class="cmp-etapa-prazo">— vence hoje (' + data + ')</span>';
+  return ' <span class="cmp-etapa-prazo">— até ' + data + '</span>';
+}
+
 function cmpCardHtml(c) {
   const badge = cmpBadgeInfo(c.status);
   const cardClass = c.status === 'Atrasado' ? 'cmp-atrasado'
@@ -4188,7 +4208,7 @@ function cmpCardHtml(c) {
     return '<div class="cmp-step' + (feita ? ' cmp-step-done' : '') + '"' +
       (habilitada ? ' onclick="cmpToggleEtapa(\'' + c.id + '\',' + idx + ',' + (!feita) + ',this)"' : ' style="opacity:.4;cursor:default;"') +
       '><span class="cmp-check">' + (feita ? '<svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</span>' +
-      nome + (feita ? ' <span style="color:var(--text-faint);font-size:13px;">(' + c.etapasConcluidas[idx] + ')</span>' : '') +
+      nome + (feita ? ' <span style="color:var(--text-faint);font-size:13px;">(' + c.etapasConcluidas[idx] + ')</span>' : cmpEtapaPrazoTexto(c, idx)) +
       '</div>';
   }).join('');
 
