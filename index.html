@@ -1459,6 +1459,10 @@ body{
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Eficiência O&amp;M
         </div>
+        <div class="sb-nav-item sb-nav-sub" data-nav="anotacoes">
+          <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+          Sketchbook
+        </div>
       </div>
     </nav>
 
@@ -1908,6 +1912,34 @@ body{
       <section class="content-section" id="sec-eficiencia">
         <div class="kpis" style="margin-bottom:24px;" id="efKpis"></div>
         <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
+      </section>
+
+      <!-- ── SEÇÃO: SKETCHBOOK / ANOTAÇÕES ───────────────────── -->
+      <section class="content-section" id="sec-anotacoes">
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">Bloco de notas rápidas</div>
+          <h2 style="font-size:16px;font-weight:700;">Sketchbook</h2>
+          <p style="font-size:12.5px;color:var(--text-dim);margin-top:5px;">Anotações soltas ou vinculadas a usina/cliente. Alimentam o Chat-IA, relatórios e comunicados como contexto extra.</p>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px;padding:14px;">
+          <textarea id="anotTexto" placeholder="Escreva a anotação..." style="width:100%;min-height:70px;resize:vertical;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13.5px;color:var(--text);font-family:inherit;"></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+            <input type="text" id="anotCategoria" placeholder="Categoria (opcional)" class="sb-select" style="max-width:160px;">
+            <input type="text" id="anotUsina" placeholder="Usina (opcional)" class="sb-select" style="max-width:180px;">
+            <input type="text" id="anotCliente" placeholder="Cliente (opcional)" class="sb-select" style="max-width:160px;">
+            <button class="tb-btn tb-btn-refresh" id="anotSalvarBtn" style="margin-left:auto;" onclick="salvarAnotacao()">
+              <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Salvar anotação
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-head" style="margin-bottom:10px;">
+          <h3>Anotações ativas</h3>
+          <span class="panel-total" id="anotListTotal"></span>
+        </div>
+        <div id="anotLista"></div>
       </section>
 
       <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
@@ -3627,6 +3659,7 @@ const NAV_TITLES = {
   'boletins': 'Gerencial',
   'localizacao': 'Localização das Usinas',
   'comunicados': 'Comunicados',
+  'anotacoes': 'Sketchbook',
 };
 
 function switchNav(nav) {
@@ -3636,12 +3669,13 @@ function switchNav(nav) {
   if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'comunicados') { _comSetTab(_comTabAtual); }
+  if (nav === 'anotacoes') { carregarAnotacoes(); }
   _activeNav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
   // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
-  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
+  if (['rondas','historico-log','mttr','eficiencia','anotacoes'].includes(nav)) {
     _toggleGrupoFerramentas(true);
   }
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
@@ -7211,6 +7245,105 @@ document.getElementById('updateBtn').addEventListener('click', () => {
 });
 document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilter=!activeSlaFilter;document.getElementById('slaBanner').classList.toggle('active-filter',activeSlaFilter);if(activeSlaFilter)document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});applyFilters();});
 document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
+
+/* ══ SKETCHBOOK / ANOTAÇÕES ══ */
+let ANOTACOES = [];
+
+async function carregarAnotacoes() {
+  const lista = document.getElementById('anotLista');
+  const total = document.getElementById('anotListTotal');
+  if (lista) lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Carregando...</p></div>`;
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 20000);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes', { signal: ctrl.signal });
+    clearTimeout(timeoutId);
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar anotações');
+    ANOTACOES = result.anotacoes || [];
+  } catch (e) {
+    if (lista) lista.innerHTML = `<div class="ch-empty">Erro ao carregar anotações (${esc(e.message || 'falha de conexão')}).</div>`;
+    return;
+  }
+  if (total) total.textContent = `${ANOTACOES.length} ${ANOTACOES.length === 1 ? 'anotação' : 'anotações'}`;
+  renderAnotacoesLista();
+}
+
+function renderAnotacoesLista() {
+  const lista = document.getElementById('anotLista');
+  if (!lista) return;
+  if (!ANOTACOES.length) {
+    lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Nenhuma anotação ainda. Escreva a primeira acima.</p></div>`;
+    return;
+  }
+  lista.innerHTML = ANOTACOES.map(a => {
+    const tags = [a.Categoria, a.Usina, a.Cliente].filter(Boolean)
+      .map(t => `<span class="sb-nav-badge" style="position:static;">${esc(t)}</span>`).join(' ');
+    return `
+    <div class="panel" style="padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;color:var(--text);white-space:pre-wrap;">${esc(a.Texto || '')}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center;">
+            ${tags}
+            <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;">${esc(a.Data || '')} · ${esc(a.Autor || '')}</span>
+          </div>
+        </div>
+        <button class="tb-btn" style="flex:none;" onclick="arquivarAnotacao('${esc(a.ID)}')" title="Arquivar">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function salvarAnotacao() {
+  const textoEl = document.getElementById('anotTexto');
+  const texto = (textoEl?.value || '').trim();
+  if (!texto) { textoEl?.focus(); return; }
+  const btn = document.getElementById('anotSalvarBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const body = {
+      texto,
+      categoria: (document.getElementById('anotCategoria')?.value || '').trim(),
+      usina: (document.getElementById('anotUsina')?.value || '').trim(),
+      cliente: (document.getElementById('anotCliente')?.value || '').trim(),
+      autor: _currentSession?.nome || _currentSession?.usuario || 'Fred Alexandrino',
+    };
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao salvar');
+    textoEl.value = '';
+    document.getElementById('anotCategoria').value = '';
+    document.getElementById('anotUsina').value = '';
+    document.getElementById('anotCliente').value = '';
+    await carregarAnotacoes();
+  } catch (e) {
+    alert(`Erro ao salvar anotação: ${e.message || 'falha de conexão'}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function arquivarAnotacao(id) {
+  if (!confirm('Arquivar esta anotação?')) return;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes/arquivar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao arquivar');
+    ANOTACOES = ANOTACOES.filter(a => a.ID !== id);
+    const total = document.getElementById('anotListTotal');
+    if (total) total.textContent = `${ANOTACOES.length} ${ANOTACOES.length === 1 ? 'anotação' : 'anotações'}`;
+    renderAnotacoesLista();
+  } catch (e) {
+    alert(`Erro ao arquivar: ${e.message || 'falha de conexão'}`);
+  }
+}
 
 /* ══ CHAMADOS — agora seção inline (não mais modal) ══ */
 // A planilha ChamadosFabricante é preenchida manualmente e o campo UFV vem
