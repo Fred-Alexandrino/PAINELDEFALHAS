@@ -1932,8 +1932,8 @@ body{
           <textarea id="anotTexto" placeholder="Escreva a anotação..." style="width:100%;min-height:70px;resize:vertical;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13.5px;color:var(--text);font-family:inherit;"></textarea>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
             <input type="text" id="anotCategoria" placeholder="Categoria (opcional)" class="sb-select" style="max-width:160px;">
-            <input type="text" id="anotUsina" placeholder="Usina (opcional)" class="sb-select" style="max-width:180px;">
-            <input type="text" id="anotCliente" placeholder="Cliente (opcional)" class="sb-select" style="max-width:160px;">
+            <select id="anotUsina" class="sb-select" style="max-width:200px;"></select>
+            <select id="anotCliente" class="sb-select" style="max-width:170px;"></select>
             <button class="tb-btn tb-btn-refresh" id="anotSalvarBtn" style="margin-left:auto;" onclick="salvarAnotacao()">
               <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Salvar anotação
@@ -7256,7 +7256,62 @@ document.getElementById('desligBanner').addEventListener('click', toggleDesligFi
 /* ══ SKETCHBOOK / ANOTAÇÕES ══ */
 let ANOTACOES = [];
 
+// Catálogo oficial cliente → usinas (mesmo mapeamento usado em relatórios/
+// backend) — os selects de Usina/Cliente da anotação usam só isso, não
+// dados carregados (Fred pediu pra selecionar dentre TODO o mapeamento,
+// não só o que já apareceu em atividades/ocorrências). Sal Energia mantém
+// a ordem fixa definitiva dos relatórios (não alfabética).
+const ANOT_CATALOGO_USINAS = {
+  'Renogrid': ['Nova Xavantina I', 'Nova Xavantina II', 'Colíder I', 'Colíder II', 'Nobres', 'Elias Fausto', 'Crateús'],
+  'Thopen': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II', 'Ibaté I', 'Ibaté II', 'Matão I', 'Matão II - Topázio', 'Sítio Bonfim', 'Poconé', 'Canarana I', 'Canarana II', 'Ribeirão Cascalheira', 'Diamantino'],
+  '2C Energia': ['Araputanga', 'Sete Lagoas'],
+  'GD Energy': ['Guajirú', 'Sol do Norte I', 'Sol do Norte II'],
+  'Alves Lima': ['ABC Morada Nova'],
+  'Sal Energia': ['Salvales (Aquiraz I)', 'Carosa (Aquiraz II)', 'SunPower (Cascavel)', 'Hortina (Quixadá I)', 'Vitesse (Quixadá II)'],
+};
+
+function _anotPopularCatalogo() {
+  const selCliente = document.getElementById('anotCliente');
+  const selUsina = document.getElementById('anotUsina');
+  if (!selCliente || !selUsina) return;
+  if (!selCliente.dataset.populated) {
+    selCliente.innerHTML = '<option value="">Cliente (opcional)</option>' +
+      Object.keys(ANOT_CATALOGO_USINAS).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    selCliente.dataset.populated = '1';
+    selCliente.addEventListener('change', () => _anotAtualizarUsinasPorCliente());
+  }
+  _anotAtualizarUsinasPorCliente();
+}
+
+function _anotAtualizarUsinasPorCliente() {
+  const selCliente = document.getElementById('anotCliente');
+  const selUsina = document.getElementById('anotUsina');
+  if (!selCliente || !selUsina) return;
+  const clienteEscolhido = selCliente.value;
+  const usinaAtual = selUsina.value;
+  const clientes = clienteEscolhido ? [clienteEscolhido] : Object.keys(ANOT_CATALOGO_USINAS);
+  const optgroups = clientes.map(c => `
+    <optgroup label="${esc(c)}">
+      ${ANOT_CATALOGO_USINAS[c].map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('')}
+    </optgroup>`).join('');
+  selUsina.innerHTML = '<option value="">Usina (opcional)</option>' + optgroups;
+  // mantém a usina escolhida se ainda existir na lista filtrada
+  const aindaValida = clientes.some(c => ANOT_CATALOGO_USINAS[c].includes(usinaAtual));
+  selUsina.value = aindaValida ? usinaAtual : '';
+}
+
+function _anotUsinaSelecionada() {
+  // se escolher a usina antes do cliente, preenche o cliente automaticamente
+  const selCliente = document.getElementById('anotCliente');
+  const selUsina = document.getElementById('anotUsina');
+  if (!selCliente || !selUsina || selCliente.value || !selUsina.value) return;
+  const dono = Object.keys(ANOT_CATALOGO_USINAS).find(c => ANOT_CATALOGO_USINAS[c].includes(selUsina.value));
+  if (dono) { selCliente.value = dono; }
+}
+document.getElementById('anotUsina')?.addEventListener('change', _anotUsinaSelecionada);
+
 async function carregarAnotacoes(_tentativa = 0) {
+  _anotPopularCatalogo();
   const lista = document.getElementById('anotLista');
   const total = document.getElementById('anotListTotal');
   if (lista && _tentativa === 0) lista.innerHTML = `<div class="placeholder-section" style="padding:24px;"><p>Carregando...</p></div>`;
@@ -7331,6 +7386,7 @@ async function salvarAnotacao(_tentativa = 0) {
     document.getElementById('anotCategoria').value = '';
     document.getElementById('anotUsina').value = '';
     document.getElementById('anotCliente').value = '';
+    _anotAtualizarUsinasPorCliente();
     if (btn) btn.disabled = false;
     await carregarAnotacoes();
   } catch (e) {
