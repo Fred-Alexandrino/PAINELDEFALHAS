@@ -257,6 +257,7 @@ body{
   display:flex;align-items:flex-start;gap:10px;padding:12px 12px;
   border-radius:10px;cursor:pointer;transition:background .12s;
   border-bottom:1px solid var(--border-soft,rgba(255,255,255,.05));
+  position:relative;
 }
 .central-notif-item:last-child{border-bottom:none;}
 .central-notif-item:hover{background:var(--panel-alt,rgba(255,255,255,.04));}
@@ -265,7 +266,11 @@ body{
   margin-top:6px;
 }
 .central-notif-item-body{flex:1;min-width:0;}
-.central-notif-item-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.central-notif-item-time{
+  position:absolute;top:12px;right:12px;font-size:11px;color:var(--text-faint);
+  font-family:'Geist Mono',monospace;white-space:nowrap;
+}
+.central-notif-item-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;padding-right:52px;}
 .central-notif-item-sub{font-size:13px;color:var(--text-dim);margin-bottom:3px;}
 .central-notif-item-meta{font-size:12px;color:var(--text-faint);margin-bottom:3px;}
 .central-notif-item-change{font-size:12px;color:var(--teal);margin-bottom:4px;font-style:italic;}
@@ -4615,6 +4620,31 @@ function _ultimaLinhaHistorico(hist) {
   if (!linhas.length) return '';
   return linhas[linhas.length - 1].replace(/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s*-\s*/, '');
 }
+// Extrai "dd/mm/yyyy hh:mm" do início da última linha do histórico, quando
+// presente — é o horário mais preciso que temos de quando aquilo aconteceu.
+function _timestampUltimaLinhaHistorico(hist) {
+  if (!hist) return '';
+  const linhas = String(hist).split('\n').map(l => l.trim()).filter(Boolean);
+  if (!linhas.length) return '';
+  const m = linhas[linhas.length - 1].match(/^(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s*-/);
+  return m ? m[1] : '';
+}
+// Formata um timestamp "dd/mm/yyyy hh:mm" (ou só "dd/mm/yyyy") pro estilo
+// WhatsApp usado na Central de Notificações: só a hora se for hoje, senão
+// data curta + hora (quando disponível).
+function _formatarHorarioNotif(ts) {
+  if (!ts) return '';
+  const [dataParte, horaParte] = ts.trim().split(' ');
+  const partes = (dataParte || '').split('/');
+  if (partes.length !== 3) return '';
+  const [d, m, a] = partes.map(Number);
+  if (!d || !m || !a) return '';
+  const hoje = new Date();
+  const ehHoje = (d === hoje.getDate() && m === (hoje.getMonth() + 1) && a === hoje.getFullYear());
+  if (ehHoje) return horaParte || '';
+  const dataCurta = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+  return horaParte ? `${dataCurta} ${horaParte}` : dataCurta;
+}
 function _coletarNotificacoesNaoVistas() {
   const itens = [];
   (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).forEach(a => {
@@ -4630,6 +4660,7 @@ function _coletarNotificacoesNaoVistas() {
       tag: 'ATIVIDADE',
       tagCor: 'var(--blue)',
       data: a.dataCriacao || '',
+      horario: _timestampUltimaLinhaHistorico(a.historico) || a.dataCriacao || '',
     });
   });
   (typeof DATA !== 'undefined' ? DATA : []).forEach(d => {
@@ -4645,6 +4676,7 @@ function _coletarNotificacoesNaoVistas() {
       tag: 'FALHA',
       tagCor: 'var(--red,#EF4444)',
       data: d.inicio || d.dataAbertura || '',
+      horario: _timestampUltimaLinhaHistorico(d.historico) || d.inicio || d.dataAbertura || '',
     });
   });
   // mais recentes primeiro (ordenação simples por string de data — os
@@ -4661,10 +4693,13 @@ function _renderCentralNotificacoes() {
     lista.innerHTML = `<div class="central-notif-empty">Tudo em dia — nenhuma notificação nova.</div>`;
     return;
   }
-  lista.innerHTML = itens.map(it => `
+  lista.innerHTML = itens.map(it => {
+    const horarioFmt = _formatarHorarioNotif(it.horario);
+    return `
     <div class="central-notif-item" data-origem="${esc(it.origem)}" data-id="${esc(it.id)}">
       <span class="central-notif-item-dot"></span>
       <div class="central-notif-item-body">
+        ${horarioFmt ? `<span class="central-notif-item-time">${esc(horarioFmt)}</span>` : ''}
         <div class="central-notif-item-title">${esc(it.titulo)}</div>
         <div class="central-notif-item-sub">${esc(it.sub)}</div>
         <div class="central-notif-item-meta">${esc(it.meta || '')}</div>
@@ -4672,7 +4707,8 @@ function _renderCentralNotificacoes() {
         <span class="central-notif-item-tag" style="background:${it.tagCor}22;color:${it.tagCor};">${it.tag}</span>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   lista.querySelectorAll('.central-notif-item').forEach(el => {
     el.addEventListener('click', () => {
       const origem = el.dataset.origem;
