@@ -2423,10 +2423,17 @@ body{
           </div>
 
           <div id="sobreavisoConteudo" style="display:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
               <span style="font-size:13px;color:var(--text-dim);">Período:</span>
               <select id="sobreavisoBlocoSelect" class="sb-select" style="width:auto;min-width:260px;" onchange="_sobreavisoOnBlocoChange(this.value)"></select>
               <span id="sobreavisoBlocoTipo" style="font-size:12.5px;color:var(--text-faint);"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;">
+                <input type="checkbox" id="sobreavisoSoMinhas" onchange="_sobreavisoCarregarGrupos()" style="cursor:pointer;accent-color:#8B7EDB;">
+                Só minhas usinas (Fred Alexandrino)
+              </label>
+              <span id="sobreavisoFiltroLateralInfo" style="font-size:12px;color:var(--text-faint);"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <span style="font-size:13px;color:var(--text-dim);" id="sobreavisoListaLabel">Equipes/grupos de cobertura</span>
@@ -5246,6 +5253,11 @@ function applyFilters() {
   if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
   if (_activeNav === 'localizacao' && typeof _locRender === 'function') _locRender();
   if (_activeNav === 'anotacoes') renderAnotacoesLista();
+  if (_activeNav === 'comunicados' && _comTabAtual === 'sobreaviso' && typeof _sobreavisoBlocoAtual === 'number') {
+    if (typeof _sobreavisoCarregarGrupos === 'function') _sobreavisoCarregarGrupos();
+    const confResult = document.getElementById('sobreavisoConferenciaResult');
+    if (confResult && confResult.style.display !== 'none' && typeof _conferirCoberturaSobreaviso === 'function') _conferirCoberturaSobreaviso();
+  }
 }
 
 function clearFilters() {
@@ -10622,6 +10634,42 @@ function _sobreavisoOnBlocoChange(valor) {
   _sobreavisoCarregarGrupos();
 }
 
+// Reaproveita os mesmos filtros laterais (chips de Cliente, dropdown de
+// Usina, select de Cluster) usados no resto do dashboard, mais o toggle
+// "Só minhas usinas" específico dessa aba. Um grupo/usina passa se pelo
+// menos uma usina dele bater com cada filtro ativo (mesma lógica de
+// "match parcial" que outros painéis usam pra listas fundidas).
+function _sobreavisoFiltroAtivo() {
+  const soMinhas = document.getElementById('sobreavisoSoMinhas')?.checked || false;
+  return {
+    soMinhas,
+    clientes: (typeof selCliente !== 'undefined') ? selCliente : new Set(),
+    usinas: (typeof selUsinaValues !== 'undefined') ? selUsinaValues : new Set(),
+    cluster: (typeof _ativClusterFiltro !== 'undefined') ? _ativClusterFiltro : '',
+  };
+}
+
+function _sobreavisoUsinaPassaFiltro(u, f) {
+  if (f.soMinhas && (u.supervisor || '').trim().toLowerCase() !== 'fred alexandrino') return false;
+  if (f.clientes.size > 0 && !(typeof _mesmoCliente === 'function' ? [...f.clientes].some(c => _mesmoCliente(c, u.cliente)) : f.clientes.has(u.cliente))) return false;
+  if (f.usinas.size > 0 && !f.usinas.has(u.usina)) return false;
+  if (f.cluster && u.equipe !== f.cluster) return false;
+  return true;
+}
+
+function _sobreavisoGrupoPassaFiltro(g, f) {
+  if (!f.soMinhas && f.clientes.size === 0 && f.usinas.size === 0 && !f.cluster) return true;
+  return (g.usinas || []).some(u => _sobreavisoUsinaPassaFiltro(u, f));
+}
+
+function _sobreavisoAtualizarInfoFiltro(totalGrupos, totalFiltrados) {
+  const el = document.getElementById('sobreavisoFiltroLateralInfo');
+  if (!el) return;
+  const f = _sobreavisoFiltroAtivo();
+  const algumFiltro = f.soMinhas || f.clientes.size > 0 || f.usinas.size > 0 || !!f.cluster;
+  el.textContent = algumFiltro ? `Filtro ativo — mostrando ${totalFiltrados} de ${totalGrupos} equipes` : '';
+}
+
 async function _sobreavisoCarregarGrupos() {
   const lista = document.getElementById('sobreavisoListaGrupos');
   const tipoEl = document.getElementById('sobreavisoBlocoTipo');
@@ -10634,7 +10682,10 @@ async function _sobreavisoCarregarGrupos() {
     if (!data.ok) throw new Error(data.error || 'Erro ao montar comunicados');
     _sobreavisoGruposCache = data;
     tipoEl.textContent = data.bloco.tipo;
-    lista.innerHTML = data.grupos.map(g => {
+    const f = _sobreavisoFiltroAtivo();
+    const gruposFiltrados = data.grupos.filter(g => _sobreavisoGrupoPassaFiltro(g, f));
+    _sobreavisoAtualizarInfoFiltro(data.grupos.length, gruposFiltrados.length);
+    lista.innerHTML = gruposFiltrados.map(g => {
       const idSeguro = g.nome.replace(/[^a-zA-Z0-9]/g, '_');
       const pessoasTxt = (g.pessoas || []).join(' + ') || 'sem cobertura definida';
       return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
@@ -10642,7 +10693,7 @@ async function _sobreavisoCarregarGrupos() {
         <span style="flex:1;font-size:13px;color:var(--text);">${esc(g.clusters.join(' + '))}${g.dupla ? ' <span style="color:#8B7EDB;font-size:11.5px;">· dupla</span>' : ''}</span>
         <span style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;">${esc(pessoasTxt)}</span>
       </label>`;
-    }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhuma equipe encontrada nessa escala.</div>`;
+    }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhuma equipe encontrada com os filtros atuais.</div>`;
   } catch (e) {
     lista.innerHTML = `<div style="font-size:12.5px;color:var(--red);text-align:center;padding:20px 0;">Erro ao carregar: ${esc(e.message)}</div>`;
   }
@@ -10744,7 +10795,8 @@ async function _dispararComunicadoSobreaviso(idSeguro, btnEl) {
 
 // Confere TODAS as usinas do catálogo embutido na escala (não só as
 // selecionadas na lista de equipes) contra o bloco escolhido, pra garantir
-// que nenhuma fica sem ninguém de sobreaviso.
+// que nenhuma fica sem ninguém de sobreaviso. Aplica os mesmos filtros
+// laterais (cliente/usina/cluster) e o toggle "Só minhas usinas".
 async function _conferirCoberturaSobreaviso() {
   if (_sobreavisoBlocoAtual === null || _sobreavisoBlocoAtual === undefined) return;
   const btn = document.getElementById('sobreavisoConferirBtn');
@@ -10757,24 +10809,33 @@ async function _conferirCoberturaSobreaviso() {
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao conferir cobertura');
 
-    const semProblema = data.sem_cobertura.length === 0 && data.sem_cluster.length === 0;
+    const f = _sobreavisoFiltroAtivo();
+    const filtra = (arr) => arr.filter(u => _sobreavisoUsinaPassaFiltro(u, f));
+    const semCobertura = filtra(data.sem_cobertura);
+    const semCluster = filtra(data.sem_cluster);
+    const foraSla = filtra(data.fora_sla);
+    const okUsinas = filtra(data.ok_usinas || []);
+    const totalFiltrado = semCobertura.length + semCluster.length + foraSla.length + okUsinas.length;
+    const totalOkFiltrado = okUsinas.length + foraSla.length; // fora do SLA ainda tem alguém escalado
+
+    const semProblema = semCobertura.length === 0 && semCluster.length === 0;
     const linhaResumo = `
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
         <div style="flex:1;min-width:140px;background:rgba(255,255,255,.03);border-radius:8px;padding:12px;">
           <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;">Usinas conferidas</div>
-          <div style="font-size:22px;font-weight:700;color:var(--text);">${data.total_usinas}</div>
+          <div style="font-size:22px;font-weight:700;color:var(--text);">${totalFiltrado}</div>
         </div>
         <div style="flex:1;min-width:140px;background:rgba(46,204,113,.08);border-radius:8px;padding:12px;">
           <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;">Com cobertura OK</div>
-          <div style="font-size:22px;font-weight:700;color:#2ecc71;">${data.total_ok}</div>
+          <div style="font-size:22px;font-weight:700;color:#2ecc71;">${totalOkFiltrado}</div>
         </div>
-        <div style="flex:1;min-width:140px;background:${data.sem_cobertura.length + data.sem_cluster.length > 0 ? 'rgba(231,76,60,.1)' : 'rgba(255,255,255,.03)'};border-radius:8px;padding:12px;">
+        <div style="flex:1;min-width:140px;background:${semCobertura.length + semCluster.length > 0 ? 'rgba(231,76,60,.1)' : 'rgba(255,255,255,.03)'};border-radius:8px;padding:12px;">
           <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;">Desassistidas</div>
-          <div style="font-size:22px;font-weight:700;color:${data.sem_cobertura.length + data.sem_cluster.length > 0 ? 'var(--red)' : 'var(--text)'};">${data.sem_cobertura.length + data.sem_cluster.length}</div>
+          <div style="font-size:22px;font-weight:700;color:${semCobertura.length + semCluster.length > 0 ? 'var(--red)' : 'var(--text)'};">${semCobertura.length + semCluster.length}</div>
         </div>
-        <div style="flex:1;min-width:140px;background:${data.fora_sla.length > 0 ? 'rgba(243,156,18,.1)' : 'rgba(255,255,255,.03)'};border-radius:8px;padding:12px;">
+        <div style="flex:1;min-width:140px;background:${foraSla.length > 0 ? 'rgba(243,156,18,.1)' : 'rgba(255,255,255,.03)'};border-radius:8px;padding:12px;">
           <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;">Fora do SLA</div>
-          <div style="font-size:22px;font-weight:700;color:${data.fora_sla.length > 0 ? 'var(--amber)' : 'var(--text)'};">${data.fora_sla.length}</div>
+          <div style="font-size:22px;font-weight:700;color:${foraSla.length > 0 ? 'var(--amber)' : 'var(--text)'};">${foraSla.length}</div>
         </div>
       </div>`;
 
@@ -10787,41 +10848,43 @@ async function _conferirCoberturaSobreaviso() {
       </tr>`;
 
     let secoes = '';
-    if (data.sem_cobertura.length > 0) {
+    if (semCobertura.length > 0) {
       secoes += `<div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 Sem ninguém escalado nesse período (${data.sem_cobertura.length})</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 Sem ninguém escalado nesse período (${semCobertura.length})</div>
         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead><tr style="text-align:left;color:var(--text-faint);"><th style="padding:6px 10px;">Usina</th><th style="padding:6px 10px;">Cluster</th><th style="padding:6px 10px;">Cliente</th><th style="padding:6px 10px;">Supervisor</th><th style="padding:6px 10px;">Detalhe</th></tr></thead>
-          <tbody>${data.sem_cobertura.map(i => linhaTabela(i, `${(i.pessoas||[]).length}/${i.esperado} plantonista(s)`)).join('')}</tbody>
+          <tbody>${semCobertura.map(i => linhaTabela(i, `${(i.pessoas||[]).length}/${i.esperado} plantonista(s)`)).join('')}</tbody>
         </table></div>
       </div>`;
     }
-    if (data.sem_cluster.length > 0) {
+    if (semCluster.length > 0) {
       secoes += `<div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 Usina fora de qualquer grupo de cobertura — gap de cadastro (${data.sem_cluster.length})</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 Usina fora de qualquer grupo de cobertura — gap de cadastro (${semCluster.length})</div>
         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead><tr style="text-align:left;color:var(--text-faint);"><th style="padding:6px 10px;">Usina</th><th style="padding:6px 10px;">Cluster</th><th style="padding:6px 10px;">Cliente</th><th style="padding:6px 10px;">Supervisor</th><th style="padding:6px 10px;">Detalhe</th></tr></thead>
-          <tbody>${data.sem_cluster.map(i => linhaTabela(i, 'não está em nenhum grupo de sobreaviso')).join('')}</tbody>
+          <tbody>${semCluster.map(i => linhaTabela(i, 'não está em nenhum grupo de sobreaviso')).join('')}</tbody>
         </table></div>
       </div>`;
     }
-    if (data.fora_sla.length > 0) {
+    if (foraSla.length > 0) {
       secoes += `<div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">🟡 Tem plantonista, mas fora do SLA de deslocamento contratual (${data.fora_sla.length})</div>
+        <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">🟡 Tem plantonista, mas fora do SLA de deslocamento contratual (${foraSla.length})</div>
         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead><tr style="text-align:left;color:var(--text-faint);"><th style="padding:6px 10px;">Usina</th><th style="padding:6px 10px;">Cluster</th><th style="padding:6px 10px;">Cliente</th><th style="padding:6px 10px;">Supervisor</th><th style="padding:6px 10px;">Detalhe</th></tr></thead>
-          <tbody>${data.fora_sla.map(i => linhaTabela(i, `de plantão: ${(i.pessoas||[]).join(' + ')}`)).join('')}</tbody>
+          <tbody>${foraSla.map(i => linhaTabela(i, `de plantão: ${(i.pessoas||[]).join(' + ')}`)).join('')}</tbody>
         </table></div>
       </div>`;
     }
-    if (semProblema && data.fora_sla.length === 0) {
-      secoes += `<div style="text-align:center;padding:20px 0;color:#2ecc71;font-size:13px;font-weight:600;">✅ Todas as usinas têm sobreaviso alocado dentro do SLA nesse período.</div>`;
+    if (semProblema && foraSla.length === 0) {
+      secoes += `<div style="text-align:center;padding:20px 0;color:#2ecc71;font-size:13px;font-weight:600;">✅ Todas as usinas conferidas têm sobreaviso alocado dentro do SLA nesse período.</div>`;
     } else if (semProblema) {
       secoes += `<div style="text-align:center;padding:10px 0;color:var(--text-dim);font-size:12.5px;">Nenhuma usina desassistida — só os avisos de SLA acima.</div>`;
     }
 
+    const algumFiltro = f.soMinhas || f.clientes.size > 0 || f.usinas.size > 0 || !!f.cluster;
     result.innerHTML = `<div style="border:1px solid var(--border-strong);border-radius:10px;padding:16px;margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">🔍 Conferência de cobertura — ${esc(_sobreavisoGruposCache?.bloco?.label || '')}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">🔍 Conferência de cobertura — ${esc(_sobreavisoGruposCache?.bloco?.label || '')}</div>
+      ${algumFiltro ? `<div style="font-size:12px;color:var(--text-faint);margin-bottom:12px;">Filtro ativo aplicado</div>` : ''}
       ${linhaResumo}
       ${secoes}
     </div>`;
