@@ -4408,7 +4408,7 @@ function initDashboard(session) {
   document.getElementById('appShell').classList.add('ready');
   _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
-    fetchSheet().then(() => _abrirDeepLinkNotificacao());
+    fetchSheet(true).then(() => _abrirDeepLinkNotificacao());
     carregarAtividades();
     carregarProgramacaoPcm();
     carregarChamadosFabricante();
@@ -4500,7 +4500,7 @@ let activeTab = 'ativas';
 const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida','cancelado','cancelada','cancelled'];
 function isConcluido(d) { const s=(d.status||'').toLowerCase(); return STATUS_CONCLUIDO.some(x=>s.includes(x)); }
 
-async function fetchSheet() {
+async function fetchSheet(resetarFiltros = false) {
   const btn = document.getElementById('updateBtn');
   const dot = document.getElementById('sourceDot');
   const label = document.getElementById('sourceLabel');
@@ -4623,7 +4623,21 @@ async function fetchSheet() {
   populateFilters();
   const clienteParam = _forcedCliente || URL_CLIENTE;
   if (clienteParam) activateClientMode(clienteParam);
-  clearFilters();
+  // Corrigido 05/09/2026: antes chamava clearFilters() incondicionalmente aqui,
+  // apagando filtros/busca/datas do usuário a cada atualização (manual, automática
+  // a cada 5min, ou disparada após ações como registrar atividade/atualizar OS).
+  // Agora só reseta filtros na carga inicial da página; nas demais atualizações,
+  // reaplica os filtros que já estavam selecionados sobre os dados novos.
+  if (resetarFiltros) {
+    clearFilters();
+  } else {
+    _renderChipsTipoEquip();
+    applyFilters();
+    if (typeof renderAtividadeCards === 'function') renderAtividadeCards();
+    if (typeof openChamadosInline === 'function' && _activeNav === 'chamados') openChamadosInline();
+    if (typeof zelRender === 'function') zelRender();
+    if (typeof _locRender === 'function') _locRender();
+  }
   startCountdown();
 }
 
