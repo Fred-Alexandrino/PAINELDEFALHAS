@@ -2291,7 +2291,7 @@ body{
 
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
               <span class="sb-filter-label" style="margin:0;">Cliente</span>
-              <select class="sb-select" id="gcClienteSelect" onchange="_gcCarregarAtividades()" style="min-width:200px;"></select>
+              <select class="sb-select" id="gcClienteSelect" onchange="_gcOnClienteChange()" style="min-width:200px;"></select>
               <div id="gcPcmDataWrap" style="display:none;align-items:center;gap:6px;">
                 <span style="font-size:13px;color:var(--text-faint);">Dia:</span>
                 <input type="date" id="gcPcmData" class="sb-select" style="width:auto;" onchange="_gcCarregarAtividadesPCM()">
@@ -2303,6 +2303,15 @@ body{
               <div id="gcListaVazia" style="display:none;font-size:12.5px;color:var(--text-faint);padding:24px 0;text-align:center;">
                 Nenhuma atividade "Em Processo" pra esse cliente no momento.
               </div>
+            </div>
+
+            <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#9B87F5;fill:none;stroke-width:1.8;"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                <span style="font-size:13px;color:var(--text-dim);font-weight:600;">Anotações do Sketchbook (opcional)</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Selecione anotações relevantes pra incluir como contexto extra no resumo. A IA incorpora sem inventar nada além do que está escrito.</div>
+              <div id="gcAnotacoesLista" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
             </div>
 
             <button id="gcGerarBtn" onclick="_gcGerarResumo()" disabled
@@ -8949,6 +8958,7 @@ async function _dispararComunicadoLivre() {
 let _gcGruposCache = [];
 let _gcFonte = 'atividades';   // 'atividades' | 'pcm'
 let _gcItensCache = [];        // normalizado: {id, usina, descricao, numeroOS, meta}
+let _gcAnotacoesCache = [];    // anotações do Sketchbook relevantes pro cliente selecionado
 
 function _gcAbrirAba() {
   const sel = document.getElementById('gcClienteSelect');
@@ -8961,6 +8971,53 @@ function _gcAbrirAba() {
   document.getElementById('gcResult').style.display = 'none';
   document.getElementById('gcError').style.display = 'none';
   _gcCarregarAtividades();
+  _gcCarregarAnotacoes();
+}
+
+function _gcOnClienteChange() {
+  _gcCarregarAtividades();
+  _gcCarregarAnotacoes();
+}
+
+// Anotações do Sketchbook relevantes ao cliente selecionado: as vinculadas
+// a esse cliente + as gerais (sem cliente vinculado), pra não esconder
+// contexto útil que Fred anotou sem marcar cliente específico.
+async function _gcCarregarAnotacoes() {
+  const cliente = document.getElementById('gcClienteSelect')?.value || '';
+  const wrap = document.getElementById('gcAnotacoesLista');
+  if (!wrap) return;
+  wrap.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px 0;">Carregando anotações...</div>`;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes', { signal: AbortSignal.timeout(20000) });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao carregar anotações');
+    _gcAnotacoesCache = (result.anotacoes || []).filter(a => !a.Cliente || a.Cliente === cliente);
+  } catch (e) {
+    _gcAnotacoesCache = [];
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px 0;">Não foi possível carregar anotações (${esc(e.message || 'falha de conexão')}).</div>`;
+    return;
+  }
+  _gcRenderAnotacoes();
+}
+
+function _gcRenderAnotacoes() {
+  const wrap = document.getElementById('gcAnotacoesLista');
+  if (!wrap) return;
+  if (!_gcAnotacoesCache.length) {
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:6px 0;">Nenhuma anotação relevante pra esse cliente no momento.</div>`;
+    return;
+  }
+  wrap.innerHTML = _gcAnotacoesCache.map(a => `
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);cursor:pointer;padding:7px 9px;border:1px solid var(--border-strong);border-radius:8px;background:rgba(255,255,255,.02);">
+      <input type="checkbox" class="gc-anot-chk" value="${esc(a.ID)}" style="accent-color:#9B87F5;width:15px;height:15px;margin-top:1px;">
+      <span style="flex:1;">
+        ${esc(a.Texto || '')}
+        <span style="display:block;font-size:11px;color:var(--text-faint);margin-top:2px;">
+          ${a.Usina ? esc(a.Usina) + ' · ' : ''}${esc(a.Data || '')}${a.Categoria ? ' · ' + esc(a.Categoria) : ''}
+        </span>
+      </span>
+    </label>
+  `).join('');
 }
 
 // Alterna entre seleção manual (Em Processo, como sempre funcionou) e
@@ -9095,22 +9152,31 @@ function _gcRenderLista() {
 
 function _gcAtualizarContagem() {
   const marcadas = document.querySelectorAll('.gc-ativ-chk:checked').length;
+  const anotMarcadas = document.querySelectorAll('.gc-anot-chk:checked').length;
   const btn = document.getElementById('gcGerarBtn');
   document.getElementById('gcSelecionadasCount').textContent = marcadas;
   if (btn) {
-    btn.disabled = marcadas === 0;
-    btn.style.opacity = marcadas === 0 ? '.5' : '1';
+    const total = marcadas + anotMarcadas;
+    btn.disabled = total === 0;
+    btn.style.opacity = total === 0 ? '.5' : '1';
   }
 }
+document.getElementById('gcAnotacoesLista')?.addEventListener('change', (e) => {
+  if (e.target.classList.contains('gc-anot-chk')) _gcAtualizarContagem();
+});
 
 async function _gcGerarResumo() {
   const cliente = document.getElementById('gcClienteSelect')?.value || '';
   const idsMarcados = Array.from(document.querySelectorAll('.gc-ativ-chk:checked')).map(el => el.value);
-  if (idsMarcados.length === 0) { showToast('Selecione ao menos uma atividade.', false); return; }
+  const idsAnotMarcados = Array.from(document.querySelectorAll('.gc-anot-chk:checked')).map(el => el.value);
+  if (idsMarcados.length === 0 && idsAnotMarcados.length === 0) { showToast('Selecione ao menos uma atividade ou anotação.', false); return; }
 
   const atividadesSelecionadas = _gcItensCache
     .filter(a => idsMarcados.includes(String(a.id)))
     .map(a => ({ usina: a.usina || '', descricao: a.descricao || '', numeroOS: a.numeroOS || '' }));
+  const anotacoesSelecionadas = _gcAnotacoesCache
+    .filter(a => idsAnotMarcados.includes(String(a.ID)))
+    .map(a => ({ texto: a.Texto || '', usina: a.Usina || '' }));
 
   const loading = document.getElementById('gcLoading');
   const result = document.getElementById('gcResult');
@@ -9126,7 +9192,7 @@ async function _gcGerarResumo() {
       fetch('https://api.168.138.232.237.sslip.io/gerar-resumo-cliente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cliente, atividades: atividadesSelecionadas }),
+        body: JSON.stringify({ cliente, atividades: atividadesSelecionadas, anotacoes: anotacoesSelecionadas }),
         signal: AbortSignal.timeout(30000),
       }),
       _gcGruposCache.length ? Promise.resolve(null) :
