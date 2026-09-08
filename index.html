@@ -1936,14 +1936,24 @@ body{
         </div>
 
         <div class="panel" style="margin-bottom:20px;padding:14px;">
+          <div id="anotEditBanner" style="display:none;background:rgba(155,135,245,.1);border:1px solid rgba(155,135,245,.3);border-radius:7px;padding:6px 10px;margin-bottom:10px;font-size:12px;color:#9B87F5;display:flex;justify-content:space-between;align-items:center;">
+            <span id="anotEditBannerTexto">Editando anotação</span>
+            <button class="tb-btn" style="padding:2px 8px;font-size:11px;" onclick="_anotCancelarEdicao()">Cancelar edição</button>
+          </div>
           <textarea id="anotTexto" placeholder="Escreva a anotação..." style="width:100%;min-height:70px;resize:vertical;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13.5px;color:var(--text);font-family:inherit;"></textarea>
+          <div id="anotTranscrevendoAviso" style="display:none;font-size:11.5px;color:var(--text-faint);margin-top:6px;">Transcrevendo imagem... isso pode levar alguns segundos.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
             <input type="text" id="anotCategoria" placeholder="Categoria (opcional)" class="sb-select" style="max-width:160px;">
             <select id="anotUsina" class="sb-select" style="max-width:200px;"></select>
             <select id="anotCliente" class="sb-select" style="max-width:170px;"></select>
+            <input type="file" id="anotFotoInput" accept="image/*" style="display:none;" onchange="_anotFotoSelecionada(event)">
+            <button class="tb-btn" onclick="document.getElementById('anotFotoInput').click()" title="Anexar foto do caderno ou print — a IA transcreve pra você revisar antes de salvar">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Anexar foto
+            </button>
             <button class="tb-btn tb-btn-refresh" id="anotSalvarBtn" style="margin-left:auto;" onclick="salvarAnotacao()">
               <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Salvar anotação
+              <span id="anotSalvarBtnTexto">Salvar anotação</span>
             </button>
           </div>
         </div>
@@ -7439,6 +7449,72 @@ function _anotUsinaSelecionada() {
 }
 document.getElementById('anotUsina')?.addEventListener('change', _anotUsinaSelecionada);
 
+let _anotEditandoId = null;
+
+function editarAnotacao(id) {
+  const a = ANOTACOES.find(x => x.ID === id);
+  if (!a) return;
+  _anotEditandoId = id;
+  document.getElementById('anotTexto').value = a.Texto || '';
+  document.getElementById('anotCategoria').value = a.Categoria || '';
+  _anotPopularCatalogo();
+  document.getElementById('anotCliente').value = a.Cliente || '';
+  _anotAtualizarUsinasPorCliente();
+  document.getElementById('anotUsina').value = a.Usina || '';
+  document.getElementById('anotEditBanner').style.display = 'flex';
+  document.getElementById('anotEditBannerTexto').textContent = `Editando anotação #${id}`;
+  document.getElementById('anotSalvarBtnTexto').textContent = 'Salvar edição';
+  document.querySelector('#sec-anotacoes .panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('anotTexto').focus();
+}
+
+function _anotCancelarEdicao() {
+  _anotEditandoId = null;
+  document.getElementById('anotTexto').value = '';
+  document.getElementById('anotCategoria').value = '';
+  document.getElementById('anotUsina').value = '';
+  document.getElementById('anotCliente').value = '';
+  _anotAtualizarUsinasPorCliente();
+  document.getElementById('anotEditBanner').style.display = 'none';
+  document.getElementById('anotSalvarBtnTexto').textContent = 'Salvar anotação';
+}
+
+async function _anotFotoSelecionada(event) {
+  const file = event.target.files?.[0];
+  event.target.value = ''; // permite selecionar o mesmo arquivo de novo depois
+  if (!file) return;
+  const aviso = document.getElementById('anotTranscrevendoAviso');
+  const textoEl = document.getElementById('anotTexto');
+  try {
+    const base64Completo = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error('Falha ao ler o arquivo'));
+      r.readAsDataURL(file);
+    });
+    const imagemBase64 = base64Completo.split(',')[1] || '';
+    const imagemMimeType = file.type || 'image/jpeg';
+    if (aviso) aviso.style.display = 'block';
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes/transcrever', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagemBase64, imagemMimeType, textoPrevio: textoEl.value.trim() }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Erro ao transcrever imagem');
+    // Anexa à revisão em vez de salvar direto — a transcrição por IA pode
+    // errar, então o texto fica no campo pra Fred revisar/editar antes de
+    // clicar em Salvar (nada é gravado automaticamente aqui).
+    const atual = textoEl.value.trim();
+    textoEl.value = atual ? `${atual}\n\n${result.texto}` : result.texto;
+    textoEl.focus();
+  } catch (e) {
+    alert(`Erro ao transcrever a imagem: ${e.message || 'falha de conexão'}. Tente novamente ou digite manualmente.`);
+  } finally {
+    if (aviso) aviso.style.display = 'none';
+  }
+}
+
 async function carregarAnotacoes(_tentativa = 0) {
   _anotPopularCatalogo();
   const lista = document.getElementById('anotLista');
@@ -7498,9 +7574,14 @@ function renderAnotacoesLista() {
             <span style="font-size:11px;color:var(--text-faint);font-family:'Geist Mono',monospace;">${esc(a.Data || '')} · ${esc(a.Autor || '')}</span>
           </div>
         </div>
-        <button class="tb-btn" style="flex:none;" onclick="arquivarAnotacao('${esc(a.ID)}')" title="Arquivar">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
-        </button>
+        <div style="display:flex;gap:6px;flex:none;">
+          <button class="tb-btn" onclick="editarAnotacao('${esc(a.ID)}')" title="Editar">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          </button>
+          <button class="tb-btn" onclick="arquivarAnotacao('${esc(a.ID)}')" title="Arquivar">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+          </button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -7512,6 +7593,7 @@ async function salvarAnotacao(_tentativa = 0) {
   if (!texto) { textoEl?.focus(); return; }
   const btn = document.getElementById('anotSalvarBtn');
   if (btn && _tentativa === 0) btn.disabled = true;
+  const editandoId = _anotEditandoId;
   try {
     const body = {
       texto,
@@ -7520,16 +7602,24 @@ async function salvarAnotacao(_tentativa = 0) {
       cliente: (document.getElementById('anotCliente')?.value || '').trim(),
       autor: _currentSession?.nome || _currentSession?.usuario || 'Fred Alexandrino',
     };
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/anotacoes', {
+    const url = editandoId
+      ? 'https://api.168.138.232.237.sslip.io/anotacoes/editar'
+      : 'https://api.168.138.232.237.sslip.io/anotacoes';
+    if (editandoId) body.id = editandoId;
+    const resp = await fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao salvar');
-    textoEl.value = '';
-    document.getElementById('anotCategoria').value = '';
-    document.getElementById('anotUsina').value = '';
-    document.getElementById('anotCliente').value = '';
-    _anotAtualizarUsinasPorCliente();
+    if (editandoId) {
+      _anotCancelarEdicao();
+    } else {
+      textoEl.value = '';
+      document.getElementById('anotCategoria').value = '';
+      document.getElementById('anotUsina').value = '';
+      document.getElementById('anotCliente').value = '';
+      _anotAtualizarUsinasPorCliente();
+    }
     if (btn) btn.disabled = false;
     await carregarAnotacoes();
   } catch (e) {
