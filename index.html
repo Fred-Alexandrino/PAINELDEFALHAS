@@ -2423,11 +2423,12 @@ body{
           </div>
 
           <div id="sobreavisoConteudo" style="display:none;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
               <span style="font-size:13px;color:var(--text-dim);">Período:</span>
               <select id="sobreavisoBlocoSelect" class="sb-select" style="width:auto;min-width:260px;" onchange="_sobreavisoOnBlocoChange(this.value)"></select>
               <span id="sobreavisoBlocoTipo" style="font-size:12.5px;color:var(--text-faint);"></span>
             </div>
+            <div id="sobreavisoSupervisorInfo" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;"></div>
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
               <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;">
                 <input type="checkbox" id="sobreavisoSoMinhas" onchange="_sobreavisoCarregarGrupos()" style="cursor:pointer;accent-color:#8B7EDB;">
@@ -2452,6 +2453,36 @@ body{
                 <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 Conferir cobertura (todas as usinas)
               </button>
+            </div>
+
+            <!-- Avisar que vou estar de sobreaviso -->
+            <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:16px;">
+              <button type="button" onclick="_sobreavisoToggleSecao('meu')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                <span>📢 Avisar que vou estar de sobreaviso (técnicos/clientes)</span>
+                <span id="sobreavisoMeuChevron">▾</span>
+              </button>
+              <div id="sobreavisoMeuBox" style="display:none;padding:14px 4px 4px;">
+                <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Usa as equipes marcadas na lista acima. Selecione o público e gere.</div>
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+                  <button onclick="_gerarMeuSobreaviso('tecnicos')" style="flex:1;min-width:160px;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra técnicos</button>
+                  <button onclick="_gerarMeuSobreaviso('clientes')" style="flex:1;min-width:160px;background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra clientes</button>
+                </div>
+                <div id="sobreavisoMeuResult"></div>
+              </div>
+            </div>
+
+            <!-- Tratativas pros supervisores -->
+            <div style="margin-top:12px;">
+              <button type="button" onclick="_sobreavisoToggleSecao('tratativas')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                <span>🛠️ Tratativas para os supervisores</span>
+                <span id="sobreavisoTratativasChevron">▾</span>
+              </button>
+              <div id="sobreavisoTratativasBox" style="display:none;padding:14px 4px 4px;">
+                <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px;">Liste as tratativas críticas do período (desligamentos de usina/inversor, etc.) — uma por linha.</div>
+                <textarea id="sobreavisoTratativasTexto" rows="5" placeholder="Ex.: Usina Cedro I — inversor 2 desligado desde sexta, aguardando peça.&#10;Poconé — possível desligamento programado da concessionária no sábado às 14h." style="width:100%;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:10px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
+                <button onclick="_gerarTratativasSupervisores()" style="width:100%;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar comunicado</button>
+                <div id="sobreavisoTratativasResult" style="margin-top:12px;"></div>
+              </div>
             </div>
           </div>
           <div id="sobreavisoConferenciaResult" style="display:none;"></div>
@@ -10623,14 +10654,26 @@ async function _sobreavisoCarregarBlocos() {
     _sobreavisoBlocoAtual = data.bloco_sugerido;
     sel.value = String(_sobreavisoBlocoAtual);
     document.getElementById('sobreavisoConteudo').style.display = 'block';
+    _sobreavisoAtualizarSupervisorInfo();
     await _sobreavisoCarregarGrupos();
   } catch (e) {
     statusEl.textContent = 'Erro ao carregar períodos: ' + e.message;
   }
 }
 
+function _sobreavisoAtualizarSupervisorInfo() {
+  const el = document.getElementById('sobreavisoSupervisorInfo');
+  if (!el || !_sobreavisoBlocosCache) return;
+  const bloco = _sobreavisoBlocosCache.blocos.find(b => b.idx === _sobreavisoBlocoAtual);
+  const sups = bloco?.supervisores || [];
+  if (sups.length === 0) { el.textContent = ''; return; }
+  const txt = sups.map(s => `${s.nome}${s.telefone ? ' (' + s.telefone + ')' : ''}`).join(' + ');
+  el.innerHTML = `👤 Supervisor(es) de plantão nesse período: <strong>${esc(txt)}</strong>`;
+}
+
 function _sobreavisoOnBlocoChange(valor) {
   _sobreavisoBlocoAtual = parseInt(valor, 10);
+  _sobreavisoAtualizarSupervisorInfo();
   _sobreavisoCarregarGrupos();
 }
 
@@ -10670,6 +10713,17 @@ function _sobreavisoAtualizarInfoFiltro(totalGrupos, totalFiltrados) {
   el.textContent = algumFiltro ? `Filtro ativo — mostrando ${totalFiltrados} de ${totalGrupos} equipes` : '';
 }
 
+let _sobreavisoIdParaNome = {};  // idSeguro -> nome do grupo (pra "Meu Sobreaviso")
+
+function _sobreavisoToggleSecao(chave) {
+  const box = document.getElementById(chave === 'meu' ? 'sobreavisoMeuBox' : 'sobreavisoTratativasBox');
+  const chevron = document.getElementById(chave === 'meu' ? 'sobreavisoMeuChevron' : 'sobreavisoTratativasChevron');
+  if (!box) return;
+  const abrir = box.style.display === 'none';
+  box.style.display = abrir ? 'block' : 'none';
+  if (chevron) chevron.textContent = abrir ? '▴' : '▾';
+}
+
 async function _sobreavisoCarregarGrupos() {
   const lista = document.getElementById('sobreavisoListaGrupos');
   const tipoEl = document.getElementById('sobreavisoBlocoTipo');
@@ -10687,6 +10741,7 @@ async function _sobreavisoCarregarGrupos() {
     _sobreavisoAtualizarInfoFiltro(data.grupos.length, gruposFiltrados.length);
     lista.innerHTML = gruposFiltrados.map(g => {
       const idSeguro = g.nome.replace(/[^a-zA-Z0-9]/g, '_');
+      _sobreavisoIdParaNome[idSeguro] = g.nome;
       const pessoasTxt = (g.pessoas || []).join(' + ') || 'sem cobertura definida';
       return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
         <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:#8B7EDB;flex:none;">
@@ -10902,6 +10957,121 @@ async function _conferirCoberturaSobreaviso() {
   } finally {
     btn.innerHTML = original;
     btn.disabled = false;
+  }
+}
+
+// ── Meu Sobreaviso: avisar técnicos/clientes que EU estarei de plantão ──
+let _sobreavisoMeuCache = {};  // idCard -> {texto, equipes?}
+
+async function _gerarMeuSobreaviso(audiencia) {
+  const marcados = Array.from(document.querySelectorAll('.sobreaviso-grupo-check:checked')).map(cb => cb.value);
+  if (marcados.length === 0) { showToast('Selecione ao menos uma equipe na lista acima.', false); return; }
+  const nomesGrupos = marcados.map(id => _sobreavisoIdParaNome[id]).filter(Boolean);
+  const result = document.getElementById('sobreavisoMeuResult');
+  result.innerHTML = `<div style="text-align:center;padding:14px 0;color:var(--text-faint);font-size:12.5px;">Gerando…</div>`;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/sobreaviso-meu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bloco: _sobreavisoBlocoAtual, audiencia, grupos: nomesGrupos, quem: 'Fred Alexandrino' }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao gerar comunicado');
+
+    _sobreavisoMeuCache = {};
+    let html = `<div style="font-size:12.5px;color:var(--text-dim);margin:10px 0;">Período: <strong>${esc(data.bloco.label)}</strong></div>`;
+    data.itens.forEach((item, i) => {
+      const idCard = `meu_${audiencia}_${i}`;
+      _sobreavisoMeuCache[idCard] = { texto: item.texto, equipes: item.equipes || [] };
+      const titulo = audiencia === 'tecnicos' ? item.clusters.join(' + ') : item.cliente;
+      html += `<div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">📍 ${esc(titulo)}</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="_copiarMeuSobreaviso('${idCard}')" style="background:var(--teal);border:none;color:#04231e;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
+            ${audiencia === 'tecnicos' ? `<button id="dispararMeuBtn_${idCard}" onclick="_dispararMeuSobreaviso('${idCard}', this)" style="background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Disparar</button>` : ''}
+          </div>
+        </div>
+        <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(item.texto)}</pre>
+      </div>`;
+    });
+    result.innerHTML = html;
+  } catch (e) {
+    result.innerHTML = `<div style="font-size:12.5px;color:var(--red);text-align:center;padding:14px 0;">Erro: ${esc(e.message)}</div>`;
+  }
+}
+
+async function _copiarMeuSobreaviso(idCard) {
+  const item = _sobreavisoMeuCache[idCard];
+  if (!item) return;
+  try {
+    await navigator.clipboard.writeText(item.texto);
+    showToast('Mensagem copiada!', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente.', false);
+  }
+}
+
+async function _dispararMeuSobreaviso(idCard, btnEl) {
+  const item = _sobreavisoMeuCache[idCard];
+  if (!item || !item.equipes.length) { showToast('Nenhuma equipe do dashboard encontrada — use Copiar.', false); return; }
+  if (!confirm(`Enviar esse aviso pro(s) grupo(s) de WhatsApp de ${item.equipes.join(', ')}?`)) return;
+  const original = btnEl.innerHTML;
+  btnEl.disabled = true; btnEl.innerHTML = 'Enviando…';
+  const erros = [];
+  for (const equipe of item.equipes) {
+    try {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-cluster', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cluster: equipe, texto: item.texto }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await resp.json();
+      if (!data.ok) erros.push(`${equipe}: ${data.error || 'erro'}`);
+    } catch (e) { erros.push(`${equipe}: ${e.message}`); }
+  }
+  btnEl.innerHTML = erros.length === 0 ? '✓ Enviado!' : (erros.length === item.equipes.length ? '✗ Falhou' : '⚠ Parcial');
+  if (erros.length) showToast('Alguns envios falharam: ' + erros.join(' | '), false);
+  else showToast('Aviso enviado!', true);
+  setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 3000);
+}
+
+// ── Tratativas para os supervisores (texto livre + cabeçalho padrão) ──
+let _sobreavisoTratativasTexto = '';
+
+function _gerarTratativasSupervisores() {
+  const livre = document.getElementById('sobreavisoTratativasTexto').value.trim();
+  if (!livre) { showToast('Escreva ao menos uma tratativa.', false); return; }
+  const bloco = _sobreavisoBlocosCache?.blocos?.find(b => b.idx === _sobreavisoBlocoAtual);
+  const label = bloco?.label || '';
+  const sups = bloco?.supervisores || [];
+  const supsTxt = sups.map(s => `${s.nome}${s.telefone ? ' (' + s.telefone + ')' : ''}`).join(' + ');
+
+  const texto = (
+    `🛠️ Tratativas de Sobreaviso — ${label}\n` +
+    (supsTxt ? `Supervisor(es) de plantão: ${supsTxt}\n\n` : '\n') +
+    livre + `\n\n` +
+    `Qualquer dúvida, chamar quem estiver de plantão.`
+  );
+  _sobreavisoTratativasTexto = texto;
+
+  const result = document.getElementById('sobreavisoTratativasResult');
+  result.innerHTML = `<div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button onclick="_copiarTratativasSupervisores()" style="background:var(--teal);border:none;color:#04231e;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
+    </div>
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(texto)}</pre>
+  </div>`;
+}
+
+async function _copiarTratativasSupervisores() {
+  if (!_sobreavisoTratativasTexto) return;
+  try {
+    await navigator.clipboard.writeText(_sobreavisoTratativasTexto);
+    showToast('Mensagem copiada!', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente.', false);
   }
 }
 
