@@ -8845,7 +8845,22 @@ function _gcCarregarAtividadesManual() {
   document.getElementById('gcResult').style.display = 'none';
   document.getElementById('gcError').style.display = 'none';
 
-  const emProcesso = ATIVIDADES.filter(a => (a.cliente || '') === cliente && (a.statusOS || '') === 'Em Processo');
+  // Mesma regra positiva/negativa do comunicado automático
+  // (_enviar_comunicados_diarios_core no backend): se a atividade tem OS
+  // vinculada à Fracttal, só entra com statusOS "Em Processo" lá. Se NÃO
+  // tem número de OS (cadastrada manualmente, sem Fracttal), entra desde
+  // que não esteja concluída/cancelada internamente — antes ficava de
+  // fora sempre, porque statusOS nunca é preenchido pra atividade sem OS
+  // (pedido do Fred em 09/09/2026, pra atividades manuais aparecerem
+  // aqui mesmo sem estar na Programação PCM).
+  const emProcesso = ATIVIDADES.filter(a => {
+    if ((a.cliente || '') !== cliente) return false;
+    if (isConcluido(a)) return false;
+    const numeroOS = (a.numeroOS || '').trim();
+    const statusOS = (a.statusOS || '').trim();
+    if (numeroOS && statusOS !== 'Em Processo') return false;
+    return true;
+  });
   _gcItensCache = emProcesso.map(a => ({
     id: String(a.id),
     usina: a.usina || 'não informado',
@@ -8913,7 +8928,7 @@ function _gcRenderLista() {
       vazia.style.display = 'block';
       vazia.textContent = _gcFonte === 'pcm'
         ? 'Nenhuma atividade programada pelo PCM pra esse cliente no dia selecionado.'
-        : 'Nenhuma atividade "Em Processo" pra esse cliente no momento.';
+        : 'Nenhuma atividade em aberto pra esse cliente no momento.';
     }
     _gcAtualizarContagem();
     return;
