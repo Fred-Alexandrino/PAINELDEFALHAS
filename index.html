@@ -2764,11 +2764,7 @@ body{
         Gerando texto da OS… (pode levar até 1 min na primeira vez)
       </div>
       <div id="osModalResult" style="display:none;">
-        <textarea id="osModalText" readonly style="width:100%;min-height:280px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12.5px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;white-space:pre-wrap;"></textarea>
-        <button id="osModalCopyBtn" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;transition:.2s;">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copiar texto
-        </button>
+        <div id="osModalCamposContainer"></div>
       </div>
       <div id="osModalError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
@@ -6861,7 +6857,62 @@ async function _converterOcorrenciaEmAtividade() {
   }
 }
 
-async function _gerarTextoOSComIA(d, tentativa = 1) {
+// Converte o texto antigo "Título: ...\nComentários:\n\n• ..." (formato do
+// gerador local de fallback, usado só quando a IA falha) nos 3 campos da
+// nova plataforma: {titulo, observacao, subtarefas[]}. Heurística: bullets
+// que falam de EPI/COS/desenergização/exceções vão pra "observacao"; o
+// resto vira subtarefa. Sempre acrescenta as 2 subtarefas fixas no final.
+function _dividirTextoOSAntigo(texto) {
+  const linhas = String(texto || '').split('\n');
+  let titulo = '';
+  let modo = null; // 'titulo' | 'comentarios'
+  const bullets = [];
+  for (const linhaRaw of linhas) {
+    const linha = linhaRaw.trim();
+    if (!linha) continue;
+    if (/^t[íi]tulo:?/i.test(linha)) {
+      const resto = linha.replace(/^t[íi]tulo:?/i, '').trim();
+      if (resto) titulo = resto;
+      modo = 'titulo';
+      continue;
+    }
+    if (/^coment[áa]rios:?/i.test(linha)) { modo = 'comentarios'; continue; }
+    if (modo === 'titulo' && !titulo) { titulo = linha; continue; }
+    if (modo === 'comentarios') {
+      const m = linha.match(/^[•*\-]\s*(.+)$/) || linha.match(/^\d+[\.\)]\s*(.+)$/);
+      bullets.push(m ? m[1].trim() : linha);
+    }
+  }
+  const PALAVRAS_OBSERVACAO = [
+    'epi', 'acionar o cos', 'não é necessário acionar', 'nao e necessario acionar',
+    'desenergiz', 'loto', 'bloqueio e etiquetagem', 'sinaliza', 'aterramento',
+    'não exige desligamento', 'nao exige desligamento', 'em operação', 'em operacao',
+    'apr/pt', 'apr /pt', 'preencher apr', 'condições climáticas', 'condicoes climaticas',
+    'classe de tensão', 'classe de tensao',
+  ];
+  const observacaoPartes = [];
+  const subtarefas = [];
+  for (const b of bullets) {
+    const low = b.toLowerCase();
+    const ehRegistro = /foto/i.test(b) && /(registr|evid[êe]ncia)/i.test(b);
+    if (ehRegistro) continue; // substituído pelas subtarefas fixas abaixo
+    if (PALAVRAS_OBSERVACAO.some(p => low.includes(p))) observacaoPartes.push(b);
+    else subtarefas.push(b);
+  }
+  subtarefas.push('Registro fotográfico da atividade');
+  subtarefas.push('Ficou alguma pendência? Se sim, descreva');
+  return {
+    titulo: titulo || 'Ordem de Serviço',
+    observacao: observacaoPartes.join(' '),
+    subtarefas,
+  };
+}
+
+// Devolve a lista completa de OS (cada uma já separada em
+// {titulo, observacao, subtarefas}) — usada quando o texto de entrada pode
+// descrever mais de uma frente de trabalho (usinas ou equipamentos
+// diferentes), caso em que a IA divide em várias OS.
+async function _gerarTextosOSComIA(d, tentativa = 1) {
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-texto-os-ia', {
       method: 'POST',
@@ -6875,39 +6926,82 @@ async function _gerarTextoOSComIA(d, tentativa = 1) {
     });
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
-    return result.texto;
+    if (result.os && result.os.length) return result.os;
+    // compat: servidor antigo sem campo "os" ainda no ar
+    const textos = result.textos && result.textos.length ? result.textos : [result.texto];
+    return textos.map(_dividirTextoOSAntigo);
   } catch (e) {
     if (tentativa < 2) {
-      return _gerarTextoOSComIA(d, tentativa + 1); // 1 nova tentativa antes de desistir
+      return _gerarTextosOSComIA(d, tentativa + 1); // 1 nova tentativa antes de desistir
     }
     throw e;
   }
 }
 
-// Igual à de cima, mas devolve a lista completa — usada quando o texto de
-// entrada pode descrever mais de uma frente de trabalho (usinas ou
-// equipamentos diferentes), caso em que a IA divide em várias OS.
-async function _gerarTextosOSComIA(d, tentativa = 1) {
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-texto-os-ia', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
-        falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
-        historico: d.historico||'', responsavel: d.responsavel||'',
-      }),
-      signal: AbortSignal.timeout(45000),
-    });
-    const result = await resp.json();
-    if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
-    return result.textos && result.textos.length ? result.textos : [result.texto];
-  } catch (e) {
-    if (tentativa < 2) {
-      return _gerarTextosOSComIA(d, tentativa + 1);
-    }
-    throw e;
-  }
+// Igual à de cima, mas devolve só a primeira OS — usada nos fluxos que
+// partem de uma única ocorrência/atividade já específica.
+async function _gerarTextoOSComIA(d, tentativa = 1) {
+  const lista = await _gerarTextosOSComIA(d, tentativa);
+  return lista[0];
+}
+
+// Monta o HTML dos campos separados (Título / Observação / Subtarefas) de
+// uma ou mais OS, cada campo com seu próprio botão de copiar — pra colar
+// direto nos campos correspondentes da nova plataforma de solicitação de OS.
+function _htmlCamposOS(osList) {
+  return osList.map((osItem, i) => {
+    const titulo = osItem.titulo || '';
+    const observacao = osItem.observacao || '';
+    const subtarefas = osItem.subtarefas || [];
+    const subtarefasHtml = subtarefas.map((s, si) => `
+      <li style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.5;">
+        <span style="color:var(--text-faint);font-weight:700;flex-shrink:0;">${si + 1}.</span>
+        <span style="flex:1;color:var(--text);">${esc(s)}</span>
+        <button class="os-campo-copiar-mini" data-copy="${esc(s)}" title="Copiar esta subtarefa" style="flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--text-faint);border-radius:5px;padding:3px 6px;cursor:pointer;">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;display:block;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </li>`).join('');
+    const subtarefasTextoCompleto = subtarefas.map((s, si) => `${si + 1}. ${s}`).join('\n');
+    return `
+      <div style="${i > 0 ? 'margin-top:20px;padding-top:20px;border-top:1px solid var(--border);' : ''}">
+        ${osList.length > 1 ? `<div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:10px;">OS ${i + 1} de ${osList.length}</div>` : ''}
+
+        <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Título</div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+          <input type="text" readonly value="${esc(titulo)}" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;">
+          <button class="os-campo-copiar" data-copy="${esc(titulo)}" style="flex-shrink:0;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:0 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;">Copiar</button>
+        </div>
+
+        ${observacao ? `
+        <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Observação</div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:flex-start;">
+          <textarea readonly rows="3" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--text);font-size:12.5px;line-height:1.5;font-family:'Geist',sans-serif;resize:vertical;">${esc(observacao)}</textarea>
+          <button class="os-campo-copiar" data-copy="${esc(observacao)}" style="flex-shrink:0;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:8px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Geist Mono',monospace;align-self:flex-start;">Copiar</button>
+        </div>` : ''}
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;">Subtarefas (${subtarefas.length})</div>
+          <button class="os-campo-copiar-todas" data-copy="${esc(subtarefasTextoCompleto)}" style="background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">Copiar todas</button>
+        </div>
+        <ul style="list-style:none;margin:0;padding:0;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:2px 10px;">${subtarefasHtml}</ul>
+      </div>
+    `;
+  }).join('');
+}
+
+// Delegação de clique única pros botões "copiar" dentro de qualquer
+// container de campos de OS (título, observação, subtarefa individual ou
+// "copiar todas").
+function _wireCopiaCamposOS(container) {
+  if (!container || container._osCopyWired) return;
+  container._osCopyWired = true;
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    const txt = btn.dataset.copy || '';
+    navigator.clipboard?.writeText(txt).then(() => showToast('Copiado!', true))
+      .catch(() => showToast('Não consegui copiar automaticamente.', false));
+  });
 }
 
 async function _solicitarOS() {
@@ -6922,14 +7016,14 @@ async function _solicitarOS() {
   result.style.display='none';
   errorBox.style.display='none';
 
-  let texto;
+  let osList;
   try {
-    texto = await _gerarTextoOSComIA(d);
+    osList = await _gerarTextosOSComIA(d);
   } catch (errIA) {
     console.error('[Gemini] Falhou, usando fallback local:', errIA);
     showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
-      texto = _gerarTextoOS(d); // fallback: gerador local baseado em regras
+      osList = [_dividirTextoOSAntigo(_gerarTextoOS(d))]; // fallback: gerador local baseado em regras
     } catch (err) {
       loading.style.display='none';
       errorBox.style.display='block';
@@ -6937,23 +7031,15 @@ async function _solicitarOS() {
       return;
     }
   }
-  document.getElementById('osModalText').value = texto;
+  const container = document.getElementById('osModalCamposContainer');
+  container.innerHTML = _htmlCamposOS(osList);
+  _wireCopiaCamposOS(container);
   loading.style.display='none';
   result.style.display='block';
 }
 
 document.getElementById('osModalClose')?.addEventListener('click', () => { document.getElementById('osOverlay').style.display='none'; });
 document.getElementById('osOverlay')?.addEventListener('click', e => { if(e.target.id==='osOverlay') document.getElementById('osOverlay').style.display='none'; });
-document.getElementById('osModalCopyBtn')?.addEventListener('click', () => {
-  const textarea = document.getElementById('osModalText');
-  textarea.select();
-  navigator.clipboard?.writeText(textarea.value).then(() => {
-    showToast('Texto copiado!', true);
-  }).catch(() => {
-    document.execCommand('copy');
-    showToast('Texto copiado!', true);
-  });
-});
 
 
 /* ══ VERIFICAR RONDAS ══
@@ -8227,14 +8313,14 @@ async function _gerarOSRapida() {
   result.style.display = 'none';
   errorBox.style.display = 'none';
 
-  let textos;
+  let osList;
   try {
-    textos = await _gerarTextosOSComIA(pseudo);
+    osList = await _gerarTextosOSComIA(pseudo);
   } catch (errIA) {
     console.error('[Gemini] Falhou, usando fallback local:', errIA);
     showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
-      textos = [_gerarTextoOS(pseudo)]; // fallback: gerador local baseado em regras
+      osList = [_dividirTextoOSAntigo(_gerarTextoOS(pseudo))]; // fallback: gerador local baseado em regras
     } catch (err) {
       loading.style.display = 'none';
       errorBox.style.display = 'block';
@@ -8243,23 +8329,8 @@ async function _gerarOSRapida() {
     }
   }
 
-  result.innerHTML = textos.map((t, i) => `
-    <div style="${i > 0 ? 'margin-top:14px;padding-top:14px;border-top:1px solid var(--border);' : ''}">
-      ${textos.length > 1 ? `<div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px;">OS ${i + 1} de ${textos.length}</div>` : ''}
-      <textarea class="os-rapida-texto-item" readonly style="width:100%;min-height:220px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;">${esc(t)}</textarea>
-      <button class="os-rapida-copiar-btn" data-idx="${i}" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.3);color:var(--teal);border-radius:7px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.2s;">
-        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copiar texto${textos.length > 1 ? ' desta OS' : ''}
-      </button>
-    </div>
-  `).join('');
-  result.querySelectorAll('.os-rapida-copiar-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const texto = textos[parseInt(btn.dataset.idx, 10)];
-      navigator.clipboard?.writeText(texto).then(() => showToast('Texto copiado!', true))
-        .catch(() => showToast('Não consegui copiar automaticamente.', false));
-    });
-  });
+  result.innerHTML = _htmlCamposOS(osList);
+  _wireCopiaCamposOS(result);
 
   loading.style.display = 'none';
   result.style.display = 'block';
@@ -12304,14 +12375,14 @@ async function _solicitarOSAtividade() {
   result.style.display = 'none';
   errorBox.style.display = 'none';
 
-  let texto;
+  let osList;
   try {
-    texto = await _gerarTextoOSComIA(pseudoOcorrencia);
+    osList = await _gerarTextosOSComIA(pseudoOcorrencia);
   } catch (errIA) {
     console.error('[Gemini] Falhou, usando fallback local:', errIA);
     showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
     try {
-      texto = _gerarTextoOS(pseudoOcorrencia); // fallback: gerador local baseado em regras
+      osList = [_dividirTextoOSAntigo(_gerarTextoOS(pseudoOcorrencia))]; // fallback: gerador local baseado em regras
     } catch (err) {
       loading.style.display = 'none';
       errorBox.style.display = 'block';
@@ -12319,7 +12390,9 @@ async function _solicitarOSAtividade() {
       return;
     }
   }
-  document.getElementById('osModalText').value = texto;
+  const container = document.getElementById('osModalCamposContainer');
+  container.innerHTML = _htmlCamposOS(osList);
+  _wireCopiaCamposOS(container);
   loading.style.display = 'none';
   result.style.display = 'block';
   _registrarOSSolicitadaAtividade(a);
