@@ -10859,7 +10859,11 @@ function _gerarComunicadosSobreaviso() {
     // das usinas do grupo — é isso que /disparar-comunicado-cluster espera,
     // NÃO o nome de cluster da escala (que é só um rótulo interno do arquivo).
     const equipes = [...new Set((g.usinas || []).map(u => u.equipe).filter(Boolean))];
-    _sobreavisoTextoCache[idSeguro] = { texto: g.texto, clusters: g.clusters, equipes };
+    _sobreavisoTextoCache[idSeguro] = { texto: g.texto, clusters: g.clusters, equipes, grupoNome: g.nome,
+      pool: g.pool || [], porBloco: g.por_bloco || 1, pessoas: g.pessoas || [] };
+
+    const opcoesPool = (g.pool || []).map(p => `<option value="${esc(p.nome)}">${esc(p.nome)}${p.horas != null ? ` (${p.horas}h)` : ''}</option>`).join('');
+    const pessoaAtual = (idx) => (g.pessoas && g.pessoas[idx]) || '';
 
     html += `<div style="margin-bottom:22px;border:1px solid var(--border-strong);border-radius:10px;padding:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
@@ -10878,13 +10882,70 @@ function _gerarComunicadosSobreaviso() {
           </button>
         </div>
       </div>
-      <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(g.texto)}</pre>
+      <pre id="textoSobreavisoPre_${esc(idSeguro)}" style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(g.texto)}</pre>
+      <div style="margin-top:10px;">
+        <button type="button" onclick="_toggleAjusteSobreaviso('${esc(idSeguro)}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;">✏️ Ajustar técnico(s)</button>
+        <div id="ajusteBox_${esc(idSeguro)}" style="display:none;margin-top:10px;padding:10px;background:rgba(255,255,255,.02);border-radius:8px;">
+          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:8px;">Se a escala fonte trouxe alguém errado, escolha entre os candidatos do rodízio dessa usina/cluster:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="ajusteSel1_${esc(idSeguro)}" class="sb-select" style="width:auto;min-width:180px;">${opcoesPool}</select>
+            <select id="ajusteSel2_${esc(idSeguro)}" class="sb-select" style="width:auto;min-width:180px;${g.dupla ? '' : 'display:none;'}">${opcoesPool}</select>
+            <button onclick="_atualizarTextoSobreaviso('${esc(idSeguro)}')" style="background:#8B7EDB;border:none;color:#160f2e;border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">Atualizar texto</button>
+          </div>
+        </div>
+      </div>
     </div>`;
   });
 
   document.getElementById('sobreavisoConteudo').style.display = 'none';
   result.innerHTML = html + `<button onclick="document.getElementById('sobreavisoConteudo').style.display='block';document.getElementById('sobreavisoModalResult').style.display='none';" style="width:100%;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:10px;font-size:12.5px;cursor:pointer;margin-top:4px;">← Voltar pra seleção de equipes</button>`;
   result.style.display = 'block';
+
+  // pré-seleciona os valores atuais nos dropdowns de ajuste, depois de
+  // injetar o HTML (senão o .value não pega em <option> ainda não no DOM)
+  _sobreavisoGruposCache.grupos.forEach(g => {
+    const idSeguro = g.nome.replace(/[^a-zA-Z0-9]/g, '_');
+    if (!marcados.includes(idSeguro)) return;
+    const sel1 = document.getElementById(`ajusteSel1_${idSeguro}`);
+    const sel2 = document.getElementById(`ajusteSel2_${idSeguro}`);
+    if (sel1 && g.pessoas && g.pessoas[0]) sel1.value = g.pessoas[0];
+    if (sel2 && g.pessoas && g.pessoas[1]) sel2.value = g.pessoas[1];
+  });
+}
+
+function _toggleAjusteSobreaviso(idSeguro) {
+  const box = document.getElementById(`ajusteBox_${idSeguro}`);
+  if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function _atualizarTextoSobreaviso(idSeguro) {
+  const item = _sobreavisoTextoCache[idSeguro];
+  if (!item) return;
+  const sel1 = document.getElementById(`ajusteSel1_${idSeguro}`);
+  const sel2 = document.getElementById(`ajusteSel2_${idSeguro}`);
+  const pessoas = [sel1?.value].filter(Boolean);
+  if (item.porBloco === 2 && sel2?.value) pessoas.push(sel2.value);
+  if (pessoas.length !== item.porBloco) {
+    showToast(`Esse grupo precisa de ${item.porBloco} pessoa(s).`, false);
+    return;
+  }
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/sobreaviso-ajustar-texto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bloco: _sobreavisoBlocoAtual, grupo: item.grupoNome, pessoas }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao atualizar');
+    item.texto = data.texto;
+    item.pessoas = data.pessoas;
+    const pre = document.getElementById(`textoSobreavisoPre_${idSeguro}`);
+    if (pre) pre.textContent = data.texto;
+    showToast('Texto atualizado.', true);
+  } catch (e) {
+    showToast('Erro ao atualizar: ' + e.message, false);
+  }
 }
 
 async function _copiarComunicadoSobreaviso(idSeguro) {
