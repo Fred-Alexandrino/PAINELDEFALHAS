@@ -10754,7 +10754,7 @@ function _sobreavisoAtualizarSupervisorInfo() {
   const sups = bloco?.supervisores || [];
   if (sups.length === 0) { el.textContent = ''; return; }
   const txt = sups.map(s => `${s.nome}${s.telefone ? ' (' + s.telefone + ')' : ''}`).join(' + ');
-  el.innerHTML = `👤 Supervisor(es) de plantão nesse período: <strong>${esc(txt)}</strong>`;
+  el.innerHTML = `👤 Supervisor(es) de sobreaviso nesse período: <strong>${esc(txt)}</strong>`;
 }
 
 function _sobreavisoOnBlocoChange(valor) {
@@ -11001,7 +11001,7 @@ async function _conferirCoberturaSobreaviso() {
         <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 Sem ninguém escalado nesse período (${semCobertura.length})</div>
         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead><tr style="text-align:left;color:var(--text-faint);"><th style="padding:6px 10px;">Usina</th><th style="padding:6px 10px;">Cluster</th><th style="padding:6px 10px;">Cliente</th><th style="padding:6px 10px;">Supervisor</th><th style="padding:6px 10px;">Detalhe</th></tr></thead>
-          <tbody>${semCobertura.map(i => linhaTabela(i, `${(i.pessoas||[]).length}/${i.esperado} plantonista(s)`)).join('')}</tbody>
+          <tbody>${semCobertura.map(i => linhaTabela(i, `${(i.pessoas||[]).length}/${i.esperado} pessoa(s) de sobreaviso`)).join('')}</tbody>
         </table></div>
       </div>`;
     }
@@ -11016,10 +11016,10 @@ async function _conferirCoberturaSobreaviso() {
     }
     if (foraSla.length > 0) {
       secoes += `<div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">🟡 Tem plantonista, mas fora do SLA de deslocamento contratual (${foraSla.length})</div>
+        <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">🟡 Tem sobreaviso, mas fora do SLA de deslocamento contratual (${foraSla.length})</div>
         <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
           <thead><tr style="text-align:left;color:var(--text-faint);"><th style="padding:6px 10px;">Usina</th><th style="padding:6px 10px;">Cluster</th><th style="padding:6px 10px;">Cliente</th><th style="padding:6px 10px;">Supervisor</th><th style="padding:6px 10px;">Detalhe</th></tr></thead>
-          <tbody>${foraSla.map(i => linhaTabela(i, `de plantão: ${(i.pessoas||[]).join(' + ')}`)).join('')}</tbody>
+          <tbody>${foraSla.map(i => linhaTabela(i, `de sobreaviso: ${(i.pessoas||[]).join(' + ')}`)).join('')}</tbody>
         </table></div>
       </div>`;
     }
@@ -11136,7 +11136,7 @@ function _gerarTratativasSupervisores() {
 
   const texto = (
     `🛠️ Tratativas de Sobreaviso — ${label}\n` +
-    (supsTxt ? `Supervisor(es) de plantão: ${supsTxt}\n\n` : '\n') +
+    (supsTxt ? `Supervisor(es) de sobreaviso: ${supsTxt}\n\n` : '\n') +
     livre + `\n\n` +
     `Qualquer dúvida, chamar quem estiver de plantão.`
   );
