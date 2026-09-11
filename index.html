@@ -10865,7 +10865,7 @@ function _gerarComunicadosSobreaviso() {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">📍 ${esc(g.clusters.join(' + '))}</div>
-          <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${esc(g.supervisores.join(' + '))} · ${esc(g.clientes.join(', '))}${g.dupla ? ' · dupla de plantão' : ''}</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${esc(g.supervisores.join(' + '))} · ${esc(g.clientes.join(', '))}${g.dupla ? ' · dupla de sobreaviso' : ''}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="_copiarComunicadoSobreaviso('${esc(idSeguro)}')" style="background:var(--teal);border:none;color:#04231e;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
@@ -11046,7 +11046,7 @@ async function _conferirCoberturaSobreaviso() {
   }
 }
 
-// ── Meu Sobreaviso: avisar técnicos/clientes que EU estarei de plantão ──
+// ── Meu Sobreaviso: avisar técnicos/clientes que EU estarei de sobreaviso ──
 let _sobreavisoMeuCache = {};  // idCard -> {texto, equipes?}
 
 async function _gerarMeuSobreaviso(audiencia) {
@@ -11138,7 +11138,7 @@ function _gerarTratativasSupervisores() {
     `🛠️ Tratativas de Sobreaviso — ${label}\n` +
     (supsTxt ? `Supervisor(es) de sobreaviso: ${supsTxt}\n\n` : '\n') +
     livre + `\n\n` +
-    `Qualquer dúvida, chamar quem estiver de plantão.`
+    `Qualquer dúvida, chamar quem estiver de sobreaviso.`
   );
   _sobreavisoTratativasTexto = texto;
 
