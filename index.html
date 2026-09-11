@@ -11059,7 +11059,7 @@ async function _gerarMeuSobreaviso(audiencia) {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/sobreaviso-meu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bloco: _sobreavisoBlocoAtual, audiencia, grupos: nomesGrupos, quem: 'Fred Alexandrino' }),
+      body: JSON.stringify({ bloco: _sobreavisoBlocoAtual, audiencia, grupos: nomesGrupos }),
       signal: AbortSignal.timeout(20000),
     });
     const data = await resp.json();
