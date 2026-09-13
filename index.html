@@ -218,12 +218,13 @@ body{
 .sb-nav-item.sb-dragging{opacity:.35;}
 .sb-nav-item.sb-drag-over-top{box-shadow:inset 0 2px 0 0 var(--amber);}
 .sb-nav-item.sb-drag-over-bottom{box-shadow:inset 0 -2px 0 0 var(--amber);}
-.sb-nav-item.sb-section-start{position:relative;margin-top:20px;}
+.sb-nav-item.sb-section-start{flex-wrap:wrap;margin-top:16px;padding-top:14px;}
 .sb-nav-item.sb-section-start::before{
   content:attr(data-section-label);
-  position:absolute;top:-17px;left:10px;
+  flex:1 0 100%;order:-1;
   font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--text-faint);font-weight:600;pointer-events:none;
+  color:var(--text-faint);font-weight:600;
+  margin-bottom:5px;pointer-events:none;
 }
 
 /* Central de Notificações — pop-up central, estilo WhatsApp */
@@ -3810,7 +3811,7 @@ function _toggleGrupoFerramentas(forcarAberto) {
 
 // ── Reordenar itens do menu lateral por drag-and-drop ──────────────────
 // A ordem escolhida fica salva no navegador (localStorage), por usuário/dispositivo.
-const SB_NAV_ORDER_KEY = 'sbNavOrder_v1';
+const SB_NAV_ORDER_KEY = 'sbNavOrder_v2';
 
 function _sbNavTopItems() {
   const nav = document.getElementById('sbNav');
