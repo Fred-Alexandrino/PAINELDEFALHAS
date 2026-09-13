@@ -3,7 +3,7 @@
  * v2 — Push notifications + Cache offline
  */
 
-const CACHE_NAME   = 'painel-om-v4';
+const CACHE_NAME   = 'painel-om-v5';
 const CACHE_URLS   = [
   '/PAINELDEFALHAS/',
   '/PAINELDEFALHAS/index.html',
