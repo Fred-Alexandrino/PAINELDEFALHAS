@@ -183,7 +183,7 @@ body{
 .sb-nav-item:hover{color:#ededed;background:rgba(255,255,255,0.04);}
 .sb-nav-sub{padding-left:26px;font-size:12px;}
 .sb-nav-sub svg{width:13px;height:13px;}
-.sb-nav-item.active{color:#ededed;font-weight:500;background:rgba(255,255,255,0.07);}
+.sb-nav-item.active{color:var(--teal);font-weight:600;background:rgba(159,232,112,.12);}
 .sb-nav-item.active::before{display:none;}
 .sb-nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none;opacity:.6;}
 .sb-nav-item.active svg,.sb-nav-item:hover svg{opacity:1;}
@@ -453,7 +453,7 @@ body{
 .sb-action-btn{width:100%;display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);color:#F5A623;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-bottom:4px;}
 .sb-action-btn:hover{background:rgba(245,166,35,.14);border-color:rgba(245,166,35,.35);}
 .sb-action-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
-#sbSketchbookBtn.active{background:rgba(155,135,245,.22)!important;border-color:rgba(155,135,245,.55)!important;}
+#sbSketchbookBtn.active{background:rgba(159,232,112,.22)!important;border-color:rgba(159,232,112,.55)!important;}
 
 /* Modal de Nova Ocorrência e OS rápida — reutiliza ch-overlay */
 .nova-oc-field{margin-bottom:12px;}
@@ -778,17 +778,17 @@ body{
   .tab-count{font-size:11px !important;padding:1px 4px !important;}
 }
 .tab-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.tab-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.tab-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);border-bottom:2px solid var(--teal);}
 .tab-count{background:var(--border);color:var(--text-dim);border-radius:99px;font-size:13px;font-weight:600;padding:1px 6px;}
 .tab-btn.active .tab-count{background:var(--amber);color:#000;}
 .view-toggle{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:#888;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 .view-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.view-btn.active{background:#1a1a1a;color:#ededed;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.view-btn.active{background:var(--teal);color:#062F28;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .sort-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap;overflow-x:hidden;margin-bottom:10px;}
 .sort-label{font-size:13px;color:var(--text-faint);font-family:'Geist Mono',monospace;white-space:nowrap;}
 .sort-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#777;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;flex:none;font-weight:400;}
-.sort-btn.active{border-color:rgba(255,255,255,0.2);color:#ededed;background:rgba(255,255,255,0.07);}
+.sort-btn.active{border-color:var(--teal);color:var(--teal);background:rgba(159,232,112,.08);}
 
 /* Ícones compactos (visualização/ordem) — mesma função, sem texto fixo */
 .icon-toggle-group{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
@@ -798,7 +798,7 @@ body{
   width:28px;height:28px;cursor:pointer;transition:.15s;flex:none;
 }
 .icon-toggle-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.icon-toggle-btn.active{background:#1a1a1a;color:#ededed;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.icon-toggle-btn.active{background:var(--teal);color:#062F28;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 #ativKanbanOrdemBtn{border:1px solid rgba(255,255,255,0.08);border-radius:8px;}
 
 /* Menu "Ações" — consolida Reprogramações/Comunicados/Atualizar OS/Auditoria */
@@ -924,7 +924,7 @@ body{
 .page-btns{display:flex;gap:3px;}
 .page-btn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);border-radius:5px;padding:4px 9px;font-size:13px;cursor:pointer;font-family:'Geist Mono',monospace;transition:.15s;min-width:30px;text-align:center;}
 .page-btn:hover:not(:disabled){border-color:var(--amber);color:var(--amber);}
-.page-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(242,169,59,.08);font-weight:700;}
+.page-btn.active{border-color:var(--teal);color:var(--teal);background:rgba(159,232,112,.08);font-weight:700;}
 .page-btn:disabled{opacity:.35;cursor:not-allowed;}
 .rows-select{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);border-radius:5px;padding:4px 7px;font-size:13px;font-family:'Geist Mono',monospace;cursor:pointer;outline:none;}
 .rows-select option,.zs-select option,select option{color:var(--text);background:var(--panel);}
@@ -1082,7 +1082,7 @@ body{
 .rondas-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 .rondas-grupo-item{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-soft);transition:.15s;position:relative;}
 .rondas-grupo-item:hover{background:var(--panel);}
-.rondas-grupo-item.active{background:var(--panel);border-left:3px solid #7DC8F0;}
+.rondas-grupo-item.active{background:var(--panel);border-left:3px solid var(--teal);}
 .rondas-grupo-item.active .rg-nome{color:#7DC8F0;}
 .rg-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--text-faint);}
 .rg-dot.has-msgs{background:var(--teal);}
@@ -1323,7 +1323,7 @@ body{
     text-transform:uppercase;
   }
   .bn-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
-  .bn-item.active{color:var(--amber);}
+  .bn-item.active{color:var(--teal);}
 
   /* Toast: acima do bottom nav */
   .toast{bottom:70px;}
