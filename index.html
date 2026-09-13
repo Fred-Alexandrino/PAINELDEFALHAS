@@ -3423,7 +3423,12 @@ function applyTheme(t) {
   const meta = document.getElementById('themeColorMeta');
   if (meta) meta.content = t === 'light' ? '#EEF3F8' : '#0A0F14';
 }
-try { document.getElementById('themeToggle').addEventListener('click', () => { const current = document.documentElement.getAttribute('data-theme') || 'dark'; applyTheme(current === 'dark' ? 'light' : 'dark'); }); } catch(e) {}
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('#themeToggle');
+  if (!btn) return;
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
 
 /* ══ RELÓGIO TOPBAR ══ */
 function updateClock() {
