@@ -2434,6 +2434,9 @@ body{
                 <input type="checkbox" id="sobreavisoSoMinhas" onchange="_sobreavisoCarregarGrupos()" style="cursor:pointer;accent-color:#8B7EDB;">
                 Só minhas usinas (Fred Alexandrino)
               </label>
+              <select id="sobreavisoSupervisorFiltro" class="sb-select" style="width:auto;min-width:210px;" onchange="_sobreavisoCarregarGrupos()">
+                <option value="">Todos os supervisores</option>
+              </select>
               <span id="sobreavisoFiltroLateralInfo" style="font-size:12px;color:var(--text-faint);"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -10770,8 +10773,10 @@ function _sobreavisoOnBlocoChange(valor) {
 // "match parcial" que outros painéis usam pra listas fundidas).
 function _sobreavisoFiltroAtivo() {
   const soMinhas = document.getElementById('sobreavisoSoMinhas')?.checked || false;
+  const supervisor = document.getElementById('sobreavisoSupervisorFiltro')?.value || '';
   return {
     soMinhas,
+    supervisor,
     clientes: (typeof selCliente !== 'undefined') ? selCliente : new Set(),
     usinas: (typeof selUsinaValues !== 'undefined') ? selUsinaValues : new Set(),
     cluster: (typeof _ativClusterFiltro !== 'undefined') ? _ativClusterFiltro : '',
@@ -10780,6 +10785,7 @@ function _sobreavisoFiltroAtivo() {
 
 function _sobreavisoUsinaPassaFiltro(u, f) {
   if (f.soMinhas && (u.supervisor || '').trim().toLowerCase() !== 'fred alexandrino') return false;
+  if (f.supervisor && (u.supervisor || '').trim().toLowerCase() !== f.supervisor.trim().toLowerCase()) return false;
   if (f.clientes.size > 0 && !(typeof _mesmoCliente === 'function' ? [...f.clientes].some(c => _mesmoCliente(c, u.cliente)) : f.clientes.has(u.cliente))) return false;
   if (f.usinas.size > 0 && !f.usinas.has(u.usina)) return false;
   if (f.cluster && u.equipe !== f.cluster) return false;
@@ -10787,7 +10793,7 @@ function _sobreavisoUsinaPassaFiltro(u, f) {
 }
 
 function _sobreavisoGrupoPassaFiltro(g, f) {
-  if (!f.soMinhas && f.clientes.size === 0 && f.usinas.size === 0 && !f.cluster) return true;
+  if (!f.soMinhas && !f.supervisor && f.clientes.size === 0 && f.usinas.size === 0 && !f.cluster) return true;
   return (g.usinas || []).some(u => _sobreavisoUsinaPassaFiltro(u, f));
 }
 
@@ -10795,8 +10801,19 @@ function _sobreavisoAtualizarInfoFiltro(totalGrupos, totalFiltrados) {
   const el = document.getElementById('sobreavisoFiltroLateralInfo');
   if (!el) return;
   const f = _sobreavisoFiltroAtivo();
-  const algumFiltro = f.soMinhas || f.clientes.size > 0 || f.usinas.size > 0 || !!f.cluster;
+  const algumFiltro = f.soMinhas || !!f.supervisor || f.clientes.size > 0 || f.usinas.size > 0 || !!f.cluster;
   el.textContent = algumFiltro ? `Filtro ativo — mostrando ${totalFiltrados} de ${totalGrupos} equipes` : '';
+}
+
+function _sobreavisoPopularSupervisores(grupos) {
+  const sel = document.getElementById('sobreavisoSupervisorFiltro');
+  if (!sel) return;
+  const atual = sel.value;
+  const nomes = new Set();
+  (grupos || []).forEach(g => (g.usinas || []).forEach(u => { if (u.supervisor) nomes.add(u.supervisor.trim()); }));
+  const ordenados = [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  sel.innerHTML = '<option value="">Todos os supervisores</option>' + ordenados.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if (ordenados.includes(atual)) sel.value = atual;
 }
 
 let _sobreavisoIdParaNome = {};  // idSeguro -> nome do grupo (pra "Meu Sobreaviso")
@@ -10822,6 +10839,7 @@ async function _sobreavisoCarregarGrupos() {
     if (!data.ok) throw new Error(data.error || 'Erro ao montar comunicados');
     _sobreavisoGruposCache = data;
     tipoEl.textContent = data.bloco.tipo;
+    _sobreavisoPopularSupervisores(data.grupos);
     const f = _sobreavisoFiltroAtivo();
     const gruposFiltrados = data.grupos.filter(g => _sobreavisoGrupoPassaFiltro(g, f));
     _sobreavisoAtualizarInfoFiltro(data.grupos.length, gruposFiltrados.length);
@@ -10829,9 +10847,14 @@ async function _sobreavisoCarregarGrupos() {
       const idSeguro = g.nome.replace(/[^a-zA-Z0-9]/g, '_');
       _sobreavisoIdParaNome[idSeguro] = g.nome;
       const pessoasTxt = (g.pessoas || []).join(' + ') || 'sem cobertura definida';
-      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
-        <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:#8B7EDB;flex:none;">
-        <span style="flex:1;font-size:13px;color:var(--text);">${esc(g.clusters.join(' + '))}${g.dupla ? ' <span style="color:#8B7EDB;font-size:11.5px;">· dupla</span>' : ''}</span>
+      const usinasTxt = [...new Set((g.usinas || []).map(u => u.usina).filter(Boolean))].join(', ') || '—';
+      const supervisoresTxt = (g.supervisores || []).join(' + ') || '—';
+      return `<label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+        <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:#8B7EDB;flex:none;margin-top:2px;">
+        <span style="flex:1;">
+          <span style="font-size:13px;color:var(--text);display:block;">${esc(g.clusters.join(' + '))}${g.dupla ? ' <span style="color:#8B7EDB;font-size:11.5px;">· dupla</span>' : ''}</span>
+          <span style="font-size:11.5px;color:var(--text-faint);display:block;margin-top:2px;">${esc(usinasTxt)} · Supervisor: ${esc(supervisoresTxt)}</span>
+        </span>
         <span style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;">${esc(pessoasTxt)}</span>
       </label>`;
     }).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhuma equipe encontrada com os filtros atuais.</div>`;
