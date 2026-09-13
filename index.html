@@ -764,7 +764,7 @@ body{
 }
 .list-header-bar .sort-group{margin-bottom:0;margin-top:10px;padding-top:10px;border-top:1px solid rgba(159,232,112,.15);}
 .tabs-wrapper{display:flex;align-items:center;gap:2px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:3px;flex-wrap:wrap;}
-.tab-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text-dim);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
+.tab-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text-dim);border-radius:10px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 @media(max-width:480px){
   .tab-btn{padding:5px 7px;font-size:13px;gap:4px;}
   .tab-btn svg{width:11px;height:11px;flex:none;}
@@ -11948,7 +11948,7 @@ async function _ativVerificarOsAgora(id, btnEl) {
 
 function _ativKanbanColuna(titulo, cor, lista, estadoKey) {
   const idsParaVerificar = lista.filter(a => a.numeroOS).map(a => a.id);
-  return `<div style="background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+  return `<div style="background:var(--panel-alt);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:2px solid ${cor};background:${cor}11;">
       <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
       <div style="display:flex;align-items:center;gap:6px;">
