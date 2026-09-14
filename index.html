@@ -3430,11 +3430,11 @@ window.addEventListener('unhandledrejection', function(e) {
 
 /* ══ TEMA ══ */
 (function initTheme() {
-  try { const saved = localStorage.getItem('om_theme'); const prefer = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; applyTheme(saved || prefer); } catch(e) {}
+  try { const saved = localStorage.getItem('om_theme_v2'); applyTheme(saved || 'dark'); } catch(e) {}
 })();
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('om_theme', t);
+  localStorage.setItem('om_theme_v2', t);
   const meta = document.getElementById('themeColorMeta');
   if (meta) meta.content = t === 'light' ? '#F3F5F2' : '#0B1210';
 }
