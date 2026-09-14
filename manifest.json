@@ -1,11 +1,11 @@
 {
-  "name": "Central O&M — Grid Co",
+  "name": "Central O&M \u2014 Grid Co",
   "short_name": "Central O&M",
   "start_url": "/PAINELDEFALHAS/",
   "scope": "/PAINELDEFALHAS/",
   "display": "standalone",
-  "background_color": "#0A0F14",
-  "theme_color": "#0A0F14",
+  "background_color": "#0B1210",
+  "theme_color": "#0B1210",
   "icons": [
     {
       "src": "/PAINELDEFALHAS/icon-192.png",
