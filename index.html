@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0A0F14" id="themeColorMeta">
+<meta name="theme-color" content="#0B1210" id="themeColorMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Central O&M — Grid Co</title>
@@ -3428,7 +3428,7 @@ function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('om_theme', t);
   const meta = document.getElementById('themeColorMeta');
-  if (meta) meta.content = t === 'light' ? '#EEF3F8' : '#0A0F14';
+  if (meta) meta.content = t === 'light' ? '#F3F5F2' : '#0B1210';
 }
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('#themeToggle');
