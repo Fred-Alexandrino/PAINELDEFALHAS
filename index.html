@@ -2449,7 +2449,7 @@ body{
             <div id="sobreavisoSupervisorInfo" style="font-size:12.5px;color:var(--text-dim);margin-bottom:14px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;"></div>
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
               <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;">
-                <input type="checkbox" id="sobreavisoSoMinhas" onchange="_sobreavisoCarregarGrupos()" style="cursor:pointer;accent-color:#8B7EDB;">
+                <input type="checkbox" id="sobreavisoSoMinhas" onchange="_sobreavisoCarregarGrupos()" style="cursor:pointer;accent-color:var(--teal);">
                 Só minhas usinas (Fred Alexandrino)
               </label>
               <select id="sobreavisoSupervisorFiltro" class="sb-select" style="width:auto;min-width:210px;" onchange="_sobreavisoCarregarGrupos()">
@@ -10617,7 +10617,7 @@ async function _comZeladoriaRefresh() {
     document.getElementById('comunicadoZelSemanaLabel').textContent = `Semana ${data.semana} · Clusters com usinas cadastradas`;
     const lista = document.getElementById('comunicadoZelListaClusters');
     lista.innerHTML = data.clusters.map(c => `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
-      <input type="checkbox" class="comunicado-zel-cluster-check" value="${esc(c.cluster)}" checked style="width:16px;height:16px;accent-color:#5B9BD5;flex:none;">
+      <input type="checkbox" class="comunicado-zel-cluster-check" value="${esc(c.cluster)}" checked style="width:16px;height:16px;accent-color:var(--teal);flex:none;">
       <span style="flex:1;font-size:13px;color:var(--text);">${esc(c.cluster)}</span>
       <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">${c.usinas.length} usina${c.usinas.length!==1?'s':''}</span>
     </label>`).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhum cluster com usina cadastrada. Configure em _Sistema: "cluster_usina:&lt;Usina&gt;".</div>`;
@@ -10873,7 +10873,7 @@ async function _sobreavisoCarregarGrupos() {
       const usinasTxt = [...new Set((g.usinas || []).map(u => u.usina).filter(Boolean))].join(', ') || '—';
       const supervisoresTxt = (g.supervisores || []).join(' + ') || '—';
       return `<label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
-        <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:#8B7EDB;flex:none;margin-top:2px;">
+        <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:var(--teal);flex:none;margin-top:2px;">
         <span style="flex:1;">
           <span style="font-size:13px;color:var(--text);display:block;">${esc(g.clusters.join(' + '))}${g.dupla ? ' <span style="color:#8B7EDB;font-size:11.5px;">· dupla</span>' : ''}</span>
           <span style="font-size:11.5px;color:var(--text-faint);display:block;margin-top:2px;">${esc(usinasTxt)} · Supervisor: ${esc(supervisoresTxt)}</span>
