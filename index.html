@@ -151,6 +151,10 @@ body{
   height:100%;overflow:hidden;
   position:relative;z-index:10;
 }
+#sidebarResizeHandle:hover,#sidebarResizeHandle.resizing{background:rgba(159,232,112,.35);}
+body.sidebar-resizing{cursor:col-resize;user-select:none;}
+body.sidebar-resizing *{pointer-events:none;}
+body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
 /* Zona 1 — Logo */
 .sb-logo{
@@ -349,9 +353,12 @@ body{
 .sb-toggle-all-btn.active{border-color:var(--teal);border-style:solid;color:var(--teal);background:rgba(159,232,112,.06);}
 .sb-chip{
   font-family:'Geist Mono',monospace;font-size:12px;font-weight:700;
-  padding:2px 7px;border-radius:5px;cursor:pointer;
+  padding:2px 7px;border-radius:5px;cursor:grab;
   border:1px solid;transition:.15s;
 }
+.sb-chip:active{cursor:grabbing;}
+.sb-chip.sb-chip-dragging{opacity:.35;}
+.sb-chip.sb-chip-drag-over{box-shadow:inset 2px 0 0 0 var(--teal);}
 
 /* Select compacto */
 .sb-select{
@@ -1414,6 +1421,7 @@ body{
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
+    <div id="sidebarResizeHandle" title="Arraste para ajustar a largura" style="position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize;z-index:20;"></div>
 
     <!-- Zona 1: Logo -->
     <div class="sb-logo">
@@ -3437,6 +3445,44 @@ document.addEventListener('click', function(e) {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 });
 
+// Redimensionamento da sidebar (arrastar a alça na borda direita)
+(function () {
+  const SIDEBAR_W_KEY = 'sidebarWidth_v1';
+  const MIN_W = 180, MAX_W = 360;
+  const handle = document.getElementById('sidebarResizeHandle');
+  if (!handle) return;
+
+  const salvo = parseInt(localStorage.getItem(SIDEBAR_W_KEY) || '', 10);
+  if (salvo && salvo >= MIN_W && salvo <= MAX_W) {
+    document.documentElement.style.setProperty('--sidebar-w', salvo + 'px');
+  }
+
+  let arrastando = false;
+  handle.addEventListener('mousedown', (e) => {
+    arrastando = true;
+    handle.classList.add('resizing');
+    document.body.classList.add('sidebar-resizing');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!arrastando) return;
+    const nova = Math.min(MAX_W, Math.max(MIN_W, e.clientX));
+    document.documentElement.style.setProperty('--sidebar-w', nova + 'px');
+  });
+  document.addEventListener('mouseup', () => {
+    if (!arrastando) return;
+    arrastando = false;
+    handle.classList.remove('resizing');
+    document.body.classList.remove('sidebar-resizing');
+    const atual = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w').trim();
+    localStorage.setItem(SIDEBAR_W_KEY, parseInt(atual, 10));
+  });
+  handle.addEventListener('dblclick', () => {
+    document.documentElement.style.setProperty('--sidebar-w', '220px');
+    localStorage.setItem(SIDEBAR_W_KEY, '220');
+  });
+})();
+
 /* ══ RELÓGIO TOPBAR ══ */
 function updateClock() {
   const el = document.getElementById('topbarClock');
@@ -5067,6 +5113,19 @@ async function _carregarClientesConfigurados() {
   }
 }
 
+const CLI_CHIP_ORDER_KEY = 'cliChipOrder_v1';
+
+function _cliChipOrdemSalva() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CLI_CHIP_ORDER_KEY) || 'null');
+    return Array.isArray(saved) ? saved : [];
+  } catch (e) { return []; }
+}
+
+function _cliChipSalvarOrdem(ordem) {
+  try { localStorage.setItem(CLI_CHIP_ORDER_KEY, JSON.stringify(ordem)); } catch (e) {}
+}
+
 function _clientesDisponiveis() {
   const doFalhas = DATA.map(d => d.cliente);
   const daAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.cliente) : []);
@@ -5084,7 +5143,18 @@ function _clientesDisponiveis() {
   for (const oficial of CLIENTES_CONFIGURADOS) {
     porChaveNormalizada.set(oficial.trim().toUpperCase(), oficial);
   }
-  return [...porChaveNormalizada.values()].sort();
+  const alfabetico = [...porChaveNormalizada.values()].sort();
+  // Aplica a ordem que o usuário arrastou manualmente na sidebar; qualquer
+  // cliente novo (ainda sem posição salva) entra no fim, em ordem alfabética.
+  const ordemSalva = _cliChipOrdemSalva();
+  if (!ordemSalva.length) return alfabetico;
+  const restantes = new Set(alfabetico);
+  const resultado = [];
+  for (const nome of ordemSalva) {
+    if (restantes.has(nome)) { resultado.push(nome); restantes.delete(nome); }
+  }
+  resultado.push(...[...restantes].sort());
+  return resultado;
 }
 
 // Compara nomes de cliente ignorando maiúsculas/minúsculas — usar em vez
@@ -5103,7 +5173,7 @@ function renderClienteChips() {
   wrap.innerHTML = clientes.map(c => {
     const cc = clientColor(c);
     const isSel = selCliente.has(c);
-    return `<span class="sb-chip" data-cliente="${esc(c)}" style="color:${cc.color};background:${cc.color}${isSel?'30':'12'};border-color:${cc.color}${isSel?'70':'30'};">${esc(c)}</span>`;
+    return `<span class="sb-chip" data-cliente="${esc(c)}" draggable="true" style="color:${cc.color};background:${cc.color}${isSel?'30':'12'};border-color:${cc.color}${isSel?'70':'30'};">${esc(c)}</span>`;
   }).join('');
 
   wrap.querySelectorAll('.sb-chip').forEach(chip => {
@@ -5112,6 +5182,33 @@ function renderClienteChips() {
       selCliente.has(c) ? selCliente.delete(c) : selCliente.add(c);
       populateFilters();
       applyFilters();
+    });
+    chip.addEventListener('dragstart', (e) => {
+      chip.classList.add('sb-chip-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', chip.dataset.cliente);
+    });
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('sb-chip-dragging');
+      wrap.querySelectorAll('.sb-chip-drag-over').forEach(el => el.classList.remove('sb-chip-drag-over'));
+    });
+    chip.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      chip.classList.add('sb-chip-drag-over');
+    });
+    chip.addEventListener('dragleave', () => chip.classList.remove('sb-chip-drag-over'));
+    chip.addEventListener('drop', (e) => {
+      e.preventDefault();
+      chip.classList.remove('sb-chip-drag-over');
+      const draggedNome = e.dataTransfer.getData('text/plain');
+      const alvoNome = chip.dataset.cliente;
+      if (!draggedNome || draggedNome === alvoNome) return;
+      const draggedEl = wrap.querySelector(`.sb-chip[data-cliente="${CSS.escape(draggedNome)}"]`);
+      if (!draggedEl) return;
+      const irDepois = [...wrap.children].indexOf(draggedEl) < [...wrap.children].indexOf(chip);
+      wrap.insertBefore(draggedEl, irDepois ? chip.nextSibling : chip);
+      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip')].map(el => el.dataset.cliente));
     });
   });
 
