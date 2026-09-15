@@ -56,6 +56,9 @@
 [data-theme="light"] .kanban-col-head{background:#ECEEEA!important;border-bottom-color:#DDE2D8!important;}
 [data-theme="light"] .kanban-col-body .card{background:#FFFFFF;border-color:#E1E8DC;}
 [data-theme="light"] .kanban-col-body .card:hover{background:#F7F9F6;border-color:#C7D3C0;}
+[data-theme="light"] .topbar{background:#FFFFFF;border-bottom-color:#E1E8DC;}
+[data-theme="light"] .kpi.kpi-alert{background:#FFFFFF;border:2px solid var(--kpi-color,#EF4444);}
+[data-theme="light"] .kpi.kpi-alert .num,[data-theme="light"] .kpi.kpi-alert .label{color:#062F28;}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -767,15 +770,18 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .bar-row:hover .bar-row-hint{opacity:1;}
 .bar-label{font-size:12.5px;flex:0 0 auto;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:400;}
 .bar-track{flex:1;height:3px;background:var(--border-strong);border-radius:3px;overflow:hidden;min-width:40px;}
+[data-theme="light"] .bar-track{background:rgba(6,47,40,.18);}
 .bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
 .bar-fill.pulse-bar{animation:barPulse 1.8s ease-in-out infinite;}
 @keyframes barPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
 .bar-count{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;color:var(--text-dim);min-width:20px;text-align:right;flex:none;}
-#statusBars .bar-row,#ativStatusBars .bar-row{justify-content:space-between;padding:11px 4px;border-bottom:1px solid var(--border-soft);border-radius:0;}
-#statusBars .bar-row:last-child,#ativStatusBars .bar-row:last-child{border-bottom:none;}
-#statusBars .bar-track,#ativStatusBars .bar-track{display:none;}
-#statusBars .bar-label,#ativStatusBars .bar-label{font-size:13.5px;max-width:none;flex:1;}
-#statusBars .bar-count,#ativStatusBars .bar-count{font-family:'Geist',sans-serif;font-size:17px;font-weight:700;color:var(--text);}
+.bar-dot{display:none;width:8px;height:8px;border-radius:50%;flex:none;}
+#statusBars .bar-dot,#ativStatusBars .bar-dot,#ativPrioridadeBars .bar-dot{display:inline-block;}
+#statusBars .bar-row,#ativStatusBars .bar-row,#ativPrioridadeBars .bar-row{justify-content:space-between;padding:11px 4px;border-bottom:1px solid var(--border-soft);border-radius:0;}
+#statusBars .bar-row:last-child,#ativStatusBars .bar-row:last-child,#ativPrioridadeBars .bar-row:last-child{border-bottom:none;}
+#statusBars .bar-track,#ativStatusBars .bar-track,#ativPrioridadeBars .bar-track{display:none;}
+#statusBars .bar-label,#ativStatusBars .bar-label,#ativPrioridadeBars .bar-label{font-size:13.5px;max-width:none;flex:1;}
+#statusBars .bar-count,#ativStatusBars .bar-count,#ativPrioridadeBars .bar-count{font-family:'Geist',sans-serif;font-size:17px;font-weight:700;color:var(--text);}
 
 /* ══════════════════════════════════════════════════════════
    GRID CONTROLS + ABAS
@@ -5860,7 +5866,7 @@ function renderKPIs() {
     {num:tot,       label:'Ocorrências ativas',  color:'var(--text-dim)', glow:'transparent', icon:`<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, cls:''},
     {num:abertos,   label:'Ocorrências em aberto',         color:'var(--amber)',   glow:'rgba(242,169,59,.08)',  icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`, cls:''},
     {num:invCount, label:'Inversores com ocorrências', color:'var(--text-dim)', glow:'transparent', icon:`<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="6" y1="11" x2="6" y2="13"/><line x1="10" y1="11" x2="10" y2="13"/><line x1="14" y1="11" x2="18" y2="13"/><line x1="18" y1="11" x2="14" y2="13"/></svg>`, cls:'kpi-invfilter'+(activeInvFilter?' active-filter':''), id:'kpiInvFilter', title:'Clique para filtrar inversores com ocorrências em aberto'},
-    {num:desligCount,label:'Usinas desligadas', color:'var(--red)',     glow:'rgba(226,84,61,.12)',  icon:`<svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`, cls:'kpi-deslig', id:'kpiDeslig', title:'Clique para filtrar desligamentos'},
+    {num:desligCount,label:'Usinas desligadas', color:'var(--red)',     glow:'rgba(226,84,61,.12)',  icon:`<svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`, cls:'kpi-deslig kpi-alert', id:'kpiDeslig', title:'Clique para filtrar desligamentos'},
     {num: tempoAtivoMedia !== null ? Math.round(tempoAtivoMedia) : '—', label:'Tempo ativo O&M', sub: tempoAtivoMedia !== null ? 'média 90d · dias (T1+T2+T4)' : 'sem dados suficientes', color:'var(--teal)', glow:'rgba(159,232,112,.1)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, cls:''},
     {num: resolvidas7d.length, label:'Resolvidas (7d)', sub: mttr7d !== null ? `MTTR ${mttr7d.toFixed(1)}d` : 'sem dados', color:'var(--sla-ok)', glow:'rgba(34,197,94,.1)', icon:`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`, cls:''},
   ];
@@ -5921,6 +5927,7 @@ function makeBar(id, entries, totalId) {
   :entries.map(([label,count,color,pulse])=>{
     const pulseClass = pulse ? 'pulse-bar' : '';
     return `<div class="bar-row" data-group="${esc(label)}">
+      <span class="bar-dot" style="background:${color||'var(--amber)'}"></span>
       <div class="bar-label" title="${esc(label)}">${esc(label)}</div>
       <div class="bar-track"><div class="bar-fill ${pulseClass}" style="width:${(count/max)*100}%;background:${color||'var(--amber)'}"></div></div>
       <div class="bar-count">${count}</div>
@@ -11759,10 +11766,10 @@ function _ativRenderKpis() {
      cls:'kpi-clickable', id:'kpiAtivAberto', title:'Clique para ver as atividades em aberto'},
     {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)',
      icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-     cls:'kpi-clickable'+(_ativFiltroAtrasada?' active-filter':''), id:'kpiAtivAtrasadas', title:'Clique para filtrar só as atrasadas'},
+     cls:'kpi-clickable kpi-alert'+(_ativFiltroAtrasada?' active-filter':''), id:'kpiAtivAtrasadas', title:'Clique para filtrar só as atrasadas'},
     {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'var(--amber)', glow:'rgba(245,166,35,.1)',
      icon:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
-     cls:'kpi-clickable'+(_ativFiltroPrioridadeAlta?' active-filter':''), id:'kpiAtivPrioridade', title:'Clique para filtrar só prioridade alta (em aberto)'},
+     cls:'kpi-clickable kpi-alert'+(_ativFiltroPrioridadeAlta?' active-filter':''), id:'kpiAtivPrioridade', title:'Clique para filtrar só prioridade alta (em aberto)'},
     {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)',
      icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 17.01"/>',
      cls:'kpi-clickable'+(_ativFiltroConcluidas7d?' active-filter':''), id:'kpiAtivConcluidas7d', title:'Clique para ver as concluídas nos últimos 7 dias'},
