@@ -51,6 +51,7 @@
   --teal:#062F28;
   --shadow:0 4px 16px rgba(6,47,40,.12);
 }
+[data-theme="light"] .sidebar{background:#FFFFFF;border-right-color:#E1E8DC;}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -187,7 +188,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-nav-item:hover{color:#ededed;background:rgba(255,255,255,0.04);}
 .sb-nav-sub{padding-left:26px;font-size:12px;}
 .sb-nav-sub svg{width:13px;height:13px;}
-.sb-nav-item.active{color:#062F28;font-weight:700;background:var(--teal);border-radius:12px;padding:7px 12px;}
+.sb-nav-item.active{color:var(--panel);font-weight:700;background:var(--teal);border-radius:12px;padding:7px 12px;}
 .sb-nav-item.active::before{display:none;}
 .sb-nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none;opacity:.6;}
 .sb-nav-item.active svg,.sb-nav-item:hover svg{opacity:1;}
@@ -197,11 +198,11 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   border-radius:99px;background:transparent;
   color:var(--text-faint);border:1px solid var(--border);
 }
-.sb-nav-item.active .sb-nav-badge{color:#062F28;border-color:rgba(6,47,40,.3);background:rgba(6,47,40,.12);}
+.sb-nav-item.active .sb-nav-badge{color:var(--panel);border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12);}
 .sb-nav-badge-unread{
   margin-left:auto;font-family:'Geist Mono',monospace;
   font-size:13px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center;
-  border-radius:99px;background:var(--teal);color:#04231e;border:none;
+  border-radius:99px;background:var(--teal);color:var(--panel);border:none;
 }
 /* Dot de "não lido" nos cards — estilo WhatsApp */
 .card-unread-dot{
@@ -579,7 +580,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   padding:20px 24px 80px;
   -webkit-overflow-scrolling:touch;
   position:relative;z-index:1;
-  background:#000;
+  background:var(--bg);
 }
 .main-content::-webkit-scrollbar{width:5px;}
 .main-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
@@ -791,7 +792,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .view-toggle{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:#888;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 .view-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.view-btn.active{background:var(--teal);color:#062F28;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.view-btn.active{background:var(--teal);color:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .sort-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap;overflow-x:hidden;margin-bottom:10px;}
 .sort-label{font-size:13px;color:var(--text-faint);font-family:'Geist Mono',monospace;white-space:nowrap;}
 .sort-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#777;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;flex:none;font-weight:400;}
@@ -805,7 +806,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   width:28px;height:28px;cursor:pointer;transition:.15s;flex:none;
 }
 .icon-toggle-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.icon-toggle-btn.active{background:var(--teal);color:#062F28;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.icon-toggle-btn.active{background:var(--teal);color:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.4);}
 #ativKanbanOrdemBtn{border:1px solid rgba(255,255,255,0.08);border-radius:8px;}
 
 /* Menu "Ações" — consolida Reprogramações/Comunicados/Atualizar OS/Auditoria */
