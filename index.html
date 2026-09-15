@@ -714,7 +714,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 @media(max-width:1100px){.panels{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.panels{grid-template-columns:1fr;}}
 /* Painel de Atividades — 2 cards (Usina/Status) ocupando toda a largura no PC, empilhados no mobile */
-.panels-ativ{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
+.panels-ativ{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
 @media(max-width:1100px){.panels-ativ{grid-template-columns:1fr 1fr;}}
 @media(max-width:700px){.panels-ativ{grid-template-columns:1fr;}}
 .panel-bars-ativ{max-height:208px;}
@@ -769,6 +769,11 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .bar-fill.pulse-bar{animation:barPulse 1.8s ease-in-out infinite;}
 @keyframes barPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
 .bar-count{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;color:var(--text-dim);min-width:20px;text-align:right;flex:none;}
+#statusBars .bar-row,#ativStatusBars .bar-row{justify-content:space-between;padding:11px 4px;border-bottom:1px solid var(--border-soft);border-radius:0;}
+#statusBars .bar-row:last-child,#ativStatusBars .bar-row:last-child{border-bottom:none;}
+#statusBars .bar-track,#ativStatusBars .bar-track{display:none;}
+#statusBars .bar-label,#ativStatusBars .bar-label{font-size:13.5px;max-width:none;flex:1;}
+#statusBars .bar-count,#ativStatusBars .bar-count{font-family:'Geist',sans-serif;font-size:17px;font-weight:700;color:var(--text);}
 
 /* ══════════════════════════════════════════════════════════
    GRID CONTROLS + ABAS
@@ -2541,6 +2546,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
           <div class="panel" id="ativPanelCluster"><div class="panel-head" onclick="_togglePanel('ativPanelCluster')"><h3>Por cluster</h3><div class="panel-head-right"><span class="panel-total" id="ativClusterTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativClusterBars"></div></div>
           <div class="panel" id="ativPanelUsina"><div class="panel-head" onclick="_togglePanel('ativPanelUsina')"><h3>Atividades por usina</h3><div class="panel-head-right"><span class="panel-total" id="ativUsinaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativUsinaBars"></div></div>
           <div class="panel" id="ativPanelStatus"><div class="panel-head" onclick="_togglePanel('ativPanelStatus')"><h3>Por status</h3><div class="panel-head-right"><span class="panel-total" id="ativStatusTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativStatusBars"></div></div>
+          <div class="panel" id="ativPanelPrioridade"><div class="panel-head" onclick="_togglePanel('ativPanelPrioridade')"><h3>Prioridade</h3><div class="panel-head-right"><span class="panel-total" id="ativPrioridadeTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars panel-bars-ativ" id="ativPrioridadeBars"></div></div>
         </div>
 
         <div class="list-header-bar">
@@ -11821,6 +11827,14 @@ function _ativRenderBreakdowns() {
     const pal = getStatusPalette(k);
     return [k, v, pal.color + 'BB', pal.pulse || false];
   }), 'ativStatusTotal');
+
+  const pMap = { 'Alta': 0, 'Média': 0, 'Baixa': 0 };
+  ativasList.forEach(a => {
+    const p = (a.prioridade || '').trim();
+    const chave = p.toLowerCase() === 'alta' ? 'Alta' : (p.toLowerCase() === 'média' || p.toLowerCase() === 'media') ? 'Média' : 'Baixa';
+    pMap[chave] = (pMap[chave] || 0) + 1;
+  });
+  makeBar('ativPrioridadeBars', ['Alta', 'Média', 'Baixa'].map(k => [k, pMap[k], _prioridadeCor(k) + 'BB']), 'ativPrioridadeTotal');
 
   document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.addEventListener('click', () => {
     const v = r.dataset.group;
