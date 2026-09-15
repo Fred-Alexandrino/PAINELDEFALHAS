@@ -1028,7 +1028,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .d-edit-label{font-size:13px;font-family:'Geist Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);margin-bottom:5px;display:flex;align-items:center;gap:7px;}
 .d-edit-label::after{content:"";flex:1;height:1px;background:var(--border-soft);}
 .d-edit-input,.d-edit-textarea,.d-edit-select{width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;font-size:12.5px;font-family:'Geist',sans-serif;outline:none;transition:.15s;resize:vertical;}
-.d-edit-select{-webkit-appearance:none;cursor:pointer;}
+.d-edit-select{-webkit-appearance:none;-moz-appearance:none;appearance:none;cursor:pointer;}
 .d-edit-select option{color:var(--text);background:var(--panel);}
 .d-edit-input:focus,.d-edit-textarea:focus,.d-edit-select:focus{border-color:var(--amber);background:rgba(242,169,59,.03);}
 .d-edit-textarea{min-height:74px;line-height:1.55;}
@@ -1204,7 +1204,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .zs-concluido{background:rgba(34,197,94,.12);color:var(--sla-ok);border-color:rgba(34,197,94,.3);}
 .zs-atrasado{background:rgba(226,84,61,.12);color:var(--red);border-color:rgba(226,84,61,.3);animation:sla-pulse-border 2.5s infinite;}
 .zs-pendente{background:rgba(107,119,128,.1);color:#6B7780;border-color:rgba(107,119,128,.25);}
-.zs-select{background:transparent;border:none;font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;outline:none;color:inherit;padding:0 2px;-webkit-appearance:none;}
+.zs-select{background:transparent;border:none;font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;outline:none;color:inherit;padding:0 2px;-webkit-appearance:none;-moz-appearance:none;appearance:none;}
 .zel-date{font-family:'Geist Mono',monospace;font-size:13px;color:var(--text-dim);}
 .zel-date.overdue{color:var(--red);font-weight:600;}
 .zel-usina-cell{font-size:12.5px;font-weight:600;color:var(--text);}
