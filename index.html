@@ -114,7 +114,7 @@ body{
   width:100%;
   background:#111;
   border:1px solid rgba(255,255,255,0.12);
-  color:#ededed;
+  color:var(--text);
   padding:11px 14px;font-size:14px;font-weight:400;
   font-family:'Geist',sans-serif;outline:none;
   transition:border-color .15s;
@@ -196,7 +196,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   border-radius:6px;user-select:none;
   font-weight:400;margin:0 6px;
 }
-.sb-nav-item:hover{color:#ededed;background:rgba(255,255,255,0.04);}
+.sb-nav-item:hover{color:var(--text);background:var(--panel-alt);}
 .sb-nav-sub{padding-left:26px;font-size:12px;}
 .sb-nav-sub svg{width:13px;height:13px;}
 .sb-nav-item.active{color:var(--panel);font-weight:700;background:var(--teal);border-radius:12px;padding:7px 12px;}
@@ -225,7 +225,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   background:transparent;border:1px solid var(--border-strong);color:var(--text-faint);
   border-radius:6px;padding:3px 8px;font-size:13px;font-weight:600;cursor:pointer;
 }
-.desligtoggle-btn:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.desligtoggle-btn:hover{color:var(--text);background:var(--panel-alt);}
 .desligtoggle-btn.active-sim{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#EF4444;}
 .desligtoggle-btn.active-nao{background:rgba(159,232,112,.15);border-color:rgba(159,232,112,.4);color:var(--teal);}
 .sb-nav-item.disabled{opacity:.4;cursor:not-allowed;}
@@ -267,12 +267,12 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   background:transparent;border:none;cursor:pointer;color:var(--text-faint);
   padding:4px;display:flex;border-radius:6px;
 }
-.central-notif-close:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.central-notif-close:hover{color:var(--text);background:var(--panel-alt);}
 .central-notif-clear{
   background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);
   border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer;
 }
-.central-notif-clear:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.central-notif-clear:hover{color:var(--text);background:var(--panel-alt);}
 .central-notif-list{
   overflow-y:auto;flex:1;padding:6px;
   scrollbar-color:var(--border-strong) transparent;
@@ -311,8 +311,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .cmp-prazo-chip{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--panel,#111);border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:84px;}
 .cmp-prazo-chip:hover{border-color:var(--teal);}
 .cmp-prazo-chip-urgente{border-color:var(--red);}
-.cmp-prazo-chip-cliente{font-size:13px;color:#d1d5db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
-.cmp-prazo-chip-dias{font-size:12px;font-weight:700;color:#ededed;font-family:'Geist Mono',monospace;}
+.cmp-prazo-chip-cliente{font-size:13px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+.cmp-prazo-chip-dias{font-size:12px;font-weight:700;color:var(--text);font-family:'Geist Mono',monospace;}
 .cmp-prazo-chip-urgente .cmp-prazo-chip-dias{color:var(--red);}
 .cmp-cliente-bloco{scroll-margin-top:20px;background:rgba(255,255,255,.02);border:1px solid var(--border);
   border-radius:12px;padding:16px 16px 14px;height:100%;box-sizing:border-box;}
@@ -322,7 +322,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .cmp-card.cmp-urgente{border-color:var(--amber);}
 .cmp-card.cmp-concluido{opacity:.55;}
 .cmp-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-.cmp-card-title{font-size:14px;font-weight:700;color:#ededed;}
+.cmp-card-title{font-size:14px;font-weight:700;color:var(--text);}
 .cmp-card-sub{font-size:13px;color:var(--text-dim);font-family:'Geist Mono',monospace;margin-top:2px;}
 .cmp-badge{font-size:13px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;}
 .cmp-badge.cmp-b-atrasado{background:rgba(239,68,68,.15);color:var(--red);}
@@ -330,7 +330,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .cmp-badge.cmp-b-andamento{background:rgba(245,166,35,.15);color:var(--amber);}
 .cmp-badge.cmp-b-concluido{background:rgba(34,197,94,.15);color:var(--sla-ok);}
 .cmp-steps{display:flex;flex-direction:column;gap:7px;margin-top:8px;}
-.cmp-step{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#d1d5db;cursor:pointer;user-select:none;}
+.cmp-step{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim);cursor:pointer;user-select:none;}
 .cmp-step.cmp-step-done{color:var(--text-dim);text-decoration:line-through;}
 .cmp-check{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;}
 .cmp-step-done .cmp-check{background:var(--sla-ok);border-color:var(--sla-ok);}
@@ -338,7 +338,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .cmp-etapa-prazo{color:var(--text-faint);font-size:12px;}
 .cmp-etapa-prazo-atrasado{color:var(--red);}
 .cmp-historico-toggle{font-size:13px;color:var(--text-dim);cursor:pointer;padding:4px 0;}
-.cmp-historico-toggle:hover{color:#ededed;}
+.cmp-historico-toggle:hover{color:var(--text);}
 .cmp-historico-lista{margin-top:6px;}
 .cmp-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;}
 
@@ -814,7 +814,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .tab-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);border-bottom:2px solid var(--teal);}
 .tab-count{background:var(--border);color:var(--text-dim);border-radius:99px;font-size:13px;font-weight:600;padding:1px 6px;}
 .tab-btn.active .tab-count{background:var(--amber);color:#000;}
-.view-toggle{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
+.view-toggle{display:flex;gap:2px;background:var(--panel-alt);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:#888;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 .view-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
 .view-btn.active{background:var(--teal);color:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.4);}
@@ -824,7 +824,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sort-btn.active{border-color:var(--teal);color:var(--teal);background:rgba(159,232,112,.08);}
 
 /* Ícones compactos (visualização/ordem) — mesma função, sem texto fixo */
-.icon-toggle-group{display:flex;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
+.icon-toggle-group{display:flex;gap:2px;background:var(--panel-alt);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .icon-toggle-btn{
   display:flex;align-items:center;justify-content:center;gap:4px;
   background:transparent;border:none;color:#888;border-radius:6px;
@@ -1045,16 +1045,16 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 }
 .drawer-hist-btn svg,.drawer-os-btn svg,.drawer-save-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
 /* Histórico — neutro */
-.drawer-hist-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;}
-.drawer-hist-btn:hover{background:rgba(255,255,255,0.09);color:#ededed;}
+.drawer-hist-btn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);}
+.drawer-hist-btn:hover{background:var(--border-soft);color:var(--text);}
 /* OS — neutro */
-.drawer-os-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#aaa;}
-.drawer-os-btn:hover{background:rgba(255,255,255,0.09);color:#ededed;}
+.drawer-os-btn{background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);}
+.drawer-os-btn:hover{background:var(--border-soft);color:var(--text);}
 .drawer-os-btn:disabled{opacity:.4;cursor:not-allowed;}
 #drawerConverterAtivBtn{white-space:normal;line-height:1.2;text-align:center;}
 /* Salvar — destaque sutil em branco */
-.drawer-save-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:#ededed;font-weight:600;}
-.drawer-save-btn:hover{background:rgba(255,255,255,0.16);border-color:rgba(255,255,255,0.28);}
+.drawer-save-btn{background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text);font-weight:600;}
+.drawer-save-btn:hover{background:var(--border-soft);border-color:var(--border-strong);}
 .drawer-save-btn:disabled{opacity:.4;cursor:not-allowed;}
 .save-spinner{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
 .td-stale-pill{display:inline-flex;align-items:center;gap:3px;font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;padding:1px 6px;border-radius:99px;background:rgba(107,119,128,.1);color:#8FA0AE;border:1px solid rgba(107,119,128,.25);}
@@ -1814,8 +1814,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               Ocultar sem nº de chamado
             </label>
             <input type="text" id="chamadosBusca" placeholder="Buscar por motivo, equipamento ou usina…"
-                   style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;
-                          padding:6px 10px;color:#ededed;font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
+                   style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;
+                          padding:6px 10px;color:var(--text);font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
             <button onclick="_abrirResumoChamadosPainel()" style="display:flex;align-items:center;gap:6px;background:rgba(251,191,36,.08);
                     border:1px solid rgba(251,191,36,.3);color:var(--amber);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">
@@ -2369,8 +2369,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             <div id="gcResult" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);max-width:1080px;" class="com-livre-2col">
               <div>
                 <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Texto do resumo</div>
-                <textarea id="gcResultText" style="width:100%;min-height:260px;height:100%;background:rgba(255,255,255,0.04);
-                          border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;
+                <textarea id="gcResultText" style="width:100%;min-height:260px;height:100%;background:var(--panel-alt);
+                          border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);
                           font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
               </div>
               <div class="com-livre-col-grupos">
@@ -2415,8 +2415,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
           <div class="rel-card" style="max-width:640px;margin:32px auto 0;">
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escreva um tema livre e/ou anexe um print — a IA monta o texto (lendo o print, se houver), você revisa e escolhe os grupos.</div>
             <div id="comLivreInputStep">
-              <input id="comLivreTemaInput" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;font-family:'Geist',sans-serif;box-sizing:border-box;" placeholder="Tema do comunicado…" type="text">
-              <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+              <input id="comLivreTemaInput" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-size:13px;font-family:'Geist',sans-serif;box-sizing:border-box;" placeholder="Tema do comunicado…" type="text">
+              <textarea id="comLivreObsInput" placeholder="Observações (opcional)…" rows="3" style="width:100%;margin-top:8px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
 
               <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
                 <button type="button" onclick="document.getElementById('comLivreFonteImgInput').click()"
@@ -2444,7 +2444,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
           <div id="comLivreResult" style="display:none;" class="com-livre-2col">
             <div>
               <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Texto do comunicado</div>
-              <textarea id="comLivreText" style="width:100%;min-height:260px;height:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+              <textarea id="comLivreText" style="width:100%;min-height:260px;height:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
 
               <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
                 <button type="button" onclick="document.getElementById('comLivreImgInput').click()"
@@ -3243,7 +3243,7 @@ Manutenção preventiva e corretiva.</textarea>
     </div>
     <div class="ch-body">
       <div id="osRapidaInputStep">
-        <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc…" rows="5" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc…" rows="5" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
         <button onclick="_gerarOSRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04231e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Gerar
@@ -3277,8 +3277,8 @@ Manutenção preventiva e corretiva.</textarea>
 
       <input type="text" id="chGcBusca" placeholder="Buscar por motivo, equipamento ou usina…"
              oninput="_chGcBuscaMudou(this.value)"
-             style="width:100%;box-sizing:border-box;margin-bottom:10px;background:rgba(255,255,255,.04);
-                    border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:#ededed;
+             style="width:100%;box-sizing:border-box;margin-bottom:10px;background:var(--panel-alt);
+                    border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);
                     font-size:12.5px;font-family:'Geist',sans-serif;">
 
       <div id="chGcStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
@@ -3311,8 +3311,8 @@ Manutenção preventiva e corretiva.</textarea>
       </div>
 
       <div id="chGcResult" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-        <textarea id="chGcResultText" style="width:100%;min-height:180px;background:rgba(255,255,255,0.04);
-                  border:1px solid var(--border);border-radius:8px;padding:12px;color:#ededed;
+        <textarea id="chGcResultText" style="width:100%;min-height:180px;background:var(--panel-alt);
+                  border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);
                   font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
 
         <div style="font-size:13px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para qual grupo?</div>
@@ -7879,7 +7879,7 @@ function _renderChamadosSyncIndicator(ultimaSincronizacaoStr) {
   const el = document.getElementById('chamadosSyncIndicator');
   if (!el) return;
   if (!ultimaSincronizacaoStr) {
-    el.innerHTML = `<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-faint);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+    el.innerHTML = `<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-faint);background:var(--panel-alt);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
       <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Nunca sincronizado ainda
     </div>`;
@@ -8804,7 +8804,7 @@ async function carregarSupervisaoTemporaria() {
     const atuais = dataAtuais.ok ? (dataAtuais.itens || []) : [];
     _supervTemporariasAtuaisCache = atuais;
     if (!atuais.length) {
-      atuaisEl.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;">Nenhuma usina sob supervisão temporária no momento.</div>`;
+      atuaisEl.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:10px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;">Nenhuma usina sob supervisão temporária no momento.</div>`;
     } else {
       atuaisEl.innerHTML = `
         <div style="font-size:11px;color:var(--teal);font-weight:600;margin-bottom:8px;">Sob sua supervisão agora (${atuais.length})</div>
@@ -8813,7 +8813,7 @@ async function carregarSupervisaoTemporaria() {
             <div style="display:flex;flex-direction:column;gap:8px;padding:9px 12px;background:rgba(159,232,112,.08);border:1px solid rgba(159,232,112,.25);border-radius:8px;">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                 <div>
-                  <div style="font-size:12.5px;font-weight:600;color:#ededed;">${esc(it.usina)}</div>
+                  <div style="font-size:12.5px;font-weight:600;color:var(--text);">${esc(it.usina)}</div>
                   <div style="font-size:10.5px;color:var(--text-faint);">${esc(it.cliente)} · ${esc(it.cluster)} · emprestada de ${esc(it.responsavelOriginal)}</div>
                 </div>
                 <button onclick="_supervisaoRemover('${esc(it.usina).replace(/'/g,"\\'")}')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red,#EF4444);border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Geist',sans-serif;">Devolver</button>
@@ -8821,7 +8821,7 @@ async function carregarSupervisaoTemporaria() {
               <div style="display:flex;align-items:center;gap:6px;">
                 <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:var(--text-faint);fill:none;stroke-width:2;flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 <select onchange="_supervisaoAtualizarGrupo('${esc(it.usina).replace(/'/g,"\\'")}', this.value)"
-                  style="flex:1;background:rgba(0,0,0,.25);border:1px solid var(--border);color:#ededed;border-radius:6px;padding:5px 8px;font-size:11px;font-family:'Geist',sans-serif;">
+                  style="flex:1;background:rgba(0,0,0,.25);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;font-family:'Geist',sans-serif;">
                   ${_gruposSelectOptions(it.grupoId)}
                 </select>
               </div>
@@ -8847,15 +8847,15 @@ async function carregarSupervisaoTemporaria() {
       const idSeguro = sup.replace(/[^a-zA-Z0-9]/g, '');
       return `
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div onclick="_supervisaoToggleGrupo('${idSeguro}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:rgba(255,255,255,.03);cursor:pointer;">
-            <span style="font-size:12.5px;font-weight:600;color:#ededed;">${esc(sup)} <span style="color:var(--text-faint);font-weight:400;">(${usinas.length} usinas)</span></span>
+          <div onclick="_supervisaoToggleGrupo('${idSeguro}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--panel-alt);cursor:pointer;">
+            <span style="font-size:12.5px;font-weight:600;color:var(--text);">${esc(sup)} <span style="color:var(--text-faint);font-weight:400;">(${usinas.length} usinas)</span></span>
             <svg id="supervChevron_${idSeguro}" viewBox="0 0 24 24" width="14" height="14" style="stroke:var(--text-faint);fill:none;stroke-width:2;transition:.2s;"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div id="supervGrupo_${idSeguro}" style="display:none;padding:8px 14px 12px;flex-direction:column;gap:8px;">
             <div style="font-size:10px;color:var(--text-faint);">Grupo do WhatsApp da equipe (opcional — vincula ao marcar):</div>
             <div style="display:flex;align-items:center;gap:6px;">
               <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:var(--text-faint);fill:none;stroke-width:2;flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <select id="supervGrupoSelect_${idSeguro}" style="flex:1;background:rgba(0,0,0,.25);border:1px solid var(--border);color:#ededed;border-radius:6px;padding:5px 8px;font-size:11px;font-family:'Geist',sans-serif;">
+              <select id="supervGrupoSelect_${idSeguro}" style="flex:1;background:rgba(0,0,0,.25);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;font-family:'Geist',sans-serif;">
                 ${_gruposSelectOptions('')}
               </select>
             </div>
