@@ -495,10 +495,10 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .nova-oc-submit{width:100%;background:var(--text);border:1px solid var(--text);color:var(--bg);border-radius:8px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;margin-top:4px;}
 .resumo-tab-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;}
 .resumo-tab-btn.active{background:var(--teal);border-color:var(--teal);color:#04231e;}
-.resumo-item{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:12.5px;}
-.resumo-item:hover{background:rgba(255,255,255,0.06);}
+.resumo-item{background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;font-size:12.5px;}
+.resumo-item:hover{background:var(--border-soft);}
 .resumo-item.active{background:rgba(159,232,112,.12);border-color:rgba(159,232,112,.4);}
-.resumo-item .resumo-item-data{font-weight:700;color:#ededed;margin-bottom:2px;}
+.resumo-item .resumo-item-data{font-weight:700;color:var(--text);margin-bottom:2px;}
 .resumo-item .resumo-item-meta{color:var(--text-faint);font-size:11px;}
 .nova-oc-submit:hover{background:#e8e8e8;}
 .nova-oc-submit:disabled{opacity:.5;cursor:not-allowed;}
@@ -2145,7 +2145,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             </div>
             <div style="display:flex;gap:20px;align-items:flex-start;">
               <div id="resumosLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
-              <div id="resumoConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
+              <div id="resumoConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:var(--text);min-height:200px;">
                 Selecione um resumo na lista ao lado.
               </div>
             </div>
@@ -2171,7 +2171,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             </div>
             <div style="display:flex;gap:20px;align-items:flex-start;">
               <div id="rondasLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
-              <div id="rondaConteudo" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:#ededed;min-height:200px;">
+              <div id="rondaConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:var(--text);min-height:200px;">
                 Selecione uma ronda na lista ao lado.
               </div>
             </div>
