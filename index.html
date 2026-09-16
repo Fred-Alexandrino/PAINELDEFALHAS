@@ -12129,7 +12129,7 @@ function _ativRenderBreakdowns() {
     applyFilters();
   }));
 
-  document.querySelectorAll('#ativPrioridadeBars .bar-row').forEach(r => r.addEventListener('click', () => {
+  document.querySelectorAll('#ativPrioridadeBars .bar-row:not(#ativPreventivaRow)').forEach(r => r.addEventListener('click', () => {
     const v = r.dataset.group;
     if (selPrioridadeValues.has(v) && selPrioridadeValues.size === 1) {
       selPrioridadeValues.clear();
@@ -12142,7 +12142,7 @@ function _ativRenderBreakdowns() {
 
   document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
-  document.querySelectorAll('#ativPrioridadeBars .bar-row').forEach(r => r.classList.toggle('selected', selPrioridadeValues.has(r.dataset.group)));
+  document.querySelectorAll('#ativPrioridadeBars .bar-row:not(#ativPreventivaRow)').forEach(r => r.classList.toggle('selected', selPrioridadeValues.has(r.dataset.group)));
   document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.classList.toggle('selected', _ativClusterFiltro === r.dataset.group));
 
   _ativAplicarEstadoPaineis();
