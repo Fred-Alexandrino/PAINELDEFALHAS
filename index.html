@@ -2839,6 +2839,31 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   </div>
 </div>
 
+<!-- Modal Resumo pra Cliente -->
+<div class="ch-overlay" id="resumoClienteOverlay">
+  <div class="ch-modal" style="max-width:560px;border-top-color:var(--amber);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg><h2>Resumo pra Cliente</h2></div><div class="ch-subtitle">Gerado a partir da OS e das observações registradas — revise antes de enviar</div></div>
+        <button class="modal-close-btn" id="resumoClienteModalClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body" id="resumoClienteBody">
+      <div id="resumoClienteLoading" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 0;color:var(--text-faint);font-size:12.5px;">
+        <span class="save-spinner" style="width:18px;height:18px;border-width:3px;"></span>
+        Gerando resumo…
+      </div>
+      <div id="resumoClienteResult" style="display:none;">
+        <textarea id="resumoClienteTexto" class="nova-oc-textarea" rows="8" style="width:100%;box-sizing:border-box;margin-bottom:14px;"></textarea>
+        <div id="resumoClienteGrupos" style="margin-bottom:14px;"></div>
+        <button class="nova-oc-submit" id="resumoClienteCopiarBtn" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text);">📋 Copiar resumo</button>
+        <button class="nova-oc-submit" id="resumoClienteEnviarBtn" style="width:100%;background:var(--teal);color:var(--panel);">📲 Enviar pro grupo do cliente</button>
+      </div>
+      <div id="resumoClienteError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Comunicar Atividade -->
 <div class="ch-overlay" id="comunicarAtivOverlay">
   <div class="ch-modal" style="max-width:560px;border-top-color:var(--teal);">
@@ -10671,6 +10696,112 @@ async function _copiarComunicado(idSeguro) {
   }
 }
 
+let _resumoClienteGruposCache = [];
+
+async function _abrirResumoClienteAtividade() {
+  const a = _ativDrawerList[_ativDrawerIndex];
+  if (!a) return;
+
+  document.getElementById('resumoClienteOverlay').style.display = 'flex';
+  document.getElementById('resumoClienteLoading').style.display = 'flex';
+  document.getElementById('resumoClienteResult').style.display = 'none';
+  document.getElementById('resumoClienteError').style.display = 'none';
+
+  try {
+    const [respTexto, respGrupos] = await Promise.all([
+      fetch('https://api.168.138.232.237.sslip.io/gerar-resumo-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente: a.cliente,
+          atividades: [{
+            usina: a.usina || '',
+            descricao: a.descricao || '',
+            numeroOS: a.numeroOS || '',
+            observacoes: a.observacoesOS || '',
+          }],
+        }),
+        signal: AbortSignal.timeout(30000),
+      }),
+      _resumoClienteGruposCache.length ? Promise.resolve(null) :
+        fetch('https://api.168.138.232.237.sslip.io/grupos-configurados'),
+    ]);
+
+    const dataTexto = await respTexto.json();
+    if (!dataTexto.ok) throw new Error(dataTexto.error || 'Erro ao gerar resumo');
+
+    if (respGrupos) {
+      const dataGrupos = await respGrupos.json();
+      if (dataGrupos.ok) _resumoClienteGruposCache = dataGrupos.itens || [];
+    }
+
+    document.getElementById('resumoClienteTexto').value = dataTexto.texto;
+    document.getElementById('resumoClienteGrupos').innerHTML = _resumoClienteGruposCache.map(g => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:4px 2px;">
+        <input type="radio" name="resumoClienteGrupoRadio" class="resumo-cliente-grupo-radio" value="${esc(g.id)}" style="accent-color:var(--teal);width:15px;height:15px;">
+        ${esc(g.nome)}
+      </label>
+    `).join('') || '<div style="font-size:12px;color:var(--text-faint);">Nenhum grupo configurado.</div>';
+
+    document.getElementById('resumoClienteLoading').style.display = 'none';
+    document.getElementById('resumoClienteResult').style.display = 'block';
+  } catch (err) {
+    document.getElementById('resumoClienteLoading').style.display = 'none';
+    document.getElementById('resumoClienteError').style.display = 'block';
+    document.getElementById('resumoClienteError').textContent = 'Erro ao gerar resumo: ' + (err.message || '');
+  }
+}
+
+async function _resumoClienteCopiar() {
+  const texto = (document.getElementById('resumoClienteTexto')?.value || '').trim();
+  if (!texto) return;
+  try {
+    await navigator.clipboard.writeText(texto);
+    showToast('Resumo copiado!', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
+  }
+}
+
+async function _resumoClienteEnviar() {
+  const texto = (document.getElementById('resumoClienteTexto')?.value || '').trim();
+  const grupoSelecionado = document.querySelector('.resumo-cliente-grupo-radio:checked')?.value;
+  if (!texto) { showToast('O texto do resumo está vazio.', false); return; }
+  if (!grupoSelecionado) { showToast('Selecione o grupo de destino.', false); return; }
+
+  const btn = document.getElementById('resumoClienteEnviarBtn');
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = 'Enviando…';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-livre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto, grupos: [grupoSelecionado] }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao enviar');
+    const qtdErros = (data.erros || []).length;
+    if (qtdErros === 0) {
+      showToast('Resumo enviado pro cliente!', true);
+      document.getElementById('resumoClienteOverlay').style.display = 'none';
+    } else {
+      showToast('Falha ao enviar. Tente novamente.', false);
+    }
+  } catch (err) {
+    showToast('Erro ao enviar resumo: ' + (err.message || ''), false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+document.getElementById('resumoClienteModalClose')?.addEventListener('click', () => { document.getElementById('resumoClienteOverlay').style.display='none'; });
+document.getElementById('resumoClienteOverlay')?.addEventListener('click', e => { if(e.target.id==='resumoClienteOverlay') document.getElementById('resumoClienteOverlay').style.display='none'; });
+document.getElementById('resumoClienteCopiarBtn')?.addEventListener('click', _resumoClienteCopiar);
+document.getElementById('resumoClienteEnviarBtn')?.addEventListener('click', _resumoClienteEnviar);
+
 function _abrirComunicarAtividade() {
   const a = _ativDrawerList[_ativDrawerIndex];
   if (!a) return;
@@ -12640,6 +12771,11 @@ function _renderAtivDrawer() {
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       Histórico Fracttal
     </button>` : ''}
+
+    <button class="nova-oc-submit" onclick="_abrirResumoClienteAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      Resumo pra Cliente
+    </button>
 
     <button class="nova-oc-submit" onclick="_abrirComunicarAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
