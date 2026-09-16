@@ -5168,11 +5168,16 @@ let selUsinaValue = '';
 let selUsinaValues = new Set();
 let selStatusValues = new Set();
 let selPrioridadeValues = new Set();
+let _ativFiltroPreventiva = false;
 function _ativPrioridadeNormalizada(p) {
   const v = (p || '').trim().toLowerCase();
   if (v === 'alta') return 'Alta';
   if (v === 'média' || v === 'media') return 'Média';
   return 'Baixa';
+}
+function _ativEhPreventiva(a) {
+  const d = (a.descricao || '').toUpperCase();
+  return d.includes('PREVENTIVA MENSAL') || d.includes('PREVENTIVA SEMESTRAL') || d.includes('PREVENTIVA ANUAL');
 }
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
@@ -11918,6 +11923,7 @@ function _ativRenderBreakdowns() {
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (selPrioridadeValues.size > 0 && !selPrioridadeValues.has(_ativPrioridadeNormalizada(a.prioridade))) return false;
+    if (_ativFiltroPreventiva && !_ativEhPreventiva(a)) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     return true;
   });
@@ -11944,6 +11950,19 @@ function _ativRenderBreakdowns() {
     pMap[chave] = (pMap[chave] || 0) + 1;
   });
   makeBar('ativPrioridadeBars', ['Alta', 'Média', 'Baixa'].map(k => [k, pMap[k], _prioridadeCor(k) + 'BB']), 'ativPrioridadeTotal');
+  const qtdPreventivas = ativasList.filter(_ativEhPreventiva).length;
+  document.getElementById('ativPrioridadeBars').insertAdjacentHTML('beforeend', `
+    <div class="bar-row" id="ativPreventivaRow" style="border-top:1px dashed var(--border);margin-top:4px;padding-top:12px;">
+      <span class="bar-dot" style="background:var(--blue);"></span>
+      <div class="bar-label">🔧 Manutenções Preventivas</div>
+      <div class="bar-track" style="display:none;"></div>
+      <div class="bar-count">${qtdPreventivas}</div>
+    </div>`);
+  document.getElementById('ativPreventivaRow').addEventListener('click', () => {
+    _ativFiltroPreventiva = !_ativFiltroPreventiva;
+    applyFilters();
+  });
+  document.getElementById('ativPreventivaRow').classList.toggle('selected', _ativFiltroPreventiva);
 
   document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.addEventListener('click', () => {
     const v = r.dataset.group;
@@ -12312,6 +12331,7 @@ function renderAtividadeCards() {
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
     if (selPrioridadeValues.size > 0 && !selPrioridadeValues.has(_ativPrioridadeNormalizada(a.prioridade))) return false;
+    if (_ativFiltroPreventiva && !_ativEhPreventiva(a)) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (selTipoEquip.size > 0 && !selTipoEquip.has(_ativTipoEquipamento(a))) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
