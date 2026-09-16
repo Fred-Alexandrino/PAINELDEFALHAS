@@ -386,6 +386,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-select::-ms-expand{display:none;}
 .sb-select:focus{border-color:var(--border-strong);}
 .sb-select option{color:var(--text);background:var(--panel);}
+.sb-select[type="date"]{background-image:none;padding-right:9px;}
 
 /* Custom checkbox dropdown */
 .cb-dropdown{position:relative;margin-bottom:3px;}
@@ -421,7 +422,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 [data-theme="light"] .cb-trigger{background:#F2F4EF;}
 [data-theme="light"] .cb-list{background:#FFFFFF;border-color:#C7D3C0;}
 [data-theme="light"] .cb-item:hover{background:#F2F4EF;}
-[data-theme="light"] .sb-select,[data-theme="light"] .sb-search,[data-theme="light"] .sb-date-input{background:#F2F4EF;color:#062F28;}
+[data-theme="light"] .sb-search,[data-theme="light"] .sb-date-input{background:#F2F4EF;color:#062F28;}
 [data-theme="light"] .sb-select option{background:#FFFFFF;color:#062F28;}
 .cb-checkbox{
   width:14px;height:14px;border-radius:3px;flex:none;
@@ -1382,7 +1383,11 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 [data-theme="light"] .fault-table th{background:var(--panel-alt);}
 [data-theme="light"] .fault-table tbody tr:hover{background:#EEF4FA;}
 [data-theme="light"] .drawer{box-shadow:-8px 0 32px rgba(0,0,0,.12);}
-[data-theme="light"] .sb-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%238FA0AE' fill='none' stroke-width='2'/%3E%3C/svg%3E");}
+[data-theme="light"] .sb-select{
+  color:#062F28;background-color:#F2F4EF;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%238FA0AE' fill='none' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:12px;
+}
 [data-theme="light"] .d-edit-select option{background:#F4F8FC;}
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
