@@ -5150,6 +5150,13 @@ const selCliente = new Set();   // mantém Set para lógica de cores/legendas
 let selUsinaValue = '';
 let selUsinaValues = new Set();
 let selStatusValues = new Set();
+let selPrioridadeValues = new Set();
+function _ativPrioridadeNormalizada(p) {
+  const v = (p || '').trim().toLowerCase();
+  if (v === 'alta') return 'Alta';
+  if (v === 'média' || v === 'media') return 'Média';
+  return 'Baixa';
+}
 let selStatusValue = '';         // agora single-select
 let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 
@@ -11861,6 +11868,7 @@ function _ativRenderBreakdowns() {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
+    if (selPrioridadeValues.size > 0 && !selPrioridadeValues.has(_ativPrioridadeNormalizada(a.prioridade))) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     return true;
   });
@@ -11883,8 +11891,7 @@ function _ativRenderBreakdowns() {
 
   const pMap = { 'Alta': 0, 'Média': 0, 'Baixa': 0 };
   ativasList.forEach(a => {
-    const p = (a.prioridade || '').trim();
-    const chave = p.toLowerCase() === 'alta' ? 'Alta' : (p.toLowerCase() === 'média' || p.toLowerCase() === 'media') ? 'Média' : 'Baixa';
+    const chave = _ativPrioridadeNormalizada(a.prioridade);
     pMap[chave] = (pMap[chave] || 0) + 1;
   });
   makeBar('ativPrioridadeBars', ['Alta', 'Média', 'Baixa'].map(k => [k, pMap[k], _prioridadeCor(k) + 'BB']), 'ativPrioridadeTotal');
@@ -11923,8 +11930,20 @@ function _ativRenderBreakdowns() {
     applyFilters();
   }));
 
+  document.querySelectorAll('#ativPrioridadeBars .bar-row').forEach(r => r.addEventListener('click', () => {
+    const v = r.dataset.group;
+    if (selPrioridadeValues.has(v) && selPrioridadeValues.size === 1) {
+      selPrioridadeValues.clear();
+    } else {
+      selPrioridadeValues.clear();
+      selPrioridadeValues.add(v);
+    }
+    applyFilters();
+  }));
+
   document.querySelectorAll('#ativUsinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
   document.querySelectorAll('#ativStatusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
+  document.querySelectorAll('#ativPrioridadeBars .bar-row').forEach(r => r.classList.toggle('selected', selPrioridadeValues.has(r.dataset.group)));
   document.querySelectorAll('#ativClusterBars .bar-row').forEach(r => r.classList.toggle('selected', _ativClusterFiltro === r.dataset.group));
 
   _ativAplicarEstadoPaineis();
@@ -12243,6 +12262,7 @@ function renderAtividadeCards() {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
     if (typeof selStatusValues !== 'undefined' && selStatusValues.size > 0 && !selStatusValues.has(a.statusGeralOS || 'Não iniciada')) return false;
+    if (selPrioridadeValues.size > 0 && !selPrioridadeValues.has(_ativPrioridadeNormalizada(a.prioridade))) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (selTipoEquip.size > 0 && !selTipoEquip.has(_ativTipoEquipamento(a))) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
