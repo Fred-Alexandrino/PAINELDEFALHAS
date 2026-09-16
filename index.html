@@ -78,8 +78,13 @@
 [data-theme="light"] .kanban-col-body .card{background:#FFFFFF;border-color:#E1E8DC;}
 [data-theme="light"] .kanban-col-body .card:hover{background:#F7F9F6;border-color:#C7D3C0;}
 [data-theme="light"] .topbar{background:#FFFFFF;border-bottom-color:#E1E8DC;}
-[data-theme="light"] .kpi.kpi-alert{background:#FFFFFF;border:2px solid var(--kpi-color,#EF4444);}
-[data-theme="light"] .kpi.kpi-alert .num,[data-theme="light"] .kpi.kpi-alert .label{color:#062F28;}
+[data-theme="light"] .kpi.kpi-clickable.active-filter,
+[data-theme="light"] .kpi.kpi-invfilter.active-filter{
+  background-color:#FFFFFF;border-color:var(--kpi-color,#7FCB4F);
+  background-image:radial-gradient(circle at 1px 1px, rgba(6,47,40,.06) 1px, transparent 0);
+  background-size:15px 15px;
+}
+[data-theme="light"] .kpi.active-filter .num,[data-theme="light"] .kpi.active-filter .label{color:#062F28;}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
