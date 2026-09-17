@@ -1526,9 +1526,9 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Relatórios
       </div>
-      <div class="sb-nav-item" data-nav="comunicados" data-label="Comunicados" draggable="true">
+      <div class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        Comunicados
+        Comunicados &amp; OSs
       </div>
       <div class="sb-nav-item sb-section-start" data-section-label="Ferramentas" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -2297,6 +2297,10 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Sobreavisos
           </button>
+          <button type="button" class="tab-btn" id="comTabBtnOs" onclick="_comSetTab('os')">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+            OS Elaboradas
+          </button>
         </div>
 
         <!-- ── ABA: TÉCNICOS ── -->
@@ -2576,6 +2580,20 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
           </div>
           <div id="sobreavisoConferenciaResult" style="display:none;"></div>
           <div id="sobreavisoModalResult" style="display:none;"></div>
+        </div>
+
+        <!-- ── ABA: OS ELABORADAS ── -->
+        <div id="comTabPainelOs" style="display:none;">
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>Histórico de todas as OSs elaboradas via IA pelo botão "Elaborar OS" — reaproveite um texto já gerado sem precisar recriar do zero.</span>
+            <input type="text" id="osElabBusca" placeholder="Buscar por termo…" class="sb-search" style="max-width:200px;" oninput="_osElabFiltrar(this.value)">
+          </div>
+          <div style="display:flex;gap:20px;align-items:flex-start;">
+            <div id="osElabLista" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
+            <div id="osElabConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;min-height:200px;">
+              <div style="color:var(--text-faint);font-size:13.5px;">Selecione uma OS na lista ao lado.</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -3925,7 +3943,7 @@ const NAV_TITLES = {
   'programacao-pcm': 'Programação PCM',
   'boletins': 'Gerencial',
   'localizacao': 'Localização das Usinas',
-  'comunicados': 'Comunicados',
+  'comunicados': 'Comunicados & OSs',
   'anotacoes': 'Sketchbook',
 };
 
@@ -8793,6 +8811,94 @@ function _fmtDataBr(dataISO) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// ── OS Elaboradas (histórico das OSs geradas via IA) ─────────────────
+let _osElabCache = [];
+let _osElabBuscaAtual = '';
+
+function _osElabRefresh() {
+  _osElabBuscaAtual = '';
+  const buscaInput = document.getElementById('osElabBusca');
+  if (buscaInput) buscaInput.value = '';
+  carregarOsElaboradas();
+}
+
+async function carregarOsElaboradas(q) {
+  const listaEl = document.getElementById('osElabLista');
+  const conteudoEl = document.getElementById('osElabConteudo');
+  if (!listaEl) return;
+  listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Carregando…</div>';
+  try {
+    const url = q
+      ? `https://api.168.138.232.237.sslip.io/os-elaboradas?q=${encodeURIComponent(q)}&limit=60`
+      : `https://api.168.138.232.237.sslip.io/os-elaboradas?limit=60`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
+    _osElabCache = data.itens || [];
+    if (!_osElabCache.length) {
+      listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Nenhuma OS elaborada ainda.</div>';
+      conteudoEl.innerHTML = '<div style="color:var(--text-faint);font-size:13.5px;">Nenhuma OS elaborada ainda.</div>';
+      return;
+    }
+    listaEl.innerHTML = _osElabCache.map((r, i) => {
+      let osLista = [];
+      try { osLista = JSON.parse(r.os_json) || []; } catch (e) { osLista = []; }
+      const tituloPreview = (osLista[0]?.titulo || r.entrada_usuario || 'OS sem título').slice(0, 60);
+      const qtd = osLista.length > 1 ? ` · ${osLista.length} OSs` : '';
+      return `<div class="resumo-item${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="_osElabAbrir(${i})">
+        <div class="resumo-item-data">${esc(tituloPreview)}</div>
+        <div class="resumo-item-meta">${esc(r.criado_em || '')}${qtd}</div>
+      </div>`;
+    }).join('');
+    _osElabAbrir(0);
+  } catch (e) {
+    listaEl.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px;">Erro ao carregar OS elaboradas.</div>';
+  }
+}
+
+function _osElabAbrir(idx) {
+  const r = _osElabCache[idx];
+  if (!r) return;
+  document.querySelectorAll('#osElabLista .resumo-item').forEach(el => el.classList.toggle('active', Number(el.dataset.idx) === idx));
+  const conteudoEl = document.getElementById('osElabConteudo');
+  let osLista = [];
+  try { osLista = JSON.parse(r.os_json) || []; } catch (e) { osLista = []; }
+  if (!osLista.length) {
+    conteudoEl.innerHTML = '<div style="color:var(--text-faint);font-size:13.5px;">Não foi possível ler esta OS.</div>';
+    return;
+  }
+  conteudoEl.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="font-size:12px;color:var(--text-faint);">Gerada em ${esc(r.criado_em || '')}</span>
+      <button onclick="_osElabExcluir(${r.id})" style="background:transparent;border:1px solid var(--border-strong);color:var(--red);border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;">Excluir</button>
+    </div>
+    ${_htmlCamposOS(osLista)}
+  `;
+  _wireCopiaCamposOS(conteudoEl);
+}
+
+let _osElabFiltrarTimeout = null;
+function _osElabFiltrar(valor) {
+  clearTimeout(_osElabFiltrarTimeout);
+  _osElabFiltrarTimeout = setTimeout(() => {
+    _osElabBuscaAtual = (valor || '').trim();
+    carregarOsElaboradas(_osElabBuscaAtual);
+  }, 350);
+}
+
+async function _osElabExcluir(id) {
+  if (!confirm('Excluir esta OS do histórico? Essa ação não pode ser desfeita.')) return;
+  try {
+    const resp = await fetch(`https://api.168.138.232.237.sslip.io/os-elaboradas/${id}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao excluir');
+    showToast('OS excluída do histórico.', true);
+    carregarOsElaboradas(_osElabBuscaAtual);
+  } catch (e) {
+    showToast('Erro ao excluir: ' + (e.message || ''), false);
+  }
+}
+
 // ── Preparação Diária/Semanal (Ronda) ────────────────────────────────
 let _rondasCache = [];
 
@@ -10358,7 +10464,7 @@ let _comTabAtual = 'tecnicos';
 
 function _comSetTab(tab) {
   _comTabAtual = tab;
-  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', zeladoria: 'Zeladoria', livre: 'Livre', sobreaviso: 'Sobreaviso' };
+  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', zeladoria: 'Zeladoria', livre: 'Livre', sobreaviso: 'Sobreaviso', os: 'Os' };
   Object.keys(abas).forEach(t => {
     document.getElementById('comTabBtn' + abas[t])?.classList.toggle('active', t === tab);
     const painel = document.getElementById('comTabPainel' + abas[t]);
@@ -10369,6 +10475,7 @@ function _comSetTab(tab) {
   else if (tab === 'zeladoria') _comZeladoriaRefresh();
   else if (tab === 'livre') _comLivreReset();
   else if (tab === 'sobreaviso') _sobreavisoRefresh();
+  else if (tab === 'os') _osElabRefresh();
 }
 
 // Ponto de entrada: usado pelo botão "Comunicados" no menu Ações do
