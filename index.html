@@ -7775,14 +7775,17 @@ async function _anotObterCatalogoMesclado() {
     mesclado[c] = [...ANOT_CATALOGO_USINAS[c]];
   }
   try {
-    let temporarias = (typeof _supervTemporariasAtuaisCache !== 'undefined' && _supervTemporariasAtuaisCache)
-      ? _supervTemporariasAtuaisCache
-      : null;
-    if (!temporarias) {
-      const resp = await fetch('https://api.168.138.232.237.sslip.io/supervisao-temporaria');
-      const data = await resp.json();
-      temporarias = data.ok ? (data.itens || []) : [];
-    }
+    // Correção 18/09/2026: não reaproveita mais _supervTemporariasAtuaisCache
+    // — essa variável nasce como array vazio ([]), que é truthy em JS, então
+    // a checagem anterior ("já carregou? usa o cache") sempre batia como
+    // verdadeira mesmo com o cache ainda vazio (tela de Supervisão
+    // Temporária não aberta nesta sessão), fazendo o Sketchbook achar que
+    // não havia nenhuma usina emprestada. Busca direto da API sempre —
+    // é uma chamada leve e só acontece uma vez por sessão (resultado fica
+    // em _anotCatalogoMesclado acima).
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/supervisao-temporaria');
+    const data = await resp.json();
+    const temporarias = data.ok ? (data.itens || []) : [];
     for (const it of temporarias) {
       const cliente = it.cliente || 'Supervisão Temporária';
       if (!mesclado[cliente]) mesclado[cliente] = [];
@@ -9011,6 +9014,11 @@ function _gruposSelectOptions(grupoIdAtual) {
 }
 
 async function carregarSupervisaoTemporaria() {
+  // Invalida o cache mesclado do Sketchbook (ver _anotObterCatalogoMesclado)
+  // sempre que a lista de supervisão temporária é recarregada (inclui
+  // adicionar/remover usina) — senão uma usina recém-assumida ou devolvida
+  // só refletiria no Sketchbook depois de recarregar a página inteira.
+  if (typeof _anotCatalogoMesclado !== 'undefined') _anotCatalogoMesclado = null;
   const atuaisEl = document.getElementById('supervTemporariasAtuais');
   const outrosEl = document.getElementById('supervOutrosSupervisores');
   atuaisEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);">Carregando…</div>';
