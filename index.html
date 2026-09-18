@@ -7758,33 +7758,72 @@ const ANOT_CATALOGO_USINAS = {
   'Sal Energia': ['Salvales (Aquiraz I)', 'Carosa (Aquiraz II)', 'SunPower (Cascavel)', 'Hortina (Quixadá I)', 'Vitesse (Quixadá II)'],
 };
 
-function _anotPopularCatalogo() {
+// Cache do catálogo já mesclado com usinas sob supervisão temporária
+// (adicionado 18/09/2026 — antes o Sketchbook usava só o ANOT_CATALOGO_USINAS
+// fixo acima, então uma usina emprestada de outro supervisor nunca aparecia
+// aqui, mesmo já reconhecida em todo o resto do sistema via
+// /supervisao-temporaria. Busca ao vivo, com fallback silencioso pro
+// catálogo fixo puro se a chamada falhar, e reaproveita
+// _supervTemporariasAtuaisCache se a tela de Supervisão Temporária já tiver
+// carregado nesta sessão, pra evitar uma chamada de rede redundante.
+let _anotCatalogoMesclado = null;
+
+async function _anotObterCatalogoMesclado() {
+  if (_anotCatalogoMesclado) return _anotCatalogoMesclado;
+  const mesclado = {};
+  for (const c of Object.keys(ANOT_CATALOGO_USINAS)) {
+    mesclado[c] = [...ANOT_CATALOGO_USINAS[c]];
+  }
+  try {
+    let temporarias = (typeof _supervTemporariasAtuaisCache !== 'undefined' && _supervTemporariasAtuaisCache)
+      ? _supervTemporariasAtuaisCache
+      : null;
+    if (!temporarias) {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/supervisao-temporaria');
+      const data = await resp.json();
+      temporarias = data.ok ? (data.itens || []) : [];
+    }
+    for (const it of temporarias) {
+      const cliente = it.cliente || 'Supervisão Temporária';
+      if (!mesclado[cliente]) mesclado[cliente] = [];
+      if (!mesclado[cliente].includes(it.usina)) mesclado[cliente].push(it.usina);
+    }
+  } catch (e) {
+    console.error('[Sketchbook] Falha ao buscar supervisão temporária, usando só catálogo fixo:', e);
+  }
+  _anotCatalogoMesclado = mesclado;
+  return mesclado;
+}
+
+async function _anotPopularCatalogo() {
   const selCliente = document.getElementById('anotCliente');
   const selUsina = document.getElementById('anotUsina');
   if (!selCliente || !selUsina) return;
+  const catalogo = await _anotObterCatalogoMesclado();
   if (!selCliente.dataset.populated) {
     selCliente.innerHTML = '<option value="">Cliente (opcional)</option>' +
-      Object.keys(ANOT_CATALOGO_USINAS).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      Object.keys(catalogo).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     selCliente.dataset.populated = '1';
     selCliente.addEventListener('change', () => _anotAtualizarUsinasPorCliente());
   }
   _anotAtualizarUsinasPorCliente();
 }
 
-function _anotAtualizarUsinasPorCliente() {
+async function _anotAtualizarUsinasPorCliente() {
   const selCliente = document.getElementById('anotCliente');
   const selUsina = document.getElementById('anotUsina');
   if (!selCliente || !selUsina) return;
+  const catalogo = await _anotObterCatalogoMesclado();
   const clienteEscolhido = selCliente.value;
   const usinaAtual = selUsina.value;
-  const clientes = clienteEscolhido ? [clienteEscolhido] : Object.keys(ANOT_CATALOGO_USINAS);
+  const clientes = clienteEscolhido ? [clienteEscolhido] : Object.keys(catalogo);
   const optgroups = clientes.map(c => `
     <optgroup label="${esc(c)}">
-      ${ANOT_CATALOGO_USINAS[c].map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('')}
+      ${catalogo[c].map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('')}
     </optgroup>`).join('');
   selUsina.innerHTML = '<option value="">Usina (opcional)</option>' + optgroups;
   // mantém a usina escolhida se ainda existir na lista filtrada
-  const aindaValida = clientes.some(c => ANOT_CATALOGO_USINAS[c].includes(usinaAtual));
+  const aindaValida = clientes.some(c => catalogo[c].includes(usinaAtual));
   selUsina.value = aindaValida ? usinaAtual : '';
 }
 
