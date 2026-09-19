@@ -676,6 +676,12 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 }
 @media(max-width:1300px){.kpis{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr);}}
+/* Tablet em paisagem (769px–1300px, fora do layout off-canvas do retrato):
+   cards um pouco menores que no desktop, pra não ficarem gigantes/apertados */
+@media(min-width:769px) and (max-width:1300px) and (orientation:landscape){
+  .kpi{padding:18px 16px 16px;}
+  .kpi .num{font-size:32px;}
+}
 
 #ativKpis{grid-template-columns:repeat(5,1fr);}
 @media(max-width:1300px){#ativKpis{grid-template-columns:repeat(3,1fr);}}
@@ -1278,7 +1284,10 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-toggle-btn{display:none;}
 .bottom-nav{display:none;}
 
-@media(max-width:768px){
+@media(max-width:768px),(max-width:1024px) and (orientation:portrait){
+
+  /* Sidebar resize handle não faz sentido no layout off-canvas (mobile/tablet retrato) */
+  #sidebarResizeHandle{display:none !important;}
 
   /* Layout base */
   body{
@@ -3602,6 +3611,47 @@ document.addEventListener('click', function(e) {
     document.documentElement.style.setProperty('--sidebar-w', '220px');
     localStorage.setItem(SIDEBAR_W_KEY, '220');
   });
+
+  // ── Mesma lógica, para toque (tablet) — o handle some no layout mobile/
+  // retrato via CSS, então isso só atua no tablet em paisagem/desktop touch.
+  let arrastandoToque = false, ultimoToqueReset = 0;
+  handle.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    arrastandoToque = true;
+    handle.classList.add('resizing');
+    document.body.classList.add('sidebar-resizing');
+    // toque duplo rápido no handle = reset pra largura padrão (equivalente ao dblclick)
+    const agora = Date.now();
+    if (agora - ultimoToqueReset < 350) {
+      document.documentElement.style.setProperty('--sidebar-w', '220px');
+      localStorage.setItem(SIDEBAR_W_KEY, '220');
+      arrastandoToque = false;
+      handle.classList.remove('resizing');
+      document.body.classList.remove('sidebar-resizing');
+    }
+    ultimoToqueReset = agora;
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!arrastandoToque) return;
+    const t = e.touches[0];
+    if (!t) return;
+    e.preventDefault();
+    const nova = Math.min(MAX_W, Math.max(MIN_W, t.clientX));
+    document.documentElement.style.setProperty('--sidebar-w', nova + 'px');
+  }, { passive: false });
+  document.addEventListener('touchend', () => {
+    if (!arrastandoToque) return;
+    arrastandoToque = false;
+    handle.classList.remove('resizing');
+    document.body.classList.remove('sidebar-resizing');
+    const atual = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w').trim();
+    localStorage.setItem(SIDEBAR_W_KEY, parseInt(atual, 10));
+  }, { passive: true });
+  document.addEventListener('touchcancel', () => {
+    arrastandoToque = false;
+    handle.classList.remove('resizing');
+    document.body.classList.remove('sidebar-resizing');
+  }, { passive: true });
 })();
 
 /* ══ RELÓGIO TOPBAR ══ */
@@ -4081,6 +4131,95 @@ function _initSidebarDragReorder() {
   });
 }
 _initSidebarDragReorder();
+
+// ── Reordenar itens do menu lateral por toque (tablet/celular) ─────────
+// O Drag-and-Drop nativo do HTML5 (usado acima) só dispara com mouse.
+// Aqui replicamos a mesma lógica de reordenação usando toque: um toque
+// rápido continua abrindo o painel normalmente; um toque mais longo
+// (pressionar e manter) inicia o arrasto para reordenar.
+(function () {
+  const LONG_PRESS_MS = 170, MOVE_THRESHOLD = 8;
+  let touchDragEl = null, startX = 0, startY = 0, moved = false, pressTimer = null;
+
+  function limparTimer() { clearTimeout(pressTimer); pressTimer = null; }
+  function limparClassesOver() {
+    _sbNavTopItems().forEach(x => x.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom'));
+  }
+  function itemSobToque(x, y) {
+    const alvo = document.elementFromPoint(x, y);
+    return alvo && alvo.closest ? alvo.closest('.sb-nav-item:not(.sb-nav-sub)') : null;
+  }
+  function finalizarArrasto(overEl, clientY) {
+    const nav = document.getElementById('sbNav');
+    if (overEl && overEl !== touchDragEl && nav) {
+      const rect = overEl.getBoundingClientRect();
+      const before = (clientY - rect.top) < rect.height / 2;
+      const movingSubmenu = touchDragEl.id === 'navFerramentasToggle'
+        ? document.getElementById('grupoFerramentasSubmenu') : null;
+      let refEl = overEl;
+      if (overEl.id === 'navFerramentasToggle' && !before) {
+        refEl = document.getElementById('grupoFerramentasSubmenu') || overEl;
+      }
+      if (before) nav.insertBefore(touchDragEl, refEl);
+      else nav.insertBefore(touchDragEl, refEl.nextSibling);
+      if (movingSubmenu) nav.insertBefore(movingSubmenu, touchDragEl.nextSibling);
+      _sbNavSaveOrder();
+    }
+  }
+
+  function attach() {
+    _sbNavTopItems().forEach(el => {
+      el.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY; moved = false;
+        limparTimer();
+        pressTimer = setTimeout(() => {
+          touchDragEl = el;
+          el.classList.add('sb-dragging');
+        }, LONG_PRESS_MS);
+      }, { passive: true });
+    });
+  }
+
+  document.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    if (!moved && (Math.abs(t.clientX - startX) > MOVE_THRESHOLD || Math.abs(t.clientY - startY) > MOVE_THRESHOLD)) {
+      moved = true;
+      if (!touchDragEl) limparTimer(); // era rolagem normal — cancela o long-press
+    }
+    if (!touchDragEl) return;
+    e.preventDefault(); // trava o scroll enquanto reordena
+    limparClassesOver();
+    const overEl = itemSobToque(t.clientX, t.clientY);
+    if (overEl && overEl !== touchDragEl) {
+      const rect = overEl.getBoundingClientRect();
+      const before = (t.clientY - rect.top) < rect.height / 2;
+      overEl.classList.toggle('sb-drag-over-top', before);
+      overEl.classList.toggle('sb-drag-over-bottom', !before);
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', (e) => {
+    limparTimer();
+    if (!touchDragEl) return;
+    const t = e.changedTouches[0];
+    const overEl = t ? itemSobToque(t.clientX, t.clientY) : null;
+    touchDragEl.classList.remove('sb-dragging');
+    limparClassesOver();
+    if (t) finalizarArrasto(overEl, t.clientY);
+    touchDragEl = null;
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => {
+    limparTimer();
+    if (touchDragEl) { touchDragEl.classList.remove('sb-dragging'); touchDragEl = null; }
+    limparClassesOver();
+  }, { passive: true });
+
+  attach();
+})();
 
 document.querySelectorAll('.sb-nav-item:not(.disabled):not(#navFerramentasToggle)').forEach(el => {
   el.addEventListener('click', () => switchNav(el.dataset.nav));
@@ -5297,6 +5436,72 @@ function _mesmoCliente(a, b) {
   return (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
 }
 
+// ── Reordenar chips de cliente por toque (tablet/celular) ──────────────
+// O Drag-and-Drop nativo do HTML5 (usado dentro de renderClienteChips) só
+// funciona com mouse. Aqui, por delegação de evento no container (que não
+// é recriado a cada render, diferente dos chips), replicamos a reordenação
+// por toque: um toque rápido continua marcando/desmarcando o chip; um
+// toque mais longo (pressionar e manter) inicia o arrasto.
+function _initClienteChipsTouchReorder(wrap) {
+  if (!wrap || wrap.dataset.touchReorderBound) return;
+  wrap.dataset.touchReorderBound = '1';
+
+  const LONG_PRESS_MS = 170, MOVE_THRESHOLD = 8;
+  let dragEl = null, startX = 0, startY = 0, moved = false, timer = null;
+  function limparTimer() { clearTimeout(timer); timer = null; }
+  function chipSobToque(x, y) {
+    const alvo = document.elementFromPoint(x, y);
+    return alvo && alvo.closest ? alvo.closest('.sb-chip') : null;
+  }
+
+  wrap.addEventListener('touchstart', (e) => {
+    const chip = e.target.closest ? e.target.closest('.sb-chip') : null;
+    if (!chip || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY; moved = false;
+    limparTimer();
+    timer = setTimeout(() => {
+      dragEl = chip;
+      chip.classList.add('sb-chip-dragging');
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    if (!moved && (Math.abs(t.clientX - startX) > MOVE_THRESHOLD || Math.abs(t.clientY - startY) > MOVE_THRESHOLD)) {
+      moved = true;
+      if (!dragEl) limparTimer();
+    }
+    if (!dragEl) return;
+    e.preventDefault();
+    wrap.querySelectorAll('.sb-chip-drag-over').forEach(el => el.classList.remove('sb-chip-drag-over'));
+    const overEl = chipSobToque(t.clientX, t.clientY);
+    if (overEl && overEl !== dragEl) overEl.classList.add('sb-chip-drag-over');
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', (e) => {
+    limparTimer();
+    if (!dragEl) return;
+    const t = e.changedTouches[0];
+    const overEl = t ? chipSobToque(t.clientX, t.clientY) : null;
+    dragEl.classList.remove('sb-chip-dragging');
+    wrap.querySelectorAll('.sb-chip-drag-over').forEach(el => el.classList.remove('sb-chip-drag-over'));
+    if (overEl && overEl !== dragEl) {
+      const irDepois = [...wrap.children].indexOf(dragEl) < [...wrap.children].indexOf(overEl);
+      wrap.insertBefore(dragEl, irDepois ? overEl.nextSibling : overEl);
+      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip')].map(el => el.dataset.cliente));
+    }
+    dragEl = null;
+  }, { passive: true });
+
+  wrap.addEventListener('touchcancel', () => {
+    limparTimer();
+    if (dragEl) { dragEl.classList.remove('sb-chip-dragging'); dragEl = null; }
+    wrap.querySelectorAll('.sb-chip-drag-over').forEach(el => el.classList.remove('sb-chip-drag-over'));
+  }, { passive: true });
+}
+
 function renderClienteChips() {
   const wrap = document.getElementById('sbChipsCliente');
   if (!wrap) return;
@@ -5344,6 +5549,8 @@ function renderClienteChips() {
       _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip')].map(el => el.dataset.cliente));
     });
   });
+
+  _initClienteChipsTouchReorder(wrap);
 
   // Atualiza o botão de marcar/desmarcar todos
   const btn = document.getElementById('sbToggleAllClientes');
