@@ -2168,6 +2168,10 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               Preparação Diária/Semanal
             </button>
+            <button class="tab-btn" id="gerTabCobranca" onclick="_gerMudarTab('cobranca')">
+              <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              Cobrança de Entregáveis
+            </button>
           </div>
 
           <div id="gerPainelBoletins">
@@ -2215,6 +2219,32 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               <div id="rondasLista" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
               <div id="rondaConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:var(--text);min-height:200px;">
                 Selecione uma ronda na lista ao lado.
+              </div>
+            </div>
+          </div>
+
+          <div id="gerPainelCobranca" style="display:none;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Entregáveis internos atrasados ou pendentes (Matriz R02), agrupados por área. Escolha a
+              área, veja quem está cadastrado como responsável, selecione o destinatário e gere o texto
+              de cobrança pronto pra copiar — nada é enviado automaticamente.
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+              <select class="nova-oc-select" style="width:220px;" id="cobAreaSel" onchange="cobRenderPendencias()"></select>
+              <button class="modal-close-btn" style="width:auto;padding:0 14px;height:34px;font-size:13px;" onclick="cobCarregarTudo()">↻ Atualizar</button>
+              <span id="cobStatus" style="font-size:12px;color:var(--text-faint);"></span>
+            </div>
+            <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+              <div style="flex:1;min-width:320px;">
+                <div style="font-weight:600;font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;">Pendências da área</div>
+                <div id="cobPendenciasLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+              </div>
+              <div style="width:340px;flex-shrink:0;">
+                <div style="font-weight:600;font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;">Destinatário</div>
+                <div id="cobResponsaveisLista" style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px;"></div>
+                <button class="modal-close-btn" style="width:100%;height:38px;font-size:13.5px;color:var(--teal);" onclick="cobGerarTexto()">Gerar cobrança</button>
+                <textarea id="cobTextoGerado" readonly style="width:100%;min-height:220px;margin-top:12px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--panel-alt);color:var(--text);font-size:12.5px;line-height:1.6;white-space:pre-wrap;display:none;"></textarea>
+                <button class="modal-close-btn" id="cobCopiarBtn" style="width:100%;height:34px;font-size:12.5px;margin-top:8px;display:none;" onclick="cobCopiarTexto()">Copiar texto</button>
               </div>
             </div>
           </div>
@@ -4695,8 +4725,22 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
   renderCompromissos();
 }
 
-/* ══ EDITOR DE PRAZOS (regras de Compromissos: BM / Performance / PCM) ══ */
+/* ══ EDITOR DE PRAZOS (regras de Compromissos — motor genérico, 41
+   entregáveis da Matriz R02 + BM/Performance/PCM por cliente) ══ */
 let _cmpRegrasCache = [];
+
+const DIAS_SEMANA_JS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const FREQ_SOB_DEMANDA_JS = ['porEvento', 'sobDemanda', 'porUsinaNova', 'porCiclo'];
+const FREQ_LABEL_JS = {
+  diario: 'Diário', mensal: 'Mensal', semanal: 'Semanal', trimestral: 'Trimestral',
+  semestral: 'Semestral', anual: 'Anual', porUsinaNova: 'A cada usina nova',
+  porCiclo: 'Por ciclo', porEvento: 'A cada evento', sobDemanda: 'Sob demanda',
+};
+const COMPROMISSO_LABEL_JS = {
+  'BM': 'Boletim de Medição',
+  'RelatorioPerformance': 'Relatório de Performance',
+  'RelatorioPCM': 'Relatório de Manutenção (PCM)',
+};
 
 function cmpAbrirEditorRegras() {
   document.getElementById('cmpRegrasOverlay').style.display = 'flex';
@@ -4728,78 +4772,161 @@ async function cmpCarregarRegras() {
   }
 }
 
+function _cmpLinhaRegra(r) {
+  const usinaTxt = r.usina ? (' · ' + r.usina) : '';
+  const freqBadge = '<span style="font-size:10.5px;padding:2px 7px;border-radius:20px;background:var(--bg-2);color:var(--text-faint);white-space:nowrap;">' +
+    (FREQ_LABEL_JS[r.frequencia] || r.frequencia || 'Mensal') + '</span>';
+
+  let editorHtml = '';
+  if (r.frequencia === 'diario') {
+    editorHtml = '<span style="font-size:12px;color:var(--text-faint);">prazo = dia seguinte, sem campo editável</span>';
+  } else if (r.frequencia === 'semanal') {
+    const diaAtual = (r.frequenciaConfig && r.frequenciaConfig.diaSemana != null) ? r.frequenciaConfig.diaSemana : 4;
+    editorHtml = '<select class="nova-oc-select" style="width:130px;" id="cmpDiaSemanaSel_' + r.id + '">' +
+      DIAS_SEMANA_JS.map((nome, idx) => '<option value="' + idx + '"' + (idx === diaAtual ? ' selected' : '') + '>' + nome + '</option>').join('') +
+      '</select>' +
+      '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;" onclick="cmpSalvarSemanal(\'' + r.id + '\')">Salvar</button>';
+  } else if (FREQ_SOB_DEMANDA_JS.includes(r.frequencia)) {
+    editorHtml = '<span style="font-size:12px;color:var(--text-faint);">prazo:</span>' +
+      '<input class="nova-oc-input" style="width:54px;text-align:center;" type="number" min="1" ' +
+        'id="cmpDiasCorridosInp_' + r.id + '" value="' + (r.regraValor || '10') + '">' +
+      '<span style="font-size:12px;color:var(--text-faint);">dias após abrir</span>' +
+      '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;" onclick="cmpSalvarDiasCorridos(\'' + r.id + '\')">Salvar</button>' +
+      '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;color:var(--teal);" onclick="cmpAbrirManual(\'' + r.id + '\')">Abrir agora</button>';
+  } else {
+    // mensal / trimestral / semestral / anual — todas usam RegraTipo/RegraValor
+    // dentro do mês de fechamento.
+    const regraTipoAtual = r.regraTipo;
+    editorHtml = '<select class="nova-oc-select" style="width:160px;" id="cmpRegraTipoSel_' + r.id + '">' +
+        '<option value="diaFixo"' + (regraTipoAtual === 'diaFixo' ? ' selected' : '') + '>Dia fixo do mês</option>' +
+        '<option value="nDiaUtil"' + (regraTipoAtual === 'nDiaUtil' ? ' selected' : '') + '>Nº dia útil do mês</option>' +
+        '<option value="diaAoUltimoUtil"' + (regraTipoAtual === 'diaAoUltimoUtil' ? ' selected' : '') + '>Último dia útil do mês</option>' +
+      '</select>' +
+      '<input class="nova-oc-input" style="width:58px;text-align:center;" type="number" min="1" max="31" ' +
+        'id="cmpRegraValorInp_' + r.id + '" value="' + (r.regraValor || '') + '" ' +
+        (regraTipoAtual === 'diaAoUltimoUtil' ? 'disabled' : '') + '>' +
+      '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;" onclick="cmpSalvarRegra(\'' + r.id + '\')">Salvar</button>';
+  }
+
+  const nomeLinha = r.cliente === '(Interno)'
+    ? ((r.entregavelId || r.tipo) + (r.paraQuem ? ' — ' + r.paraQuem : ''))
+    : (r.cliente + usinaTxt);
+
+  return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">' +
+    '<div style="flex:1;min-width:200px;font-size:13.5px;">' + nomeLinha + '</div>' +
+    freqBadge +
+    editorHtml +
+    '<span id="cmpRegraStatus_' + r.id + '" style="font-size:12px;color:var(--text-faint);min-width:60px;"></span>' +
+  '</div>';
+}
+
 function cmpRenderRegras() {
   const wrap = document.getElementById('cmpRegrasLista');
   if (!_cmpRegrasCache.length) { wrap.innerHTML = '<div class="cmp-empty">Nenhuma regra cadastrada.</div>'; return; }
 
-  const porTipo = {};
-  const ordemTipo = ['BM', 'RelatorioPerformance', 'RelatorioPCM'];
-  _cmpRegrasCache.forEach(r => {
-    if (!porTipo[r.Tipo]) porTipo[r.Tipo] = [];
-    porTipo[r.Tipo].push(r);
-  });
-
   let html = '';
-  ordemTipo.forEach(tipo => {
-    const itens = porTipo[tipo];
+
+  // 1) Entregáveis para o cliente (BM / Performance / PCM), como já era.
+  const porTipoCliente = {};
+  const ordemTipoCliente = ['BM', 'RelatorioPerformance', 'RelatorioPCM'];
+  _cmpRegrasCache.filter(r => ordemTipoCliente.includes(r.tipo)).forEach(r => {
+    if (!porTipoCliente[r.tipo]) porTipoCliente[r.tipo] = [];
+    porTipoCliente[r.tipo].push(r);
+  });
+  ordemTipoCliente.forEach(tipo => {
+    const itens = porTipoCliente[tipo];
     if (!itens || !itens.length) return;
     html += '<div style="font-weight:600;font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin:16px 0 8px;">' +
       (COMPROMISSO_LABEL_JS[tipo] || tipo) + '</div>';
-    itens.forEach(r => {
-      const usinaTxt = r.Usina ? (' · ' + r.Usina) : '';
-      const regraTipoAtual = r.RegraTipo;
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
-        '<div style="flex:1;font-size:14px;">' + r.Cliente + usinaTxt + '</div>' +
-        '<select class="nova-oc-select" style="width:170px;" id="cmpRegraTipoSel_' + r.ID + '">' +
-          '<option value="diaFixo"' + (regraTipoAtual === 'diaFixo' ? ' selected' : '') + '>Dia fixo do mês</option>' +
-          '<option value="nDiaUtil"' + (regraTipoAtual === 'nDiaUtil' ? ' selected' : '') + '>Nº dia útil do mês</option>' +
-          '<option value="diaAoUltimoUtil"' + (regraTipoAtual === 'diaAoUltimoUtil' ? ' selected' : '') + '>Último dia útil do mês</option>' +
-        '</select>' +
-        '<input class="nova-oc-input" style="width:64px;text-align:center;" type="number" min="1" max="31" ' +
-          'id="cmpRegraValorInp_' + r.ID + '" value="' + (r.RegraValor || '') + '" ' +
-          (regraTipoAtual === 'diaAoUltimoUtil' ? 'disabled' : '') + '>' +
-        '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;" onclick="cmpSalvarRegra(\'' + r.ID + '\')">Salvar</button>' +
-        '<span id="cmpRegraStatus_' + r.ID + '" style="font-size:12px;color:var(--text-faint);min-width:60px;"></span>' +
-      '</div>';
-    });
+    itens.forEach(r => { html += _cmpLinhaRegra(r); });
   });
+
+  // 2) Entregáveis internos (os 41 da Matriz R02), agrupados por área
+  // responsável — colapsados por padrão pra não sobrecarregar a tela.
+  const porArea = {};
+  const ordemArea = ['Contratos', 'PCM', 'COS', 'Manutenção', 'Performance', 'Engenharia', 'Zeladoria', 'Gestão'];
+  _cmpRegrasCache.filter(r => !ordemTipoCliente.includes(r.tipo)).forEach(r => {
+    const area = r.responsavelArea || 'Outros';
+    if (!porArea[area]) porArea[area] = [];
+    porArea[area].push(r);
+  });
+  const areasOrdenadas = ordemArea.filter(a => porArea[a]).concat(Object.keys(porArea).filter(a => !ordemArea.includes(a)));
+  if (areasOrdenadas.length) {
+    html += '<div style="font-weight:600;font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin:20px 0 8px;">Entregáveis internos (Matriz R02)</div>';
+    areasOrdenadas.forEach(area => {
+      const itens = porArea[area];
+      html += '<details style="margin-bottom:6px;">' +
+        '<summary style="cursor:pointer;font-size:13.5px;font-weight:600;padding:6px 0;">' + area + ' <span style="color:var(--text-faint);font-weight:400;">(' + itens.length + ')</span></summary>' +
+        '<div style="padding-left:4px;">' + itens.map(_cmpLinhaRegra).join('') + '</div>' +
+      '</details>';
+    });
+  }
+
   wrap.innerHTML = html;
 
-  // desabilita/habilita o campo de valor conforme o tipo de regra escolhido
+  // desabilita/habilita o campo de valor conforme o tipo de regra escolhido (mensal/trimestral/semestral/anual)
   _cmpRegrasCache.forEach(r => {
-    const sel = document.getElementById('cmpRegraTipoSel_' + r.ID);
+    const sel = document.getElementById('cmpRegraTipoSel_' + r.id);
     sel?.addEventListener('change', () => {
-      const inp = document.getElementById('cmpRegraValorInp_' + r.ID);
-      inp.disabled = sel.value === 'diaAoUltimoUtil';
+      const inp = document.getElementById('cmpRegraValorInp_' + r.id);
+      if (inp) inp.disabled = sel.value === 'diaAoUltimoUtil';
     });
   });
 }
-
-const COMPROMISSO_LABEL_JS = {
-  'BM': 'Boletim de Medição',
-  'RelatorioPerformance': 'Relatório de Performance',
-  'RelatorioPCM': 'Relatório de Manutenção (PCM)',
-};
 
 async function cmpSalvarRegra(id) {
   const statusEl = document.getElementById('cmpRegraStatus_' + id);
   const regraTipo = document.getElementById('cmpRegraTipoSel_' + id).value;
   const regraValor = document.getElementById('cmpRegraValorInp_' + id).value || '1';
+  await _cmpSalvarRegraCore(id, { regraTipo, regraValor }, statusEl);
+}
+
+async function cmpSalvarSemanal(id) {
+  const statusEl = document.getElementById('cmpRegraStatus_' + id);
+  const diaSemana = parseInt(document.getElementById('cmpDiaSemanaSel_' + id).value, 10);
+  await _cmpSalvarRegraCore(id, { frequenciaConfig: { diaSemana } }, statusEl);
+}
+
+async function cmpSalvarDiasCorridos(id) {
+  const statusEl = document.getElementById('cmpRegraStatus_' + id);
+  const regraValor = document.getElementById('cmpDiasCorridosInp_' + id).value || '10';
+  await _cmpSalvarRegraCore(id, { regraValor }, statusEl);
+}
+
+async function _cmpSalvarRegraCore(id, campos, statusEl) {
   statusEl.textContent = 'Salvando...';
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/regras/atualizar', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        id, regraTipo, regraValor,
-        editor: (_currentSession && _currentSession.user) || 'dashboard',
-      }),
+      body: JSON.stringify(Object.assign({
+        id, editor: (_currentSession && _currentSession.user) || 'dashboard',
+      }, campos)),
     });
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'falha ao salvar');
     statusEl.textContent = '✓ salvo';
     statusEl.style.color = 'var(--teal)';
-    // refaz a lista principal de compromissos em segundo plano, caso o card do mês tenha sido recalculado
+    carregarCompromissos();
+  } catch (e) {
+    statusEl.textContent = 'Erro: ' + (e.message || e);
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+async function cmpAbrirManual(regraId) {
+  const statusEl = document.getElementById('cmpRegraStatus_' + regraId);
+  statusEl.textContent = 'Abrindo...';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/abrir-manual', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ regraId, editor: (_currentSession && _currentSession.user) || 'dashboard' }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'falha ao abrir');
+    statusEl.textContent = '✓ aberto';
+    statusEl.style.color = 'var(--teal)';
     carregarCompromissos();
   } catch (e) {
     statusEl.textContent = 'Erro: ' + (e.message || e);
@@ -15006,13 +15133,15 @@ function _gerMudarTab(tab) {
   const tabRes = document.getElementById('gerTabResumos');
   const tabSup = document.getElementById('gerTabSupervisao');
   const tabPrep = document.getElementById('gerTabPreparacao');
+  const tabCob = document.getElementById('gerTabCobranca');
   const painelBol = document.getElementById('gerPainelBoletins');
   const painelPto = document.getElementById('gerPainelPonto');
   const painelRes = document.getElementById('gerPainelResumos');
   const painelSup = document.getElementById('gerPainelSupervisao');
   const painelPrep = document.getElementById('gerPainelPreparacao');
-  [tabBol, tabPto, tabRes, tabSup, tabPrep].forEach(t => t.classList.remove('active'));
-  [painelBol, painelPto, painelRes, painelSup, painelPrep].forEach(p => p.style.display = 'none');
+  const painelCob = document.getElementById('gerPainelCobranca');
+  [tabBol, tabPto, tabRes, tabSup, tabPrep, tabCob].forEach(t => t.classList.remove('active'));
+  [painelBol, painelPto, painelRes, painelSup, painelPrep, painelCob].forEach(p => p.style.display = 'none');
   if (tab === 'ponto') {
     tabPto.classList.add('active'); painelPto.style.display = '';
   } else if (tab === 'resumos') {
@@ -15024,9 +15153,153 @@ function _gerMudarTab(tab) {
   } else if (tab === 'preparacao') {
     tabPrep.classList.add('active'); painelPrep.style.display = '';
     carregarRondas();
+  } else if (tab === 'cobranca') {
+    tabCob.classList.add('active'); painelCob.style.display = '';
+    cobCarregarTudo();
   } else {
     tabBol.classList.add('active'); painelBol.style.display = '';
   }
+}
+
+// ── Cobrança de Entregáveis Internos (Matriz R02) ────────────────────
+let _cobCompromissosCache = [];
+let _cobResponsaveisCache = [];
+const COB_AREAS = ['PCM', 'Performance', 'Engenharia', 'COS', 'Manutenção', 'Zeladoria', 'Gestão', 'Contratos'];
+
+async function cobCarregarTudo() {
+  const statusEl = document.getElementById('cobStatus');
+  statusEl.textContent = 'Carregando...';
+  try {
+    const [respComp, respResp] = await Promise.all([
+      fetch('https://api.168.138.232.237.sslip.io/compromissos'),
+      fetch('https://api.168.138.232.237.sslip.io/responsaveis-areas'),
+    ]);
+    const dataComp = await respComp.json();
+    const dataResp = await respResp.json();
+    if (!dataComp.ok) throw new Error(dataComp.error || 'erro ao carregar compromissos');
+    if (!dataResp.ok) throw new Error(dataResp.error || 'erro ao carregar responsáveis');
+    _cobCompromissosCache = dataComp.compromissos || [];
+    _cobResponsaveisCache = dataResp.responsaveis || [];
+
+    const sel = document.getElementById('cobAreaSel');
+    const areaAtual = sel.value;
+    sel.innerHTML = COB_AREAS.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+    if (areaAtual && COB_AREAS.includes(areaAtual)) sel.value = areaAtual;
+
+    statusEl.textContent = '';
+    cobRenderPendencias();
+  } catch (e) {
+    statusEl.textContent = 'Erro: ' + (e.message || e);
+  }
+}
+
+function _cobCompromissosDaArea(area) {
+  // Compromissos vêm com "entregavelId" (ex. E-PCM-02) — cruzamos com a
+  // regra de origem pra saber a área, já que o card em si não guarda
+  // responsavelArea diretamente. Usamos o cache de regras carregado pelo
+  // editor de prazos, se disponível; senão inferimos pelo tipo do cliente.
+  const regraPorTipoECliente = {};
+  (_cmpRegrasCache || []).forEach(r => {
+    regraPorTipoECliente[r.tipo + '||' + r.cliente + '||' + r.usina] = r;
+  });
+  return _cobCompromissosCache.filter(c => {
+    if (c.status === 'Concluído') return false;
+    const regra = regraPorTipoECliente[c.tipo + '||' + c.cliente + '||' + (c.usina || '')];
+    const areaDoCard = regra ? regra.responsavelArea : '';
+    return areaDoCard === area;
+  });
+}
+
+function cobRenderPendencias() {
+  const area = document.getElementById('cobAreaSel').value;
+  const lista = document.getElementById('cobPendenciasLista');
+  const respWrap = document.getElementById('cobResponsaveisLista');
+  document.getElementById('cobTextoGerado').style.display = 'none';
+  document.getElementById('cobCopiarBtn').style.display = 'none';
+
+  // garante que o cache de regras (pra achar responsavelArea) está carregado
+  if (!_cmpRegrasCache.length) {
+    cmpCarregarRegras().then(cobRenderPendencias);
+    return;
+  }
+
+  const pendencias = _cobCompromissosDaArea(area);
+  if (!pendencias.length) {
+    lista.innerHTML = '<div class="cmp-empty">Nenhuma pendência em aberto pra ' + area + ' agora.</div>';
+  } else {
+    lista.innerHTML = pendencias.map(c => {
+      const corStatus = c.status === 'Atrasado' ? 'var(--red)' : 'var(--amber, #d9a441)';
+      const usinaTxt = c.usina ? (' · ' + c.usina) : '';
+      const nome = c.entregavelId ? (c.entregavelId) : c.tipoLabel;
+      return '<label style="display:flex;align-items:flex-start;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">' +
+        '<input type="checkbox" class="cobItemChk" value="' + c.id + '" checked style="margin-top:2px;">' +
+        '<span style="flex:1;">' + nome + usinaTxt +
+          '<br><span style="color:' + corStatus + ';">' + c.status + '</span>' +
+          ' — prazo ' + c.dataLimite + ' (' + c.competencia + ')</span>' +
+      '</label>';
+    }).join('');
+  }
+
+  const pessoas = _cobResponsaveisCache.filter(p => p.area === area && p.ativo);
+  if (!pessoas.length) {
+    respWrap.innerHTML = '<div class="cmp-empty" style="font-size:12px;">Nenhum responsável cadastrado pra ' + area + '.</div>';
+  } else {
+    respWrap.innerHTML = pessoas.map(p =>
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;">' +
+        '<input type="radio" name="cobDestinatario" value="' + p.nome + '">' +
+        p.nome + '<span style="color:var(--text-faint);font-size:11.5px;"> — ' + (p.cargo || '') + '</span>' +
+      '</label>'
+    ).join('');
+  }
+}
+
+function cobGerarTexto() {
+  const area = document.getElementById('cobAreaSel').value;
+  const destSel = document.querySelector('input[name="cobDestinatario"]:checked');
+  const destino = destSel ? destSel.value : null;
+  const checks = Array.from(document.querySelectorAll('.cobItemChk:checked'));
+  if (!destino) { alert('Selecione um destinatário.'); return; }
+  if (!checks.length) { alert('Selecione ao menos um item pendente.'); return; }
+
+  const idsSelecionados = new Set(checks.map(c => c.value));
+  const itens = _cobCompromissosDaArea(area).filter(c => idsSelecionados.has(c.id));
+
+  const atrasados = itens.filter(c => c.status === 'Atrasado');
+  const pendentes = itens.filter(c => c.status !== 'Atrasado');
+
+  let texto = 'Oi, ' + destino + '! Passando pra alinhar os seguintes entregáveis de ' + area + ':\n\n';
+  if (atrasados.length) {
+    texto += '🔴 *Atrasados:*\n';
+    atrasados.forEach(c => {
+      const usinaTxt = c.usina ? (' (' + c.usina + ')') : '';
+      texto += '• ' + (c.entregavelId || c.tipoLabel) + usinaTxt + ' — prazo era ' + c.dataLimite + '\n';
+    });
+    texto += '\n';
+  }
+  if (pendentes.length) {
+    texto += '📋 *Pendentes:*\n';
+    pendentes.forEach(c => {
+      const usinaTxt = c.usina ? (' (' + c.usina + ')') : '';
+      texto += '• ' + (c.entregavelId || c.tipoLabel) + usinaTxt + ' — prazo ' + c.dataLimite + '\n';
+    });
+    texto += '\n';
+  }
+  texto += 'Qualquer dúvida, me chama. Valeu!';
+
+  const area_ta = document.getElementById('cobTextoGerado');
+  area_ta.value = texto;
+  area_ta.style.display = 'block';
+  document.getElementById('cobCopiarBtn').style.display = 'block';
+}
+
+function cobCopiarTexto() {
+  const ta = document.getElementById('cobTextoGerado');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('cobCopiarBtn');
+  const textoOriginal = btn.textContent;
+  btn.textContent = '✓ Copiado';
+  setTimeout(() => { btn.textContent = textoOriginal; }, 1500);
 }
 
 // ── Controle de Ponto (Gerencial) ────────────────────────────────────
