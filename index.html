@@ -2147,32 +2147,37 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 <!-- ── SEÇÃO: COMPROMISSOS (BM / Relatórios de Terceiros) + CONTROLE DE PONTO ── -->
       <section class="content-section" id="sec-boletins">
         <div style="max-width:1240px;margin:0 auto;">
-          <div class="tabs-wrapper" style="margin-bottom:18px;">
-            <button class="tab-btn active" id="gerTabBoletins" onclick="_gerMudarTab('boletins')">
+          <div class="tabs-wrapper" id="gerTabsWrapper" style="margin-bottom:18px;">
+            <button class="tab-btn active" id="gerTabBoletins" draggable="true" data-tabname="boletins" onclick="_gerMudarTab('boletins')">
               <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
               Boletins de Medição
             </button>
-            <button class="tab-btn" id="gerTabPonto" onclick="_gerMudarTab('ponto')">
+            <button class="tab-btn" id="gerTabEntregaveis" draggable="true" data-tabname="entregaveis" onclick="_gerMudarTab('entregaveis')">
+              <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Entregáveis Grid
+            </button>
+            <button class="tab-btn" id="gerTabPonto" draggable="true" data-tabname="ponto" onclick="_gerMudarTab('ponto')">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Controle de Ponto
             </button>
-            <button class="tab-btn" id="gerTabResumos" onclick="_gerMudarTab('resumos')">
+            <button class="tab-btn" id="gerTabResumos" draggable="true" data-tabname="resumos" onclick="_gerMudarTab('resumos')">
               <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
               Resumos Diário/Semanal
             </button>
-            <button class="tab-btn" id="gerTabSupervisao" onclick="_gerMudarTab('supervisao')">
+            <button class="tab-btn" id="gerTabSupervisao" draggable="true" data-tabname="supervisao" onclick="_gerMudarTab('supervisao')">
               <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               Supervisão Temporária
             </button>
-            <button class="tab-btn" id="gerTabPreparacao" onclick="_gerMudarTab('preparacao')">
+            <button class="tab-btn" id="gerTabPreparacao" draggable="true" data-tabname="preparacao" onclick="_gerMudarTab('preparacao')">
               <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               Preparação Diária/Semanal
             </button>
-            <button class="tab-btn" id="gerTabCobranca" onclick="_gerMudarTab('cobranca')">
+            <button class="tab-btn" id="gerTabCobranca" draggable="true" data-tabname="cobranca" onclick="_gerMudarTab('cobranca')">
               <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
               Cobrança de Entregáveis
             </button>
           </div>
+          <div style="font-size:11px;color:var(--text-faint);margin:-10px 0 14px;">Arraste as abas acima pra reordenar — a ordem fica salva neste navegador.</div>
 
           <div id="gerPainelBoletins">
             <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -2182,6 +2187,15 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               </button>
             </div>
             <div id="cmpLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
+          </div>
+
+          <div id="gerPainelEntregaveis" style="display:none;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+              Todos os entregáveis com prazo (relatórios de performance e PCM por cliente, mais os
+              entregáveis internos de Contratos) — separados dos Boletins de Medição. Clique em
+              "Gerar comunicado" num card pra cobrar diretamente o responsável pela área.
+            </div>
+            <div id="entLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
           </div>
 
           <div id="gerPainelResumos" style="display:none;">
@@ -3212,6 +3226,32 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         Gerar Relatório (.pptx)
       </button>
       <div id="relOcorStatus" style="margin-top:10px;font-size:12.5px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gerar Comunicado (Entregáveis Grid — cobrança de um item específico) -->
+<div class="ch-overlay" id="entComOverlay">
+  <div class="ch-modal" style="max-width:520px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg><h2>Gerar comunicado</h2></div><div class="ch-subtitle" id="entComSubtitulo">—</div></div>
+        <button class="modal-close-btn" id="entComClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div id="entComSemArea" style="display:none;color:var(--text-dim);font-size:12.5px;line-height:1.6;">
+        Não encontrei uma área responsável cadastrada pra este entregável (verifique o Editor de Prazos). Sem área, não dá pra escolher destinatário.
+      </div>
+      <div id="entComComArea">
+        <div class="nova-oc-field">
+          <label>Destinatário (responsável pela área)</label>
+          <div id="entComResponsaveis" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+        </div>
+        <button class="nova-oc-submit" id="entComGerarBtn" onclick="entComGerarTexto()">Gerar texto</button>
+        <textarea id="entComTextoGerado" readonly style="display:none;width:100%;margin-top:14px;min-height:160px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);font-family:inherit;"></textarea>
+        <button class="modal-close-btn" id="entComCopiarBtn" style="display:none;width:100%;margin-top:8px;height:36px;" onclick="entComCopiarTexto()">Copiar texto</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4553,6 +4593,7 @@ async function carregarCompromissos() {
     if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
     _cmpCache = (data.compromissos || []).map(c => ({ ...c, cliente: normalizeCliente(c.cliente) }));
     renderCompromissos();
+    renderEntregaveisGrid();
   } catch (e) {
     wrap.innerHTML = '<div class="cmp-empty">Erro ao carregar compromissos: ' + (e.message || e) + '</div>';
   }
@@ -4595,23 +4636,33 @@ function cmpScrollPara(cliente) {
   if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
-function renderCompromissos() {
-  const wrap = document.getElementById('cmpLista');
-  if (!wrap) return;
-  if (!_cmpCache.length) {
-    wrap.innerHTML = '<div class="cmp-empty">Nenhum compromisso cadastrado ainda.</div>';
-    return;
+/* Monta os blocos por cliente pra uma lista já filtrada de compromissos —
+   compartilhado entre "Boletins de Medição" (só tipo BM) e "Entregáveis
+   Grid" (tudo, exceto BM). O 2º param liga o botão de gerar comunicado
+   em cada card (só faz sentido em Entregáveis Grid). */
+function _cmpRenderBlocos(lista, comBtn) {
+  if (!lista.length) {
+    return '<div class="cmp-empty">Nenhum item nesta lista agora.</div>';
   }
-
-  // Agrupa por cliente, mantendo ordem de urgência já vinda do backend
   const porCliente = {};
   const ordemClientes = [];
-  _cmpCache.forEach(c => {
+  lista.forEach(c => {
     if (!porCliente[c.cliente]) { porCliente[c.cliente] = []; ordemClientes.push(c.cliente); }
     porCliente[c.cliente].push(c);
   });
 
-  let html = cmpFaixaPrazosHtml();
+  let html = '';
+  const abertos = lista.filter(c => c.status !== 'Concluído').sort((a, b) => a.diasRestantes - b.diasRestantes);
+  if (abertos.length) {
+    const chips = abertos.map(c => {
+      const urgente = c.status === 'Atrasado' || c.diasRestantes <= 1;
+      return '<div class="cmp-prazo-chip' + (urgente ? ' cmp-prazo-chip-urgente' : '') + '" onclick="cmpScrollPara(\'' + c.cliente.replace(/'/g, "\\'") + '\')">' +
+        '<span class="cmp-prazo-chip-cliente">' + c.cliente + '</span>' +
+        '<span class="cmp-prazo-chip-dias">' + (c.status === 'Atrasado' ? 'atrasado' : (c.diasRestantes === 0 ? 'hoje' : c.diasRestantes + 'd')) + '</span>' +
+      '</div>';
+    }).join('');
+    html += '<div class="cmp-prazos-strip">' + chips + '</div>';
+  }
 
   ordemClientes.forEach(cliente => {
     const itens = porCliente[cliente];
@@ -4623,23 +4674,44 @@ function renderCompromissos() {
 
     html += '<div class="cmp-cliente-bloco" id="' + anchorId + '">';
     html += '<div class="cmp-cliente-nome">' + cliente + '</div>';
-    html += ativos.map(cmpCardHtml).join('');
+    html += ativos.map(c => cmpCardHtml(c, comBtn)).join('');
     if (concluidos.length) {
       html += '<div class="cmp-historico-toggle" onclick="cmpToggleHistorico(\'' + cliente.replace(/'/g, "\\'") + '\')">' +
         (historicoAberto ? '▾' : '▸') + ' Histórico (' + concluidos.length + ')</div>';
       if (historicoAberto) {
-        html += '<div class="cmp-historico-lista">' + concluidos.map(cmpCardHtml).join('') + '</div>';
+        html += '<div class="cmp-historico-lista">' + concluidos.map(c => cmpCardHtml(c, comBtn)).join('') + '</div>';
       }
     }
     html += '</div>';
   });
 
-  wrap.innerHTML = html;
+  return html;
+}
+
+function renderCompromissos() {
+  const wrap = document.getElementById('cmpLista');
+  if (!wrap) return;
+  wrap.innerHTML = _cmpRenderBlocos(_cmpCache.filter(c => c.tipo === 'BM'), false);
 }
 
 function cmpToggleHistorico(cliente) {
   _cmpHistoricoAberto[cliente] = !_cmpHistoricoAberto[cliente];
   renderCompromissos();
+  renderEntregaveisGrid();
+}
+
+/* ── Entregáveis Grid: tudo que tem prazo e NÃO é BM (relatórios de
+   performance/PCM por cliente + entregáveis internos de Contratos) ── */
+async function carregarEntregaveisGrid() {
+  if (!_cmpCache.length) await carregarCompromissos();
+  else renderEntregaveisGrid();
+  if (!_cmpRegrasCache.length) cmpCarregarRegras();
+}
+
+function renderEntregaveisGrid() {
+  const wrap = document.getElementById('entLista');
+  if (!wrap) return;
+  wrap.innerHTML = _cmpRenderBlocos(_cmpCache.filter(c => c.tipo !== 'BM'), true);
 }
 
 /* Prazo individual de cada etapa do BM (Envio/Aprovação) — só existe pra
@@ -4660,7 +4732,7 @@ function cmpEtapaPrazoTexto(c, idx) {
   return ' <span class="cmp-etapa-prazo">— até ' + data + '</span>';
 }
 
-function cmpCardHtml(c) {
+function cmpCardHtml(c, comBtn) {
   const badge = cmpBadgeInfo(c.status);
   const cardClass = c.status === 'Atrasado' ? 'cmp-atrasado'
                    : c.status === 'Concluído' ? 'cmp-concluido'
@@ -4675,6 +4747,11 @@ function cmpCardHtml(c) {
       '</div>';
   }).join('');
 
+  const btnHtml = (comBtn && c.status !== 'Concluído')
+    ? '<button class="modal-close-btn" style="width:100%;margin-top:10px;height:32px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="entComAbrir(\'' + c.id + '\')">' +
+        '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Gerar comunicado</button>'
+    : '';
+
   return '<div class="cmp-card ' + cardClass + '">' +
     '<div class="cmp-card-head">' +
       '<div><div class="cmp-card-title">' + c.tipoLabel + (c.usina ? (' · ' + c.usina) : '') + ' — ' + c.competencia + '</div>' +
@@ -4682,6 +4759,7 @@ function cmpCardHtml(c) {
       '<span class="cmp-badge ' + badge.cls + '">' + badge.label + '</span>' +
     '</div>' +
     '<div class="cmp-steps">' + stepsHtml + '</div>' +
+    btnHtml +
   '</div>';
 }
 
@@ -4702,6 +4780,7 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
   item.status = item.etapasConcluidas.every(Boolean) ? 'Concluído'
     : item.etapasConcluidas.some(Boolean) ? 'Em Andamento' : 'Pendente';
   renderCompromissos();
+  renderEntregaveisGrid();
 
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/marcar-etapa', {
@@ -4723,6 +4802,7 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
     console.error('Erro ao marcar etapa:', e);
   }
   renderCompromissos();
+  renderEntregaveisGrid();
 }
 
 /* ══ EDITOR DE PRAZOS (regras de Compromissos — motor genérico, 41
@@ -15129,20 +15209,25 @@ document.getElementById('relOcorOverlay')?.addEventListener('click', e => { if (
 // ── Gerencial: sub-abas (Boletins / Controle de Ponto / Resumos / Supervisão Temporária) ────
 function _gerMudarTab(tab) {
   const tabBol = document.getElementById('gerTabBoletins');
+  const tabEnt = document.getElementById('gerTabEntregaveis');
   const tabPto = document.getElementById('gerTabPonto');
   const tabRes = document.getElementById('gerTabResumos');
   const tabSup = document.getElementById('gerTabSupervisao');
   const tabPrep = document.getElementById('gerTabPreparacao');
   const tabCob = document.getElementById('gerTabCobranca');
   const painelBol = document.getElementById('gerPainelBoletins');
+  const painelEnt = document.getElementById('gerPainelEntregaveis');
   const painelPto = document.getElementById('gerPainelPonto');
   const painelRes = document.getElementById('gerPainelResumos');
   const painelSup = document.getElementById('gerPainelSupervisao');
   const painelPrep = document.getElementById('gerPainelPreparacao');
   const painelCob = document.getElementById('gerPainelCobranca');
-  [tabBol, tabPto, tabRes, tabSup, tabPrep, tabCob].forEach(t => t.classList.remove('active'));
-  [painelBol, painelPto, painelRes, painelSup, painelPrep, painelCob].forEach(p => p.style.display = 'none');
-  if (tab === 'ponto') {
+  [tabBol, tabEnt, tabPto, tabRes, tabSup, tabPrep, tabCob].forEach(t => t.classList.remove('active'));
+  [painelBol, painelEnt, painelPto, painelRes, painelSup, painelPrep, painelCob].forEach(p => p.style.display = 'none');
+  if (tab === 'entregaveis') {
+    tabEnt.classList.add('active'); painelEnt.style.display = '';
+    carregarEntregaveisGrid();
+  } else if (tab === 'ponto') {
     tabPto.classList.add('active'); painelPto.style.display = '';
   } else if (tab === 'resumos') {
     tabRes.classList.add('active'); painelRes.style.display = '';
@@ -15160,6 +15245,48 @@ function _gerMudarTab(tab) {
     tabBol.classList.add('active'); painelBol.style.display = '';
   }
 }
+
+// ── Reordenação por arrastar das sub-abas de Gerencial (persistida por navegador) ──
+(function _gerTabsDragSetup() {
+  const CHAVE = 'gerTabsOrdem';
+  function aplicarOrdemSalva() {
+    const wrap = document.getElementById('gerTabsWrapper');
+    if (!wrap) return;
+    let ordem;
+    try { ordem = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { ordem = null; }
+    if (!Array.isArray(ordem) || !ordem.length) return;
+    const botoes = Array.from(wrap.children);
+    const porNome = {};
+    botoes.forEach(b => { porNome[b.dataset.tabname] = b; });
+    ordem.forEach(nome => { if (porNome[nome]) wrap.appendChild(porNome[nome]); });
+    // qualquer aba nova que não estava salva (ex.: adicionada depois) vai pro fim, na ordem original
+    botoes.forEach(b => { if (!ordem.includes(b.dataset.tabname)) wrap.appendChild(b); });
+  }
+  function salvarOrdemAtual() {
+    const wrap = document.getElementById('gerTabsWrapper');
+    if (!wrap) return;
+    const ordem = Array.from(wrap.children).map(b => b.dataset.tabname);
+    localStorage.setItem(CHAVE, JSON.stringify(ordem));
+  }
+  function iniciarDragDrop() {
+    const wrap = document.getElementById('gerTabsWrapper');
+    if (!wrap) return;
+    let arrastando = null;
+    wrap.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('dragstart', () => { arrastando = btn; btn.style.opacity = '.4'; });
+      btn.addEventListener('dragend', () => { arrastando = null; btn.style.opacity = ''; salvarOrdemAtual(); });
+      btn.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!arrastando || arrastando === btn) return;
+        const rect = btn.getBoundingClientRect();
+        const antes = (e.clientX - rect.left) < rect.width / 2;
+        wrap.insertBefore(arrastando, antes ? btn : btn.nextSibling);
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => { aplicarOrdemSalva(); iniciarDragDrop(); });
+  if (document.readyState !== 'loading') { aplicarOrdemSalva(); iniciarDragDrop(); }
+})();
 
 // ── Cobrança de Entregáveis Internos (Matriz R02) ────────────────────
 let _cobCompromissosCache = [];
@@ -15301,6 +15428,110 @@ function cobCopiarTexto() {
   btn.textContent = '✓ Copiado';
   setTimeout(() => { btn.textContent = textoOriginal; }, 1500);
 }
+
+/* ── Gerar comunicado — item único (Entregáveis Grid) ──────────────────
+   Acha a regra de origem do card (via tipo+cliente+usina, igual a
+   _cobCompromissosDaArea) pra descobrir a área responsável, então lista
+   os responsáveis daquela área e gera o texto de cobrança — sempre
+   endereçado ao responsável da área, nunca ao cliente diretamente,
+   mesmo quando o entregável em si é algo que vai pro cliente (ex.:
+   Relatório de Manutenção/PCM). */
+let _entComItemAtual = null;
+
+function _entComAreaDoItem(c) {
+  const regra = (_cmpRegrasCache || []).find(r =>
+    r.tipo === c.tipo && r.cliente === c.cliente && (r.usina || '') === (c.usina || ''));
+  return regra ? regra.responsavelArea : '';
+}
+
+async function entComAbrir(id) {
+  const item = _cmpCache.find(c => c.id === id);
+  if (!item) return;
+  _entComItemAtual = item;
+
+  document.getElementById('entComOverlay').classList.add('open');
+  document.getElementById('entComSubtitulo').textContent =
+    item.tipoLabel + (item.usina ? (' · ' + item.usina) : '') + (item.cliente && item.cliente !== '(Interno)' ? (' · ' + item.cliente) : '') + ' — ' + item.competencia;
+  document.getElementById('entComTextoGerado').style.display = 'none';
+  document.getElementById('entComCopiarBtn').style.display = 'none';
+
+  // garante que regras e responsáveis estão carregados antes de decidir a área
+  if (!_cmpRegrasCache.length) await cmpCarregarRegras();
+  if (!_cobResponsaveisCache.length) {
+    try {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/responsaveis-areas');
+      const data = await resp.json();
+      if (data.ok) _cobResponsaveisCache = data.responsaveis || [];
+    } catch (e) { /* segue sem responsáveis — mostra aviso abaixo */ }
+  }
+
+  const area = _entComAreaDoItem(item);
+  const semArea = document.getElementById('entComSemArea');
+  const comArea = document.getElementById('entComComArea');
+  if (!area) {
+    semArea.style.display = '';
+    comArea.style.display = 'none';
+    return;
+  }
+  semArea.style.display = 'none';
+  comArea.style.display = '';
+
+  const pessoas = _cobResponsaveisCache.filter(p => p.area === area && p.ativo);
+  const respWrap = document.getElementById('entComResponsaveis');
+  if (!pessoas.length) {
+    respWrap.innerHTML = '<div class="cmp-empty" style="font-size:12px;">Nenhum responsável cadastrado pra ' + area + '.</div>';
+  } else {
+    respWrap.innerHTML = pessoas.map(p =>
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;">' +
+        '<input type="radio" name="entComDestinatario" value="' + p.nome + '">' +
+        p.nome + '<span style="color:var(--text-faint);font-size:11.5px;"> — ' + (p.cargo || '') + '</span>' +
+      '</label>'
+    ).join('');
+  }
+}
+
+function entComFechar() {
+  document.getElementById('entComOverlay').classList.remove('open');
+  _entComItemAtual = null;
+}
+
+function entComGerarTexto() {
+  const item = _entComItemAtual;
+  if (!item) return;
+  const destSel = document.querySelector('input[name="entComDestinatario"]:checked');
+  const destino = destSel ? destSel.value : null;
+  if (!destino) { alert('Selecione um destinatário.'); return; }
+
+  const area = _entComAreaDoItem(item);
+  const usinaTxt = item.usina ? (' (' + item.usina + ')') : '';
+  const paraClienteTxt = (item.cliente && item.cliente !== '(Interno)') ? (' referente a ' + item.cliente) : '';
+
+  let texto = 'Oi, ' + destino + '! Passando pra alinhar o seguinte entregável de ' + area + paraClienteTxt + ':\n\n';
+  if (item.status === 'Atrasado') {
+    texto += '🔴 *Atrasado:*\n• ' + item.tipoLabel + usinaTxt + ' — prazo era ' + item.dataLimite + '\n\n';
+  } else {
+    texto += '📋 *Pendente:*\n• ' + item.tipoLabel + usinaTxt + ' — prazo ' + item.dataLimite + '\n\n';
+  }
+  texto += 'Qualquer dúvida, me chama. Valeu!';
+
+  const ta = document.getElementById('entComTextoGerado');
+  ta.value = texto;
+  ta.style.display = 'block';
+  document.getElementById('entComCopiarBtn').style.display = 'block';
+}
+
+function entComCopiarTexto() {
+  const ta = document.getElementById('entComTextoGerado');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('entComCopiarBtn');
+  const textoOriginal = btn.textContent;
+  btn.textContent = '✓ Copiado';
+  setTimeout(() => { btn.textContent = textoOriginal; }, 1500);
+}
+
+document.getElementById('entComClose')?.addEventListener('click', entComFechar);
+document.getElementById('entComOverlay')?.addEventListener('click', e => { if (e.target.id === 'entComOverlay') entComFechar(); });
 
 // ── Controle de Ponto (Gerencial) ────────────────────────────────────
 let _pontoArquivos = [];
