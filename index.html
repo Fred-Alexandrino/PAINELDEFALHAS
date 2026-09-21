@@ -2171,6 +2171,12 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
           </div>
 
           <div id="gerPainelBoletins">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+              <button class="modal-close-btn" style="width:auto;padding:0 14px;height:34px;gap:6px;display:flex;align-items:center;font-size:13px;color:var(--text);" onclick="cmpAbrirEditorRegras()">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar prazos
+              </button>
+            </div>
             <div id="cmpLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
           </div>
 
@@ -3006,6 +3012,22 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
       <button class="nova-oc-submit" id="novaOcSubmit" onclick="_submeterNovaOcorrencia()">
         Registrar ocorrência
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Prazos (Compromissos: BM, Relatório de Performance, Relatório PCM) -->
+<div class="ch-overlay" id="cmpRegrasOverlay">
+  <div class="ch-modal" style="max-width:720px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><h2>Editar prazos</h2></div><div class="ch-subtitle">Dia de envio de BM, Relatório de Performance e Relatório PCM, por cliente</div></div>
+        <button class="modal-close-btn" id="cmpRegrasClose">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div id="cmpRegrasErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;"></div>
+      <div id="cmpRegrasLista">Carregando...</div>
     </div>
   </div>
 </div>
@@ -4671,6 +4693,118 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
     console.error('Erro ao marcar etapa:', e);
   }
   renderCompromissos();
+}
+
+/* ══ EDITOR DE PRAZOS (regras de Compromissos: BM / Performance / PCM) ══ */
+let _cmpRegrasCache = [];
+
+function cmpAbrirEditorRegras() {
+  document.getElementById('cmpRegrasOverlay').style.display = 'flex';
+  cmpCarregarRegras();
+}
+function cmpFecharEditorRegras() {
+  document.getElementById('cmpRegrasOverlay').style.display = 'none';
+}
+document.getElementById('cmpRegrasClose')?.addEventListener('click', cmpFecharEditorRegras);
+document.getElementById('cmpRegrasOverlay')?.addEventListener('click', e => {
+  if (e.target.id === 'cmpRegrasOverlay') cmpFecharEditorRegras();
+});
+
+async function cmpCarregarRegras() {
+  const wrap = document.getElementById('cmpRegrasLista');
+  const errEl = document.getElementById('cmpRegrasErr');
+  errEl.style.display = 'none';
+  wrap.innerHTML = 'Carregando...';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/regras');
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao carregar regras');
+    _cmpRegrasCache = data.regras || [];
+    cmpRenderRegras();
+  } catch (e) {
+    wrap.innerHTML = '';
+    errEl.textContent = 'Erro ao carregar prazos: ' + (e.message || e);
+    errEl.style.display = 'block';
+  }
+}
+
+function cmpRenderRegras() {
+  const wrap = document.getElementById('cmpRegrasLista');
+  if (!_cmpRegrasCache.length) { wrap.innerHTML = '<div class="cmp-empty">Nenhuma regra cadastrada.</div>'; return; }
+
+  const porTipo = {};
+  const ordemTipo = ['BM', 'RelatorioPerformance', 'RelatorioPCM'];
+  _cmpRegrasCache.forEach(r => {
+    if (!porTipo[r.Tipo]) porTipo[r.Tipo] = [];
+    porTipo[r.Tipo].push(r);
+  });
+
+  let html = '';
+  ordemTipo.forEach(tipo => {
+    const itens = porTipo[tipo];
+    if (!itens || !itens.length) return;
+    html += '<div style="font-weight:600;font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin:16px 0 8px;">' +
+      (COMPROMISSO_LABEL_JS[tipo] || tipo) + '</div>';
+    itens.forEach(r => {
+      const usinaTxt = r.Usina ? (' · ' + r.Usina) : '';
+      const regraTipoAtual = r.RegraTipo;
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="flex:1;font-size:14px;">' + r.Cliente + usinaTxt + '</div>' +
+        '<select class="nova-oc-select" style="width:170px;" id="cmpRegraTipoSel_' + r.ID + '">' +
+          '<option value="diaFixo"' + (regraTipoAtual === 'diaFixo' ? ' selected' : '') + '>Dia fixo do mês</option>' +
+          '<option value="nDiaUtil"' + (regraTipoAtual === 'nDiaUtil' ? ' selected' : '') + '>Nº dia útil do mês</option>' +
+          '<option value="diaAoUltimoUtil"' + (regraTipoAtual === 'diaAoUltimoUtil' ? ' selected' : '') + '>Último dia útil do mês</option>' +
+        '</select>' +
+        '<input class="nova-oc-input" style="width:64px;text-align:center;" type="number" min="1" max="31" ' +
+          'id="cmpRegraValorInp_' + r.ID + '" value="' + (r.RegraValor || '') + '" ' +
+          (regraTipoAtual === 'diaAoUltimoUtil' ? 'disabled' : '') + '>' +
+        '<button class="modal-close-btn" style="width:auto;padding:0 12px;font-size:12px;" onclick="cmpSalvarRegra(\'' + r.ID + '\')">Salvar</button>' +
+        '<span id="cmpRegraStatus_' + r.ID + '" style="font-size:12px;color:var(--text-faint);min-width:60px;"></span>' +
+      '</div>';
+    });
+  });
+  wrap.innerHTML = html;
+
+  // desabilita/habilita o campo de valor conforme o tipo de regra escolhido
+  _cmpRegrasCache.forEach(r => {
+    const sel = document.getElementById('cmpRegraTipoSel_' + r.ID);
+    sel?.addEventListener('change', () => {
+      const inp = document.getElementById('cmpRegraValorInp_' + r.ID);
+      inp.disabled = sel.value === 'diaAoUltimoUtil';
+    });
+  });
+}
+
+const COMPROMISSO_LABEL_JS = {
+  'BM': 'Boletim de Medição',
+  'RelatorioPerformance': 'Relatório de Performance',
+  'RelatorioPCM': 'Relatório de Manutenção (PCM)',
+};
+
+async function cmpSalvarRegra(id) {
+  const statusEl = document.getElementById('cmpRegraStatus_' + id);
+  const regraTipo = document.getElementById('cmpRegraTipoSel_' + id).value;
+  const regraValor = document.getElementById('cmpRegraValorInp_' + id).value || '1';
+  statusEl.textContent = 'Salvando...';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/compromissos/regras/atualizar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        id, regraTipo, regraValor,
+        editor: (_currentSession && _currentSession.user) || 'dashboard',
+      }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'falha ao salvar');
+    statusEl.textContent = '✓ salvo';
+    statusEl.style.color = 'var(--teal)';
+    // refaz a lista principal de compromissos em segundo plano, caso o card do mês tenha sido recalculado
+    carregarCompromissos();
+  } catch (e) {
+    statusEl.textContent = 'Erro: ' + (e.message || e);
+    statusEl.style.color = 'var(--red)';
+  }
 }
 
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
