@@ -7000,6 +7000,53 @@ Comentários:
 * Atividade não envolve manobra elétrica; não é necessário acionar o COS.`;
   }
 
+  // ── 0d. EXAUSTORES (trafo, SKID, QGBT, cabine, abrigo) ──────────────────
+  // Fica ANTES das regras de equipamento "hospedeiro" (inversor, trafo,
+  // cabine/QGBT): quando a solicitação cita exaustor, o foco da OS é o
+  // exaustor e o trafo/SKID é só o local. Antes (22/09/2026), "exaustores do
+  // transformador" caía na regra genérica de transformador e gerava uma OS
+  // de inspeção do trafo, com o título concatenado ao texto do equipamento.
+  if (tem('exaustor')) {
+    const ctx = [equip, falha, causa, hist, acao].join(' ');
+    const localTxt = /transform|trafo/.test(ctx) ? 'do transformador'
+      : /skid/.test(ctx) ? 'do SKID'
+      : /qgbt/.test(ctx) ? 'do QGBT'
+      : /cabine/.test(ctx) ? 'da cabine'
+      : /abrigo/.test(ctx) ? 'do abrigo' : '';
+    const localNome = localTxt.replace(/^d[oa] /, '') || 'ambiente ventilado';
+    const temCurto = /curto/.test(ctx);
+    const temPolaridade = /polaridade|invertid|sentido de giro|girando ao contr/.test(ctx);
+    const temParado = /parad|não liga|nao liga|queimad|desligad|sem funcionar|não funciona|nao funciona/.test(ctx);
+    const linhas = [
+      `Preencher APR/PT e aplicar LOTO no circuito de alimentação dos exaustores; confirmar ausência de tensão com detector antes de tocar nos bornes.`,
+      `Atenção: acompanhar a temperatura do ${localNome} enquanto a ventilação estiver comprometida.`,
+      `Caso seja necessário desligar o ${localNome} para a intervenção, obter autorização do COS antes de iniciar.`,
+    ];
+    if (temCurto) {
+      linhas.push(`Localizar o ponto de curto no exaustor afetado: inspecionar motor, cabos de alimentação, bornes e proteção (disjuntor/fusível); medir a resistência das bobinas e o isolamento do motor em relação à carcaça com megôhmetro/multímetro.`);
+      linhas.push(`Reparar ou substituir o motor/componente em curto por outro de mesma especificação; substituir a proteção (disjuntor/fusível) se estiver danificada.`);
+    }
+    if (temPolaridade) {
+      linhas.push(`Corrigir a ligação do exaustor com polaridade invertida (polaridade ou sequência de fases) conforme o esquema do fabricante, garantindo o sentido de giro de exaustão.`);
+    }
+    if (temParado && !temCurto) {
+      linhas.push(`Confirmar a alimentação de cada exaustor com multímetro e verificar fusíveis, disjuntores e contatoras de acionamento no painel de comando da ventilação; substituir componentes queimados por outros de mesma especificação.`);
+    }
+    if (!temCurto && !temPolaridade && !temParado) {
+      linhas.push(`Inspecionar cada exaustor individualmente: estado físico, rolamentos, hélice, fiação de alimentação e contatoras de acionamento.`);
+    }
+    linhas.push(`Reapertar as conexões nos bornes dos exaustores e no painel de comando da ventilação.`);
+    linhas.push(`Testar cada exaustor após a intervenção: sentido de giro (exaustão), corrente de operação medida com alicate amperímetro comparada à placa do motor, e acionamento automático pelo termostato/relé de temperatura.`);
+    linhas.push(`Limpar grades e hélices dos exaustores, removendo poeira e obstruções.`);
+    linhas.push(`Monitorar a temperatura do ${localNome} por 30 minutos após normalizar a ventilação e registrar os valores.`);
+    return `Título:
+Inspeção e manutenção dos exaustores${localTxt ? ' ' + localTxt : ''}
+
+Comentários:
+
+${linhas.map(l => '* ' + l).join('\n')}`;
+  }
+
   // ── 1. INVERSORES ───────────────────────────────────────────────────────
   if (tem('inv-','inversor')) {
 
@@ -7245,7 +7292,7 @@ Comentários:
   }
 
   // ── 4. TRANSFORMADOR ───────────────────────────────────────────────────
-  if (tem('transform')) {
+  if (tem('transform','trafo')) {
 
     if (tem('vazamento','óleo','oleo','bucha')) {
       return `Título:
@@ -7615,7 +7662,7 @@ Comentários:
   // ── FALLBACK GENÉRICO ──────────────────────────────────────────────────
   const titulo = d.falha ? d.falha : `intervenção em ${equipOrig}`;
   return `Título:
-Ordem de Serviço — ${titulo} na usina ${usinaOrig}
+Ordem de Serviço — ${titulo}${d.usina ? ` na usina ${d.usina}` : ''}
 
 Comentários:
 
@@ -7693,7 +7740,7 @@ function _dividirTextoOSAntigo(texto) {
     'desenergiz', 'loto', 'bloqueio e etiquetagem', 'sinaliza', 'aterramento',
     'não exige desligamento', 'nao exige desligamento', 'em operação', 'em operacao',
     'apr/pt', 'apr /pt', 'preencher apr', 'condições climáticas', 'condicoes climaticas',
-    'classe de tensão', 'classe de tensao',
+    'classe de tensão', 'classe de tensao', 'atenção:', 'atencao:',
   ];
   const observacaoPartes = [];
   const subtarefas = [];
@@ -7701,7 +7748,11 @@ function _dividirTextoOSAntigo(texto) {
     const low = b.toLowerCase();
     const ehRegistro = /foto/i.test(b) && /(registr|evid[êe]ncia)/i.test(b);
     if (ehRegistro) continue; // substituído pelas subtarefas fixas abaixo
-    if (PALAVRAS_OBSERVACAO.some(p => low.includes(p))) observacaoPartes.push(b);
+    // Qualquer menção ao COS vai pra observação (regra da plataforma: COS
+    // nunca é subtarefa) — antes só "acionar o cos" era reconhecido e
+    // "obter autorização do COS" virava subtarefa.
+    const ehCOS = /\bcos\b/i.test(b);
+    if (ehCOS || PALAVRAS_OBSERVACAO.some(p => low.includes(p))) observacaoPartes.push(b);
     else subtarefas.push(b);
   }
   subtarefas.push('Registro fotográfico da atividade');
