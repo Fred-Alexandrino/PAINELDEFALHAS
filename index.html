@@ -6958,7 +6958,32 @@ async function _addHistoryEntry() {
 
 /* ══ SOLICITAR OS — gera texto de abertura de OS via IA, contextualizado ══ */
 // ══ TEMPLATES DE OS — baseado nos padrões reais usados em campo ══════════
+// Limpa o texto usado como "equipamento" nos títulos do gerador local.
+// No "Solicitar OS rápida" o campo equipamento recebe o texto livre inteiro
+// (ex.: mensagem de WhatsApp com "@Fred Grid Co., boa tarde! Gentileza abrir
+// uma OS..."), que acabava colado no título. Remove menção/saudação/pedido e,
+// se ainda for uma frase longa, não usa no título (24/09/2026).
+function _limparEquipOS(txt) {
+  let t = String(txt || '').trim();
+  t = t.replace(/^@[^,\n!]*[,!]?\s*/, '');
+  t = t.replace(/^(bom dia|boa tarde|boa noite|ol[áa]|oi|pessoal)[,!.\s]*/i, '');
+  t = t.replace(/^(gentileza|por gentileza|por favor|favor|solicito|pe[çc]o)\b[^.]*?\b(abrir|criar|gerar)\s+(uma\s+)?os\s*(corretiva|preventiva)?\s*(de|para)?\s*/i, '');
+  t = t.trim();
+  if (!t || t.length > 50) return '';
+  return t;
+}
+
 function _gerarTextoOS(d) {
+  const equipLimpo = _limparEquipOS(d.equipamento);
+  const texto = _gerarTextoOSCore({ ...d, equipamento: equipLimpo });
+  // Sem equipamento curto aproveitável, tira o sufixo " — equipamento"
+  // e o "do equipamento" genérico que sobram nos títulos dos templates.
+  return texto
+    .replace(/ — equipamento(?=\n)/g, '')
+    .replace(/\s+(do|no|da|na|em)\s+equipamento(?=\s*(—|\n))/g, '');
+}
+
+function _gerarTextoOSCore(d) {
   const equip    = (d.equipamento  || '').toLowerCase();
   const falha    = (d.falha        || '').toLowerCase();
   const causa    = (d.causa        || '').toLowerCase();
@@ -7064,6 +7089,43 @@ Inspeção e manutenção dos exaustores${localTxt ? ' ' + localTxt : ''}
 Comentários:
 
 ${linhas.map(l => '* ' + l).join('\n')}`;
+  }
+
+  // ── 0e. CFTV / CÂMERAS (cabo de rede, câmera sem imagem) ────────────────
+  // Antes da regra de strings/cabos: "cabo LAN da câmera" caía em
+  // "falha em strings fotovoltaicas" só por conter a palavra "cabo".
+  if (tem('cftv','câmera','camera','bullet','dome','ptz','nvr','dvr')) {
+    const ctx = [equip, falha, causa, hist, acao].join(' ');
+    const mCam = ctx.match(/\b(bullet|dome|ptz|c[âa]mera)\s*(n[º°o]?\s*)?(\d{1,3})\b/i);
+    const camTipo = mCam && !/^c[âa]mera$/i.test(mCam[1]) ? `${mCam[1].charAt(0).toUpperCase()}${mCam[1].slice(1).toLowerCase()} ` : '';
+    const camNome = mCam ? `${camTipo}${mCam[3].padStart(2,'0')}` : '';
+    const camRef = camNome ? `da câmera ${camNome}` : 'da câmera afetada';
+    const sufUsina = d.usina ? ` — ${d.usina}` : '';
+    if (/cabo\s*(lan|de rede|utp|ethernet|rj45|rj-45)|cabo.*(rompid|danificad|corrompid|cortad)/.test(ctx)) {
+      return `Título:
+Substituição de cabo LAN ${camRef}${sufUsina}
+
+Comentários:
+
+* Preencher APR/PT antes de iniciar; se o cabo for PoE, desligar a porta do switch/injetor antes de desconectar.
+* Retirar material de reposição no almoxarifado: cabo UTP de mesma categoria do original, conectores RJ45 e, se a instalação for externa, cabo com proteção UV/blindado.
+* Inspecionar o trajeto do cabo danificado entre a câmera e o switch/NVR, identificando o ponto de dano (rompimento, ressecamento, roedores, esmagamento).
+* Lançar o cabo novo pelo mesmo trajeto (eletroduto/canaleta), sem emendas, e remover o cabo danificado.
+* Crimpar os conectores RJ45 nas duas pontas no mesmo padrão (T568A ou T568B) e testar a continuidade de todos os pares com testador de cabo de rede.
+* Conectar o cabo na câmera e na porta do switch/NVR; vedar a conexão do lado da câmera contra umidade.
+* Validar no NVR/sistema de monitoramento o retorno da imagem ${camRef}, conferindo enquadramento, gravação e ausência de quedas por pelo menos 10 minutos.`;
+    }
+    return `Título:
+Correção de falha de imagem ${camRef}${sufUsina}
+
+Comentários:
+
+* Preencher APR/PT antes de iniciar.
+* Verificar no NVR/sistema de monitoramento o status ${camRef} (sem imagem, intermitente ou degradada) e o horário da perda.
+* Conferir a alimentação da câmera (porta PoE do switch/injetor ou fonte) e o link de rede na porta correspondente.
+* Inspecionar o cabo de rede e os conectores RJ45 entre a câmera e o switch/NVR, testando a continuidade com testador de cabo.
+* Corrigir o ponto de falha identificado (reconectorizar, substituir cabo, fonte ou injetor) com material de mesma especificação.
+* Validar no NVR o retorno da imagem, enquadramento e gravação ${camRef}.`;
   }
 
   // ── 1. INVERSORES ───────────────────────────────────────────────────────
@@ -7797,7 +7859,10 @@ async function _gerarTextosOSComIA(d, tentativa = 1) {
         falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
         historico: d.historico||'', responsavel: d.responsavel||'',
       }),
-      signal: AbortSignal.timeout(45000), // Render pode demorar até ~50s pra "acordar"
+      // 110s: o backend pode levar até ~100s quando o Gemini está lento
+      // ou com 429 (3 tentativas + chave reserva). Com 45s o navegador
+      // desistia antes e caía no modelo local mesmo com a IA respondendo.
+      signal: AbortSignal.timeout(110000),
     });
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
@@ -7806,7 +7871,10 @@ async function _gerarTextosOSComIA(d, tentativa = 1) {
     const textos = result.textos && result.textos.length ? result.textos : [result.texto];
     return textos.map(_dividirTextoOSAntigo);
   } catch (e) {
-    if (tentativa < 2) {
+    // Timeout não repete: o backend já faz as próprias tentativas, e uma
+    // 2ª chamada só dobraria a espera e a cota gasta.
+    const foiTimeout = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+    if (tentativa < 2 && !foiTimeout) {
       return _gerarTextosOSComIA(d, tentativa + 1); // 1 nova tentativa antes de desistir
     }
     throw e;
