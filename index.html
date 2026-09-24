@@ -1423,7 +1423,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
 
-.rel-2col{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px;
+.rel-2col{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;
   align-items:start;max-width:1560px;margin:40px auto;}
 @media(max-width:900px){.rel-2col{grid-template-columns:1fr;max-width:520px;gap:24px;}}
 .com-livre-2col{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:start;max-width:1080px;margin-top:4px;}
@@ -1531,9 +1531,9 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
       </div>
-      <div class="sb-nav-item" data-nav="relatorios" data-label="Relatórios" draggable="true">
+      <div class="sb-nav-item" data-nav="relatorios" data-label="Reuniões - Clientes" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Relatórios
+        Reuniões - Clientes
       </div>
       <div class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -2060,13 +2060,13 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <div id="anotLista"></div>
       </section>
 
-      <!-- ── SEÇÃO: RELATÓRIOS SEMANAIS ──────────────────────── -->
+      <!-- ── SEÇÃO: REUNIÕES - CLIENTES (Apresentações) ──────────────────────── -->
       <section class="content-section" id="sec-relatorios">
         <div class="rel-2col">
           <div class="rel-card">
             <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
                         text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
-              Relatórios Semanais
+              Apresentações
             </div>
 
             <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
@@ -2107,49 +2107,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             </button>
 
             <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
-          </div>
-
-          <div class="rel-card">
-            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
-              Relatório de Ocorrência
-            </div>
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-              Descreva brevemente o que aconteceu, anexe as fotos de evidência — a IA expande o resumo
-              pro texto formal e monta o relatório (.pptx) no padrão Grid Co.
-            </div>
-            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirRelatorioOcorrencia()">
-              Gerar Relatório de Ocorrência
-            </button>
-          </div>
-
-          <div class="rel-card">
-            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
-              Relatório de Handover
-            </div>
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-              Relatório completo de handover de uma usina inteira (Construção/EPC → O&amp;M), no
-              modelo Grid Co. — capa, etapas, capacitação, quadro de revisões e punch list, com o
-              PDF exportado da Fracttal anexado no meio.
-            </div>
-            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirHandoverUsina()">
-              Montar Relatório de Handover de Usina
-            </button>
-          </div>
-
-          <div class="rel-card">
-            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px;">
-              Atas de Reunião
-            </div>
-            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-              Anexe a transcrição exportada do Teams (.docx ou .txt) — a IA estrutura os tópicos,
-              ações e decisões e monta a ata (.docx) no padrão Grid Co., pronta pra enviar ao cliente.
-            </div>
-            <button class="rel-btn-primario" style="width:100%;" onclick="_abrirAtaReuniao()">
-              Gerar Ata de Reunião
-            </button>
           </div>
         </div>
       </section>
@@ -4099,7 +4056,7 @@ const NAV_TITLES = {
   'historico-log': 'Log Histórico',
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
-  'relatorios': 'Relatórios',
+  'relatorios': 'Reuniões - Clientes',
   'atividades': 'Painel de Atividades',
   'programacao-pcm': 'Programação PCM',
   'boletins': 'Gerencial',
@@ -16019,7 +15976,7 @@ function _pontoCopiarComunicado(id, btn) {
   </div>
   <div class="bn-item" data-nav="relatorios">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    <span>Relatórios</span>
+    <span>Reuniões - Clientes</span>
   </div>
   <div class="bn-item" id="bnMenuBtn">
     <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
