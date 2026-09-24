@@ -2035,7 +2035,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             <span id="anotEditBannerTexto">Editando anotação</span>
             <button class="tb-btn" style="padding:2px 8px;font-size:11px;" onclick="_anotCancelarEdicao()">Cancelar edição</button>
           </div>
-          <textarea id="anotTexto" placeholder="Escreva a anotação..." style="width:100%;min-height:70px;resize:vertical;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13.5px;color:var(--text);font-family:inherit;"></textarea>
+          <textarea id="anotTexto" placeholder="Escreva a anotação..." oninput="_anotAutoResize(this)" style="width:100%;min-height:70px;max-height:60vh;resize:vertical;overflow-y:hidden;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13.5px;color:var(--text);font-family:inherit;"></textarea>
           <div id="anotTranscrevendoAviso" style="display:none;font-size:11.5px;color:var(--text-faint);margin-top:6px;">Transcrevendo imagem... isso pode levar alguns segundos.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
             <input type="text" id="anotCategoria" placeholder="Categoria (opcional)" class="sb-select" style="max-width:160px;">
@@ -8528,11 +8528,23 @@ document.getElementById('anotUsina')?.addEventListener('change', _anotUsinaSelec
 
 let _anotEditandoId = null;
 
+// Cresce o textarea junto com o conteúdo (até max-height, aí vira scroll —
+// ver CSS inline do elemento). Precisa ser chamado manualmente sempre que
+// o valor é setado via código (edição, transcrição, cancelar, limpar),
+// já que só o evento oninput do usuário digitando dispara sozinho.
+function _anotAutoResize(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 function editarAnotacao(id) {
   const a = ANOTACOES.find(x => x.ID === id);
   if (!a) return;
   _anotEditandoId = id;
-  document.getElementById('anotTexto').value = a.Texto || '';
+  const textoEl = document.getElementById('anotTexto');
+  textoEl.value = a.Texto || '';
+  _anotAutoResize(textoEl);
   document.getElementById('anotCategoria').value = a.Categoria || '';
   _anotPopularCatalogo();
   document.getElementById('anotCliente').value = a.Cliente || '';
@@ -8542,12 +8554,14 @@ function editarAnotacao(id) {
   document.getElementById('anotEditBannerTexto').textContent = `Editando anotação #${id}`;
   document.getElementById('anotSalvarBtnTexto').textContent = 'Salvar edição';
   document.querySelector('#sec-anotacoes .panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  document.getElementById('anotTexto').focus();
+  textoEl.focus();
 }
 
 function _anotCancelarEdicao() {
   _anotEditandoId = null;
-  document.getElementById('anotTexto').value = '';
+  const textoEl = document.getElementById('anotTexto');
+  textoEl.value = '';
+  _anotAutoResize(textoEl);
   document.getElementById('anotCategoria').value = '';
   document.getElementById('anotUsina').value = '';
   document.getElementById('anotCliente').value = '';
@@ -8584,6 +8598,7 @@ async function _anotFotoSelecionada(event) {
     // clicar em Salvar (nada é gravado automaticamente aqui).
     const atual = textoEl.value.trim();
     textoEl.value = atual ? `${atual}\n\n${result.texto}` : result.texto;
+    _anotAutoResize(textoEl);
     textoEl.focus();
   } catch (e) {
     alert(`Erro ao transcrever a imagem: ${e.message || 'falha de conexão'}. Tente novamente ou digite manualmente.`);
@@ -8692,6 +8707,7 @@ async function salvarAnotacao(_tentativa = 0) {
       _anotCancelarEdicao();
     } else {
       textoEl.value = '';
+      _anotAutoResize(textoEl);
       document.getElementById('anotCategoria').value = '';
       document.getElementById('anotUsina').value = '';
       document.getElementById('anotCliente').value = '';
