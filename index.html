@@ -16069,6 +16069,13 @@ function _pontoCopiarComunicado(id, btn) {
   #chatIaPanel{right:10px;left:10px;width:auto;bottom:80px;}
   #chatIaBubble{right:14px;bottom:14px;}
 }
+/* Acima da bottom-nav (60px de altura) — sem isso o botão da IA fica por
+   cima do item "Menu" (canto inferior direito), que é quem abre a sidebar
+   no celular, e tampa o toque. Mesmo breakpoint da .bottom-nav. */
+@media(max-width:768px),(max-width:1024px) and (orientation:portrait){
+  #chatIaBubble{bottom:76px;}
+  #chatIaPanel{bottom:140px;}
+}
 </style>
 
 <button id="chatIaBubble" title="Assistente IA do painel" aria-label="Abrir assistente IA">
