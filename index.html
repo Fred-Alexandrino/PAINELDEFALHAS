@@ -5345,9 +5345,12 @@ function _atualizarBadgesNaoLidos() {
     badgeFalhas.textContent = naoLidasFalhas.length > 99 ? '99+' : naoLidasFalhas.length;
     badgeFalhas.style.display = naoLidasFalhas.length > 0 ? '' : 'none';
   }
+  // O sino usa a mesma janela de recência da Central de Notificações (só
+  // "o que é novo", não o backlog inteiro de não-lidos) — senão o número
+  // no sino nunca bate com a quantidade de itens que aparecem ao abrir.
   const badgeSino = document.getElementById('centralNotifBadge');
   if (badgeSino) {
-    const total = naoLidasAtiv.length + naoLidasFalhas.length;
+    const total = _coletarNotificacoesNaoVistas().length;
     badgeSino.textContent = total > 99 ? '99+' : total;
     badgeSino.style.display = total > 0 ? '' : 'none';
   }
@@ -5393,10 +5396,46 @@ function _formatarHorarioNotif(ts) {
   const dataCurta = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
   return horaParte ? `${dataCurta} ${horaParte}` : dataCurta;
 }
+// Janela de recência da Central de Notificações (26/09/2026, pedido do
+// Fred): sem isso, qualquer atividade/falha antiga cujo estado de "lido"
+// nunca foi registrado — criada antes dessa funcionalidade existir, ou
+// vista só num navegador diferente (falhas são só localStorage, não
+// sincronizam entre aparelhos) — ficava pra sempre aparecendo como
+// "notificação nova", mesmo sendo de meses atrás (junho/julho aparecendo
+// junto das de hoje). Itens fora da janela simplesmente não entram na
+// lista, não importa o estado de visualizado/lido — pra reabrir uma
+// atividade antiga específica o Fred usa o Painel de Atividades normal,
+// não a Central de Notificações (que é só "o que é novo").
+const NOTIF_JANELA_DIAS = 7;
+
+function _parseDataBR(str) {
+  if (!str) return null;
+  const partes = String(str).trim().split(' ');
+  const dataPartes = (partes[0] || '').split('/');
+  if (dataPartes.length !== 3) return null;
+  const [d, m, a] = dataPartes.map(Number);
+  if (!d || !m || !a) return null;
+  const horaPartes = (partes[1] || '').split(':');
+  const hh = Number(horaPartes[0]) || 0;
+  const mm = Number(horaPartes[1]) || 0;
+  const dt = new Date(a, m - 1, d, hh, mm);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function _dentroDaJanelaNotif(horario) {
+  const dt = _parseDataBR(horario);
+  if (!dt) return true; // data ilegível/ausente — não esconde por segurança
+  const limite = new Date();
+  limite.setDate(limite.getDate() - NOTIF_JANELA_DIAS);
+  return dt >= limite;
+}
+
 function _coletarNotificacoesNaoVistas() {
   const itens = [];
   (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).forEach(a => {
     if (a.visualizado === 'sim') return;
+    const horario = _timestampUltimaLinhaHistorico(a.historico) || a.dataCriacao || '';
+    if (!_dentroDaJanelaNotif(horario)) return;
     itens.push({
       origem: 'atividade',
       id: a.id,
@@ -5408,11 +5447,13 @@ function _coletarNotificacoesNaoVistas() {
       tag: 'ATIVIDADE',
       tagCor: 'var(--blue)',
       data: a.dataCriacao || '',
-      horario: _timestampUltimaLinhaHistorico(a.historico) || a.dataCriacao || '',
+      horario,
     });
   });
   (typeof DATA !== 'undefined' ? DATA : []).forEach(d => {
     if (_falhaVisualizada(d.id)) return;
+    const horario = _timestampUltimaLinhaHistorico(d.historico) || d.inicio || d.dataAbertura || '';
+    if (!_dentroDaJanelaNotif(horario)) return;
     itens.push({
       origem: 'falha',
       id: d.id,
@@ -5424,7 +5465,7 @@ function _coletarNotificacoesNaoVistas() {
       tag: 'FALHA',
       tagCor: 'var(--red,#EF4444)',
       data: d.inicio || d.dataAbertura || '',
-      horario: _timestampUltimaLinhaHistorico(d.historico) || d.inicio || d.dataAbertura || '',
+      horario,
     });
   });
   // mais recentes primeiro (ordenação simples por string de data — os
