@@ -616,7 +616,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
 /* CONTEÚDO COM SCROLL */
 .main-content{
-  flex:1;overflow-y:auto;overflow-x:hidden;
+  flex:1;overflow-y:auto;overflow-x:auto;
   padding:20px 24px 80px;
   -webkit-overflow-scrolling:touch;
   position:relative;z-index:1;
@@ -1359,7 +1359,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
     flex:1;
     min-height:0;          /* essencial para flex + overflow funcionar */
     overflow-y:auto;
-    overflow-x:hidden;
+    overflow-x:auto;
     -webkit-overflow-scrolling:touch;
     padding:12px 12px 20px;
   }
