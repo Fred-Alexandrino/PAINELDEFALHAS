@@ -301,13 +301,25 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 }
 .central-notif-list::-webkit-scrollbar{width:8px;}
 .central-notif-list::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;}
+/* Swipe-to-dismiss (30/09/2026, pedido do Fred): cada item fica dentro de
+   um wrapper com um fundo "✓ Lida" escondido atrás; arrastando o item da
+   direita pra esquerda (dedo ou mouse), o fundo vai aparecendo pela direita
+   conforme o item desliza — soltar além do limiar marca só aquele item
+   como lido e o remove da lista, sem precisar abrir a atividade/falha. */
+.central-notif-swipe{position:relative;overflow:hidden;border-radius:10px;}
+.central-notif-swipe:last-child .central-notif-item{border-bottom:none;}
+.central-notif-swipe-bg{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;
+  gap:6px;padding-right:20px;border-radius:10px;color:#fff;font-size:13px;font-weight:700;
+  background:linear-gradient(90deg,transparent 0%,var(--teal,#14b8a6) 45%);
+}
 .central-notif-item{
   display:flex;align-items:flex-start;gap:10px;padding:12px 12px;
   border-radius:10px;cursor:pointer;transition:background .12s;
   border-bottom:1px solid var(--border-soft,rgba(255,255,255,.05));
-  position:relative;
+  position:relative;background:var(--panel,#111);touch-action:pan-y;user-select:none;
 }
-.central-notif-item:last-child{border-bottom:none;}
+.central-notif-item.central-notif-dragging{transition:none;}
 .central-notif-item:hover{background:var(--panel-alt,rgba(255,255,255,.04));}
 .central-notif-item-dot{
   flex:none;width:8px;height:8px;border-radius:50%;background:var(--teal);
@@ -5485,32 +5497,117 @@ function _renderCentralNotificacoes() {
   lista.innerHTML = itens.map(it => {
     const horarioFmt = _formatarHorarioNotif(it.horario);
     return `
-    <div class="central-notif-item" data-origem="${esc(it.origem)}" data-id="${esc(it.id)}">
-      <span class="central-notif-item-dot"></span>
-      <div class="central-notif-item-body">
-        ${horarioFmt ? `<span class="central-notif-item-time">${esc(horarioFmt)}</span>` : ''}
-        <div class="central-notif-item-title">${esc(it.titulo)}</div>
-        <div class="central-notif-item-sub">${esc(it.sub)}</div>
-        <div class="central-notif-item-meta">${esc(it.meta || '')}</div>
-        ${it.mudanca ? `<div class="central-notif-item-change">🔄 ${esc(it.mudanca)}</div>` : ''}
-        <span class="central-notif-item-tag" style="background:${it.tagCor}22;color:${it.tagCor};">${it.tag}</span>
+    <div class="central-notif-swipe">
+      <div class="central-notif-swipe-bg">✓ Lida</div>
+      <div class="central-notif-item" data-origem="${esc(it.origem)}" data-id="${esc(it.id)}">
+        <span class="central-notif-item-dot"></span>
+        <div class="central-notif-item-body">
+          ${horarioFmt ? `<span class="central-notif-item-time">${esc(horarioFmt)}</span>` : ''}
+          <div class="central-notif-item-title">${esc(it.titulo)}</div>
+          <div class="central-notif-item-sub">${esc(it.sub)}</div>
+          <div class="central-notif-item-meta">${esc(it.meta || '')}</div>
+          ${it.mudanca ? `<div class="central-notif-item-change">🔄 ${esc(it.mudanca)}</div>` : ''}
+          <span class="central-notif-item-tag" style="background:${it.tagCor}22;color:${it.tagCor};">${it.tag}</span>
+        </div>
       </div>
     </div>
   `;
   }).join('');
-  lista.querySelectorAll('.central-notif-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const origem = el.dataset.origem;
-      const id = el.dataset.id;
-      _fecharCentralNotificacoes();
-      if (origem === 'atividade') {
-        switchNav('atividades');
-        setTimeout(() => _abrirAtivDrawer(id), 50);
-      } else {
-        switchNav('falhas');
-        setTimeout(() => openModal(id), 50);
-      }
-    });
+  lista.querySelectorAll('.central-notif-item').forEach(el => _configurarItemNotif(el));
+}
+
+// Marca só um item (não a central inteira) como lido — mesmo caminho que
+// o "Limpar" geral usa por baixo dos panos, só que pra um id só: campo
+// "visualizado" no servidor pra atividade, localStorage pra falha (o
+// Painel de Falhas roda num Apps Script à parte, fora do nosso controle).
+function _marcarNotifItemLida(origem, id) {
+  if (origem === 'atividade') {
+    const ativ = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).find(a => String(a.id) === String(id));
+    if (ativ) ativ.visualizado = 'sim';
+    fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, field: 'visualizado', value: 'sim' }),
+    }).catch(() => {});
+  } else {
+    _marcarFalhaVisualizada(id);
+  }
+  document.querySelector(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`)?.remove();
+  _atualizarBadgesNaoLidos();
+}
+
+// Clique abre a atividade/falha como sempre; arrastar da direita pra
+// esquerda (dedo ou mouse) marca só aquele item como lido e o descarta da
+// lista, sem precisar abrir nada — pra ir "passando o dedo" conforme lê.
+function _configurarItemNotif(el) {
+  const LIMIAR_PX = 70;
+  let startX = 0, startY = 0, dx = 0, ativo = false, decidido = false, horizontal = false, suprimirClick = false;
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    startX = e.clientX; startY = e.clientY; dx = 0;
+    ativo = true; decidido = false; horizontal = false;
+    el.classList.add('central-notif-dragging');
+  });
+
+  el.addEventListener('pointermove', (e) => {
+    if (!ativo) return;
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    if (!decidido) {
+      if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) return;
+      decidido = true;
+      horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+      if (horizontal) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+    }
+    if (!horizontal) return; // deixa o scroll vertical nativo da lista acontecer
+    dx = Math.min(0, deltaX); // só arrasta pra esquerda
+    el.style.transform = `translateX(${dx}px)`;
+    el.style.opacity = String(1 - Math.min(1, Math.abs(dx) / (el.offsetWidth * 0.7)) * 0.5);
+    if (Math.abs(dx) > 6) suprimirClick = true;
+  });
+
+  function finalizarArrasto() {
+    if (!ativo) return;
+    ativo = false;
+    el.classList.remove('central-notif-dragging');
+    if (!horizontal) return;
+    if (Math.abs(dx) > LIMIAR_PX) {
+      const origem = el.dataset.origem, id = el.dataset.id;
+      el.style.transition = 'transform .22s ease, opacity .22s ease';
+      el.style.transform = 'translateX(-100%)';
+      el.style.opacity = '0';
+      el.addEventListener('transitionend', function onEnd() {
+        el.removeEventListener('transitionend', onEnd);
+        _marcarNotifItemLida(origem, id);
+        el.closest('.central-notif-swipe')?.remove();
+        const lista = document.getElementById('centralNotifList');
+        if (lista && !lista.querySelector('.central-notif-swipe')) {
+          lista.innerHTML = `<div class="central-notif-empty">Tudo em dia — nenhuma notificação nova.</div>`;
+        }
+      }, { once: true });
+    } else {
+      el.style.transition = 'transform .18s ease, opacity .18s ease';
+      el.style.transform = 'translateX(0)';
+      el.style.opacity = '1';
+      setTimeout(() => { el.style.transition = ''; }, 200);
+    }
+  }
+  el.addEventListener('pointerup', finalizarArrasto);
+  el.addEventListener('pointercancel', finalizarArrasto);
+
+  el.addEventListener('click', () => {
+    if (suprimirClick) { suprimirClick = false; return; }
+    const origem = el.dataset.origem;
+    const id = el.dataset.id;
+    _fecharCentralNotificacoes();
+    if (origem === 'atividade') {
+      switchNav('atividades');
+      setTimeout(() => _abrirAtivDrawer(id), 50);
+    } else {
+      switchNav('falhas');
+      setTimeout(() => openModal(id), 50);
+    }
   });
 }
 
