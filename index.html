@@ -5344,6 +5344,12 @@ function _marcarFalhaVisualizada(id) {
   } catch (e) {}
 }
 
+// Conta quantos itens da Central de Notificações estão no meio da
+// animação de swipe-to-dismiss neste exato momento — usado por
+// _atualizarBadgesNaoLidos() pra não reconstruir a lista enquanto uma
+// transição CSS ainda está rolando (ver comentário mais abaixo).
+let _notifAnimandoCount = 0;
+
 function _atualizarBadgesNaoLidos() {
   const badgeAtiv = document.getElementById('sbBadgeAtividades');
   const naoLidasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => a.visualizado !== 'sim');
@@ -5367,9 +5373,16 @@ function _atualizarBadgesNaoLidos() {
     badgeSino.style.display = total > 0 ? '' : 'none';
   }
   // se o pop-up estiver aberto no momento em que os dados recarregam,
-  // re-renderiza pra manter a lista em dia sem precisar fechar/abrir.
+  // re-renderiza pra manter a lista em dia sem precisar fechar/abrir —
+  // EXCETO enquanto algum item está no meio da animação de swipe
+  // (_notifAnimandoCount > 0): reconstruir a lista nesse meio tempo troca
+  // o elemento que está sumindo por um novo, aborta a transição CSS antes
+  // dela terminar e deixa o fundo verde "✓ Lida" travado ali pra sempre,
+  // sem nunca ser removido (bug visto 30/09/2026 — itens lidos ficavam
+  // empilhados, sempre verdes). A lista fica só alguns milissegundos
+  // desatualizada nesse intervalo, sem problema perceptível.
   const modal = document.getElementById('centralNotifModal');
-  if (modal && modal.classList.contains('open')) _renderCentralNotificacoes();
+  if (modal && modal.classList.contains('open') && !_notifAnimandoCount) _renderCentralNotificacoes();
 }
 
 // ── Central de Notificações (pop-up central, estilo WhatsApp) ───────────
@@ -5574,18 +5587,27 @@ function _configurarItemNotif(el) {
     if (!horizontal) return;
     if (Math.abs(dx) > LIMIAR_PX) {
       const origem = el.dataset.origem, id = el.dataset.id;
+      const wrap = el.closest('.central-notif-swipe');
+      // Marca como lido JÁ (dado + badges), antes da animação terminar —
+      // e segura o re-render automático da lista (_notifAnimandoCount)
+      // até a animação acabar, pra uma atualização "ao vivo" concorrente
+      // não reconstruir esse item no meio do caminho e deixar a barra
+      // verde travada sem nunca sumir. Remoção por setTimeout (não por
+      // transitionend, que não dispara se o elemento for substituído
+      // antes da transição terminar).
+      _notifAnimandoCount++;
+      _marcarNotifItemLida(origem, id);
       el.style.transition = 'transform .22s ease, opacity .22s ease';
       el.style.transform = 'translateX(-100%)';
       el.style.opacity = '0';
-      el.addEventListener('transitionend', function onEnd() {
-        el.removeEventListener('transitionend', onEnd);
-        _marcarNotifItemLida(origem, id);
-        el.closest('.central-notif-swipe')?.remove();
+      setTimeout(() => {
+        wrap?.remove();
+        _notifAnimandoCount = Math.max(0, _notifAnimandoCount - 1);
         const lista = document.getElementById('centralNotifList');
         if (lista && !lista.querySelector('.central-notif-swipe')) {
           lista.innerHTML = `<div class="central-notif-empty">Tudo em dia — nenhuma notificação nova.</div>`;
         }
-      }, { once: true });
+      }, 230);
     } else {
       el.style.transition = 'transform .18s ease, opacity .18s ease';
       el.style.transform = 'translateX(0)';
