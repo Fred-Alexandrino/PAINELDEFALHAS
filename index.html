@@ -9338,6 +9338,19 @@ async function zelFetchSheet(){
     const iCliente=0,iUsina=1;const novo={limpeza:[],supressao:[],poda:[]};
     const g=(cells,i)=>(i>=0&&i<cells.length)?cells[i].trim():'';
     allRows.slice(2).forEach((rawRow,rowIdx)=>{const cells=parseCSVLine(rawRow);const cliente=g(cells,iCliente);const usina=normalizeUsina(g(cells,iUsina));if(!usina)return;['supressao','poda','limpeza'].forEach(tipo=>{const m=SUB_MAP[tipo];novo[tipo].push({id:`${usina}_${tipo}_${rowIdx}`,cliente,usina,status:zelNormalizeStatus(g(cells,m.status)),previsto:'',realizado:zelFormatDate(g(cells,m.ultimaData)),prox:zelFormatDate(g(cells,m.proxData)),qtd:g(cells,m.qtd),obs:'',_fromSheet:true});});});
+    // 02/10/2026: alinha ao mapeamento atual — oculta usinas que saíram (a planilha não é alterada) e inclui as que ainda não têm linha
+    try{
+      const nomesZel=[...new Set(novo.limpeza.map(r=>r.usina))];
+      const rc=await fetch('https://api.168.138.232.237.sslip.io/canonizar-usinas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nomes:nomesZel})});
+      const dc=await rc.json();
+      if(dc&&dc.ok){
+        ['supressao','poda','limpeza'].forEach(tipo=>{
+          const vistos=new Set();
+          novo[tipo]=novo[tipo].filter(r=>dc.mapa[r.usina]).map(r=>{const m=dc.mapa[r.usina];return Object.assign({},r,{usina:m.usina,cliente:normalizeCliente(m.cliente||r.cliente)});}).filter(r=>{if(vistos.has(r.usina))return false;vistos.add(r.usina);return true;});
+          (dc.catalogo||[]).filter(c=>!vistos.has(c.usina)).forEach((c,i)=>novo[tipo].push({id:`${c.usina}_${tipo}_novo${i}`,cliente:normalizeCliente(c.cliente),usina:c.usina,status:zelNormalizeStatus(''),previsto:'',realizado:'',prox:'',qtd:'',obs:'',_fromSheet:true}));
+        });
+      }
+    }catch(eCat){console.warn('[Zeladorias] Catálogo indisponível, mantendo linhas da planilha:',eCat.message);}
     const total=novo.limpeza.length+novo.supressao.length+novo.poda.length;if(total===0)throw new Error('Nenhuma usina mapeada');
     zelMergeEdits(novo);zelData=novo;_zelFromSheet=true;
     const now=new Date();const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -16045,8 +16058,10 @@ async function _analisarControlePonto() {
 function _pontoRenderResultado(resultado) {
   const wrap = document.getElementById('pontoResultado');
   const colaboradores = (resultado && resultado.colaboradores) || [];
+  const nOcultos = ((resultado && resultado.ocultos) || []).length;
+  const avisoOcultos = nOcultos ? `<div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">${nOcultos} colaborador(es) fora do seu mapeamento atual foram ocultados.</div>` : '';
   if (colaboradores.length === 0) {
-    wrap.innerHTML = '<div style="font-size:12.5px;color:var(--text-dim);">Nenhum colaborador retornado pela análise.</div>';
+    wrap.innerHTML = avisoOcultos + '<div style="font-size:12.5px;color:var(--text-dim);">Nenhum colaborador do seu mapeamento retornado pela análise.</div>';
     return;
   }
   const comPendencia = colaboradores.filter(c => c.tem_pendencia);
@@ -16064,7 +16079,7 @@ function _pontoRenderResultado(resultado) {
       Sem pendência real: ${semPendencia.map(c => c.nome).join(', ')}
     </div>` : '';
 
-  wrap.innerHTML = `
+  wrap.innerHTML = avisoOcultos + `
     ${truncadoAviso}
     <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px;">
       ${comPendencia.length} colaborador(es) com pendência de ${colaboradores.length} analisado(s)
