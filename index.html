@@ -5877,9 +5877,12 @@ function _cliChipSalvarOrdem(ordem) {
 }
 
 function _clientesDisponiveis() {
-  const doFalhas = DATA.map(d => d.cliente);
-  const daAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.cliente) : []);
-  const todosBrutos = [...CLIENTES_CONFIGURADOS, ...doFalhas, ...daAtiv].filter(Boolean);
+  // 02/10/2026: a lista de clientes vem SÓ do catálogo oficial (mapeamento
+  // de clusters/usinas — /clientes-configurados). Antes ela também somava os
+  // clientes de TODAS as linhas da planilha de Falhas e das Atividades, o que
+  // mantinha clientes que saíram do mapeamento (Sal Energia, Greenyellow, "2C")
+  // aparecendo em Reuniões - Clientes, Comunicados & OSs e nos chips laterais.
+  const todosBrutos = [...CLIENTES_CONFIGURADOS].filter(Boolean);
   // A planilha tem grafias inconsistentes do mesmo cliente (ex.: "RENOGRID"
   // vs "Renogrid", "THOPEN" vs "Thopen") — sem isso, cada variação de caixa
   // vira uma entrada duplicada nos dropdowns/chips de cliente. Agrupa por
