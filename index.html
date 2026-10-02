@@ -5698,7 +5698,7 @@ function normalizeUsina(raw) {
 // (Falhas x Atividades x Fracttal) — sempre reduz pra um nome canônico
 // único, pra filtros/dropdowns não mostrarem duplicatas.
 const CLIENTE_CANONICO = {
-  '2c': '2C', '2c energia': '2C',
+  '2c': '2C Energia', '2c energia': '2C Energia',
   'alves lima': 'Alves Lima',
   'gd energy': 'GD Energy',
   'renogrid': 'Renogrid', 'reno grid': 'Renogrid',
@@ -5847,14 +5847,15 @@ let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
 // nunca serem reconhecidas automaticamente (corrigido em 27/07/2026).
 // O array abaixo é só o valor de reserva, usado até a busca completar
 // ou se ela falhar por algum motivo.
-let CLIENTES_CONFIGURADOS = ['2C', 'Alves Lima', 'GD Energy', 'Renogrid', 'Sal Energia', 'Thopen'];
+let CLIENTES_CONFIGURADOS = ['2C Energia', 'Alves Lima', 'GD Energy', 'Renogrid', 'Thopen'];
 
 async function _carregarClientesConfigurados() {
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/clientes-configurados', { signal: AbortSignal.timeout(10000) });
     const data = await resp.json();
     if (data.ok && Array.isArray(data.clientes) && data.clientes.length) {
-      CLIENTES_CONFIGURADOS = data.clientes;
+      // Junta grafias do mesmo cliente (ex.: "2C" da supervisão temporária + "2C Energia" do catálogo)
+      CLIENTES_CONFIGURADOS = [...new Set(data.clientes.map(normalizeCliente))];
       renderClienteChips();
     }
   } catch (e) {
@@ -8550,15 +8551,19 @@ let ANOTACOES = [];
 // Catálogo oficial cliente → usinas (mesmo mapeamento usado em relatórios/
 // backend) — os selects de Usina/Cliente da anotação usam só isso, não
 // dados carregados (Fred pediu pra selecionar dentre TODO o mapeamento,
-// não só o que já apareceu em atividades/ocorrências). Sal Energia mantém
-// a ordem fixa definitiva dos relatórios (não alfabética).
+// não só o que já apareceu em atividades/ocorrências). Mapeamento de
+// 02/10/2026: Sal Energia saiu do catálogo (registros antigos continuam
+// nos painéis); entraram as usinas novas das 2C Energia e Thopen.
 const ANOT_CATALOGO_USINAS = {
   'Renogrid': ['Nova Xavantina I', 'Nova Xavantina II', 'Colíder I', 'Colíder II', 'Nobres', 'Elias Fausto', 'Crateús'],
-  'Thopen': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II', 'Ibaté I', 'Ibaté II', 'Matão I', 'Matão II - Topázio', 'Sítio Bonfim', 'Poconé', 'Canarana I', 'Canarana II', 'Ribeirão Cascalheira', 'Diamantino'],
-  '2C Energia': ['Araputanga', 'Sete Lagoas'],
+  'Thopen': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II', 'Ibaté I', 'Ibaté II', 'Matão I', 'Matão II - Topázio', 'Sítio Bonfim', 'Poconé', 'Canarana I', 'Canarana II', 'Ribeirão Cascalheira', 'Diamantino',
+             'Alto Paraná I', 'Alto Paraná II', 'Paranavaí', 'Assis Chateaubriand', 'Céu Azul', 'Colorado I', 'Colorado II', 'Mandaguaçu', 'Sarandi',
+             'Nova Londrina I', 'Nova Londrina II', 'Cidade Gaúcha', 'Pharmas II', 'Pharmas III', 'Pharmas IV', 'Santo Antonio da Platina',
+             'Coração I', 'Coração II', 'Guatambu I', 'Guatambu II', 'Guatambu III', 'Guatambu IV',
+             'Ceilândia I', 'Ceilândia II', 'Sítio dos Nogueiras', 'Aparecida do Taboado I', 'Aparecida do Taboado II'],
+  '2C Energia': ['Araputanga', 'Sete Lagoas', 'União I', 'União II', 'Ipixuna do Pará I', 'Tupi Paulista I'],
   'GD Energy': ['Guajirú', 'Sol do Norte I', 'Sol do Norte II'],
   'Alves Lima': ['ABC Morada Nova'],
-  'Sal Energia': ['Salvales (Aquiraz I)', 'Carosa (Aquiraz II)', 'SunPower (Cascavel)', 'Hortina (Quixadá I)', 'Vitesse (Quixadá II)'],
 };
 
 // Cache do catálogo já mesclado com usinas sob supervisão temporária
