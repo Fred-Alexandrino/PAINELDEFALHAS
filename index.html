@@ -1475,6 +1475,30 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .rel-cal-dia.no-intervalo{background:rgba(159,232,112,0.12);border-radius:0;}
 .rel-cal-dia.selecionado{background:var(--teal);color:#06110F;font-weight:700;}
 .rel-cal-hint{margin-top:10px;font-size:13px;color:var(--text-dim);text-align:center;}
+
+/* ══ GLASSMORFISMO — aplicado a TODOS os painéis/cards de conteúdo do
+   dashboard (não só Atividades/Falhas — pedido explícito do Fred pra não
+   deixar nenhuma seção de fora): fundo translúcido + blur por baixo, em
+   vez do fundo sólido de antes. Mantém radius/padding/box-shadow já
+   definidos em cada classe acima — aqui só sobrescrevemos fundo e borda.
+   NÃO inclui .kpi/.card (os blocos de estatística com cor sólida de
+   destaque, inclusive o "adesivo" verde do tema claro) nem chrome
+   estrutural (sidebar, topbar, drawer, modais, toast) — esses precisam
+   de contraste forte/sólido, não são "painéis" de conteúdo. */
+.panel,.zel-collapsible,.zel-kpi,.cmp-card,.rel-card,.skel-card,.table-wrap,.zel-table-wrap{
+  background:rgba(18,29,25,.58);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  backdrop-filter:blur(14px) saturate(150%);
+  border-color:rgba(159,232,112,.16);
+}
+[data-theme="light"] .panel,[data-theme="light"] .zel-collapsible,[data-theme="light"] .zel-kpi,
+[data-theme="light"] .cmp-card,[data-theme="light"] .rel-card,[data-theme="light"] .skel-card,
+[data-theme="light"] .table-wrap,[data-theme="light"] .zel-table-wrap{
+  background:rgba(255,255,255,.55);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  backdrop-filter:blur(14px) saturate(160%);
+  border-color:rgba(63,143,42,.28);
+}
 </style>
 </head>
 <body>
