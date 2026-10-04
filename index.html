@@ -1553,6 +1553,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
       <div class="sb-nav-item sb-section-start" data-section-label="Gestão" data-nav="localizacao" data-label="Localização" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Localização
+        <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" title="Recolher/expandir Gestão" onclick="_toggleGrupoGestao(event)" style="width:12px;height:12px;margin:-8px -8px -8px auto;padding:8px;box-sizing:content-box;transition:transform .15s;cursor:pointer;flex:none;"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -4108,6 +4109,13 @@ function switchNav(nav) {
   if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
     _toggleGrupoFerramentas(true);
   }
+  // mesma lógica pro grupo "Gestão" (recolhível no mobile) — como os itens
+  // dessa seção mudam conforme o usuário arrasta a sidebar, checa por
+  // posição no DOM (entre o item com data-section-label="Gestão" e a
+  // próxima seção) em vez de uma lista fixa de nav keys
+  if (_navEstaNoGrupoGestao(nav)) {
+    _toggleGrupoGestao(null, true);
+  }
   document.getElementById('sbSketchbookBtn')?.classList.toggle('active', nav === 'anotacoes');
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
   document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -4130,6 +4138,46 @@ function _toggleGrupoFerramentas(forcarAberto) {
   if (!submenu) return;
   const abrir = forcarAberto !== undefined ? forcarAberto : submenu.style.display === 'none';
   submenu.style.display = abrir ? 'block' : 'none';
+  if (chevron) chevron.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+// Grupo "Gestão" da sidebar — recolhível (pedido do Fred, 04/10/2026: no
+// celular a lista de itens + seção Gestão empurrava os filtros/ações
+// rápidas pra muito baixo, dificultando o clique). Diferente do grupo
+// "Mais" (4 subitens fixos num submenu próprio), "Gestão" é só um rótulo
+// (data-section-label) preso ao item que o usuário deixou primeiro nessa
+// posição ao arrastar a sidebar — por isso os itens do grupo são achados
+// por posição no DOM (do item com data-section-label="Gestão" até a
+// próxima .sb-section-start), nunca por uma lista fixa de nav keys, senão
+// reordenar a sidebar quebraria o toggle silenciosamente.
+function _navGestaoInicio() {
+  return document.querySelector('.sb-nav-item[data-section-label="Gestão"]');
+}
+function _navGestaoItens() {
+  const inicio = _navGestaoInicio();
+  if (!inicio) return [];
+  const itens = [];
+  let el = inicio.nextElementSibling;
+  while (el && !el.classList.contains('sb-section-start')) {
+    itens.push(el);
+    el = el.nextElementSibling;
+  }
+  return itens;
+}
+function _navEstaNoGrupoGestao(nav) {
+  const inicio = _navGestaoInicio();
+  if (!inicio) return false;
+  if (inicio.dataset.nav === nav) return true;
+  return _navGestaoItens().some(el => el.dataset && el.dataset.nav === nav);
+}
+function _toggleGrupoGestao(ev, forcarAberto) {
+  if (ev) ev.stopPropagation();
+  const inicio = _navGestaoInicio();
+  if (!inicio) return;
+  const abrir = forcarAberto !== undefined ? forcarAberto : inicio.dataset.gestaoAberto === 'false';
+  inicio.dataset.gestaoAberto = abrir ? 'true' : 'false';
+  _navGestaoItens().forEach(el => { el.style.display = abrir ? '' : 'none'; });
+  const chevron = document.getElementById('navGestaoChevron');
   if (chevron) chevron.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
@@ -4226,6 +4274,12 @@ function _initSidebarDragReorder() {
   });
 }
 _initSidebarDragReorder();
+// No celular, recolhe o grupo "Gestão" por padrão (depois que a ordem
+// salva já foi aplicada acima) — pedido do Fred 04/10/2026: a lista de
+// itens + seção Gestão empurrava os filtros (Clientes/Usina/Cluster) e as
+// Ações Rápidas pra muito baixo na sidebar, dificultando o toque. No
+// desktop continua expandido, como sempre foi.
+if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
 
 // ── Reordenar itens do menu lateral por toque (tablet/celular) ─────────
 // O Drag-and-Drop nativo do HTML5 (usado acima) só dispara com mouse.
