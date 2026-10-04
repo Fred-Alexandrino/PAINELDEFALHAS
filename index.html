@@ -37,6 +37,9 @@
   --hero:#22D3EE;
   --red:#EF4444;
   --blue:#60A5FA;
+  --ink:#042F36;
+  --glass-a:rgba(91,155,213,.16);
+  --glass-b:rgba(16,24,34,.55);
   --sidebar-w:220px;
   --topbar-h:52px;
   --radius:14px;
@@ -44,12 +47,27 @@
   --sla-ok:#22C55E; --sla-warn:#F59E0B; --sla-breach:#EF4444;
 }
 [data-theme="light"]{
-  /* Pedido do Fred (04/10/2026): modo claro = cópia exata do modo escuro,
-     trocando SÓ o fundo pra branco. Por isso aqui só --bg muda — painel,
-     borda, texto, destaque azul e o vidro dos cards ficam todos iguais ao
-     escuro (as sobrescritas antigas de "sticker" verde/ciano, sidebar
-     branca, topbar branca etc. foram removidas de propósito). */
+  /* Pedido do Fred (04/10/2026): modo claro = mesma identidade visual do
+     escuro (mesmo vidro azul nos cards, mesmo ciano de destaque --teal/--hero,
+     mesmas cores semânticas), só invertendo a ESCALA de claridade — exatamente
+     como --panel/--panel-alt são "quase a mesma cor" do --bg no escuro
+     (#0A0A0A e #141414 sobre #000000), aqui eles continuam "quase a mesma cor"
+     do novo --bg branco. Sem isso a sidebar/topbar/dropdowns ficavam uma
+     "ilha preta" sobre o resto branco, e qualquer --text (claro, pensado pra
+     ler sobre fundo preto) virava invisível sobre fundo/branco ou sobre o
+     vidro dos cards (que fica acinzentado claro em vez de escuro quando o
+     fundo por trás é branco). As cores de destaque e semânticas (teal, hero,
+     blue, amber, red, sla, border) continuam as mesmas nos dois temas. */
   --bg:#FFFFFF;
+  --panel:#F2F4F3;
+  --panel-alt:#E7EAE9;
+  --text:#0B1E21;
+  --text-dim:#4F6064;
+  --text-faint:#7E8E91;
+  /* --glass-b é a cor pra onde o vidro converge quando empilhado (ex.: card
+     dentro de coluna do Kanban) — precisa ser CLARA aqui, senão cada camada
+     escurece mais o card até ficar um cinza-chumbo com o texto ilegível. */
+  --glass-b:rgba(237,242,247,.6);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -187,7 +205,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-nav-item:hover{color:var(--text);background:var(--panel-alt);}
 .sb-nav-sub{padding-left:26px;font-size:12px;}
 .sb-nav-sub svg{width:13px;height:13px;}
-.sb-nav-item.active{color:var(--panel);font-weight:700;background:var(--teal);border-radius:12px;padding:7px 12px;}
+.sb-nav-item.active{color:var(--ink);font-weight:700;background:var(--teal);border-radius:12px;padding:7px 12px;}
 .sb-nav-item.active::before{display:none;}
 .sb-nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none;opacity:.6;}
 .sb-nav-item.active svg,.sb-nav-item:hover svg{opacity:1;}
@@ -197,11 +215,11 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   border-radius:99px;background:transparent;
   color:var(--text-faint);border:1px solid var(--border);
 }
-.sb-nav-item.active .sb-nav-badge{color:var(--panel);border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12);}
+.sb-nav-item.active .sb-nav-badge{color:var(--ink);border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12);}
 .sb-nav-badge-unread{
   margin-left:auto;font-family:'Geist Mono',monospace;
   font-size:13px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center;
-  border-radius:99px;background:var(--teal);color:var(--panel);border:none;
+  border-radius:99px;background:var(--teal);color:var(--ink);border:none;
 }
 /* Dot de "não lido" nos cards — estilo WhatsApp */
 .card-unread-dot{
@@ -818,7 +836,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .view-toggle{display:flex;gap:2px;background:var(--panel-alt);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:3px;}
 .view-btn{display:flex;align-items:center;gap:5px;background:transparent;border:none;color:#888;border-radius:6px;padding:5px 10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;}
 .view-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.view-btn.active{background:var(--teal);color:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.view-btn.active{background:var(--teal);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .sort-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap;overflow-x:hidden;margin-bottom:10px;}
 .sort-label{font-size:13px;color:var(--text-faint);font-family:'Geist Mono',monospace;white-space:nowrap;}
 .sort-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#777;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;white-space:nowrap;flex:none;font-weight:400;}
@@ -832,7 +850,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   width:28px;height:28px;cursor:pointer;transition:.15s;flex:none;
 }
 .icon-toggle-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
-.icon-toggle-btn.active{background:var(--teal);color:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.icon-toggle-btn.active{background:var(--teal);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.4);}
 #ativKanbanOrdemBtn{border:1px solid rgba(255,255,255,0.08);border-radius:8px;}
 
 /* Menu "Ações" — consolida Reprogramações/Comunicados/Atualizar OS/Auditoria */
@@ -1436,27 +1454,35 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
    Cobertura (auditada 04/10/2026 classe por classe, não só visualmente):
    .panel (painéis de gráfico/breakdown — Falhas, Atividades, MTTR, Sketchbook),
    .card (card individual de falha/atividade — Falhas, Atividades, e os cards
-   dentro do Kanban de Gerencial), .ch-item (linha de chamado — Chamados),
-   .comunicado-card (item selecionável — Comunicados), .kanban-col (coluna
-   do board — Gerencial), .log-msg-card/.ronda-msg-card (mensagens — Rondas),
-   .zel-collapsible/.zel-kpi/.zel-table-wrap (Zeladoria/Processos),
-   .cmp-card (compromissos), .rel-card (Reuniões-Clientes), .skel-card
-   (loading skeleton), .table-wrap (tabela de falhas).
-   NÃO inclui .kpi (blocos de estatística com cor sólida de destaque,
-   inclusive o "adesivo" verde do tema claro) nem chrome estrutural
-   (sidebar, topbar, drawer, modais, inputs/textareas, toast) — esses
-   precisam de contraste forte/sólido, não são "painéis" de conteúdo. */
+   dentro do Kanban de Gerencial), .kpi (blocos de estatística), .ch-item
+   (linha de chamado — Chamados), .comunicado-card (item selecionável —
+   Comunicados), .kanban-col (coluna do board — Gerencial), .log-msg-card/
+   .ronda-msg-card (mensagens — Rondas), .zel-collapsible/.zel-kpi/
+   .zel-table-wrap (Zeladoria/Processos), .cmp-card (compromissos), .rel-card
+   (Reuniões-Clientes), .skel-card (loading skeleton), .table-wrap (tabela
+   de falhas). NÃO inclui chrome estrutural (sidebar, topbar, drawer,
+   modais, inputs/textareas, toast) — esses usam --panel/--panel-alt
+   sólidos, com contraste forte, não o vidro translúcido.
+
+   --glass-a/--glass-b (definidas em :root e sobrescritas em
+   [data-theme="light"]) são os dois stops do gradiente. --glass-b é a
+   "âncora" pra onde a cor converge quando várias camadas de vidro se
+   empilham (ex.: .card dentro de .kanban-col, que já é vidro em cima de
+   .content-section) — por isso ela precisa ser ESCURA no tema escuro
+   (funde com o fundo preto) e CLARA no tema claro (funde com o fundo
+   branco). Usar um valor fixo escuro nos dois temas foi o bug encontrado
+   em 04/10/2026: no claro, cada camada empilhada escurecia mais o card
+   (convergindo pra um cinza-chumbo bem diferente do branco em volta), até
+   o texto --text-dim/--text-faint (calibrado pra ler sobre fundo claro)
+   ficar invisível dentro dos cards do Kanban. */
 .panel,.card,.kpi,.zel-collapsible,.zel-kpi,.cmp-card,.rel-card,.skel-card,.table-wrap,.zel-table-wrap,
 .ch-item,.comunicado-card,.kanban-col,.log-msg-card,.ronda-msg-card{
-  background:linear-gradient(155deg,rgba(91,155,213,.16),rgba(16,24,34,.55));
+  background:linear-gradient(155deg,var(--glass-a),var(--glass-b));
   -webkit-backdrop-filter:blur(20px) saturate(165%);
   backdrop-filter:blur(20px) saturate(165%);
   border-color:rgba(91,155,213,.35);
   box-shadow:inset 0 1px 0 rgba(224,238,250,.09),var(--shadow);
 }
-/* Modo claro usa exatamente o mesmo vidro acima (pedido do Fred: só o
-   fundo da página muda pra branco — ver bloco [data-theme="light"] no
-   topo do arquivo). Nenhuma regra extra aqui de propósito. */
 </style>
 </head>
 <body>
@@ -2904,7 +2930,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <textarea id="resumoClienteTexto" class="nova-oc-textarea" rows="8" style="width:100%;box-sizing:border-box;margin-bottom:14px;"></textarea>
         <div id="resumoClienteGrupos" style="margin-bottom:14px;"></div>
         <button class="nova-oc-submit" id="resumoClienteCopiarBtn" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text);">📋 Copiar resumo</button>
-        <button class="nova-oc-submit" id="resumoClienteEnviarBtn" style="width:100%;background:var(--teal);color:var(--panel);">📲 Enviar pro grupo do cliente</button>
+        <button class="nova-oc-submit" id="resumoClienteEnviarBtn" style="width:100%;background:var(--teal);color:var(--ink);">📲 Enviar pro grupo do cliente</button>
       </div>
       <div id="resumoClienteError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
@@ -2923,7 +2949,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
     <div class="ch-body">
       <textarea id="comunicarAtivTexto" class="nova-oc-textarea" rows="8" readonly style="width:100%;box-sizing:border-box;margin-bottom:14px;"></textarea>
       <button class="nova-oc-submit" id="comunicarAtivCopiarBtn" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text);">📋 Copiar mensagem</button>
-      <button class="nova-oc-submit" id="comunicarAtivEnviarBtn" style="width:100%;background:var(--teal);color:var(--panel);">📲 Enviar pro grupo do cluster</button>
+      <button class="nova-oc-submit" id="comunicarAtivEnviarBtn" style="width:100%;background:var(--teal);color:var(--ink);">📲 Enviar pro grupo do cluster</button>
     </div>
   </div>
 </div>
