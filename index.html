@@ -44,47 +44,13 @@
   --sla-ok:#22C55E; --sla-warn:#F59E0B; --sla-breach:#EF4444;
 }
 [data-theme="light"]{
-  --bg:#F4FAFB; --bg-grid:rgba(4,47,54,.02);
-  --panel:#FFFFFF; --panel-alt:#EEFAFC;
-  --border:#D9EDF0; --border-soft:#E3F3F5; --border-strong:#BBDEE3;
-  --text:#0E2A2E; --text-dim:#4A6569; --text-faint:#88A3A6;
-  --teal:#0E7490;
-  --shadow:0 4px 16px rgba(4,47,54,.08);
+  /* Pedido do Fred (04/10/2026): modo claro = cópia exata do modo escuro,
+     trocando SÓ o fundo pra branco. Por isso aqui só --bg muda — painel,
+     borda, texto, destaque azul e o vidro dos cards ficam todos iguais ao
+     escuro (as sobrescritas antigas de "sticker" verde/ciano, sidebar
+     branca, topbar branca etc. foram removidas de propósito). */
+  --bg:#FFFFFF;
 }
-[data-theme="light"] .kpi{
-  background-color:#67E8F9;border-color:#22D3EE;
-  background-image:radial-gradient(circle at 1px 1px, rgba(4,47,54,.09) 1px, transparent 0);
-  background-size:15px 15px;
-}
-[data-theme="light"] .kpi .num,[data-theme="light"] .kpi .label{color:#042F36;}
-[data-theme="light"] .card{
-  background-color:#67E8F9;border-color:#22D3EE;
-  background-image:radial-gradient(circle at 1px 1px, rgba(4,47,54,.09) 1px, transparent 0);
-  background-size:15px 15px;
-}
-[data-theme="light"] .panel{background:#FFFFFF;border-color:#22D3EE;}
-[data-theme="light"] .panel .panel-head{
-  background-color:#67E8F9;margin:-20px -20px 14px;padding:13px 20px;
-  border-radius:15px 15px 0 0;
-  background-image:radial-gradient(circle at 1px 1px, rgba(4,47,54,.09) 1px, transparent 0);
-  background-size:15px 15px;
-}
-[data-theme="light"] .panel .panel-head h3,
-[data-theme="light"] .panel .panel-total{color:#042F36;}
-[data-theme="light"] .panel .panel-chevron{stroke:#042F36;}
-[data-theme="light"] .sidebar{background:#FFFFFF;border-right-color:#E1E8DC;}
-[data-theme="light"] .kanban-col{background:linear-gradient(155deg,rgba(91,155,213,.22),rgba(255,255,255,.62))!important;-webkit-backdrop-filter:blur(20px) saturate(175%)!important;backdrop-filter:blur(20px) saturate(175%)!important;border-color:rgba(43,113,173,.40)!important;}
-[data-theme="light"] .kanban-col-head{background:rgba(91,155,213,.14)!important;-webkit-backdrop-filter:blur(20px) saturate(175%)!important;backdrop-filter:blur(20px) saturate(175%)!important;border-bottom-color:rgba(43,113,173,.40)!important;}
-[data-theme="light"] .kanban-col-body .card{background:linear-gradient(155deg,rgba(91,155,213,.22),rgba(255,255,255,.62));-webkit-backdrop-filter:blur(20px) saturate(175%);backdrop-filter:blur(20px) saturate(175%);border-color:rgba(43,113,173,.40);}
-[data-theme="light"] .kanban-col-body .card:hover{background:linear-gradient(155deg,rgba(91,155,213,.32),rgba(255,255,255,.72));border-color:rgba(43,113,173,.55);}
-[data-theme="light"] .topbar{background:#FFFFFF;border-bottom-color:#E1E8DC;}
-[data-theme="light"] .kpi.kpi-clickable.active-filter,
-[data-theme="light"] .kpi.kpi-invfilter.active-filter{
-  background-color:#FFFFFF;border-color:var(--kpi-color,#22D3EE);
-  background-image:radial-gradient(circle at 1px 1px, rgba(4,47,54,.06) 1px, transparent 0);
-  background-size:15px 15px;
-}
-[data-theme="light"] .kpi.active-filter .num,[data-theme="light"] .kpi.active-filter .label{color:#042F36;}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -453,11 +419,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .cb-item:hover{background:rgba(255,255,255,0.06);}
 .cb-item.all-item{font-weight:600;color:var(--text);border-bottom:1px solid var(--border-soft);}
 .cb-item.selected{color:var(--text);}
-[data-theme="light"] .cb-trigger{background:#F2F4EF;}
-[data-theme="light"] .cb-list{background:#FFFFFF;border-color:#C7D3C0;}
-[data-theme="light"] .cb-item:hover{background:#F2F4EF;}
-[data-theme="light"] .sb-search,[data-theme="light"] .sb-date-input{background:#F2F4EF;color:#042F36;}
-[data-theme="light"] .sb-select option{background:#FFFFFF;color:#042F36;}
 .cb-checkbox{
   width:14px;height:14px;border-radius:3px;flex:none;
   border:1.5px solid rgba(255,255,255,0.2);
@@ -821,7 +782,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .bar-row:hover .bar-row-hint{opacity:1;}
 .bar-label{font-size:12.5px;flex:0 0 auto;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:400;}
 .bar-track{flex:1;height:3px;background:var(--border-strong);border-radius:3px;overflow:hidden;min-width:40px;}
-[data-theme="light"] .bar-track{background:rgba(4,47,54,.18);}
 .bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
 .bar-fill.pulse-bar{animation:barPulse 1.8s ease-in-out infinite;}
 @keyframes barPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
@@ -1009,11 +969,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .drawer-backdrop{position:fixed;inset:0;z-index:450;background:rgba(8,12,18,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .28s ease;}
 .drawer-backdrop.open{opacity:1;pointer-events:all;}
 .drawer{position:fixed;top:0;right:0;bottom:0;z-index:451;width:min(500px,100vw);background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-24px 0 48px rgba(0,0,0,.6);}
-[data-theme="light"] .drawer{
-  --panel:#FFFFFF; --panel-alt:#F7F9F6;
-  --border:#E1E8DC; --border-soft:#EAF0E5; --border-strong:#C7D3C0;
-  background:#FFFFFF;
-}
 .drawer.open{transform:translateX(0);}
 .drawer-accent{display:none;}
 .drawer-head{padding:20px 20px 14px;border-bottom:1px solid var(--border);flex:none;}
@@ -1135,8 +1090,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .ch-item{background:var(--panel-alt);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;}
 .ch-item:last-child{margin-bottom:0;}
 .ch-item:hover{background:rgba(91,155,213,.06);}
-[data-theme="light"] .ch-item{background:#F2F4EF;border-color:#E1E8DC;}
-[data-theme="light"] .ch-item:hover{background:#F2F4EF;border-color:var(--border-strong);}
 .ch-ticket{font-family:'Geist Mono',monospace;font-size:14px;font-weight:700;color:#7DC8F0;min-width:80px;}
 .ch-info{flex:1;}
 .ch-equip{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px;}
@@ -1423,15 +1376,6 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   .topbar-count{display:none;}
 }
 /* LIGHT MODE */
-[data-theme="light"] .fault-table th{background:var(--panel-alt);}
-[data-theme="light"] .fault-table tbody tr:hover{background:#EEF4FA;}
-[data-theme="light"] .drawer{box-shadow:-8px 0 32px rgba(0,0,0,.12);}
-[data-theme="light"] .sb-select{
-  color:#042F36;background-color:#F2F4EF;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9' stroke='%238FA0AE' fill='none' stroke-width='2'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;background-size:12px;
-}
-[data-theme="light"] .d-edit-select option{background:#F4F8FC;}
 
 @media(prefers-reduced-motion:reduce){.status-led.pulse,.tb-btn-refresh.spinning svg,.rg-dot{animation:none;}*{transition:none!important;}}
 
@@ -1502,7 +1446,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
    inclusive o "adesivo" verde do tema claro) nem chrome estrutural
    (sidebar, topbar, drawer, modais, inputs/textareas, toast) — esses
    precisam de contraste forte/sólido, não são "painéis" de conteúdo. */
-.panel,.card,.zel-collapsible,.zel-kpi,.cmp-card,.rel-card,.skel-card,.table-wrap,.zel-table-wrap,
+.panel,.card,.kpi,.zel-collapsible,.zel-kpi,.cmp-card,.rel-card,.skel-card,.table-wrap,.zel-table-wrap,
 .ch-item,.comunicado-card,.kanban-col,.log-msg-card,.ronda-msg-card{
   background:linear-gradient(155deg,rgba(91,155,213,.16),rgba(16,24,34,.55));
   -webkit-backdrop-filter:blur(20px) saturate(165%);
@@ -1510,17 +1454,9 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   border-color:rgba(91,155,213,.35);
   box-shadow:inset 0 1px 0 rgba(224,238,250,.09),var(--shadow);
 }
-[data-theme="light"] .panel,[data-theme="light"] .card,[data-theme="light"] .zel-collapsible,[data-theme="light"] .zel-kpi,
-[data-theme="light"] .cmp-card,[data-theme="light"] .rel-card,[data-theme="light"] .skel-card,
-[data-theme="light"] .table-wrap,[data-theme="light"] .zel-table-wrap,
-[data-theme="light"] .ch-item,[data-theme="light"] .comunicado-card,[data-theme="light"] .kanban-col,
-[data-theme="light"] .log-msg-card,[data-theme="light"] .ronda-msg-card{
-  background:linear-gradient(155deg,rgba(91,155,213,.22),rgba(255,255,255,.62));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 4px 16px rgba(45,85,130,.14);
-  -webkit-backdrop-filter:blur(20px) saturate(175%);
-  backdrop-filter:blur(20px) saturate(175%);
-  border-color:rgba(43,113,173,.40);
-}
+/* Modo claro usa exatamente o mesmo vidro acima (pedido do Fred: só o
+   fundo da página muda pra branco — ver bloco [data-theme="light"] no
+   topo do arquivo). Nenhuma regra extra aqui de propósito. */
 </style>
 </head>
 <body>
