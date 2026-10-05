@@ -2171,6 +2171,10 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
               Cobrança de Entregáveis
             </button>
+            <button class="tab-btn" id="gerTabMapeamento" draggable="true" data-tabname="mapeamento" onclick="_gerMudarTab('mapeamento')">
+              <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Mapeamento de Usinas
+            </button>
           </div>
           <div style="font-size:11px;color:var(--text-faint);margin:-10px 0 14px;">Arraste as abas acima pra reordenar — a ordem fica salva neste navegador.</div>
 
@@ -2229,6 +2233,32 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               <div id="rondaConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;white-space:pre-wrap;font-size:13.5px;line-height:1.7;color:var(--text);min-height:200px;">
                 Selecione uma ronda na lista ao lado.
               </div>
+            </div>
+          </div>
+
+          <div id="gerPainelMapeamento" style="display:none;">
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:14px;">
+              Mapeamento oficial das UFVs (fonte única do sistema): cluster, equipe, responsável e cliente de cada usina.
+              Lido ao vivo do servidor. Usinas <b>temporárias</b> e <b>em transição</b> aparecem sinalizadas na coluna Situação.
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+              <input type="text" id="mapBusca" class="nova-oc-select" style="width:220px;" placeholder="Buscar usina, pessoa ou cidade" oninput="mapRender()">
+              <select class="nova-oc-select" style="width:170px;" id="mapFiltroCluster" onchange="mapRender()"></select>
+              <select class="nova-oc-select" style="width:150px;" id="mapFiltroCliente" onchange="mapRender()"></select>
+              <select class="nova-oc-select" style="width:170px;" id="mapFiltroSituacao" onchange="mapRender()">
+                <option value="">Todas as situações</option>
+                <option value="temporaria">Temporárias</option>
+                <option value="transicao">Em transição</option>
+                <option value="normal">Sem marcação</option>
+              </select>
+              <button class="modal-close-btn" style="width:auto;padding:0 14px;height:34px;font-size:13px;" onclick="mapCarregar(true)">↻ Atualizar</button>
+              <span id="mapStatus" style="font-size:12px;color:var(--text-faint);"></span>
+            </div>
+            <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
+              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px;">
+                <thead><tr id="mapThead"></tr></thead>
+                <tbody id="mapTbody"></tbody>
+              </table>
             </div>
           </div>
 
@@ -6128,13 +6158,87 @@ function _toggleAllClientes() {
   applyFilters();
 }
 
+// ── Mapeamento oficial de UFVs (fonte única = backend /mapeamento-ufvs) ────────
+// Usado pelo subpainel Gerencial > Mapeamento de Usinas e pela lista do filtro
+// "Usina" da sidebar (05/10/2026: antes a lista vinha só dos dados antigos de
+// Falhas e mostrava usinas que não são do Fred, sem várias das dele).
+let _mapUfvsCache = null;
+async function _mapUfvsCarregar(force) {
+  if (_mapUfvsCache && !force) return _mapUfvsCache;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/mapeamento-ufvs');
+    const d = await resp.json();
+    if (d && d.ok && Array.isArray(d.itens) && d.itens.length) _mapUfvsCache = d.itens;
+  } catch (e) { console.error('[Mapeamento] falha ao carregar /mapeamento-ufvs', e); }
+  return _mapUfvsCache;
+}
+function _mapUfvsSituacao(i) { return i.temporaria ? 'temporaria' : (i.transicao ? 'transicao' : 'normal'); }
+
+async function mapCarregar(force) {
+  const st = document.getElementById('mapStatus');
+  if (st) st.textContent = 'carregando…';
+  const itens = await _mapUfvsCarregar(force);
+  if (!itens) { if (st) st.textContent = 'não foi possível carregar o mapeamento'; return; }
+  const optsDe = (id, rotulo, valores) => {
+    const el = document.getElementById(id); if (!el) return;
+    const atual = el.value;
+    el.innerHTML = `<option value="">${rotulo}</option>` + valores.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    if (valores.includes(atual)) el.value = atual;
+  };
+  optsDe('mapFiltroCluster', 'Todos os clusters', [...new Set(itens.map(i => i.cluster))]);
+  optsDe('mapFiltroCliente', 'Todos os clientes', [...new Set(itens.map(i => i.cliente))].sort());
+  mapRender();
+}
+
+function mapRender() {
+  const itens = _mapUfvsCache || [];
+  const q = (document.getElementById('mapBusca')?.value || '').trim().toLowerCase();
+  const fc = document.getElementById('mapFiltroCluster')?.value || '';
+  const fcl = document.getElementById('mapFiltroCliente')?.value || '';
+  const fs = document.getElementById('mapFiltroSituacao')?.value || '';
+  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Situação'];
+  const th = document.getElementById('mapThead');
+  if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);white-space:nowrap;">${c}</th>`).join('');
+  const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
+    if (fc && i.cluster !== fc) return false;
+    if (fcl && i.cliente !== fcl) return false;
+    if (fs && _mapUfvsSituacao(i) !== fs) return false;
+    if (q) {
+      const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo].join(' ').toLowerCase();
+      if (!txt.includes(q)) return false;
+    }
+    return true;
+  });
+  const td = (v, extra) => `<td style="padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;${extra || ''}">${v}</td>`;
+  const tb = document.getElementById('mapTbody');
+  if (tb) tb.innerHTML = linhas.map(({ i, n }) => {
+    const sit = i.temporaria
+      ? '<span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Temporária</span>'
+      : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>' : '<span style="color:var(--text-faint);">—</span>');
+    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>')}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(sit)}</tr>`;
+  }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
+  const st = document.getElementById('mapStatus');
+  if (st) st.textContent = `${linhas.length} de ${itens.length} usinas`;
+}
+
+// Mantém a lista do filtro de usina da sidebar alinhada ao mapeamento oficial
+_mapUfvsCarregar(false).then(() => { try { populateFilters(); } catch (e) {} });
+
 // Dados para os dropdowns customizados
 let _cbUsinaOpts = [];
 let _cbStatusOpts = [];
 
 function populateFilters() {
   const dataParaUsinas = selCliente.size > 0 ? DATA.filter(d => selCliente.has(d.cliente)) : DATA;
-  _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
+  if (_mapUfvsCache) {
+    // Lista = só as usinas do mapeamento oficial do Fred (restrita aos clientes marcados, se houver)
+    const cli = new Set([...selCliente].map(c => String(c).toLowerCase()));
+    _cbUsinaOpts = _mapUfvsCache
+      .filter(u => cli.size === 0 || cli.has(String(u.cliente).toLowerCase()))
+      .map(u => u.usina).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  } else {
+    _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
+  }
   _cbStatusOpts = [...new Set(DATA.map(d => d.status))].sort();
 
   // Remove usinas selecionadas que não existem mais no filtro de cliente
@@ -15736,6 +15840,7 @@ function _gerMudarTab(tab) {
   const tabSup = document.getElementById('gerTabSupervisao');
   const tabPrep = document.getElementById('gerTabPreparacao');
   const tabCob = document.getElementById('gerTabCobranca');
+  const tabMap = document.getElementById('gerTabMapeamento');
   const painelBol = document.getElementById('gerPainelBoletins');
   const painelEnt = document.getElementById('gerPainelEntregaveis');
   const painelPto = document.getElementById('gerPainelPonto');
@@ -15743,8 +15848,9 @@ function _gerMudarTab(tab) {
   const painelSup = document.getElementById('gerPainelSupervisao');
   const painelPrep = document.getElementById('gerPainelPreparacao');
   const painelCob = document.getElementById('gerPainelCobranca');
-  [tabBol, tabEnt, tabPto, tabRes, tabSup, tabPrep, tabCob].forEach(t => t.classList.remove('active'));
-  [painelBol, painelEnt, painelPto, painelRes, painelSup, painelPrep, painelCob].forEach(p => p.style.display = 'none');
+  const painelMap = document.getElementById('gerPainelMapeamento');
+  [tabBol, tabEnt, tabPto, tabRes, tabSup, tabPrep, tabCob, tabMap].forEach(t => t && t.classList.remove('active'));
+  [painelBol, painelEnt, painelPto, painelRes, painelSup, painelPrep, painelCob, painelMap].forEach(p => p && (p.style.display = 'none'));
   if (tab === 'entregaveis') {
     tabEnt.classList.add('active'); painelEnt.style.display = '';
     carregarEntregaveisGrid();
@@ -15762,6 +15868,9 @@ function _gerMudarTab(tab) {
   } else if (tab === 'cobranca') {
     tabCob.classList.add('active'); painelCob.style.display = '';
     cobCarregarTudo();
+  } else if (tab === 'mapeamento') {
+    tabMap.classList.add('active'); painelMap.style.display = '';
+    mapCarregar(false);
   } else {
     tabBol.classList.add('active'); painelBol.style.display = '';
   }
