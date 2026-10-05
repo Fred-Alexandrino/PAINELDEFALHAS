@@ -2255,7 +2255,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
               <span id="mapStatus" style="font-size:12px;color:var(--text-faint);"></span>
             </div>
             <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
-              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px;">
+              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px;">
                 <thead><tr id="mapThead"></tr></thead>
                 <tbody id="mapTbody"></tbody>
               </table>
@@ -6196,7 +6196,7 @@ function mapRender() {
   const fc = document.getElementById('mapFiltroCluster')?.value || '';
   const fcl = document.getElementById('mapFiltroCliente')?.value || '';
   const fs = document.getElementById('mapFiltroSituacao')?.value || '';
-  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Situação'];
+  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Grupo WhatsApp','Situação'];
   const th = document.getElementById('mapThead');
   if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);white-space:nowrap;">${c}</th>`).join('');
   const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
@@ -6204,7 +6204,7 @@ function mapRender() {
     if (fcl && i.cliente !== fcl) return false;
     if (fs && _mapUfvsSituacao(i) !== fs) return false;
     if (q) {
-      const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo].join(' ').toLowerCase();
+      const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo, i.grupo_nome || ''].join(' ').toLowerCase();
       if (!txt.includes(q)) return false;
     }
     return true;
@@ -6215,7 +6215,7 @@ function mapRender() {
     const sit = i.temporaria
       ? '<span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Temporária</span>'
       : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>' : '<span style="color:var(--text-faint);">—</span>');
-    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>')}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(sit)}</tr>`;
+    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>')}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}</tr>`;
   }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
   const st = document.getElementById('mapStatus');
   if (st) st.textContent = `${linhas.length} de ${itens.length} usinas`;
