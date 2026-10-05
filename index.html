@@ -2243,19 +2243,22 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             </div>
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
               <input type="text" id="mapBusca" class="nova-oc-select" style="width:220px;" placeholder="Buscar usina, pessoa ou cidade" oninput="mapRender()">
-              <select class="nova-oc-select" style="width:170px;" id="mapFiltroCluster" onchange="mapRender()"></select>
-              <select class="nova-oc-select" style="width:150px;" id="mapFiltroCliente" onchange="mapRender()"></select>
+              <div class="map-ms" id="mapMs_cluster"></div>
+              <div class="map-ms" id="mapMs_cliente"></div>
               <select class="nova-oc-select" style="width:170px;" id="mapFiltroSituacao" onchange="mapRender()">
                 <option value="">Todas as situações</option>
                 <option value="temporaria">Temporárias</option>
                 <option value="transicao">Em transição</option>
                 <option value="normal">Sem marcação</option>
               </select>
+              <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--text-dim);"><input type="checkbox" id="mapUsarSidebar" checked onchange="mapRender()"> Aplicar filtros da sidebar</label>
               <button class="modal-close-btn" style="width:auto;padding:0 14px;height:34px;font-size:13px;" onclick="mapCarregar(true)">↻ Atualizar</button>
               <span id="mapStatus" style="font-size:12px;color:var(--text-faint);"></span>
             </div>
+            <div id="mapSidebarInfo" style="font-size:11.5px;color:var(--text-faint);margin:-6px 0 12px;"></div>
+            <style>.map-ms{position:relative}.map-ms-btn{width:auto!important;min-width:150px;text-align:left;cursor:pointer}.map-ms-list{position:absolute;z-index:50;top:100%;left:0;margin-top:4px;min-width:230px;max-height:300px;overflow:auto;background:var(--bg-card,var(--bg,#fff));border:1px solid var(--border-strong);border-radius:8px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.25)}.map-ms-item{display:flex;gap:8px;align-items:center;padding:5px 8px;font-size:12.5px;cursor:pointer;border-radius:6px;white-space:nowrap}.map-ms-item:hover{background:rgba(127,127,127,.15)}</style>
             <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
-              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px;">
+              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1200px;">
                 <thead><tr id="mapThead"></tr></thead>
                 <tbody id="mapTbody"></tbody>
               </table>
@@ -6174,35 +6177,92 @@ async function _mapUfvsCarregar(force) {
 }
 function _mapUfvsSituacao(i) { return i.temporaria ? 'temporaria' : (i.transicao ? 'transicao' : 'normal'); }
 
+// ── Painel Mapeamento: filtros múltiplos, filtros da sidebar e edição inline ──
+const _mapSel = { cluster: new Set(), cliente: new Set() };   // filtros próprios (multi-seleção)
+let _mapEdit = null;                                          // usina em edição
+const _MAP_API = 'https://api.168.138.232.237.sslip.io';
+const _mapNorm = v => String(v == null ? '' : v).trim().toLowerCase();
+
+function _mapSidebarAtivo() {
+  return !!(document.getElementById('mapUsarSidebar')?.checked ?? true);
+}
+function _mapFiltrosSidebar() {
+  if (!_mapSidebarAtivo()) return null;
+  const f = {
+    clientes: new Set([...(typeof selCliente !== 'undefined' ? selCliente : [])].map(_mapNorm)),
+    usinas: new Set([...(typeof selUsinaValues !== 'undefined' ? selUsinaValues : [])].map(_mapNorm)),
+    cluster: (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _mapNorm(_ativClusterFiltro) : '',
+  };
+  return f;
+}
+function _mapResumoSidebar() {
+  const f = _mapFiltrosSidebar();
+  if (!f) return 'Filtros da sidebar desligados';
+  const p = [];
+  if (f.clientes.size) p.push('cliente: ' + [...selCliente].join(', '));
+  if (f.usinas.size) p.push('usina: ' + (f.usinas.size > 3 ? f.usinas.size + ' selecionadas' : [...selUsinaValues].join(', ')));
+  if (f.cluster) p.push('cluster: ' + _ativClusterFiltro);
+  return p.length ? 'Sidebar aplicada → ' + p.join(' · ') : 'Sidebar sem filtros ativos';
+}
+
 async function mapCarregar(force) {
   const st = document.getElementById('mapStatus');
   if (st) st.textContent = 'carregando…';
   const itens = await _mapUfvsCarregar(force);
   if (!itens) { if (st) st.textContent = 'não foi possível carregar o mapeamento'; return; }
-  const optsDe = (id, rotulo, valores) => {
-    const el = document.getElementById(id); if (!el) return;
-    const atual = el.value;
-    el.innerHTML = `<option value="">${rotulo}</option>` + valores.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
-    if (valores.includes(atual)) el.value = atual;
-  };
-  optsDe('mapFiltroCluster', 'Todos os clusters', [...new Set(itens.map(i => i.cluster))]);
-  optsDe('mapFiltroCliente', 'Todos os clientes', [...new Set(itens.map(i => i.cliente))].sort());
   mapRender();
 }
+
+// Dropdown de multi-seleção (cluster / cliente)
+function _mapMsToggle(tipo, ev) {
+  if (ev) ev.stopPropagation();
+  const l = document.getElementById('mapMsList_' + tipo);
+  if (!l) return;
+  const abrir = l.style.display === 'none';
+  document.querySelectorAll('.map-ms-list').forEach(x => x.style.display = 'none');
+  l.style.display = abrir ? 'block' : 'none';
+}
+function _mapMsClick(tipo, val) {
+  const s = _mapSel[tipo];
+  if (val === '__all__') s.clear();
+  else if (s.has(val)) s.delete(val); else s.add(val);
+  mapRender();
+  const l = document.getElementById('mapMsList_' + tipo); if (l) l.style.display = 'block';
+}
+function _mapMsRender(tipo, rotuloTodos, valores) {
+  const box = document.getElementById('mapMs_' + tipo); if (!box) return;
+  const s = _mapSel[tipo];
+  [...s].forEach(v => { if (!valores.includes(v)) s.delete(v); });
+  const aberto = document.getElementById('mapMsList_' + tipo)?.style.display === 'block';
+  const rot = s.size === 0 ? rotuloTodos : (s.size === 1 ? [...s][0] : s.size + ' selecionados');
+  box.innerHTML = `<button type="button" class="nova-oc-select map-ms-btn" onclick="_mapMsToggle('${tipo}',event)">${esc(rot)} ▾</button>
+    <div class="map-ms-list" id="mapMsList_${tipo}" style="display:${aberto ? 'block' : 'none'};" onclick="event.stopPropagation()">
+      <label class="map-ms-item"><input type="checkbox" ${s.size === 0 ? 'checked' : ''} onchange="_mapMsClick('${tipo}','__all__')"> <i>${esc(rotuloTodos)}</i></label>
+      ${valores.map(v => `<label class="map-ms-item"><input type="checkbox" ${s.has(v) ? 'checked' : ''} data-v="${esc(v)}" onchange="_mapMsClick('${tipo}',this.dataset.v)"> ${esc(v)}</label>`).join('')}
+    </div>`;
+}
+document.addEventListener('click', () => document.querySelectorAll('.map-ms-list').forEach(x => x.style.display = 'none'));
 
 function mapRender() {
   const itens = _mapUfvsCache || [];
   const q = (document.getElementById('mapBusca')?.value || '').trim().toLowerCase();
-  const fc = document.getElementById('mapFiltroCluster')?.value || '';
-  const fcl = document.getElementById('mapFiltroCliente')?.value || '';
   const fs = document.getElementById('mapFiltroSituacao')?.value || '';
-  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Grupo WhatsApp','Situação'];
+  _mapMsRender('cluster', 'Todos os clusters', [...new Set(itens.map(i => i.cluster))].sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  _mapMsRender('cliente', 'Todos os clientes', [...new Set(itens.map(i => i.cliente))].sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  const sb = _mapFiltrosSidebar();
+  const rs = document.getElementById('mapSidebarInfo'); if (rs) rs.textContent = _mapResumoSidebar();
+  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Grupo WhatsApp','Situação',''];
   const th = document.getElementById('mapThead');
   if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);white-space:nowrap;">${c}</th>`).join('');
   const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
-    if (fc && i.cluster !== fc) return false;
-    if (fcl && i.cliente !== fcl) return false;
+    if (_mapSel.cluster.size && !_mapSel.cluster.has(i.cluster)) return false;
+    if (_mapSel.cliente.size && !_mapSel.cliente.has(i.cliente)) return false;
     if (fs && _mapUfvsSituacao(i) !== fs) return false;
+    if (sb) {
+      if (sb.clientes.size && !sb.clientes.has(_mapNorm(i.cliente))) return false;
+      if (sb.usinas.size && !sb.usinas.has(_mapNorm(i.usina))) return false;
+      if (sb.cluster && _mapNorm(i.cluster) !== sb.cluster) return false;
+    }
     if (q) {
       const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo, i.grupo_nome || ''].join(' ').toLowerCase();
       if (!txt.includes(q)) return false;
@@ -6210,16 +6270,94 @@ function mapRender() {
     return true;
   });
   const td = (v, extra) => `<td style="padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;${extra || ''}">${v}</td>`;
+  const ed = i => (i.editados || []).length ? ' <span title="Editado no painel: ' + esc(i.editados.join(', ')) + '" style="font-size:10px;color:#a78bfa;border:1px solid #a78bfa55;border-radius:999px;padding:1px 6px;">editado</span>' : '';
   const tb = document.getElementById('mapTbody');
   if (tb) tb.innerHTML = linhas.map(({ i, n }) => {
+    if (_mapEdit === i.usina) return _mapLinhaEdicao(i, n, cols.length);
     const sit = i.temporaria
       ? '<span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Temporária</span>'
       : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>' : '<span style="color:var(--text-faint);">—</span>');
-    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>')}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}</tr>`;
+    const nome = (i.usina || '').replace(/'/g, "\\'");
+    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>' + ed(i))}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}${td(`<button class="modal-close-btn" style="width:auto;padding:0 10px;height:28px;font-size:12px;" onclick="mapEditar('${nome}')">✎ Editar</button>`)}</tr>`;
   }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
   const st = document.getElementById('mapStatus');
-  if (st) st.textContent = `${linhas.length} de ${itens.length} usinas`;
+  if (st && !st.dataset.fixo) st.textContent = `${linhas.length} de ${itens.length} usinas`;
 }
+
+function _mapGruposConhecidos() {
+  const m = new Map();
+  (_mapUfvsCache || []).forEach(i => { if (i.grupo) m.set(i.grupo, i.grupo_nome || i.grupo); });
+  return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
+}
+function _mapLinhaEdicao(i, n, ncols) {
+  const inp = (id, v, w) => `<input id="mapEd_${id}" class="nova-oc-select" style="width:${w || '100%'};min-width:90px;" value="${esc(v || '')}">`;
+  const clusters = [...new Set((_mapUfvsCache || []).map(x => x.cluster))];
+  const clientes = [...new Set((_mapUfvsCache || []).map(x => x.cliente))];
+  const grupos = _mapGruposConhecidos();
+  const opts = grupos.map(([id, nm]) => `<option value="${esc(id)}" ${id === i.grupo ? 'selected' : ''}>${esc(nm)}</option>`).join('');
+  const lbl = (t, c) => `<div style="margin-bottom:8px;"><div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:3px;">${t}</div>${c}</div>`;
+  return `<tr><td colspan="${ncols}" style="padding:14px;border-bottom:1px solid var(--border);background:var(--bg-elev,rgba(127,127,127,.07));">
+    <div style="position:sticky;left:0;width:min(1000px,calc(100vw - 340px));max-width:100%;"><div style="font-weight:600;margin-bottom:10px;">Editando: ${esc(i.usina)}</div>
+    <datalist id="mapDlCluster">${clusters.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+    <datalist id="mapDlCliente">${clientes.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 14px;">
+      ${lbl('Cluster', `<input id="mapEd_cluster" list="mapDlCluster" class="nova-oc-select" style="width:100%;" value="${esc(i.cluster)}">`)}
+      ${lbl('Cliente', `<input id="mapEd_cliente" list="mapDlCliente" class="nova-oc-select" style="width:100%;" value="${esc(i.cliente)}">`)}
+      ${lbl('Cidade/UF', inp('cidade_uf', i.cidade_uf))}
+      ${lbl('Responsável', inp('responsavel', i.responsavel))}
+      ${lbl('Função', inp('funcao', i.funcao))}
+      ${lbl('Alternativo', inp('alternativo', i.alternativo))}
+      ${lbl('Demais membros (separe por ;)', inp('membros', (i.membros || []).join('; ')))}
+      ${lbl('Grupo WhatsApp', `<select id="mapEd_grupo" class="nova-oc-select" style="width:100%;" onchange="document.getElementById('mapEdOutro').style.display=this.value==='__outro'?'grid':'none'"><option value="">(sem grupo)</option>${opts}<option value="__outro">Outro grupo…</option></select>`)}
+      ${lbl('Situação', `<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;"><input type="checkbox" id="mapEd_temporaria" ${i.temporaria ? 'checked' : ''}> Atendimento temporário</label>`)}
+    </div>
+    <div id="mapEdOutro" style="display:none;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px;">
+      ${lbl('ID do grupo (…@g.us)', inp('grupo_novo', ''))}${lbl('Nome do grupo', inp('grupo_nome_novo', ''))}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+      <button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;background:#16a34a;color:#fff;border-color:#16a34a;" onclick="mapSalvar()">Salvar</button>
+      <button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;" onclick="mapCancelar()">Cancelar</button>
+      ${(i.editados || []).length ? `<button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;" onclick="mapRestaurar()">Restaurar padrão</button>` : ''}
+      <span id="mapEdMsg" style="font-size:12px;color:var(--text-faint);"></span>
+    </div></div></td></tr>`;
+}
+function mapEditar(usina) { _mapEdit = usina; mapRender(); }
+function mapCancelar() { _mapEdit = null; mapRender(); }
+function _mapMsg(t, erro) { const m = document.getElementById('mapEdMsg'); if (m) { m.textContent = t; m.style.color = erro ? '#ef4444' : 'var(--text-faint)'; } }
+async function _mapEnviar(corpo) {
+  _mapMsg('salvando…');
+  try {
+    const r = await fetch(_MAP_API + '/mapeamento-ufvs/editar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const d = await r.json();
+    if (!d.ok) { _mapMsg(d.error || 'erro ao salvar', true); return; }
+    const k = _mapUfvsCache.findIndex(x => x.usina === d.item.usina);
+    if (k >= 0) _mapUfvsCache[k] = d.item;
+    _mapEdit = null;
+    const st = document.getElementById('mapStatus');
+    if (st) { st.dataset.fixo = '1'; st.textContent = '✓ ' + d.item.usina + ' salva (vale em todo o sistema em até ~90 s)'; setTimeout(() => { delete st.dataset.fixo; mapRender(); }, 5000); }
+    try { populateFilters(); } catch (e) {}
+    mapRender();
+  } catch (e) { _mapMsg('falha de conexão — tente de novo', true); }
+}
+function mapSalvar() {
+  const v = id => (document.getElementById('mapEd_' + id)?.value || '').trim();
+  const campos = {
+    cluster: v('cluster'), cliente: v('cliente'), cidade_uf: v('cidade_uf'), responsavel: v('responsavel'),
+    funcao: v('funcao'), alternativo: v('alternativo'),
+    membros: v('membros').split(/[;\n]/).map(x => x.trim()).filter(Boolean),
+    temporaria: !!document.getElementById('mapEd_temporaria')?.checked,
+  };
+  const g = v('grupo');
+  if (g === '__outro') {
+    if (!v('grupo_novo')) { _mapMsg('informe o ID do grupo', true); return; }
+    campos.grupo = v('grupo_novo'); campos.grupo_nome = v('grupo_nome_novo') || v('grupo_novo');
+  } else {
+    campos.grupo = g;
+    campos.grupo_nome = g ? (_mapGruposConhecidos().find(x => x[0] === g) || [0, ''])[1] : '';
+  }
+  _mapEnviar({ usina: _mapEdit, campos });
+}
+function mapRestaurar() { _mapEnviar({ usina: _mapEdit, restaurar: true }); }
 
 // Mantém a lista do filtro de usina da sidebar alinhada ao mapeamento oficial
 _mapUfvsCarregar(false).then(() => { try { populateFilters(); } catch (e) {} try { if (typeof CHAMADOS_FABRICANTE !== 'undefined' && CHAMADOS_FABRICANTE.length) { _atualizarBadgeChamados(); } } catch (e) {} });
@@ -6392,6 +6530,7 @@ function applyFilters() {
     return true;
   });
   applySortAndRender();
+  try { if (_mapUfvsCache && document.getElementById('mapTbody') && !_mapEdit) mapRender(); } catch (e) {}
   if (_activeNav === 'atividades') renderAtividadeCards();
   if (_activeNav === 'chamados') openChamadosInline();
   if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
@@ -13187,6 +13326,7 @@ function _ativFiltrarPorCluster(valor) {
   if (typeof zelRender === 'function') zelRender();
   if (typeof _locRender === 'function') _locRender();
   applyFilters(); // também reaplica em Falhas (agora considera Cluster)
+  try { if (document.getElementById('mapTbody')) mapRender(); } catch (e) {}
 }
 
 function _ativPopularClusters() {
