@@ -6222,7 +6222,7 @@ function mapRender() {
 }
 
 // Mantém a lista do filtro de usina da sidebar alinhada ao mapeamento oficial
-_mapUfvsCarregar(false).then(() => { try { populateFilters(); } catch (e) {} });
+_mapUfvsCarregar(false).then(() => { try { populateFilters(); } catch (e) {} try { if (typeof CHAMADOS_FABRICANTE !== 'undefined' && CHAMADOS_FABRICANTE.length) { _atualizarBadgeChamados(); } } catch (e) {} });
 
 // Dados para os dropdowns customizados
 let _cbUsinaOpts = [];
@@ -9144,13 +9144,23 @@ function _chamadoTemTicket(c) {
   return (c['Ticket/RMA'] || '').trim() !== '';
 }
 
+// "Meu chamado" = supervisor Fred na planilha de origem OU usina do meu mapeamento
+// oficial (05/10/2026: a coluna Supervisor vem da planilha do SharePoint e ainda
+// mostrava o supervisor antigo em Ipixuna, Tupi Paulista, Mandaguaçu, Ceilândia etc.)
+function _chamadoEhMeu(c) {
+  if ((c['Supervisor'] || '').trim().toLowerCase() === 'fred alexandrino') return true;
+  if (!_mapUfvsCache) return false;
+  const minhas = new Set(_mapUfvsCache.map(u => u.usina));
+  return (c._usinasCanonicas || []).some(u => minhas.has(u));
+}
+
 function _atualizarBadgeChamados() {
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
   const ocultarSemTicketEl = document.getElementById('chamadosOcultarSemTicket');
   const ocultarSemTicket = ocultarSemTicketEl ? ocultarSemTicketEl.checked : true;
   let base = soMeus
-    ? CHAMADOS_FABRICANTE.filter(c => (c['Supervisor'] || '').trim().toLowerCase() === 'fred alexandrino')
+    ? CHAMADOS_FABRICANTE.filter(_chamadoEhMeu)
     : CHAMADOS_FABRICANTE;
   if (ocultarSemTicket) base = base.filter(_chamadoTemTicket);
   const abertos = base.filter(_chamadoEstaAberto).length;
@@ -9209,7 +9219,7 @@ function openChamadosInline(){
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !usinasChamado.some(u => selUsinaValues.has(u))) return false;
     if (usinaCluster && !usinasChamado.some(u => usinaCluster[u] === _ativClusterFiltro)) return false;
     if (selTipoEquip.size > 0 && !selTipoEquip.has(_chamadoTipoEquipamento(c))) return false;
-    if (soMeus && (c['Supervisor'] || '').trim().toLowerCase() !== 'fred alexandrino') return false;
+    if (soMeus && !_chamadoEhMeu(c)) return false;
     return true;
   });
   const semTicketCount = dataBasePreTicket.filter(c => !_chamadoTemTicket(c)).length;
