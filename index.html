@@ -5280,6 +5280,13 @@ const SNAPSHOT = [
 ];
 
 /* ══ ESTADO ══ */
+// Usinas retiradas do mapeamento do Fred em 06/10/2026 (em transição para outros
+// supervisores): não aparecem mais em nenhum painel (Falhas inclusive).
+const _USINAS_FORA_MAPA = new Set(['abc morada nova','sitio bonfim','guajiru','sol do norte i','sol do norte ii','boa esperanca do sul i','boa esperanca do sul ii','ibate i','ibate ii','matao i','matao ii - topazio']);
+function _usinaForaDoMapa(u) {
+  const k = String(u || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  return _USINAS_FORA_MAPA.has(k);
+}
 let DATA = []; let filtered = []; let sortKey = 'newest';
 let activeCausa = null; let activeSlaFilter = false;
 
@@ -5398,13 +5405,13 @@ async function fetchSheet() {
   }
 
   if (parsed && parsed.length > 0) {
-    DATA = parsed;
+    DATA = parsed.filter(d => !_usinaForaDoMapa(d.usina));
     const now = new Date();
     const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     if (dot) dot.className = 'topbar-live-dot live'; if (label) label.textContent = `ao vivo · ${ts}`;
     showToast(`${DATA.length} registros carregados`, true);
   } else {
-    DATA = SNAPSHOT.map(d => ({ ...d, cliente: normalizeCliente(d.cliente) }));
+    DATA = SNAPSHOT.map(d => ({ ...d, cliente: normalizeCliente(d.cliente) })).filter(d => !_usinaForaDoMapa(d.usina));
     if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = 'snapshot local';
     showToast('Usando dados locais (sem conexão com planilha)', false);
   }
@@ -8871,14 +8878,12 @@ let ANOTACOES = [];
 // nos painéis); entraram as usinas novas das 2C Energia e Thopen.
 const ANOT_CATALOGO_USINAS = {
   'Renogrid': ['Nova Xavantina I', 'Nova Xavantina II', 'Colíder I', 'Colíder II', 'Nobres', 'Elias Fausto', 'Crateús'],
-  'Thopen': ['Boa Esperança do Sul I', 'Boa Esperança do Sul II', 'Ibaté I', 'Ibaté II', 'Matão I', 'Matão II - Topázio', 'Sítio Bonfim', 'Poconé', 'Canarana I', 'Canarana II', 'Ribeirão Cascalheira', 'Diamantino',
+  'Thopen': ['Poconé', 'Canarana I', 'Canarana II', 'Ribeirão Cascalheira', 'Diamantino',
              'Alto Paraná I', 'Alto Paraná II', 'Paranavaí', 'Assis Chateaubriand', 'Céu Azul', 'Colorado I', 'Colorado II', 'Mandaguaçu', 'Sarandi',
              'Nova Londrina I', 'Nova Londrina II', 'Cidade Gaúcha', 'Pharmas II', 'Pharmas III', 'Pharmas IV', 'Santo Antonio da Platina',
              'Coração I', 'Coração II', 'Guatambu I', 'Guatambu II', 'Guatambu III', 'Guatambu IV',
              'Ceilândia I', 'Ceilândia II', 'Sítio dos Nogueiras', 'Aparecida do Taboado I', 'Aparecida do Taboado II'],
   '2C Energia': ['Araputanga', 'Sete Lagoas', 'União I', 'União II', 'Ipixuna do Pará I', 'Tupi Paulista I'],
-  'GD Energy': ['Guajirú', 'Sol do Norte I', 'Sol do Norte II'],
-  'Alves Lima': ['ABC Morada Nova'],
 };
 
 // Cache do catálogo já mesclado com usinas sob supervisão temporária
@@ -11180,6 +11185,7 @@ async function carregarAtividades(tentativa = 1) {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
     ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente), usina: normalizeUsina(a.usina) }));
+    ATIVIDADES = ATIVIDADES.filter(a => !_usinaForaDoMapa(a.usina));
     const clienteRestrito = _forcedCliente || URL_CLIENTE;
     if (clienteRestrito) {
       ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
