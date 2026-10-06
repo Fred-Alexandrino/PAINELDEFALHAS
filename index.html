@@ -2190,8 +2190,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
           <div id="gerPainelEntregaveis" style="display:none;">
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-              Todos os entregáveis com prazo (relatórios de performance e PCM por cliente, mais os
-              entregáveis internos de Contratos) — separados dos Boletins de Medição. Clique em
+              Todos os entregáveis com prazo (relatórios de performance e PCM por cliente) — separados dos Boletins de Medição. Clique em
               "Gerar comunicado" num card pra cobrar diretamente o responsável pela área.
             </div>
             <div id="entLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
@@ -4801,7 +4800,8 @@ async function carregarEntregaveisGrid() {
 function renderEntregaveisGrid() {
   const wrap = document.getElementById('entLista');
   if (!wrap) return;
-  wrap.innerHTML = _cmpRenderBlocos(_cmpCache.filter(c => c.tipo !== 'BM'), true);
+  // 06/10/2026: o bloco (Interno) saiu daqui (pedido do Fred) — só entregáveis por cliente.
+  wrap.innerHTML = _cmpRenderBlocos(_cmpCache.filter(c => c.tipo !== 'BM' && c.cliente !== '(Interno)'), true);
 }
 
 /* Prazo individual de cada etapa do BM (Envio/Aprovação) — só existe pra
@@ -4890,6 +4890,7 @@ async function cmpToggleEtapa(id, etapaIndex, concluida, el) {
     item.etapasConcluidas = etapasAntes;
     item.status = statusAntes;
     console.error('Erro ao marcar etapa:', e);
+    try { showToast('Não consegui salvar a etapa (' + (e && e.message ? e.message : 'erro') + '). Tente de novo em instantes.', false); } catch (_) {}
   }
   renderCompromissos();
   renderEntregaveisGrid();
