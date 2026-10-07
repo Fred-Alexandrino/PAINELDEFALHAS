@@ -1510,7 +1510,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 }
 
 /* Perfil supervisora: sem envio automático por WhatsApp (só copiar) */
-body.role-supervisor [id^="dispararBtn_"],body.role-supervisor [id^="dispararZelBtn_"],
+body.role-supervisor #comTabBtnClientes, body.role-supervisor #comTabBtnOs, body.role-supervisor #comunicadoFontePcmBtn, body.role-supervisor #gcFontePcmBtn, body.role-supervisor #chGcFontePcmBtn, body.role-supervisor [id^="dispararBtn_"],body.role-supervisor [id^="dispararZelBtn_"],
 body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="dispararMeuBtn_"],
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
@@ -4797,7 +4797,9 @@ function _sbTopItemsForBottomNav() {
   // Usa só os itens de navegação de verdade — os cabeçalhos de seção
   // (.sb-section-label-row) não são destinos navegáveis, então nunca
   // devem aparecer como aba da bottom nav no mobile.
-  return _sbNavDraggableItems().filter(el => el.id !== 'navFerramentasToggle');
+  return _sbNavDraggableItems().filter(el => el.id !== 'navFerramentasToggle')
+    // supervisora: só os painéis liberados (nada de Gerencial/Reuniões na barra inferior)
+    .filter(el => !document.body.classList.contains('role-supervisor') || _SUP_NAVS_PERMITIDOS.includes(el.dataset.nav));
 }
 function _sincronizarBottomNavComSidebar() {
   const bottomNav = document.getElementById('bottomNav');
@@ -5697,6 +5699,7 @@ function initDashboard(session) {
   if (_navDaUrl && document.getElementById('sec-' + _navDaUrl) && (session.role !== 'supervisor' || _SUP_NAVS_PERMITIDOS.includes(_navDaUrl))) {
     switchNav(_navDaUrl);
   }
+  if (session.role === 'supervisor') { try { _sincronizarBottomNavComSidebar(); } catch (e) {} }
   _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
     if (session.role === 'supervisor') {
