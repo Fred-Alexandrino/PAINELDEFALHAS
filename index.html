@@ -239,9 +239,13 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-nav-item.disabled:hover{background:transparent;color:var(--text-dim);}
 .sb-nav-item[draggable="true"]{cursor:grab;}
 .sb-nav-item[draggable="true"]:active{cursor:grabbing;}
-.sb-nav-item.sb-dragging{opacity:.35;}
-.sb-nav-item.sb-drag-over-top{box-shadow:inset 0 2px 0 0 var(--amber);}
-.sb-nav-item.sb-drag-over-bottom{box-shadow:inset 0 -2px 0 0 var(--amber);}
+/* Sem o prefixo ".sb-nav-item" — essas 3 classes de estado de arrasto
+   (dragging/drag-over) agora também se aplicam aos cabeçalhos de seção
+   (.sb-section-label-row, abaixo), que desde 07/10/2026 também podem ser
+   arrastados (a seção inteira se move junto com o cabeçalho). */
+.sb-dragging{opacity:.35;}
+.sb-drag-over-top{box-shadow:inset 0 2px 0 0 var(--amber);}
+.sb-drag-over-bottom{box-shadow:inset 0 -2px 0 0 var(--amber);}
 /* Cabeçalhos de seção da sidebar (Painéis/Gestão/Ferramentas) — elementos
    PRÓPRIOS, separados dos itens de navegação (corrigido 07/10/2026: antes
    o texto era um ::before amarrado via atributo data-section-label no
@@ -249,17 +253,20 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
    à Localização — então arrastar esse item pra outra posição arrastava o
    rótulo da categoria junto, impossibilitando reordenar sem also mover a
    categoria. Agora o cabeçalho é um <div> fixo e independente; os itens
-   arrastam livremente por cima/baixo dele sem levá-lo consigo). */
+   arrastam livremente por cima/baixo dele sem levá-lo consigo). Também
+   ficou draggable ele mesmo (pedido do Fred, 07/10/2026: "arrastar Gestão
+   pra cima, deixando Atividades mais pra baixo") — arrastar o cabeçalho
+   move a seção inteira (cabeçalho + todos os itens atuais dele) pra antes
+   ou depois de outro cabeçalho, reordenando as categorias entre si. */
 .sb-section-label-row{
   display:flex;align-items:center;
   margin:8px 6px 2px;padding:0 10px;
   font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
   color:var(--text-faint);font-weight:600;
-  pointer-events:none;user-select:none;
+  user-select:none;
 }
-.sb-section-label-row.sb-section-label-collapsible{
-  pointer-events:auto;cursor:pointer;
-}
+.sb-section-label-row[draggable="true"]{cursor:grab;}
+.sb-section-label-row[draggable="true"]:active{cursor:grabbing;}
 
 /* Central de Notificações — pop-up central, estilo WhatsApp */
 .central-notif-backdrop{
@@ -1538,7 +1545,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-section-label-row" data-section-key="paineis">Painéis</div>
+      <div class="sb-section-label-row" data-section-key="paineis" draggable="true">Painéis</div>
       <a href="#atividades" class="sb-nav-item active" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
@@ -1562,7 +1569,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </a>
-      <div class="sb-section-label-row sb-section-label-collapsible" data-section-key="gestao" onclick="_toggleGrupoGestao(event)" title="Recolher/expandir Gestão">
+      <div class="sb-section-label-row" data-section-key="gestao" draggable="true" onclick="_toggleGrupoGestao(event)" title="Recolher/expandir Gestão">
         Gestão
         <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
@@ -1582,7 +1589,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados &amp; OSs
       </a>
-      <div class="sb-section-label-row" data-section-key="ferramentas">Ferramentas</div>
+      <div class="sb-section-label-row" data-section-key="ferramentas" draggable="true">Ferramentas</div>
       <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         Mais
@@ -4202,16 +4209,21 @@ function _toggleGrupoFerramentas(forcarAberto) {
 function _navGestaoInicio() {
   return document.querySelector('.sb-section-label-row[data-section-key="gestao"]');
 }
-function _navGestaoItens() {
-  const inicio = _navGestaoInicio();
-  if (!inicio) return [];
+// Itens de navegação entre um cabeçalho de seção e o próximo (ou o fim da
+// lista) — generalizado (07/10/2026) pra também servir o arrasto de seção
+// inteira (_sbMoveSection), não só o recolher da "Gestão".
+function _sbSectionItemsOf(headerEl) {
+  if (!headerEl) return [];
   const itens = [];
-  let el = inicio.nextElementSibling;
+  let el = headerEl.nextElementSibling;
   while (el && !el.classList.contains('sb-section-label-row')) {
     itens.push(el);
     el = el.nextElementSibling;
   }
   return itens;
+}
+function _navGestaoItens() {
+  return _sbSectionItemsOf(_navGestaoInicio());
 }
 function _navEstaNoGrupoGestao(nav) {
   return _navGestaoItens().some(el => el.dataset && el.dataset.nav === nav);
@@ -4247,16 +4259,37 @@ function _sbNavTopItems() {
     )
   );
 }
-// Subconjunto de _sbNavTopItems() que o usuário pode efetivamente pegar e
-// arrastar — os cabeçalhos de seção ficam de fora (são fixos; arrastar um
-// item por cima/baixo deles já basta pra cruzar de um grupo pro outro,
-// sem precisar soltar exatamente "em cima" do cabeçalho).
+// Subconjunto de _sbNavTopItems() que são itens de navegação de verdade
+// (não cabeçalhos de seção) — usado pros listeners de arrasto item-a-item:
+// soltar um item por cima/baixo de outro já basta pra cruzar de um grupo
+// pro outro, sem precisar soltar "em cima" de um cabeçalho.
 function _sbNavDraggableItems() {
   return _sbNavTopItems().filter(el => el.classList.contains('sb-nav-item'));
+}
+// Os próprios cabeçalhos de seção — desde 07/10/2026 também arrastáveis
+// (pedido do Fred: mover "Gestão" pra cima, deixando "Atividades" mais pra
+// baixo), cada um movendo a seção inteira (ver _sbMoveSection).
+function _sbNavHeaderItems() {
+  return _sbNavTopItems().filter(el => el.classList.contains('sb-section-label-row'));
 }
 function _sbNavKeyOf(el) {
   if (el.classList.contains('sb-section-label-row')) return '__header_' + el.dataset.sectionKey + '__';
   return el.id === 'navFerramentasToggle' ? '__mais__' : el.dataset.nav;
+}
+// Move uma seção inteira (o cabeçalho arrastado + todos os itens que hoje
+// estão sob ele) pra imediatamente antes/depois de outro cabeçalho —
+// nunca pra dentro de outra seção, pra não partir um grupo no meio. Se a
+// seção movida for "Ferramentas", o submenu oculto (#grupoFerramentasSubmenu)
+// viaja junto, do mesmo jeito que já viaja quando só o item "Mais" é
+// arrastado sozinho.
+function _sbMoveSection(headerEl, refHeaderEl, before) {
+  const nav = document.getElementById('sbNav');
+  if (!nav || !headerEl || !refHeaderEl || headerEl === refHeaderEl) return;
+  const bloco = [headerEl, ..._sbSectionItemsOf(headerEl)];
+  const submenu = document.getElementById('grupoFerramentasSubmenu');
+  if (submenu && bloco.some(el => el.id === 'navFerramentasToggle')) bloco.push(submenu);
+  const ponto = before ? refHeaderEl : refHeaderEl.nextSibling;
+  bloco.forEach(el => { nav.insertBefore(el, ponto); });
 }
 
 // Mapeia cada cabeçalho ao item que, na versão antiga (pré-07/10/2026),
@@ -4327,6 +4360,9 @@ function _initSidebarDragReorder() {
     });
     el.addEventListener('dragover', (e) => {
       if (!draggedEl || draggedEl === el) return;
+      // Arrastando um CABEÇALHO: só pode soltar em outro cabeçalho (ver
+      // loop abaixo) — soltar em cima de um item partiria o grupo no meio.
+      if (draggedEl.classList.contains('sb-section-label-row')) return;
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
@@ -4340,6 +4376,7 @@ function _initSidebarDragReorder() {
       e.preventDefault();
       el.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom');
       if (!draggedEl || draggedEl === el) return;
+      if (draggedEl.classList.contains('sb-section-label-row')) return;
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
       const movingSubmenu = draggedEl.id === 'navFerramentasToggle'
@@ -4355,6 +4392,43 @@ function _initSidebarDragReorder() {
       else nav.insertBefore(draggedEl, refEl.nextSibling);
       if (movingSubmenu) nav.insertBefore(movingSubmenu, draggedEl.nextSibling);
 
+      _sbNavSaveOrder();
+    });
+  });
+
+  // Arrastar um CABEÇALHO (Painéis/Gestão/Ferramentas) move a seção
+  // inteira (ver _sbMoveSection) — só aceita soltar em cima de outro
+  // cabeçalho, nunca em cima de um item.
+  _sbNavHeaderItems().forEach(headerEl => {
+    headerEl.addEventListener('dragstart', (e) => {
+      draggedEl = headerEl;
+      headerEl.classList.add('sb-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', _sbNavKeyOf(headerEl) || ''); } catch (err) {}
+    });
+    headerEl.addEventListener('dragend', () => {
+      headerEl.classList.remove('sb-dragging');
+      _sbNavTopItems().forEach(x => x.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom'));
+      draggedEl = null;
+    });
+    headerEl.addEventListener('dragover', (e) => {
+      if (!draggedEl || draggedEl === headerEl || !draggedEl.classList.contains('sb-section-label-row')) return;
+      e.preventDefault();
+      const rect = headerEl.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      headerEl.classList.toggle('sb-drag-over-top', before);
+      headerEl.classList.toggle('sb-drag-over-bottom', !before);
+    });
+    headerEl.addEventListener('dragleave', () => {
+      headerEl.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom');
+    });
+    headerEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      headerEl.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom');
+      if (!draggedEl || draggedEl === headerEl || !draggedEl.classList.contains('sb-section-label-row')) return;
+      const rect = headerEl.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      _sbMoveSection(draggedEl, headerEl, before);
       _sbNavSaveOrder();
     });
   });
@@ -4382,13 +4456,22 @@ if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
   }
   function itemSobToque(x, y) {
     const alvo = document.elementFromPoint(x, y);
-    return alvo && alvo.closest ? alvo.closest('.sb-nav-item:not(.sb-nav-sub)') : null;
+    return alvo && alvo.closest ? alvo.closest('.sb-nav-item:not(.sb-nav-sub), .sb-section-label-row') : null;
   }
   function finalizarArrasto(overEl, clientY) {
     const nav = document.getElementById('sbNav');
-    if (overEl && overEl !== touchDragEl && nav) {
-      const rect = overEl.getBoundingClientRect();
-      const before = (clientY - rect.top) < rect.height / 2;
+    if (!overEl || overEl === touchDragEl || !nav) return;
+    const arrastandoCabecalho = touchDragEl.classList.contains('sb-section-label-row');
+    const soltandoEmCabecalho = overEl.classList.contains('sb-section-label-row');
+    // cabeçalho só solta em cabeçalho (move a seção inteira); item só
+    // solta em item (soltar um item em cima de um cabeçalho partiria o
+    // grupo no meio).
+    if (arrastandoCabecalho !== soltandoEmCabecalho) return;
+    const rect = overEl.getBoundingClientRect();
+    const before = (clientY - rect.top) < rect.height / 2;
+    if (arrastandoCabecalho) {
+      _sbMoveSection(touchDragEl, overEl, before);
+    } else {
       const movingSubmenu = touchDragEl.id === 'navFerramentasToggle'
         ? document.getElementById('grupoFerramentasSubmenu') : null;
       let refEl = overEl;
@@ -4398,12 +4481,12 @@ if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
       if (before) nav.insertBefore(touchDragEl, refEl);
       else nav.insertBefore(touchDragEl, refEl.nextSibling);
       if (movingSubmenu) nav.insertBefore(movingSubmenu, touchDragEl.nextSibling);
-      _sbNavSaveOrder();
     }
+    _sbNavSaveOrder();
   }
 
   function attach() {
-    _sbNavDraggableItems().forEach(el => {
+    _sbNavTopItems().forEach(el => {
       el.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
         const t = e.touches[0];
