@@ -201,6 +201,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   transition:color .1s,background .1s;position:relative;
   border-radius:6px;user-select:none;
   font-weight:400;margin:0 6px;
+  text-decoration:none;
 }
 .sb-nav-item:hover{color:var(--text);background:var(--panel-alt);}
 .sb-nav-sub{padding-left:26px;font-size:12px;}
@@ -1375,7 +1376,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
     justify-content:center;gap:3px;cursor:pointer;padding:0 3px;
     color:var(--text-faint);transition:color .15s;
     font-size:10px;font-weight:600;letter-spacing:.01em;
-    text-transform:uppercase;
+    text-transform:uppercase;text-decoration:none;
   }
   /* Rótulo pode vir de qualquer item que o usuário arrastou pros 4 primeiros
      da sidebar (ex.: "Reuniões - Clientes", "Comunicados & OSs") — em vez de
@@ -1527,69 +1528,69 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-nav-item active sb-section-start" data-section-label="Painéis" data-nav="atividades" data-label="Atividades" draggable="true">
+      <a href="#atividades" class="sb-nav-item active sb-section-start" data-section-label="Painéis" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
         <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
-      </div>
-      <div class="sb-nav-item" data-nav="falhas" data-label="Falhas" draggable="true">
+      </a>
+      <a href="#falhas" class="sb-nav-item" data-nav="falhas" data-label="Falhas" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Falhas
         <span class="sb-nav-badge-unread" id="sbBadgeFalhas" style="display:none;"></span>
-      </div>
-      <div class="sb-nav-item" data-nav="chamados" data-label="Chamados" draggable="true">
+      </a>
+      <a href="#chamados" class="sb-nav-item" data-nav="chamados" data-label="Chamados" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
         Chamados
         <span class="sb-nav-badge" id="sbChamadosBadge">0</span>
-      </div>
-      <div class="sb-nav-item" data-nav="programacao-pcm" data-label="Programação PCM" draggable="true">
+      </a>
+      <a href="#programacao-pcm" class="sb-nav-item" data-nav="programacao-pcm" data-label="Programação PCM" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Programação PCM
-      </div>
-      <div class="sb-nav-item" data-nav="processos" data-label="Zeladoria" draggable="true">
+      </a>
+      <a href="#processos" class="sb-nav-item" data-nav="processos" data-label="Zeladoria" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
-      </div>
-      <div class="sb-nav-item sb-section-start" data-section-label="Gestão" data-nav="localizacao" data-label="Localização" draggable="true">
+      </a>
+      <a href="#localizacao" class="sb-nav-item sb-section-start" data-section-label="Gestão" data-nav="localizacao" data-label="Localização" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Localização
         <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" title="Recolher/expandir Gestão" onclick="_toggleGrupoGestao(event)" style="width:12px;height:12px;margin:-8px -8px -8px auto;padding:8px;box-sizing:content-box;transition:transform .15s;cursor:pointer;flex:none;"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
+      </a>
+      <a href="#boletins" class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         Gerencial
-      </div>
-      <div class="sb-nav-item" data-nav="relatorios" data-label="Reuniões - Clientes" draggable="true">
+      </a>
+      <a href="#relatorios" class="sb-nav-item" data-nav="relatorios" data-label="Reuniões - Clientes" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Reuniões - Clientes
-      </div>
-      <div class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
+      </a>
+      <a href="#comunicados" class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados &amp; OSs
-      </div>
+      </a>
       <div class="sb-nav-item sb-section-start" data-section-label="Ferramentas" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         Mais
         <svg id="navFerramentasChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div id="grupoFerramentasSubmenu" style="display:none;">
-        <div class="sb-nav-item sb-nav-sub" data-nav="rondas">
+        <a href="#rondas" class="sb-nav-item sb-nav-sub" data-nav="rondas">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Verificar Rondas
-        </div>
-        <div class="sb-nav-item sb-nav-sub" data-nav="historico-log">
+        </a>
+        <a href="#historico-log" class="sb-nav-item sb-nav-sub" data-nav="historico-log">
           <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
           Log Histórico
           <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
-        </div>
-        <div class="sb-nav-item sb-nav-sub" data-nav="mttr">
+        </a>
+        <a href="#mttr" class="sb-nav-item sb-nav-sub" data-nav="mttr">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           MTTR
-        </div>
-        <div class="sb-nav-item sb-nav-sub" data-nav="eficiencia">
+        </a>
+        <a href="#eficiencia" class="sb-nav-item sb-nav-sub" data-nav="eficiencia">
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Eficiência O&amp;M
-        </div>
+        </a>
       </div>
     </nav>
 
@@ -4403,7 +4404,17 @@ if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
 })();
 
 document.querySelectorAll('.sb-nav-item:not(.disabled):not(#navFerramentasToggle)').forEach(el => {
-  el.addEventListener('click', () => switchNav(el.dataset.nav));
+  el.addEventListener('click', (e) => {
+    // Itens da sidebar agora são <a href="#nav"> de verdade (antes eram <div>
+    // sem href, por isso o botão direito não oferecia "Abrir link em nova
+    // aba" e o clique do scroll não fazia nada — corrigido 07/10/2026).
+    // Ctrl/Cmd/Shift+clique e clique do meio (que vira "auxclick", não
+    // "click") seguem o comportamento nativo do navegador (nova aba/janela);
+    // só o clique normal intercepta para continuar navegando na mesma página.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    switchNav(el.dataset.nav);
+  });
 });
 // Bottom nav (mobile): reconstruída dinamicamente a partir dos 4 primeiros
 // itens da sidebar, na ordem que o usuário escolheu por drag-and-drop —
@@ -4424,7 +4435,7 @@ function _sincronizarBottomNavComSidebar() {
     const svg = el.querySelector('svg');
     const label = el.dataset.label || el.childNodes[el.childNodes.length - 1]?.textContent?.trim() || el.dataset.nav;
     const ativo = el.dataset.nav === navAtual ? ' active' : '';
-    return `<div class="bn-item${ativo}" data-nav="${esc(el.dataset.nav)}">${svg ? svg.outerHTML : ''}<span>${esc(label)}</span></div>`;
+    return `<a href="#${esc(el.dataset.nav)}" class="bn-item${ativo}" data-nav="${esc(el.dataset.nav)}">${svg ? svg.outerHTML : ''}<span>${esc(label)}</span></a>`;
   }).join('');
   bottomNav.innerHTML = htmlItens + `
     <div class="bn-item" id="bnMenuBtn">
@@ -4438,7 +4449,11 @@ function _sincronizarBottomNavComSidebar() {
 // Bottom nav: registra listeners depois que o DOM carrega completamente
 function _initBottomNav() {
   document.querySelectorAll('.bn-item[data-nav]').forEach(el => {
-    el.addEventListener('click', () => switchNav(el.dataset.nav));
+    el.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      switchNav(el.dataset.nav);
+    });
   });
   document.getElementById('bnMenuBtn')?.addEventListener('click', openMobileSidebar);
 }
@@ -5196,6 +5211,14 @@ function initDashboard(session) {
   }
 
   document.getElementById('appShell').classList.add('ready');
+  // Se a URL já chegou com um #painel (ex.: aba nova aberta via clique do
+  // meio ou "Abrir link em nova aba" num item da sidebar — pedido do Fred,
+  // 07/10/2026), abre direto nesse painel em vez de cair sempre em
+  // "Atividades". Só aceita hash que corresponda a uma seção real.
+  const _navDaUrl = (window.location.hash || '').replace('#', '');
+  if (_navDaUrl && document.getElementById('sec-' + _navDaUrl)) {
+    switchNav(_navDaUrl);
+  }
   _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
     fetchSheet().then(() => _abrirDeepLinkNotificacao());
