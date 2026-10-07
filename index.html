@@ -15219,7 +15219,9 @@ function relSemanaISO(data){
 function relPopularClientes(){
   const sel = document.getElementById('relCliente');
   if (!sel) return;
-  const clientes = _clientesDisponiveis();
+  // 07/10/2026: Alves Lima e GD Energy saíram dos painéis, mas ainda têm a
+  // apresentação semanal desta semana — aparecem só aqui (REMOVER depois).
+  const clientes = [...new Set([..._clientesDisponiveis(), 'Alves Lima', 'GD Energy'])].sort((x, y) => x.localeCompare(y, 'pt-BR'));
   sel.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
