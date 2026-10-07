@@ -6711,24 +6711,48 @@ function populateFilters() {
 
 // ── Filtro "Técnico" (07/10/2026) — multi-seleção pelo responsável da OS ──
 let selTecnico = new Set();
-const _TEC_SEM = '__sem__';
-function _ativTecnicoKey(a) {
-  return _normalizarResponsavel(a && a.responsavel) || _TEC_SEM;
-}
-function _tecnicoOpcoes() {
-  const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).map(_ativTecnicoKey);
-  return [...new Set(lista)].sort((a, b) => {
-    if (a === _TEC_SEM) return 1;
-    if (b === _TEC_SEM) return -1;
-    return a.localeCompare(b, 'pt-BR');
+/* Opções = SOMENTE as pessoas do mapeamento oficial de equipes (/mapeamento-ufvs):
+   responsável + demais membros (dupla) + alternativo, sem o "(Função)". Uma atividade
+   casa com a pessoa pelo nome da Fracttal, que vem com variações ("Adriano  Moraes",
+   "Marcelo Lino de Souza", "Bruno Vinícius Pupo") — compara 1º e último nome. */
+const _tecFold = v => String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const _tecLimpaNome = v => String(v == null ? '' : v).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+let _tecnicosMapaCache = null, _tecnicosMapaRef = null;
+function _tecnicosDoMapa() {
+  const itens = (typeof _mapUfvsCache !== 'undefined' && Array.isArray(_mapUfvsCache)) ? _mapUfvsCache : null;
+  if (!itens) return [];
+  if (_tecnicosMapaRef === itens && _tecnicosMapaCache) return _tecnicosMapaCache;
+  const nomes = new Map();
+  const add = n => { const l = _tecLimpaNome(n); if (l && !nomes.has(_tecFold(l))) nomes.set(_tecFold(l), l); };
+  itens.forEach(i => {
+    add(i.responsavel);
+    (Array.isArray(i.membros) ? i.membros : String(i.membros || '').split(/[,;]/)).forEach(add);
+    add(i.alternativo);
   });
+  _tecnicosMapaRef = itens;
+  _tecnicosMapaCache = [...nomes.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  return _tecnicosMapaCache;
 }
-function _tecnicoRotulo(k) { return k === _TEC_SEM ? 'Sem responsável' : k; }
+function _tecCasa(nomeMapa, nomeAtiv) {
+  const m = _tecFold(nomeMapa).split(' '), t = _tecFold(_normalizarResponsavel(nomeAtiv)).split(' ');
+  if (!m[0] || !t[0] || m[0] !== t[0]) return false;
+  if (m.length === 1) return true;
+  return t.includes(m[m.length - 1]);
+}
+function _ativTecnicoKey(a) {
+  const r = a && a.responsavel;
+  if (!r) return null;
+  return _tecnicosDoMapa().find(n => _tecCasa(n, r)) || null;
+}
+function _tecnicoOpcoes() { return _tecnicosDoMapa(); }
+function _tecnicoRotulo(k) { return k; }
+let _tecCarregando = false;
 function _renderCbTecnico() {
   const listEl = document.getElementById('cbListTecnico');
   const labelEl = document.getElementById('cbLabelTecnico');
   if (!listEl) return;
   const opts = _tecnicoOpcoes();
+  if (!opts.length && !_tecCarregando) { _tecCarregando = true; _mapUfvsCarregar().then(() => { if (_tecnicosDoMapa().length) _renderCbTecnico(); }); }
   // só descarta seleção se já há atividades carregadas (evita limpar durante um refresh)
   if (opts.length) for (const t of [...selTecnico]) { if (!opts.includes(t)) selTecnico.delete(t); }
   const allSelected = opts.length > 0 && opts.every(o => selTecnico.has(o));
@@ -14055,8 +14079,28 @@ function _ativEquipamento(a) {
    Mesma lógica de detecção usada no resumo de chamados pro cliente (INV/TKR/etc.),
    aqui reaproveitada como filtro de sidebar pra facilitar comparar os dois painéis
    pelo mesmo tipo de ativo (pedido do Fred em 10/08/2026). */
+/* Códigos de ativo do Fracttal (ex.: CLD100-INVR2.8, PCN100-ETKR1, ELF100-NBRK1).
+   As atividades vêm quase sempre só com o código no campo "equipamento" (não com o
+   nome), então a detecção por texto sozinha jogava ~98% delas em "Outro" (bug
+   reportado em 07/10/2026). O código é lido do último segmento para o primeiro —
+   o mais específico vence (ex.: INFC1-PPCI, ESTM1-PRN1, SSEG1-CMRA). */
+const _TIPO_EQUIP_CODIGOS = {
+  INVR:'Inversor', PGINVR:'Inversor', DINV:'Inversor',
+  ETKR:'Tracker',
+  TRFR:'Transformador', DTRF:'Transformador',
+  MDFV:'Módulo',
+  CMRA:'CFTV', SSEG:'CFTV',
+  NBRK:'Nobreak',
+  ESTM:'Estação Solarimétrica', PRN:'Estação Solarimétrica', FDL:'Estação Solarimétrica',
+  QGBT:'QGBT', CABN:'Cabine', RELE:'Relé de Proteção', SKID:'Skid',
+  INFC:'Infraestrutura', INFE:'Infraestrutura', CBCC:'Infraestrutura', CBCA:'Infraestrutura',
+  SDRN:'Infraestrutura', CXDA:'Infraestrutura', PPCI:'Infraestrutura', SPDA:'Infraestrutura',
+  SOEM:'Infraestrutura', ARCD:'Infraestrutura', SSPV:'Infraestrutura',
+};
+
 const _TIPO_EQUIP_PADROES = [
-  { key: 'Inversor', regex: /invers/i },
+  { key: 'Infraestrutura', regex: /abrigo|infraestrutura|cerca|per[ií]metro|ventilador/i },
+  { key: 'Inversor', regex: /invers|\binv[\s.\-]?\d|\binv\b/i },
   { key: 'Tracker', regex: /track/i },
   { key: 'Transformador', regex: /transformador/i },
   { key: 'String Box', regex: /string\s*box|stringbox/i },
@@ -14067,10 +14111,25 @@ const _TIPO_EQUIP_PADROES = [
   { key: 'Nobreak', regex: /nobreak/i },
   { key: 'Seccionadora', regex: /seccionadora/i },
   { key: 'Combiner', regex: /combiner/i },
+  { key: 'Estação Solarimétrica', regex: /piran[oô]metro|fieldlogger|field\s*logger|solarim|esta[cç][aã]o\s*meteo/i },
+  { key: 'Cabine', regex: /cabine/i },
+  { key: 'QGBT', regex: /qgbt/i },
+  { key: 'Skid', regex: /\bskid/i },
 ];
+
+function _tipoEquipamentoPorCodigo(texto) {
+  const toks = String(texto || '').toUpperCase().split(/[^A-Z0-9.]+/).filter(Boolean);
+  for (let i = toks.length - 1; i >= 0; i--) {
+    const base = toks[i].replace(/[\d.]+$/, '');
+    if (base && _TIPO_EQUIP_CODIGOS[base]) return _TIPO_EQUIP_CODIGOS[base];
+  }
+  return null;
+}
 
 function _tipoEquipamentoDetectar(texto) {
   const t = texto || '';
+  const porCodigo = _tipoEquipamentoPorCodigo(t);
+  if (porCodigo) return porCodigo;
   for (const { key, regex } of _TIPO_EQUIP_PADROES) {
     if (regex.test(t)) return key;
   }
@@ -14078,7 +14137,13 @@ function _tipoEquipamentoDetectar(texto) {
 }
 
 function _ativTipoEquipamento(a) {
-  return _tipoEquipamentoDetectar(_ativEquipamento(a));
+  const eq = _ativEquipamento(a);
+  const tipo = _tipoEquipamentoDetectar(eq);
+  if (tipo !== 'Outro') return tipo;
+  // Código só da usina (ex.: RNGD-CTS100) ou "Múltiplos equipamentos/atividades"
+  // = atividade geral, não de um equipamento específico.
+  if (/m[uú]ltipl/i.test(eq) || /^[A-Z0-9]{2,5}(-[A-Z0-9]{3,6})?-?[A-Z]{2,5}\d{3}$|^[A-Z0-9]{2,5}-[A-Z]{2,5}\d{3}$/.test(eq)) return 'Geral / Múltiplos';
+  return 'Outro';
 }
 
 function _chamadoTipoEquipamento(c) {
