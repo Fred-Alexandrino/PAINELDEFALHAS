@@ -242,13 +242,23 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 .sb-nav-item.sb-dragging{opacity:.35;}
 .sb-nav-item.sb-drag-over-top{box-shadow:inset 0 2px 0 0 var(--amber);}
 .sb-nav-item.sb-drag-over-bottom{box-shadow:inset 0 -2px 0 0 var(--amber);}
-.sb-nav-item.sb-section-start{flex-wrap:wrap;margin-top:8px;padding-top:6px;}
-.sb-nav-item.sb-section-start::before{
-  content:attr(data-section-label);
-  flex:1 0 100%;order:-1;
+/* Cabeçalhos de seção da sidebar (Painéis/Gestão/Ferramentas) — elementos
+   PRÓPRIOS, separados dos itens de navegação (corrigido 07/10/2026: antes
+   o texto era um ::before amarrado via atributo data-section-label no
+   próprio item de navegação — "Painéis" presa à Atividades, "Gestão" presa
+   à Localização — então arrastar esse item pra outra posição arrastava o
+   rótulo da categoria junto, impossibilitando reordenar sem also mover a
+   categoria. Agora o cabeçalho é um <div> fixo e independente; os itens
+   arrastam livremente por cima/baixo dele sem levá-lo consigo). */
+.sb-section-label-row{
+  display:flex;align-items:center;
+  margin:8px 6px 2px;padding:0 10px;
   font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
   color:var(--text-faint);font-weight:600;
-  margin-bottom:2px;pointer-events:none;
+  pointer-events:none;user-select:none;
+}
+.sb-section-label-row.sb-section-label-collapsible{
+  pointer-events:auto;cursor:pointer;
 }
 
 /* Central de Notificações — pop-up central, estilo WhatsApp */
@@ -1528,7 +1538,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <a href="#atividades" class="sb-nav-item active sb-section-start" data-section-label="Painéis" data-nav="atividades" data-label="Atividades" draggable="true">
+      <div class="sb-section-label-row" data-section-key="paineis">Painéis</div>
+      <a href="#atividades" class="sb-nav-item active" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
         <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
@@ -1551,10 +1562,13 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </a>
-      <a href="#localizacao" class="sb-nav-item sb-section-start" data-section-label="Gestão" data-nav="localizacao" data-label="Localização" draggable="true">
+      <div class="sb-section-label-row sb-section-label-collapsible" data-section-key="gestao" onclick="_toggleGrupoGestao(event)" title="Recolher/expandir Gestão">
+        Gestão
+        <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <a href="#localizacao" class="sb-nav-item" data-nav="localizacao" data-label="Localização" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Localização
-        <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" title="Recolher/expandir Gestão" onclick="_toggleGrupoGestao(event)" style="width:12px;height:12px;margin:-8px -8px -8px auto;padding:8px;box-sizing:content-box;transition:transform .15s;cursor:pointer;flex:none;"><polyline points="6 9 12 15 18 9"/></svg>
       </a>
       <a href="#boletins" class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -1568,7 +1582,8 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados &amp; OSs
       </a>
-      <div class="sb-nav-item sb-section-start" data-section-label="Ferramentas" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
+      <div class="sb-section-label-row" data-section-key="ferramentas">Ferramentas</div>
+      <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         Mais
         <svg id="navFerramentasChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
@@ -4144,8 +4159,8 @@ function switchNav(nav) {
   }
   // mesma lógica pro grupo "Gestão" (recolhível no mobile) — como os itens
   // dessa seção mudam conforme o usuário arrasta a sidebar, checa por
-  // posição no DOM (entre o item com data-section-label="Gestão" e a
-  // próxima seção) em vez de uma lista fixa de nav keys
+  // posição no DOM (entre o cabeçalho "Gestão" e o próximo cabeçalho de
+  // seção) em vez de uma lista fixa de nav keys
   if (_navEstaNoGrupoGestao(nav)) {
     _toggleGrupoGestao(null, true);
   }
@@ -4176,31 +4191,29 @@ function _toggleGrupoFerramentas(forcarAberto) {
 
 // Grupo "Gestão" da sidebar — recolhível (pedido do Fred, 04/10/2026: no
 // celular a lista de itens + seção Gestão empurrava os filtros/ações
-// rápidas pra muito baixo, dificultando o clique). Diferente do grupo
-// "Mais" (4 subitens fixos num submenu próprio), "Gestão" é só um rótulo
-// (data-section-label) preso ao item que o usuário deixou primeiro nessa
-// posição ao arrastar a sidebar — por isso os itens do grupo são achados
-// por posição no DOM (do item com data-section-label="Gestão" até a
-// próxima .sb-section-start), nunca por uma lista fixa de nav keys, senão
-// reordenar a sidebar quebraria o toggle silenciosamente.
+// rápidas pra muito baixo, dificultando o clique). O cabeçalho "Gestão" é
+// um elemento PRÓPRIO (.sb-section-label-row), separado dos itens de
+// navegação (corrigido 07/10/2026 — antes era um atributo preso ao item
+// "Localização", então arrastar esse item arrastava o rótulo junto). Os
+// itens do grupo são achados por posição no DOM (de imediatamente depois
+// do cabeçalho "Gestão" até o próximo .sb-section-label-row), nunca por
+// uma lista fixa de nav keys, pra continuar correto depois de qualquer
+// drag-and-drop.
 function _navGestaoInicio() {
-  return document.querySelector('.sb-nav-item[data-section-label="Gestão"]');
+  return document.querySelector('.sb-section-label-row[data-section-key="gestao"]');
 }
 function _navGestaoItens() {
   const inicio = _navGestaoInicio();
   if (!inicio) return [];
   const itens = [];
   let el = inicio.nextElementSibling;
-  while (el && !el.classList.contains('sb-section-start')) {
+  while (el && !el.classList.contains('sb-section-label-row')) {
     itens.push(el);
     el = el.nextElementSibling;
   }
   return itens;
 }
 function _navEstaNoGrupoGestao(nav) {
-  const inicio = _navGestaoInicio();
-  if (!inicio) return false;
-  if (inicio.dataset.nav === nav) return true;
   return _navGestaoItens().some(el => el.dataset && el.dataset.nav === nav);
 }
 function _toggleGrupoGestao(ev, forcarAberto) {
@@ -4216,21 +4229,59 @@ function _toggleGrupoGestao(ev, forcarAberto) {
 
 // ── Reordenar itens do menu lateral por drag-and-drop ──────────────────
 // A ordem escolhida fica salva no navegador (localStorage), por usuário/dispositivo.
+// Os cabeçalhos de seção (.sb-section-label-row) entram nessa mesma ordem
+// salva (com uma chave sintética __header_x__) desde 07/10/2026, pra que
+// sua posição também persista entre sessões — sem isso, toda vez que a
+// ordem salva fosse reaplicada, só os itens seriam movidos (via
+// appendChild) e os cabeçalhos, nunca tocados, ficariam empurrados pro
+// topo da lista, juntos, à frente de todos os itens.
 const SB_NAV_ORDER_KEY = 'sbNavOrder_v2';
 
 function _sbNavTopItems() {
   const nav = document.getElementById('sbNav');
   if (!nav) return [];
   return [...nav.children].filter(el =>
-    el.classList && el.classList.contains('sb-nav-item') && !el.classList.contains('sb-nav-sub')
+    el.classList && (
+      el.classList.contains('sb-section-label-row') ||
+      (el.classList.contains('sb-nav-item') && !el.classList.contains('sb-nav-sub'))
+    )
   );
 }
-function _sbNavKeyOf(el) { return el.id === 'navFerramentasToggle' ? '__mais__' : el.dataset.nav; }
+// Subconjunto de _sbNavTopItems() que o usuário pode efetivamente pegar e
+// arrastar — os cabeçalhos de seção ficam de fora (são fixos; arrastar um
+// item por cima/baixo deles já basta pra cruzar de um grupo pro outro,
+// sem precisar soltar exatamente "em cima" do cabeçalho).
+function _sbNavDraggableItems() {
+  return _sbNavTopItems().filter(el => el.classList.contains('sb-nav-item'));
+}
+function _sbNavKeyOf(el) {
+  if (el.classList.contains('sb-section-label-row')) return '__header_' + el.dataset.sectionKey + '__';
+  return el.id === 'navFerramentasToggle' ? '__mais__' : el.dataset.nav;
+}
+
+// Mapeia cada cabeçalho ao item que, na versão antiga (pré-07/10/2026),
+// carregava seu data-section-label — usado só pra migrar uma ordem salva
+// no formato antigo (sem chaves de cabeçalho) pra incluir os cabeçalhos
+// exatamente na posição em que apareciam antes (imediatamente antes de
+// onde esse item-âncora estiver na ordem salva do usuário), preservando o
+// agrupamento que o Fred já tinha arrastado manualmente.
+const SB_NAV_HEADER_ANCHOR = { paineis: 'atividades', gestao: 'localizacao', ferramentas: '__mais__' };
+function _sbNavMigrateLegacyOrder(saved) {
+  if (saved.some(k => typeof k === 'string' && k.indexOf('__header_') === 0)) return saved;
+  const migrated = [...saved];
+  Object.keys(SB_NAV_HEADER_ANCHOR).forEach(sectionKey => {
+    const headerKey = '__header_' + sectionKey + '__';
+    const idx = migrated.indexOf(SB_NAV_HEADER_ANCHOR[sectionKey]);
+    migrated.splice(idx === -1 ? migrated.length : idx, 0, headerKey);
+  });
+  return migrated;
+}
 
 function _sbNavApplyStoredOrder() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SB_NAV_ORDER_KEY) || 'null'); } catch (e) { saved = null; }
   if (!saved || !Array.isArray(saved)) return;
+  saved = _sbNavMigrateLegacyOrder(saved);
   const nav = document.getElementById('sbNav');
   if (!nav) return;
   const byKey = {};
@@ -4246,6 +4297,8 @@ function _sbNavApplyStoredOrder() {
   _sbNavTopItems().forEach(el => {
     if (!saved.includes(_sbNavKeyOf(el))) nav.insertBefore(el, submenu || null);
   });
+  // persiste a ordem já migrada, pra não precisar recalcular isso de novo
+  try { localStorage.setItem(SB_NAV_ORDER_KEY, JSON.stringify(saved)); } catch (e) {}
 }
 
 function _sbNavSaveOrder() {
@@ -4260,7 +4313,7 @@ function _initSidebarDragReorder() {
   if (!nav) return;
   let draggedEl = null;
 
-  _sbNavTopItems().forEach(el => {
+  _sbNavDraggableItems().forEach(el => {
     el.addEventListener('dragstart', (e) => {
       draggedEl = el;
       el.classList.add('sb-dragging');
@@ -4350,7 +4403,7 @@ if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
   }
 
   function attach() {
-    _sbNavTopItems().forEach(el => {
+    _sbNavDraggableItems().forEach(el => {
       el.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
         const t = e.touches[0];
@@ -4423,7 +4476,10 @@ document.querySelectorAll('.sb-nav-item:not(.disabled):not(#navFerramentasToggle
 // último e abre a sidebar completa (já na mesma ordem, já que reusa o
 // mesmo #sbNav) pra acessar os itens que não couberam nos 4 slots.
 function _sbTopItemsForBottomNav() {
-  return _sbNavTopItems().filter(el => el.id !== 'navFerramentasToggle');
+  // Usa só os itens de navegação de verdade — os cabeçalhos de seção
+  // (.sb-section-label-row) não são destinos navegáveis, então nunca
+  // devem aparecer como aba da bottom nav no mobile.
+  return _sbNavDraggableItems().filter(el => el.id !== 'navFerramentasToggle');
 }
 function _sincronizarBottomNavComSidebar() {
   const bottomNav = document.getElementById('bottomNav');
