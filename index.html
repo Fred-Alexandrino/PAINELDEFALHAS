@@ -1508,6 +1508,13 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
   border-color:rgba(91,155,213,.35);
   box-shadow:inset 0 1px 0 rgba(224,238,250,.09),var(--shadow);
 }
+
+/* Perfil supervisora: sem envio automático por WhatsApp (só copiar) */
+body.role-supervisor [id^="dispararBtn_"],body.role-supervisor [id^="dispararZelBtn_"],
+body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="dispararMeuBtn_"],
+body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
+body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
+body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
 </style>
 </head>
 <body>
@@ -3701,6 +3708,160 @@ window.addEventListener('unhandledrejection', function(e) {
   console.error('Promise rejected:', e.reason);
 });
 
+/* ══ PERFIL SUPERVISORA (escopo restrito — Danuth, 07/10/2026) ══
+   Perfil "supervisor": enxerga SÓ Atividades, Chamados e Comunicados & OSs, e só
+   as usinas do escopo abaixo. A restrição é feita aqui no painel (login e dados
+   filtrados no navegador); o backend não valida usuário. Nada aqui afeta os
+   perfis manager/admin/client. Envio por WhatsApp fica bloqueado — ela copia
+   os textos e envia manualmente. */
+const _SUP_ESCOPOS = {
+  danuth: {
+    nome: 'Danuth',
+    usinas: [
+      {"cluster": "BA Sul 01", "cliente": "Axis", "usina": "Ponto Belo 1", "cidade": "Ponto Belo", "responsavel": "Thiago Morais", "funcao": "Técnico", "membros": ["Alex Cardoso"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Vargem Grande 1", "cidade": "São Mateus", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Axis", "usina": "Linhares 1", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Córrego de Sapucaia", "cidade": "São Mateus", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Primavera 1", "cidade": "Vargem Grande", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Primavera 2", "cidade": "Vargem Grande", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Linhares 1", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "MA Leste 01", "cliente": "Athon", "usina": "Timon 200", "cidade": "Timon", "responsavel": "Luiz Silva", "funcao": "Técnico", "membros": ["José Neto"]},
+      {"cluster": "MA Leste 01", "cliente": "Athon", "usina": "Timon 100", "cidade": "Timon", "responsavel": "Luiz Silva", "funcao": "Técnico", "membros": ["José Neto"]},
+      {"cluster": "MA Leste 02", "cliente": "Athon", "usina": "Matões 100", "cidade": "Matões", "responsavel": "Francisco Santos", "funcao": "Técnico", "membros": ["Pedro Silva"]},
+      {"cluster": "MA Leste 02", "cliente": "Athon", "usina": "Matões 200", "cidade": "Matões", "responsavel": "Francisco Santos", "funcao": "Técnico", "membros": ["Pedro Silva"]},
+      {"cluster": "PE Oeste 01", "cliente": "Axis", "usina": "Petrolina 3", "cidade": "Petrolina", "responsavel": "Rodrigo Silva", "funcao": "Técnico", "membros": ["Eliam Silva"]},
+      {"cluster": "PE Oeste 01", "cliente": "Axis", "usina": "Petrolina 2", "cidade": "Petrolina", "responsavel": "Rodrigo Silva", "funcao": "Técnico", "membros": ["Eliam Silva"]},
+      {"cluster": "PR Norte 01", "cliente": "Axis", "usina": "Marialva 1", "cidade": "Marialva", "responsavel": "Marcos Camargo", "funcao": "Técnico", "membros": ["Douglas Silva"]},
+      {"cluster": "RJ Norte 01", "cliente": "Thopen", "usina": "Fazenda Limão 1", "cidade": "Campos dos Goytacazes", "responsavel": "Carlos Bruno Pessanha Pereira", "funcao": "Técnico", "membros": ["Luiz Hermogenes"]},
+      {"cluster": "RJ Norte 01", "cliente": "Thopen", "usina": "Saturnino 1", "cidade": "Campos dos Goytacazes", "responsavel": "Carlos Bruno Pessanha Pereira", "funcao": "Técnico", "membros": ["Luiz Hermogenes"]},
+      {"cluster": "RJ Norte 01", "cliente": "Thopen", "usina": "Goytacazes 1", "cidade": "Campos dos Goytacazes", "responsavel": "Carlos Bruno Pessanha Pereira", "funcao": "Técnico", "membros": ["Luiz Hermogenes"]},
+      {"cluster": "RJ Sul 01", "cliente": "Thopen", "usina": "São Bento 5", "cidade": "Barra Mansa", "responsavel": "Adão Neto", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP Leste 01", "cliente": "Thopen", "usina": "Aparecida 3", "cidade": "Aparecida", "responsavel": "Henri Almeida", "funcao": "Técnico", "membros": ["Douglas Chagas"]},
+      {"cluster": "SP Leste 01", "cliente": "Thopen", "usina": "Guaratinguetá 5", "cidade": "Guaratinguetá", "responsavel": "Henri Almeida", "funcao": "Técnico", "membros": ["Douglas Chagas"]},
+      {"cluster": "SP Leste 02", "cliente": "Thopen", "usina": "Sorocaba", "cidade": "Sorocaba", "responsavel": "Eduardo Mendes", "funcao": "Técnico", "membros": ["Milton Ramos"]},
+      {"cluster": "SP Leste 02", "cliente": "Thopen", "usina": "Araçoiaba da Serra IA", "cidade": "Araçoiaba da Serra", "responsavel": "Eduardo Mendes", "funcao": "Técnico", "membros": ["Milton Ramos"]},
+      {"cluster": "SP Leste 02", "cliente": "Thopen", "usina": "Araçoiaba da Serra IB", "cidade": "Araçoiaba da Serra", "responsavel": "Eduardo Mendes", "funcao": "Técnico", "membros": ["Milton Ramos"]},
+      {"cluster": "SP Leste 02", "cliente": "Thopen", "usina": "Salto Pirapora 3", "cidade": "Salto de Pirapora", "responsavel": "Eduardo Mendes", "funcao": "Técnico", "membros": ["Milton Ramos"]},
+      {"cluster": "SP Leste 03", "cliente": "Thopen", "usina": "Indaiatuba", "cidade": "Indaiatuba", "responsavel": "Felipe Lima", "funcao": "Técnico", "membros": ["Igor Cruz"]},
+      {"cluster": "SP Leste 03", "cliente": "Thopen", "usina": "Santa Bárbara 1", "cidade": "Santa Bárbara D´Oeste", "responsavel": "Felipe Lima", "funcao": "Técnico", "membros": ["Igor Cruz"]},
+      {"cluster": "SP Leste 03", "cliente": "Thopen", "usina": "Piracicaba 1", "cidade": "Piracicaba", "responsavel": "Felipe Lima", "funcao": "Técnico", "membros": ["Igor Cruz"]},
+      {"cluster": "SP Leste 03", "cliente": "Thopen", "usina": "Caxambu 1", "cidade": "Jundiaí", "responsavel": "Felipe Lima", "funcao": "Técnico", "membros": ["Igor Cruz"]},
+      {"cluster": "SP Leste 04", "cliente": "Thopen", "usina": "Santo Inácio 1", "cidade": "Caçapava", "responsavel": "Hélio Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP Leste 04", "cliente": "Thopen", "usina": "Santo Inácio 2", "cidade": "Caçapava", "responsavel": "Hélio Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP Leste 04", "cliente": "Thopen", "usina": "Marajoara 1", "cidade": "Caçapava", "responsavel": "Hélio Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP Leste 05", "cliente": "Thopen", "usina": "Embu Guaçu", "cidade": "Embu Guaçu", "responsavel": "Lucas Alberto Freitas de Faria", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP Leste 05", "cliente": "Thopen", "usina": "Cipó Guaçu", "cidade": "Cipó Guaçu", "responsavel": "Lucas Alberto Freitas de Faria", "funcao": "Técnico", "membros": []}
+    ]
+  }
+};
+const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados'];
+let _supEscopoAtivo = null;
+function _supChave(u) {
+  let s = String(u == null ? '' : u).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[´`']/g, '').replace(/^(ufv|usina)\s+/, '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/\s+(ii|2|b|ib)$/, ' 2').replace(/\s+(i|1|a|ia)$/, ' 1');
+  return s;
+}
+function _supCli(c) { return String(c == null ? '' : c).replace(/\s+/g, ' ').trim().toUpperCase(); }
+function _supMontarIndice(esc) {
+  const idx = new Map();
+  esc.usinas.forEach(u => {
+    const k = _supChave(u.usina);
+    if (!idx.has(k)) idx.set(k, []);
+    idx.get(k).push(u);
+  });
+  esc._idx = idx;
+  return esc;
+}
+// Devolve a entrada do escopo que casa com (usina, cliente) ou null.
+function _supBuscar(usina, cliente) {
+  if (!_supEscopoAtivo) return null;
+  const lista = _supEscopoAtivo._idx.get(_supChave(usina));
+  if (!lista) return null;
+  const c = _supCli(cliente);
+  if (!c) return lista[0];
+  return lista.find(u => _supCli(u.cliente) === c) || null;
+}
+function _supPermite(usina, cliente) { return !!_supBuscar(usina, cliente); }
+// Texto de UFV de chamados: "Cliente - Usina", ou combinada "Base 1 e 2".
+function _supChamadoPermitido(c) {
+  const ufv = String(c['UFV'] || '');
+  const semCli = ufv.replace(/^[^-]+-\s*/, '').trim();
+  const comb = semCli.match(/^(.+?)\s+(\d+|[ivx]+)\s+e\s+(\d+|[ivx]+)$/i);
+  const nomes = comb ? [comb[1] + ' ' + comb[2], comb[1] + ' ' + comb[3]] : [semCli];
+  const cli = c['Cliente'] || (ufv.includes('-') ? ufv.split('-')[0] : '');
+  return nomes.some(n => _supPermite(n, cli));
+}
+const _SUP_VAZIO_OK = { ok: true };
+function _supFiltrarResposta(path, data) {
+  if (path === '/atividades') {
+    const out = (data.atividades || []).filter(a => _supPermite(a.usina, a.cliente)).map(a => {
+      const e = _supBuscar(a.usina, a.cliente);
+      return e ? { ...a, cluster: e.cluster } : a;
+    });
+    return { ...data, atividades: out };
+  }
+  if (path === '/chamados-fabricante') {
+    return { ...data, itens: (data.itens || []).filter(_supChamadoPermitido) };
+  }
+  if (path === '/mapeamento-ufvs') {
+    const itens = _supEscopoAtivo.usinas.map(u => ({
+      usina: u.usina, cluster: u.cluster, cliente: u.cliente, cidade_uf: u.cidade,
+      responsavel: u.responsavel, funcao: u.funcao,
+      membros: (u.membros || []).map(m => m), alternativo: '', temporaria: false, transicao: false
+    }));
+    return { ok: true, total: itens.length, itens };
+  }
+  if (path === '/clientes-configurados') {
+    return { ok: true, clientes: [...new Set(_supEscopoAtivo.usinas.map(u => u.cliente))].sort() };
+  }
+  if (path === '/grupos-configurados') return { ok: true, itens: [] };
+  return null; // sem tratamento
+}
+// Endpoints (GET) com dados do Fred/outras áreas que a supervisora não deve ver.
+const _SUP_GET_VAZIO = /^\/(programacao-pcm|sobreaviso-meu|sobreaviso-blocos|gerar-comunicado-sobreaviso|gerar-comunicado-zeladoria|compromissos|anotacoes|supervisao-temporaria|outras-usinas-supervisores|localizacoes|responsaveis-areas|resumos|zeladoria[^/]*|rondas[^/]*|desligamento-manual|os-elaboradas)(\/.*)?$/;
+const _SUP_BLOQUEIO_ENVIO = /^\/disparar-comunicado/;
+function _supJson(obj, status) {
+  return new Response(JSON.stringify(obj), { status: status || 200, headers: { 'Content-Type': 'application/json' } });
+}
+function _supInstalarEscopo(sessao) {
+  const esc = _SUP_ESCOPOS[String(sessao.user || '').toLowerCase()];
+  if (!esc || window._supFetchInstalado) return !!esc;
+  _supEscopoAtivo = _supMontarIndice(esc);
+  window._supFetchInstalado = true;
+  document.body.classList.add('role-supervisor');
+  const _fetchOrig = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    let url = typeof input === 'string' ? input : (input && input.url) || '';
+    const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    if (/sslip\.io/.test(url)) {
+      const path = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+      if (_SUP_BLOQUEIO_ENVIO.test(path)) {
+        return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
+      }
+      if (method === 'GET') {
+        if (_SUP_GET_VAZIO.test(path)) {
+          return _supJson({ ok: true, itens: [], grupos: [], total: 0, atividades: [], blocos: [], regras: [], anotacoes: [], localizacoes: [] });
+        }
+        const resp = await _fetchOrig(input, init);
+        try {
+          if (!resp.ok) return resp;
+          const dados = await resp.clone().json();
+          const novo = _supFiltrarResposta(path, dados);
+          return novo ? _supJson(novo, resp.status) : resp;
+        } catch (e) {
+          // falha fechada: se não deu pra filtrar um endpoint de dados, não devolve o original
+          if (path === '/atividades' || path === '/chamados-fabricante') return _supJson({ ok: false, error: 'Falha ao aplicar o filtro do seu perfil.' }, 500);
+          return resp;
+        }
+      }
+    }
+    return _fetchOrig(input, init);
+  };
+  return true;
+}
+function _supEhSessao(sessao) { return !!sessao && sessao.role === 'supervisor'; }
+
 /* ══ LOGIN ══ */
 (function setupLogin() {
   const USERS = [
@@ -3708,6 +3869,7 @@ window.addEventListener('unhandledrejection', function(e) {
     { user: 'fredalexandrino',pass: 'Fred2004@',   role: 'manager' },
     { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'Thopen'   },
     { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'Renogrid' },
+    { user: 'danuth',         pass: 'Danuth#Grid26', role: 'supervisor' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -4196,6 +4358,7 @@ const NAV_TITLES = {
 };
 
 function switchNav(nav) {
+  if (_currentSession && _currentSession.role === 'supervisor' && !_SUP_NAVS_PERMITIDOS.includes(nav)) nav = 'atividades';
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
   if (nav === 'atividades') { carregarAtividades(); }
@@ -5417,6 +5580,7 @@ document.getElementById('sbMobileOverlay')?.addEventListener('click', closeMobil
 /* ══ INIT DASHBOARD ══ */
 function initDashboard(session) {
   _currentSession = session;
+  if (_supEhSessao(session) && !_supInstalarEscopo(session)) { try { localStorage.clear(); } catch(e){}; location.reload(); return; }
   if (session.role==='client' && session.cliente) _forcedCliente = session.cliente;
 
   // Avatar + nome no rodapé do sidebar
@@ -5427,7 +5591,7 @@ function initDashboard(session) {
   const roleEl = document.getElementById('sbUserRole');
   if (avatarEl) avatarEl.textContent = initials;
   if (nameEl) nameEl.textContent = userLabel.charAt(0).toUpperCase() + userLabel.slice(1);
-  const roleLabels = { manager:'Supervisor O&M', admin:'Administrador', client:'Cliente — ' + (session.cliente||'') };
+  const roleLabels = { manager:'Supervisor O&M', admin:'Administrador', supervisor:'Supervisora O&M', client:'Cliente — ' + (session.cliente||'') };
   if (roleEl) roleEl.textContent = roleLabels[session.role] || session.role;
 
   // Visibilidade dos itens de navegação por perfil
@@ -5445,7 +5609,32 @@ function initDashboard(session) {
   const sbQuickActions = document.getElementById('sbQuickActions');
   const ativAcoesWrap  = document.getElementById('ativAcoesWrap');
 
-  if (session.role === 'manager') {
+  if (session.role === 'supervisor') {
+    // Supervisora: só Atividades, Chamados e Comunicados & OSs (escopo por usina).
+    document.querySelectorAll('.sb-nav-item[data-nav]').forEach(el => {
+      const ok = _SUP_NAVS_PERMITIDOS.includes(el.dataset.nav);
+      el.style.display = ok ? '' : 'none';
+      el.classList.toggle('sup-oculto', !ok);  // !important no CSS: _toggleGrupoGestao/Ferramentas não reabrem
+    });
+    if (navFerramentasToggle) { navFerramentasToggle.style.display = 'none'; navFerramentasToggle.classList.add('sup-oculto'); }
+    const _grpFerr = document.getElementById('grupoFerramentasSubmenu'); if (_grpFerr) _grpFerr.style.display = 'none';
+    document.querySelectorAll('.sb-section-label-row[data-section-key="ferramentas"]').forEach(el => { el.style.display = 'none'; el.classList.add('sup-oculto'); });
+    if (_grpFerr) _grpFerr.classList.add('sup-oculto');
+    // Esconde cabeçalhos de seção (Painéis/Gestão) que ficaram sem nenhum item visível.
+    document.querySelectorAll('.sb-section-label-row').forEach(h => {
+      let n = h.nextElementSibling, algum = false;
+      while (n && !n.classList.contains('sb-section-label-row')) {
+        if (n.classList.contains('sb-nav-item') && n.style.display !== 'none') { algum = true; break; }
+        n = n.nextElementSibling;
+      }
+      if (!algum) { h.style.display = 'none'; h.classList.add('sup-oculto'); }
+    });
+    if (sbFiltersEl) sbFiltersEl.style.display = '';
+    if (sbQuickActions) sbQuickActions.style.display = '';
+    if (ativAcoesWrap) ativAcoesWrap.style.display = '';
+    ['sbSketchbookBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    document.querySelectorAll('#sbQuickActions button[onclick*="_openNovaOcorrencia"], #sbQuickActions a[href="fv-energias.html"]').forEach(el => el.style.display = 'none');
+  } else if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
     if (navRondas) navRondas.style.display = '';
     if (navProcessos) navProcessos.style.display = '';
@@ -5498,11 +5687,18 @@ function initDashboard(session) {
   // 07/10/2026), abre direto nesse painel em vez de cair sempre em
   // "Atividades". Só aceita hash que corresponda a uma seção real.
   const _navDaUrl = (window.location.hash || '').replace('#', '');
-  if (_navDaUrl && document.getElementById('sec-' + _navDaUrl)) {
+  if (_navDaUrl && document.getElementById('sec-' + _navDaUrl) && (session.role !== 'supervisor' || _SUP_NAVS_PERMITIDOS.includes(_navDaUrl))) {
     switchNav(_navDaUrl);
   }
   _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
+    if (session.role === 'supervisor') {
+      // Sem Falhas/PCM do Fred: só os dados dos 3 painéis liberados.
+      DATA = []; try { applyFilters(); } catch(e){}
+      carregarAtividades().then(() => _abrirDeepLinkNotificacao());
+      carregarChamadosFabricante();
+      return;
+    }
     fetchSheet().then(() => _abrirDeepLinkNotificacao());
     carregarAtividades();
     carregarProgramacaoPcm();
@@ -5555,7 +5751,7 @@ async function _abrirDeepLinkNotificacao() {
   };
   await tentarAbrir(1);
 }
-function canEdit() { return _currentSession.role==='manager'; }
+function canEdit() { return _currentSession.role==='manager' || _currentSession.role==='supervisor'; }
 
 document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('om_role');
@@ -14213,7 +14409,7 @@ function _ativKanbanCard(a) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <span style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--teal);font-weight:700;">${a.numeroOS ? 'OS '+esc(a.numeroOS) : '#'+esc(a.id)}</span>
       <div style="display:flex;align-items:center;gap:6px;">
-        ${a.numeroOS && _currentSession?.role === 'manager' ? `<button class="ativ-refresh-btn" data-id="${esc(a.id)}" title="Verificar essa OS agora na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--text-faint);display:flex;">
+        ${a.numeroOS && (_currentSession?.role === 'manager' || _currentSession?.role === 'supervisor') ? `<button class="ativ-refresh-btn" data-id="${esc(a.id)}" title="Verificar essa OS agora na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--text-faint);display:flex;">
           <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         </button>` : ''}
         <span style="font-size:13px;color:var(--text-faint);">${esc(a.responsavel||'Sem responsável')}</span>
@@ -14261,7 +14457,7 @@ function _ativKanbanColuna(titulo, cor, lista, estadoKey) {
       <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
       <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:13px;font-weight:700;color:${cor};background:${cor}22;border-radius:20px;padding:2px 9px;">${lista.length}</span>
-        ${idsParaVerificar.length > 0 && _currentSession?.role === 'manager' ? `<button class="ativ-coluna-refresh-btn" data-estado="${esc(estadoKey)}" data-ids="${esc(idsParaVerificar.join(','))}" title="Verificar as OSs desta coluna na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:${cor};display:flex;">
+        ${idsParaVerificar.length > 0 && (_currentSession?.role === 'manager' || _currentSession?.role === 'supervisor') ? `<button class="ativ-coluna-refresh-btn" data-estado="${esc(estadoKey)}" data-ids="${esc(idsParaVerificar.join(','))}" title="Verificar as OSs desta coluna na Fracttal" style="background:transparent;border:none;padding:2px;cursor:pointer;color:${cor};display:flex;">
           <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         </button>` : ''}
       </div>
@@ -17135,7 +17331,7 @@ function _pontoCopiarComunicado(id, btn) {
   window._chatIaAtualizarVisibilidade = function(){
     let role = null;
     try { role = localStorage.getItem('om_role'); } catch(e){}
-    const visivel = role && role !== 'client';
+    const visivel = role && role !== 'client' && role !== 'supervisor';
     elBubble.style.display = visivel ? 'flex' : 'none';
     if (!visivel) elPanel.classList.remove('open');
   };
