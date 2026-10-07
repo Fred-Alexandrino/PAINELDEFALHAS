@@ -4282,6 +4282,22 @@ function _sbNavKeyOf(el) {
 // seção movida for "Ferramentas", o submenu oculto (#grupoFerramentasSubmenu)
 // viaja junto, do mesmo jeito que já viaja quando só o item "Mais" é
 // arrastado sozinho.
+// Soltar um cabeçalho em cima de um ITEM (e não de outro cabeçalho): move só
+// o cabeçalho, como um divisor, pra antes/depois daquele item — os itens que
+// estavam sob ele ficam onde estão (passam a pertencer à seção de cima) e os
+// itens dali pra baixo, até o próximo cabeçalho, passam a ser dele. É o que
+// permite encaixar uma categoria ENTRE painéis (pedido do Fred, 07/10/2026).
+function _sbMoveHeaderToItem(headerEl, itemEl, before) {
+  const nav = document.getElementById('sbNav');
+  if (!nav || !headerEl || !itemEl || headerEl === itemEl) return;
+  let ref = before ? itemEl : itemEl.nextSibling;
+  // nunca enfia o cabeçalho entre "Mais" e o submenu dele
+  if (!before && itemEl.id === 'navFerramentasToggle') {
+    const sub = document.getElementById('grupoFerramentasSubmenu');
+    if (sub) ref = sub.nextSibling;
+  }
+  nav.insertBefore(headerEl, ref);
+}
 function _sbMoveSection(headerEl, refHeaderEl, before) {
   const nav = document.getElementById('sbNav');
   if (!nav || !headerEl || !refHeaderEl || headerEl === refHeaderEl) return;
@@ -4360,9 +4376,6 @@ function _initSidebarDragReorder() {
     });
     el.addEventListener('dragover', (e) => {
       if (!draggedEl || draggedEl === el) return;
-      // Arrastando um CABEÇALHO: só pode soltar em outro cabeçalho (ver
-      // loop abaixo) — soltar em cima de um item partiria o grupo no meio.
-      if (draggedEl.classList.contains('sb-section-label-row')) return;
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
@@ -4376,9 +4389,14 @@ function _initSidebarDragReorder() {
       e.preventDefault();
       el.classList.remove('sb-drag-over-top', 'sb-drag-over-bottom');
       if (!draggedEl || draggedEl === el) return;
-      if (draggedEl.classList.contains('sb-section-label-row')) return;
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
+      if (draggedEl.classList.contains('sb-section-label-row')) {
+        // cabeçalho solto em cima de um item: encaixa como divisor ali
+        _sbMoveHeaderToItem(draggedEl, el, before);
+        _sbNavSaveOrder();
+        return;
+      }
       const movingSubmenu = draggedEl.id === 'navFerramentasToggle'
         ? document.getElementById('grupoFerramentasSubmenu') : null;
 
@@ -4463,14 +4481,14 @@ if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
     if (!overEl || overEl === touchDragEl || !nav) return;
     const arrastandoCabecalho = touchDragEl.classList.contains('sb-section-label-row');
     const soltandoEmCabecalho = overEl.classList.contains('sb-section-label-row');
-    // cabeçalho só solta em cabeçalho (move a seção inteira); item só
-    // solta em item (soltar um item em cima de um cabeçalho partiria o
-    // grupo no meio).
-    if (arrastandoCabecalho !== soltandoEmCabecalho) return;
+    // item solto em cima de cabeçalho não faz sentido (ignora)
+    if (!arrastandoCabecalho && soltandoEmCabecalho) return;
     const rect = overEl.getBoundingClientRect();
     const before = (clientY - rect.top) < rect.height / 2;
-    if (arrastandoCabecalho) {
-      _sbMoveSection(touchDragEl, overEl, before);
+    if (arrastandoCabecalho && soltandoEmCabecalho) {
+      _sbMoveSection(touchDragEl, overEl, before); // seção inteira
+    } else if (arrastandoCabecalho) {
+      _sbMoveHeaderToItem(touchDragEl, overEl, before); // divisor entre itens
     } else {
       const movingSubmenu = touchDragEl.id === 'navFerramentasToggle'
         ? document.getElementById('grupoFerramentasSubmenu') : null;
