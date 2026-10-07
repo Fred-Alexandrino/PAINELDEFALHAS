@@ -3720,11 +3720,11 @@ const _SUP_ESCOPOS = {
     usinas: [
       {"cluster": "BA Sul 01", "cliente": "Axis", "usina": "Ponto Belo 1", "cidade": "Ponto Belo", "responsavel": "Thiago Morais", "funcao": "Técnico", "membros": ["Alex Cardoso"]},
       {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Vargem Grande 1", "cidade": "São Mateus", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
-      {"cluster": "ES Norte 01", "cliente": "Axis", "usina": "Linhares 1", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Axis", "usina": "Linhares 1 (Axis)", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
       {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Córrego de Sapucaia", "cidade": "São Mateus", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
       {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Primavera 1", "cidade": "Vargem Grande", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
       {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Primavera 2", "cidade": "Vargem Grande", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
-      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Linhares 1", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
+      {"cluster": "ES Norte 01", "cliente": "Thopen", "usina": "Linhares 1 (Thopen)", "cidade": "Linhares", "responsavel": "Marcos Duarte", "funcao": "Técnico", "membros": ["Italo Oliveira"]},
       {"cluster": "MA Leste 01", "cliente": "Athon", "usina": "Timon 200", "cidade": "Timon", "responsavel": "Luiz Silva", "funcao": "Técnico", "membros": ["José Neto"]},
       {"cluster": "MA Leste 01", "cliente": "Athon", "usina": "Timon 100", "cidade": "Timon", "responsavel": "Luiz Silva", "funcao": "Técnico", "membros": ["José Neto"]},
       {"cluster": "MA Leste 02", "cliente": "Athon", "usina": "Matões 100", "cidade": "Matões", "responsavel": "Francisco Santos", "funcao": "Técnico", "membros": ["Pedro Silva"]},
@@ -3758,7 +3758,7 @@ const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
   let s = String(u == null ? '' : u).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    .replace(/[´`']/g, '').replace(/^(ufv|usina)\s+/, '').replace(/\s+/g, ' ').trim();
+    .replace(/[´`']/g, '').replace(/\(.*?\)/g, '').replace(/^(ufv|usina)\s+/, '').replace(/\s+/g, ' ').trim();
   s = s.replace(/\s+(ii|2|b|ib)$/, ' 2').replace(/\s+(i|1|a|ia)$/, ' 1');
   return s;
 }
@@ -3828,6 +3828,7 @@ function _supInstalarEscopo(sessao) {
   const esc = _SUP_ESCOPOS[String(sessao.user || '').toLowerCase()];
   if (!esc || window._supFetchInstalado) return !!esc;
   _supEscopoAtivo = _supMontarIndice(esc);
+  const _supEscopoId = String(sessao.user || '').toLowerCase();
   window._supFetchInstalado = true;
   document.body.classList.add('role-supervisor');
   const _fetchOrig = window.fetch.bind(window);
@@ -3836,6 +3837,12 @@ function _supInstalarEscopo(sessao) {
     const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
     if (/sslip\.io/.test(url)) {
       const path = url.replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+      // escopo da supervisora no backend: aba e catálogo próprios (nada do Fred)
+      try {
+        const _h = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
+        _h.set('X-Escopo', _supEscopoId);
+        init = Object.assign({}, init || {}, { headers: _h });
+      } catch (e) {}
       if (_SUP_BLOQUEIO_ENVIO.test(path)) {
         return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
       }
