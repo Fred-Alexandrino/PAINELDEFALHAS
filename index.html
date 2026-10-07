@@ -1643,6 +1643,16 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
            extraído do texto — permite comparar os dois painéis pela mesma lente
            (pedido do Fred em 10/08/2026) -->
 
+      <span class="sb-filter-label">Técnico</span>
+      <div class="cb-dropdown" id="cbDropdownTecnico">
+        <button class="cb-trigger" id="cbTriggerTecnico" onclick="_toggleCbDropdown('Tecnico')">
+          <span id="cbLabelTecnico">Todos</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListTecnico" style="display:none;"></div>
+      </div>
+      <!-- filtra Atividades pelo responsável (técnico) da OS — pedido do Fred, 07/10/2026 -->
+
       <div style="display:none;">
         <span class="sb-filter-label">Status</span>
         <div class="cb-dropdown" id="cbDropdownStatus">
@@ -2215,6 +2225,9 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
             <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
               Todos os entregáveis com prazo (relatórios de performance e PCM por cliente) — separados dos Boletins de Medição. Clique em
               "Gerar comunicado" num card pra cobrar diretamente o responsável pela área.
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+              <button class="modal-close-btn" style="width:auto;padding:0 14px;font-size:12.5px;color:var(--teal);" onclick="entNovoAbrir()">+ Novo entregável</button>
             </div>
             <div id="entLista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start;"></div>
           </div>
@@ -3131,6 +3144,40 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
     <div class="ch-body">
       <div id="cmpRegrasErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;"></div>
       <div id="cmpRegrasLista">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Entregável -->
+<div class="ch-overlay" id="entNovoOverlay">
+  <div class="ch-modal" style="max-width:520px;border-top-color:var(--teal);">
+    <div class="ch-head">
+      <div class="ch-head-row">
+        <div><div class="ch-title"><h2>Novo entregável</h2></div><div class="ch-subtitle">Cria um entregável avulso com data limite definida por você</div></div>
+        <button class="modal-close-btn" onclick="entNovoFechar()">✕</button>
+      </div>
+    </div>
+    <div class="ch-body">
+      <div id="entNovoErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;"></div>
+      <label class="sb-filter-label">Nome do entregável *</label>
+      <input class="nova-oc-input" id="entNovoNome" style="width:100%;margin-bottom:10px;" placeholder="Ex.: Parecer técnico inversor X">
+      <label class="sb-filter-label">Cliente</label>
+      <select class="nova-oc-select" id="entNovoCliente" style="width:100%;margin-bottom:10px;"></select>
+      <label class="sb-filter-label">Usina (opcional)</label>
+      <input class="nova-oc-input" id="entNovoUsina" style="width:100%;margin-bottom:10px;" placeholder="Deixe vazio se for geral">
+      <label class="sb-filter-label">Área responsável</label>
+      <select class="nova-oc-select" id="entNovoArea" style="width:100%;margin-bottom:10px;">
+        <option>Contratos</option><option>PCM</option><option>COS</option><option>Manutenção</option>
+        <option>Performance</option><option>Engenharia</option><option>Zeladoria</option><option selected>Gestão</option>
+      </select>
+      <label class="sb-filter-label">Para quem (opcional)</label>
+      <input class="nova-oc-input" id="entNovoPara" style="width:100%;margin-bottom:10px;">
+      <label class="sb-filter-label">Data limite *</label>
+      <input class="nova-oc-input" id="entNovoData" type="date" style="width:100%;margin-bottom:14px;">
+      <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;">
+        <span id="entNovoStatus" style="font-size:12px;color:var(--text-faint);"></span>
+        <button class="modal-close-btn" style="width:auto;padding:0 16px;font-size:12.5px;color:var(--teal);" id="entNovoSalvarBtn" onclick="entNovoSalvar()">Criar entregável</button>
+      </div>
     </div>
   </div>
 </div>
@@ -5277,6 +5324,84 @@ async function cmpAbrirManual(regraId) {
   }
 }
 
+/* ══ NOVO ENTREGÁVEL (avulso, com data limite) ══
+   Cria uma regra sob demanda (_ComprometimentosRegras) com RegraValor = dias
+   corridos até a data escolhida e abre o card na hora (/compromissos/abrir-manual). */
+function entNovoAbrir() {
+  const sel = document.getElementById('entNovoCliente');
+  const clientes = new Set(['(Interno)']);
+  (_cmpRegrasCache || []).forEach(r => { if (r.cliente) clientes.add(r.cliente); });
+  (_cmpCache || []).forEach(c => { if (c.cliente) clientes.add(c.cliente); });
+  sel.innerHTML = [...clientes].sort((a, b) => a === '(Interno)' ? -1 : b === '(Interno)' ? 1 : a.localeCompare(b, 'pt-BR'))
+    .map(c => '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>').join('');
+  ['entNovoNome', 'entNovoUsina', 'entNovoPara', 'entNovoData'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('entNovoErr').style.display = 'none';
+  document.getElementById('entNovoStatus').textContent = '';
+  document.getElementById('entNovoSalvarBtn').disabled = false;
+  document.getElementById('entNovoOverlay').style.display = 'flex';
+}
+function entNovoFechar() { document.getElementById('entNovoOverlay').style.display = 'none'; }
+document.getElementById('entNovoOverlay')?.addEventListener('click', e => {
+  if (e.target.id === 'entNovoOverlay') entNovoFechar();
+});
+
+async function entNovoSalvar() {
+  const API = 'https://api.168.138.232.237.sslip.io';
+  const errEl = document.getElementById('entNovoErr');
+  const stEl = document.getElementById('entNovoStatus');
+  const btn = document.getElementById('entNovoSalvarBtn');
+  const nome = document.getElementById('entNovoNome').value.trim();
+  const cliente = document.getElementById('entNovoCliente').value;
+  const usina = document.getElementById('entNovoUsina').value.trim();
+  const area = document.getElementById('entNovoArea').value;
+  const para = document.getElementById('entNovoPara').value.trim();
+  const dataStr = document.getElementById('entNovoData').value;
+  const erro = msg => { errEl.textContent = msg; errEl.style.display = 'block'; stEl.textContent = ''; btn.disabled = false; };
+  errEl.style.display = 'none';
+  if (!nome) return erro('Informe o nome do entregável.');
+  if (!dataStr) return erro('Informe a data limite.');
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(dataStr + 'T00:00:00');
+  const dias = Math.round((alvo - hoje) / 86400000);
+  if (dias < 1) return erro('A data limite precisa ser a partir de amanhã.');
+  const editor = (_currentSession && _currentSession.user) || 'dashboard';
+  const post = async (path, body) => {
+    const r = await fetch(API + path, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    return r.json();
+  };
+  btn.disabled = true; stEl.textContent = 'Criando...';
+  try {
+    let regraId = null;
+    let d = await post('/compromissos/regras/criar', {
+      tipo: nome, cliente, usina, regraTipo: 'diasCorridosAPartirDeHoje', regraValor: String(dias),
+      ativo: true, frequencia: 'sobDemanda', responsavelArea: area, paraQuem: para,
+      entregavelId: cliente === '(Interno)' ? nome : '',
+    });
+    if (d.ok) {
+      regraId = d.regraCriada.id;
+    } else if (/já existe uma regra/.test(d.error || '')) {
+      // reaproveita a regra existente (mesmo nome/cliente/usina) e só ajusta os dias
+      const lista = await (await fetch(API + '/compromissos/regras')).json();
+      const ex = (lista.regras || []).find(r => r.tipo === nome && r.cliente === cliente && (r.usina || '') === usina);
+      if (!ex) throw new Error(d.error);
+      if (!FREQ_SOB_DEMANDA_JS.includes(ex.frequencia)) throw new Error('Já existe um entregável recorrente com esse nome para esse cliente. Use outro nome.');
+      const u = await post('/compromissos/regras/atualizar', { id: ex.id, regraValor: String(dias), editor });
+      if (!u.ok) throw new Error(u.error || 'falha ao ajustar a regra');
+      regraId = ex.id;
+    } else {
+      throw new Error(d.error || 'falha ao criar a regra');
+    }
+    const a = await post('/compromissos/abrir-manual', { regraId, editor });
+    if (!a.ok) throw new Error(a.error || 'falha ao abrir o card');
+    stEl.textContent = '✓ criado (prazo ' + (a.cardCriado && a.cardCriado.dataLimite || '') + ')';
+    stEl.style.color = 'var(--teal)';
+    await carregarCompromissos();
+    setTimeout(entNovoFechar, 700);
+  } catch (e) {
+    erro('Erro: ' + (e.message || e));
+  }
+}
+
 /* ══ SIDEBAR MOBILE TOGGLE ══ */
 function openMobileSidebar() {
   document.getElementById('sidebar').classList.add('open');
@@ -5600,7 +5725,16 @@ async function fetchSheet() {
   populateFilters();
   const clienteParam = _forcedCliente || URL_CLIENTE;
   if (clienteParam) activateClientMode(clienteParam);
-  clearFilters();
+  // NÃO chamar clearFilters() aqui (corrigido 07/10/2026): fetchSheet roda a
+  // cada atualização automática da planilha e no botão Atualizar — limpar os
+  // filtros a cada refresh apagava a seleção de Cliente/Usina/Cluster/Tipo/
+  // Técnico que o Fred estava usando. Só descarta seleções que deixaram de
+  // existir nos dados novos e reaplica o que já estava selecionado.
+  for (const s of [...selStatusValues]) { if (!_cbStatusOpts.includes(s)) selStatusValues.delete(s); }
+  _renderCbDropdown('Status');
+  _renderChipsTipoEquip();
+  _renderCbTecnico();
+  applyFilters();
   startCountdown();
 }
 
@@ -6575,7 +6709,60 @@ function populateFilters() {
   renderClienteChips();
 }
 
+// ── Filtro "Técnico" (07/10/2026) — multi-seleção pelo responsável da OS ──
+let selTecnico = new Set();
+const _TEC_SEM = '__sem__';
+function _ativTecnicoKey(a) {
+  return _normalizarResponsavel(a && a.responsavel) || _TEC_SEM;
+}
+function _tecnicoOpcoes() {
+  const lista = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).map(_ativTecnicoKey);
+  return [...new Set(lista)].sort((a, b) => {
+    if (a === _TEC_SEM) return 1;
+    if (b === _TEC_SEM) return -1;
+    return a.localeCompare(b, 'pt-BR');
+  });
+}
+function _tecnicoRotulo(k) { return k === _TEC_SEM ? 'Sem responsável' : k; }
+function _renderCbTecnico() {
+  const listEl = document.getElementById('cbListTecnico');
+  const labelEl = document.getElementById('cbLabelTecnico');
+  if (!listEl) return;
+  const opts = _tecnicoOpcoes();
+  // só descarta seleção se já há atividades carregadas (evita limpar durante um refresh)
+  if (opts.length) for (const t of [...selTecnico]) { if (!opts.includes(t)) selTecnico.delete(t); }
+  const allSelected = opts.length > 0 && opts.every(o => selTecnico.has(o));
+  listEl.innerHTML = `
+    <div class="cb-item all-item ${allSelected ? 'selected' : ''}" data-val="__all__">
+      <div class="cb-checkbox"><svg viewBox="0 0 10 8"><polyline points="1,4 3.5,7 9,1"/></svg></div>
+      <span>Todos os técnicos</span>
+    </div>
+    ${opts.map(o => `
+    <div class="cb-item ${selTecnico.has(o) ? 'selected' : ''}" data-val="${esc(o)}">
+      <div class="cb-checkbox"><svg viewBox="0 0 10 8"><polyline points="1,4 3.5,7 9,1"/></svg></div>
+      <span>${esc(_tecnicoRotulo(o))}</span>
+    </div>`).join('')}`;
+  listEl.querySelectorAll('.cb-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      const val = item.dataset.val;
+      if (val === '__all__') {
+        if (allSelected) selTecnico.clear(); else opts.forEach(o => selTecnico.add(o));
+      } else if (selTecnico.has(val)) selTecnico.delete(val);
+      else selTecnico.add(val);
+      _renderCbTecnico();
+      if (typeof renderAtividadeCards === 'function' && _activeNav === 'atividades') renderAtividadeCards();
+    });
+  });
+  if (labelEl) {
+    if (selTecnico.size === 0 || selTecnico.size === opts.length) labelEl.textContent = 'Todos';
+    else if (selTecnico.size === 1) labelEl.textContent = _tecnicoRotulo([...selTecnico][0]);
+    else labelEl.textContent = `${selTecnico.size} selecionados`;
+  }
+}
+
 function _renderCbDropdown(tipo) {
+  if (tipo === 'Tecnico') return _renderCbTecnico();
   const opts = tipo==='Usina' ? _cbUsinaOpts : _cbStatusOpts;
   const sel  = tipo==='Usina' ? selUsinaValues : selStatusValues;
   const listEl = document.getElementById(`cbList${tipo}`);
@@ -6637,7 +6824,7 @@ function _toggleCbDropdown(tipo) {
   if(!listEl) return;
   const isOpen = listEl.style.display !== 'none';
   // Fecha todos primeiro
-  ['Usina','Status'].forEach(t=>{
+  ['Usina','Status','Tecnico'].forEach(t=>{
     document.getElementById('cbList'+t)?.style.setProperty('display','none');
     document.getElementById('cbTrigger'+t)?.classList.remove('open');
   });
@@ -6651,7 +6838,7 @@ function _toggleCbDropdown(tipo) {
 // Fecha dropdowns ao clicar fora
 document.addEventListener('click', e => {
   if(!e.target.closest('.cb-dropdown')) {
-    ['Usina','Status'].forEach(t=>{
+    ['Usina','Status','Tecnico'].forEach(t=>{
       document.getElementById(`cbList${t}`)?.style.setProperty('display','none');
       document.getElementById(`cbTrigger${t}`)?.classList.remove('open');
     });
@@ -6736,6 +6923,7 @@ function clearFilters() {
   selUsinaValues.clear(); selStatusValues.clear();
   selUsinaValue=''; selStatusValue='';
   selTipoEquip.clear();
+  selTecnico.clear();
   if (typeof _ativClusterFiltro !== 'undefined') _ativClusterFiltro = '';
   const clusterSel = document.getElementById('ativClusterSelect');
   if (clusterSel) clusterSel.value = '';
@@ -13720,6 +13908,7 @@ function _ativRenderBreakdowns() {
     if (selPrioridadeValues.size > 0 && !selPrioridadeValues.has(_ativPrioridadeNormalizada(a.prioridade))) return false;
     if (_ativFiltroPreventiva && !_ativEhPreventiva(a)) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
+    if (selTecnico.size > 0 && !selTecnico.has(_ativTecnicoKey(a))) return false;
     return true;
   });
   const ativasList = filtradas.filter(a => !_ativIsConcluida(a) && !_ativEmVerificacao(a));
@@ -14119,6 +14308,7 @@ function renderAtividadeCards() {
   _ativRenderBreakdowns();
   _ativAtualizarDesligBanner();
   _renderChipsTipoEquip();
+  _renderCbTecnico();
 
   // aplica os mesmos filtros da sidebar (Cliente/Usina/Status) usados no Painel de Falhas
   const filtradas = ATIVIDADES.filter(a => {
@@ -14129,6 +14319,7 @@ function renderAtividadeCards() {
     if (_ativFiltroPreventiva && !_ativEhPreventiva(a)) return false;
     if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
     if (selTipoEquip.size > 0 && !selTipoEquip.has(_ativTipoEquipamento(a))) return false;
+    if (selTecnico.size > 0 && !selTecnico.has(_ativTecnicoKey(a))) return false;
     if (_ativFiltroHoje && !_ativVenceHoje(a)) return false;
     if (_ativDesligFiltro && !isDesligamentoAtividade(a)) return false;
     if (_ativFiltroAtrasada && !_ativAtrasada(a)) return false;
