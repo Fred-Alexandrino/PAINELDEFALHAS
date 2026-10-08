@@ -2686,6 +2686,27 @@ body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{di
               </button>
             </div>
 
+            <!-- Tabela de escala -->
+            <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:16px;">
+              <button type="button" onclick="_sobreavisoToggleSecao('tabela')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                <span>📊 Tabela de escala (próximo período ou mês completo)</span>
+                <span id="sobreavisoTabelaChevron">▾</span>
+              </button>
+              <div id="sobreavisoTabelaBox" style="display:none;padding:14px 4px 4px;">
+                <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Escolha o período e, se quiser, filtre por usina, equipe, cluster ou colaborador (pode marcar mais de um em cada). Os filtros laterais e "Só minhas usinas" também valem aqui.</div>
+                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbTabPeriodo" value="fds" checked onchange="_sbTabOnPeriodo()" style="accent-color:var(--teal);"> Próximo FDS / feriado</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbTabPeriodo" value="mes" onchange="_sbTabOnPeriodo()" style="accent-color:var(--teal);"> Mês completo</label>
+                  <select id="sbTabMes" class="sb-select" style="width:auto;min-width:150px;display:none;"></select>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-bottom:12px;">
+                  <div id="sbMs_usinas"></div><div id="sbMs_equipes"></div><div id="sbMs_clusters"></div><div id="sbMs_colaboradores"></div>
+                </div>
+                <button id="sbTabGerarBtn" onclick="_sbTabGerar()" style="width:100%;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Gerar tabela</button>
+                <div id="sbTabResult" style="margin-top:14px;"></div>
+              </div>
+            </div>
+
             <!-- Avisar que vou estar de sobreaviso -->
             <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:16px;">
               <button type="button" onclick="_sobreavisoToggleSecao('meu')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
@@ -13371,7 +13392,9 @@ async function _sobreavisoUpload(files) {
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao processar o arquivo');
     showToast('Escala de sobreaviso carregada!', true);
+    _sbTab.opcoes = null; _sbTab.data = null; _sbTab.linhas = [];  // opções da tabela vêm da escala nova
     await _sobreavisoCarregarBlocos();
+    if (document.getElementById('sobreavisoTabelaBox')?.style.display !== 'none') _sbTabInit();
   } catch (e) {
     statusEl.textContent = 'Erro ao carregar: ' + e.message;
     showToast('Erro ao carregar escala: ' + e.message, false);
@@ -13480,12 +13503,17 @@ function _sobreavisoPopularSupervisores(grupos) {
 let _sobreavisoIdParaNome = {};  // idSeguro -> nome do grupo (pra "Meu Sobreaviso")
 
 function _sobreavisoToggleSecao(chave) {
-  const box = document.getElementById(chave === 'meu' ? 'sobreavisoMeuBox' : 'sobreavisoTratativasBox');
-  const chevron = document.getElementById(chave === 'meu' ? 'sobreavisoMeuChevron' : 'sobreavisoTratativasChevron');
+  const ids = { meu: ['sobreavisoMeuBox', 'sobreavisoMeuChevron'],
+                tratativas: ['sobreavisoTratativasBox', 'sobreavisoTratativasChevron'],
+                tabela: ['sobreavisoTabelaBox', 'sobreavisoTabelaChevron'] }[chave];
+  if (!ids) return;
+  const box = document.getElementById(ids[0]);
+  const chevron = document.getElementById(ids[1]);
   if (!box) return;
   const abrir = box.style.display === 'none';
   box.style.display = abrir ? 'block' : 'none';
   if (chevron) chevron.textContent = abrir ? '▴' : '▾';
+  if (abrir && chave === 'tabela') _sbTabInit();
 }
 
 async function _sobreavisoCarregarGrupos() {
@@ -13683,6 +13711,231 @@ async function _dispararComunicadoSobreaviso(idSeguro, btnEl) {
     btnEl.innerHTML = erros.length === equipes.length ? '✗ Falhou' : '⚠ Parcial';
     showToast('Alguns envios falharam: ' + erros.join(' | '), false);
   }
+  setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 3000);
+}
+
+// ── Tabela de escala de sobreaviso ───────────────────────────────────────
+// Visão em tabela (equipe x período) do próximo período ou de um mês inteiro,
+// com filtros multi-seleção (usina, equipe, cluster, colaborador). O texto
+// pro WhatsApp é montado aqui no frontend a partir da mesma estrutura da
+// tabela (/sobreaviso-tabela), pra copiar ou disparar nos grupos mapeados.
+const _SB_API = 'https://api.168.138.232.237.sslip.io';
+const _sbTab = {
+  opcoes: null,
+  opts: {},   // chave -> [{v, l}]
+  ms: { usinas: new Set(), equipes: new Set(), clusters: new Set(), colaboradores: new Set(), dest: new Set() },
+  data: null, linhas: [],
+};
+const _SB_MS_TITULOS = { usinas: 'Usinas', equipes: 'Equipes', clusters: 'Clusters', colaboradores: 'Colaboradores', dest: 'Grupos de destino' };
+
+async function _sbTabInit() {
+  if (_sbTab.opcoes) return;
+  try {
+    const resp = await fetch(_SB_API + '/sobreaviso-tabela-opcoes', { signal: AbortSignal.timeout(15000) });
+    const d = await resp.json();
+    if (!d.ok) throw new Error(d.error || 'Erro ao carregar opções');
+    _sbTab.opcoes = d;
+    _sbTab.opts.usinas = d.usinas.map(u => ({ v: u.usina, l: u.usina + (u.cliente ? ` · ${u.cliente}` : '') }));
+    _sbTab.opts.equipes = d.equipes.map(e => ({ v: e, l: e }));
+    _sbTab.opts.clusters = d.clusters.map(c => ({ v: c, l: c }));
+    _sbTab.opts.colaboradores = d.colaboradores.map(c => ({ v: c, l: c }));
+    ['usinas', 'equipes', 'clusters', 'colaboradores'].forEach(k => _sbMsRender(k));
+    // meses disponíveis (a partir dos períodos da escala carregada)
+    const meses = new Set();
+    (_sobreavisoBlocosCache?.blocos || []).forEach(b => { meses.add(b.inicio.slice(0, 7)); meses.add(b.fim.slice(0, 7)); });
+    const nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const sug = _sobreavisoBlocosCache?.blocos?.find(b => b.idx === _sobreavisoBlocosCache.bloco_sugerido);
+    const sel = document.getElementById('sbTabMes');
+    sel.innerHTML = [...meses].sort().map(m => `<option value="${m}">${nomes[parseInt(m.slice(5), 10) - 1]}/${m.slice(0, 4)}</option>`).join('');
+    if (sug) sel.value = sug.inicio.slice(0, 7);
+  } catch (e) {
+    showToast('Erro ao carregar filtros da tabela: ' + e.message, false);
+  }
+}
+
+function _sbTabOnPeriodo() {
+  const mes = document.querySelector('input[name="sbTabPeriodo"]:checked')?.value === 'mes';
+  document.getElementById('sbTabMes').style.display = mes ? '' : 'none';
+}
+
+// componente multi-seleção com busca (details + checkboxes)
+function _sbMsRender(chave) {
+  const host = document.getElementById('sbMs_' + chave);
+  if (!host) return;
+  const opts = _sbTab.opts[chave] || [];
+  const sel = _sbTab.ms[chave];
+  host.innerHTML = `<details style="border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);">
+    <summary style="padding:8px 12px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;display:flex;justify-content:space-between;gap:8px;">
+      <span>${esc(_SB_MS_TITULOS[chave])}</span><span id="sbMsCount_${chave}" style="color:var(--text-faint);font-size:12px;"></span></summary>
+    <div style="padding:8px 10px 10px;border-top:1px solid var(--border);">
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input type="text" placeholder="Buscar…" oninput="_sbMsBuscar('${chave}',this.value)" style="flex:1;min-width:0;background:transparent;border:1px solid var(--border-strong);border-radius:6px;padding:5px 8px;font-size:12.5px;color:var(--text);">
+        <button type="button" onclick="_sbMsLimpar('${chave}')" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;">Limpar</button>
+      </div>
+      <div id="sbMsList_${chave}" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+        ${opts.map((o, i) => `<label data-t="${esc(o.l.toLowerCase())}" style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:3px 2px;">
+          <input type="checkbox" ${sel.has(o.v) ? 'checked' : ''} onchange="_sbMsToggle('${chave}',${i},this.checked)" style="accent-color:var(--teal);flex:none;"> <span>${esc(o.l)}</span></label>`).join('')}
+      </div></div></details>`;
+  _sbMsAtualizarContagem(chave);
+}
+
+function _sbMsAtualizarContagem(chave) {
+  const el = document.getElementById('sbMsCount_' + chave);
+  if (!el) return;
+  const n = _sbTab.ms[chave].size;
+  el.textContent = n ? `${n} selecionad${n > 1 ? 'os' : 'o'}` : (chave === 'dest' ? 'nenhum' : 'todos');
+}
+
+function _sbMsToggle(chave, i, marcado) {
+  const o = _sbTab.opts[chave][i];
+  if (!o) return;
+  if (marcado) _sbTab.ms[chave].add(o.v); else _sbTab.ms[chave].delete(o.v);
+  _sbMsAtualizarContagem(chave);
+}
+
+function _sbMsLimpar(chave) {
+  _sbTab.ms[chave].clear();
+  document.querySelectorAll(`#sbMsList_${chave} input[type=checkbox]`).forEach(cb => cb.checked = false);
+  _sbMsAtualizarContagem(chave);
+}
+
+function _sbMsBuscar(chave, termo) {
+  const t = (termo || '').trim().toLowerCase();
+  document.querySelectorAll(`#sbMsList_${chave} label`).forEach(l => { l.style.display = !t || l.dataset.t.includes(t) ? 'flex' : 'none'; });
+}
+
+async function _sbTabGerar() {
+  const btn = document.getElementById('sbTabGerarBtn');
+  const result = document.getElementById('sbTabResult');
+  const periodo = document.querySelector('input[name="sbTabPeriodo"]:checked')?.value || 'fds';
+  const body = { periodo,
+    usinas: [..._sbTab.ms.usinas], equipes: [..._sbTab.ms.equipes],
+    clusters: [..._sbTab.ms.clusters], colaboradores: [..._sbTab.ms.colaboradores] };
+  if (periodo === 'mes') body.mes = document.getElementById('sbTabMes').value;
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Gerando…';
+  try {
+    const resp = await fetch(_SB_API + '/sobreaviso-tabela', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(20000),
+    });
+    const d = await resp.json();
+    if (!d.ok) throw new Error(d.error || 'Erro ao gerar tabela');
+    const f = _sobreavisoFiltroAtivo();
+    const linhas = d.linhas.filter(l => _sobreavisoGrupoPassaFiltro({ usinas: l.usinas }, f));
+    _sbTab.data = d; _sbTab.linhas = linhas;
+    if (linhas.length === 0) {
+      result.innerHTML = `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:16px 0;">Nenhuma equipe encontrada com esses filtros.</div>`;
+      return;
+    }
+    // destino padrão = equipes que aparecem na tabela
+    _sbTab.ms.dest = new Set(linhas.flatMap(l => l.equipes));
+    _sbTabRenderResultado();
+  } catch (e) {
+    result.innerHTML = `<div style="font-size:12.5px;color:var(--red);padding:10px 0;">Erro: ${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.innerHTML = original;
+  }
+}
+
+function _sbTabRenderResultado() {
+  const d = _sbTab.data, linhas = _sbTab.linhas;
+  const colabs = new Set(_sbTab.ms.colaboradores);
+  const th = 'text-align:left;padding:8px 10px;font-size:12px;color:var(--text-dim);border-bottom:1px solid var(--border-strong);white-space:nowrap;vertical-align:bottom;';
+  const td = 'padding:8px 10px;font-size:12.5px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top;';
+  const cab = d.blocos.map(b => `<th style="${th}">${esc(b.label)}<div style="font-weight:400;color:var(--text-faint);font-size:11px;white-space:normal;max-width:150px;">${esc(b.tipo || '')}</div></th>`).join('');
+  const corpo = linhas.map(l => {
+    const usinasTxt = [...new Set(l.usinas.map(u => u.usina).filter(Boolean))].join(', ') || '—';
+    const cels = l.celulas.map(c => {
+      if (!c.length) return `<td style="${td}color:var(--red);">sem cobertura</td>`;
+      if (colabs.size && !c.some(n => colabs.has(n))) return `<td style="${td}color:var(--text-faint);">—</td>`;
+      return `<td style="${td}">${c.map(n => colabs.has(n) ? `<strong style="color:var(--teal);">${esc(n)}</strong>` : esc(n)).join(' + ')}</td>`;
+    }).join('');
+    return `<tr><td style="${td}min-width:190px;"><div style="font-weight:600;">${esc(l.clusters.join(' + '))}</div><div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${esc(usinasTxt)}</div></td>${cels}</tr>`;
+  }).join('');
+  _sbTab.opts.dest = (_sbTab.opcoes?.equipes || []).map(e => ({ v: e, l: e }));
+  document.getElementById('sbTabResult').innerHTML = `
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${esc(d.rotulo)} — <strong>${linhas.length}</strong> equipe(s)</div>
+    <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
+      <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="${th}">Equipe / usinas</th>${cab}</tr></thead><tbody>${corpo}</tbody></table>
+    </div>
+    <pre id="sbTabTexto" style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:12px 0 10px;">${esc(_sbTabTexto(linhas))}</pre>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <button onclick="_sbTabCopiar()" style="background:var(--teal);border:none;color:#042F36;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto pro WhatsApp</button>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px;">Disparar direto nos grupos de WhatsApp das equipes (marque quais):</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+        <div id="sbMs_dest" style="flex:1;min-width:220px;"></div>
+        <select id="sbTabModo" class="sb-select" style="width:auto;min-width:230px;">
+          <option value="propria">Cada grupo recebe só a escala da sua equipe</option>
+          <option value="completa">Todos os grupos recebem a tabela completa</option>
+        </select>
+        <button id="sbTabDispararBtn" onclick="_sbTabDisparar(this)" style="background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Disparar</button>
+      </div>
+    </div>`;
+  _sbMsRender('dest');
+}
+
+// Texto pro WhatsApp (sem telefones e sem a palavra "plantão", conforme regra).
+function _sbTabTexto(linhas) {
+  const d = _sbTab.data;
+  const colabs = new Set(_sbTab.ms.colaboradores);
+  const partes = [];
+  d.blocos.forEach((b, i) => {
+    const itens = [];
+    linhas.forEach(l => {
+      const c = l.celulas[i] || [];
+      if (colabs.size && !c.some(n => colabs.has(n))) return;
+      itens.push(`• ${l.clusters.join(' + ')}: ${c.length ? c.join(' + ') : 'sem cobertura definida'}`);
+    });
+    if (itens.length) partes.push(`${b.label}${b.tipo ? ' — ' + b.tipo : ''}\n${itens.join('\n')}`);
+  });
+  const quem = colabs.size ? ` — ${[...colabs].join(', ')}` : '';
+  const cab = `📋 Escala de Sobreaviso${quem}\n${d.periodo === 'mes' ? d.rotulo : 'Período: ' + d.blocos.map(b => b.label).join(', ')}`;
+  return `${cab}\n\n${partes.join('\n\n') || 'Nenhuma escala no período.'}\n\nQualquer dúvida, chamar o supervisor.`;
+}
+
+async function _sbTabCopiar() {
+  try {
+    await navigator.clipboard.writeText(_sbTabTexto(_sbTab.linhas));
+    showToast('Escala copiada! Cole no WhatsApp.', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
+  }
+}
+
+async function _sbTabDisparar(btnEl) {
+  const destinos = [..._sbTab.ms.dest];
+  if (destinos.length === 0) { showToast('Marque ao menos um grupo de destino.', false); return; }
+  const modo = document.getElementById('sbTabModo').value;
+  const envios = [];  // {equipe, texto}
+  const semEscala = [];
+  destinos.forEach(eq => {
+    if (modo === 'completa') { envios.push({ equipe: eq, texto: _sbTabTexto(_sbTab.linhas) }); return; }
+    const ls = _sbTab.linhas.filter(l => l.equipes.includes(eq));
+    if (ls.length === 0) semEscala.push(eq); else envios.push({ equipe: eq, texto: _sbTabTexto(ls) });
+  });
+  if (envios.length === 0) { showToast('Nenhum dos grupos marcados tem escala na tabela. Use "Todos os grupos recebem a tabela completa" ou ajuste o destino.', false); return; }
+  const aviso = semEscala.length ? `\n\nSem escala na tabela (não receberão): ${semEscala.join(', ')}` : '';
+  if (!confirm(`Enviar agora pro(s) grupo(s) de WhatsApp de: ${envios.map(e => e.equipe).join(', ')}?${aviso}`)) return;
+  const original = btnEl.innerHTML;
+  btnEl.disabled = true; btnEl.textContent = 'Enviando…';
+  const erros = [];
+  for (const e of envios) {
+    try {
+      const resp = await fetch(_SB_API + '/disparar-comunicado-cluster', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cluster: e.equipe, texto: e.texto }), signal: AbortSignal.timeout(30000),
+      });
+      const data = await resp.json();
+      if (!data.ok) erros.push(`${e.equipe}: ${data.error || 'erro desconhecido'}`);
+    } catch (err) {
+      erros.push(`${e.equipe}: ${err.message}`);
+    }
+  }
+  if (erros.length === 0) { btnEl.textContent = '✓ Enviado!'; showToast('Escala enviada pro WhatsApp!', true); }
+  else { btnEl.textContent = erros.length === envios.length ? '✗ Falhou' : '⚠ Parcial'; showToast('Alguns envios falharam: ' + erros.join(' | '), false); }
   setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 3000);
 }
 
