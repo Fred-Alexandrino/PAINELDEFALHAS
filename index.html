@@ -2707,6 +2707,24 @@ body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{di
               </div>
             </div>
 
+            <!-- Escala de supervisores -->
+            <div style="margin-top:12px;">
+              <button type="button" onclick="_sobreavisoToggleSecao('supervisores')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                <span>👥 Escala de supervisores</span>
+                <span id="sobreavisoSupChevron">▾</span>
+              </button>
+              <div id="sobreavisoSupBox" style="display:none;padding:14px 4px 4px;">
+                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbSupPeriodo" value="prox" onchange="_sbSupOnPeriodo()" style="accent-color:var(--teal);"> Próximo período</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbSupPeriodo" value="mes" onchange="_sbSupOnPeriodo()" style="accent-color:var(--teal);"> Mês</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbSupPeriodo" value="todos" checked onchange="_sbSupOnPeriodo()" style="accent-color:var(--teal);"> Escala completa</label>
+                  <select id="sbSupMes" class="sb-select" style="width:auto;min-width:150px;display:none;" onchange="_sbSupRender()"></select>
+                </div>
+                <div id="sbSupChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+                <div id="sbSupResult"></div>
+              </div>
+            </div>
+
             <!-- Avisar que vou estar de sobreaviso -->
             <div style="margin-top:22px;border-top:1px solid var(--border);padding-top:16px;">
               <button type="button" onclick="_sobreavisoToggleSecao('meu')" style="width:100%;text-align:left;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
@@ -13392,9 +13410,10 @@ async function _sobreavisoUpload(files) {
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao processar o arquivo');
     showToast('Escala de sobreaviso carregada!', true);
-    _sbTab.opcoes = null; _sbTab.data = null; _sbTab.linhas = [];  // opções da tabela vêm da escala nova
+    _sbTab.opcoes = null; _sbTab.data = null; _sbTab.linhas = []; _sbSup.init = false;  // opções da tabela vêm da escala nova
     await _sobreavisoCarregarBlocos();
     if (document.getElementById('sobreavisoTabelaBox')?.style.display !== 'none') _sbTabInit();
+    if (document.getElementById('sobreavisoSupBox')?.style.display !== 'none') _sbSupInit();
   } catch (e) {
     statusEl.textContent = 'Erro ao carregar: ' + e.message;
     showToast('Erro ao carregar escala: ' + e.message, false);
@@ -13421,7 +13440,7 @@ async function _sobreavisoCarregarBlocos() {
       return;
     }
     _sobreavisoBlocosCache = data;
-    statusEl.textContent = `✓ ${data.nome_arquivo || 'Escala'} carregada — ${data.blocos.length} períodos (${data.periodo?.inicio || ''} a ${data.periodo?.fim || ''}).`;
+    statusEl.textContent = `✓ ${data.nome_arquivo || 'Escala'} carregada — ${data.blocos.length} períodos (${data.periodo?.inicio || ''} a ${data.periodo?.fim || ''})${data.gerado ? ' · escala gerada em ' + data.gerado : ''}.`;
     const sel = document.getElementById('sobreavisoBlocoSelect');
     sel.innerHTML = data.blocos.map(b => `<option value="${b.idx}">${esc(b.label)} — ${esc(b.tipo)}</option>`).join('');
     _sobreavisoBlocoAtual = data.bloco_sugerido;
@@ -13505,7 +13524,8 @@ let _sobreavisoIdParaNome = {};  // idSeguro -> nome do grupo (pra "Meu Sobreavi
 function _sobreavisoToggleSecao(chave) {
   const ids = { meu: ['sobreavisoMeuBox', 'sobreavisoMeuChevron'],
                 tratativas: ['sobreavisoTratativasBox', 'sobreavisoTratativasChevron'],
-                tabela: ['sobreavisoTabelaBox', 'sobreavisoTabelaChevron'] }[chave];
+                tabela: ['sobreavisoTabelaBox', 'sobreavisoTabelaChevron'],
+                supervisores: ['sobreavisoSupBox', 'sobreavisoSupChevron'] }[chave];
   if (!ids) return;
   const box = document.getElementById(ids[0]);
   const chevron = document.getElementById(ids[1]);
@@ -13514,6 +13534,7 @@ function _sobreavisoToggleSecao(chave) {
   box.style.display = abrir ? 'block' : 'none';
   if (chevron) chevron.textContent = abrir ? '▴' : '▾';
   if (abrir && chave === 'tabela') _sbTabInit();
+  if (abrir && chave === 'supervisores') _sbSupInit();
 }
 
 async function _sobreavisoCarregarGrupos() {
@@ -13937,6 +13958,113 @@ async function _sbTabDisparar(btnEl) {
   if (erros.length === 0) { btnEl.textContent = '✓ Enviado!'; showToast('Escala enviada pro WhatsApp!', true); }
   else { btnEl.textContent = erros.length === envios.length ? '✗ Falhou' : '⚠ Parcial'; showToast('Alguns envios falharam: ' + erros.join(' | '), false); }
   setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 3000);
+}
+
+// ── Escala de supervisores (sobreaviso) ──────────────────────────────────
+// Visão separada da dupla de supervisores de cada período, a partir de
+// blocos[].supervisores do mesmo arquivo da escala (sem telefones).
+const _sbSup = { filtro: new Set(), init: false };
+
+function _sbSupInit() {
+  if (!_sobreavisoBlocosCache) return;
+  if (!_sbSup.init) {
+    const nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const meses = new Set();
+    _sobreavisoBlocosCache.blocos.forEach(b => { meses.add(b.inicio.slice(0, 7)); meses.add(b.fim.slice(0, 7)); });
+    const sug = _sobreavisoBlocosCache.blocos.find(b => b.idx === _sobreavisoBlocosCache.bloco_sugerido);
+    const sel = document.getElementById('sbSupMes');
+    sel.innerHTML = [...meses].sort().map(m => `<option value="${m}">${nomes[parseInt(m.slice(5), 10) - 1]}/${m.slice(0, 4)}</option>`).join('');
+    if (sug) sel.value = sug.inicio.slice(0, 7);
+    _sbSup.init = true;
+  }
+  const sups = new Set();
+  _sobreavisoBlocosCache.blocos.forEach(b => (b.supervisores || []).forEach(s => sups.add(s.nome)));
+  document.getElementById('sbSupChips').innerHTML = [...sups].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(n => {
+    const on = _sbSup.filtro.has(n);
+    return `<button type="button" data-nome="${esc(n)}" onclick="_sbSupToggle(this.dataset.nome)" style="background:${on ? 'var(--teal)' : 'transparent'};color:${on ? '#042F36' : 'var(--text-dim)'};border:1px solid ${on ? 'var(--teal)' : 'var(--border-strong)'};border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer;">${esc(n)}</button>`;
+  }).join('') + (_sbSup.filtro.size ? `<button type="button" onclick="_sbSupLimpar()" style="background:transparent;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;">limpar filtro</button>` : '');
+  _sbSupRender();
+}
+
+function _sbSupToggle(nome) {
+  if (_sbSup.filtro.has(nome)) _sbSup.filtro.delete(nome); else _sbSup.filtro.add(nome);
+  _sbSupInit();
+}
+function _sbSupLimpar() { _sbSup.filtro.clear(); _sbSupInit(); }
+function _sbSupOnPeriodo() {
+  const mes = document.querySelector('input[name="sbSupPeriodo"]:checked')?.value === 'mes';
+  document.getElementById('sbSupMes').style.display = mes ? '' : 'none';
+  _sbSupRender();
+}
+
+function _sbSupBlocosSelecionados() {
+  const blocos = _sobreavisoBlocosCache?.blocos || [];
+  const modo = document.querySelector('input[name="sbSupPeriodo"]:checked')?.value || 'todos';
+  let lista = blocos;
+  let rotulo = 'Escala completa';
+  if (modo === 'prox') {
+    lista = blocos.filter(b => b.idx === _sobreavisoBlocosCache.bloco_sugerido);
+    rotulo = 'Próximo período';
+  } else if (modo === 'mes') {
+    const m = document.getElementById('sbSupMes').value;
+    lista = blocos.filter(b => b.inicio.slice(0, 7) === m || b.fim.slice(0, 7) === m);
+    rotulo = `Mês ${m.slice(5)}/${m.slice(0, 4)}`;
+  }
+  const f = _sbSup.filtro;
+  if (f.size) lista = lista.filter(b => (b.supervisores || []).some(s => f.has(s.nome)));
+  return { lista, rotulo };
+}
+
+function _sbSupRender() {
+  const host = document.getElementById('sbSupResult');
+  if (!host || !_sobreavisoBlocosCache) return;
+  const { lista, rotulo } = _sbSupBlocosSelecionados();
+  const f = _sbSup.filtro;
+  if (lista.length === 0) {
+    host.innerHTML = `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:14px 0;">Nenhum período encontrado.</div>`;
+    return;
+  }
+  const th = 'text-align:left;padding:8px 10px;font-size:12px;color:var(--text-dim);border-bottom:1px solid var(--border-strong);white-space:nowrap;';
+  const td = 'padding:8px 10px;font-size:12.5px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top;';
+  const hoje = new Date().toISOString().slice(0, 10);
+  const nomeCel = n => f.has(n) ? `<strong style="color:var(--teal);">${esc(n)}</strong>` : esc(n);
+  const linhas = lista.map(b => {
+    const atual = b.inicio <= hoje && hoje <= b.fim;
+    const sups = (b.supervisores || []).map(s => s.nome);
+    return `<tr${atual ? ' style="background:rgba(255,255,255,.04);"' : ''}>
+      <td style="${td}white-space:nowrap;font-weight:600;">${esc(b.label)}${atual ? ' <span style="color:var(--amber);font-size:11px;font-weight:400;">em andamento</span>' : ''}</td>
+      <td style="${td}color:var(--text-dim);">${esc(b.tipo || '')}</td>
+      <td style="${td}">${sups.map(nomeCel).join(' + ') || '—'}</td></tr>`;
+  }).join('');
+  // resumo: quantos períodos (e quantos com feriado) cada supervisor cobre nesse recorte
+  const cont = {};
+  lista.forEach(b => (b.supervisores || []).forEach(s => {
+    cont[s.nome] = cont[s.nome] || { n: 0, fer: 0 };
+    cont[s.nome].n++; if (b.feriado) cont[s.nome].fer++;
+  }));
+  const resumo = Object.entries(cont).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0], 'pt-BR')).map(([nome, c]) =>
+    `<span style="background:rgba(255,255,255,.04);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-dim);">${esc(nome)}: <strong style="color:var(--text);">${c.n}</strong>${c.fer ? ` <span style="color:var(--text-faint);">(${c.fer} c/ feriado)</span>` : ''}</span>`).join('');
+  host.innerHTML = `
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${esc(rotulo)} — <strong>${lista.length}</strong> período(s)</div>
+    <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
+      <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="${th}">Período</th><th style="${th}">Tipo</th><th style="${th}">Supervisores de sobreaviso</th></tr></thead><tbody>${linhas}</tbody></table>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;">${resumo}</div>
+    <button onclick="_sbSupCopiar()" style="background:var(--teal);border:none;color:#042F36;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto</button>`;
+}
+
+async function _sbSupCopiar() {
+  const { lista, rotulo } = _sbSupBlocosSelecionados();
+  const f = _sbSup.filtro;
+  const quem = f.size ? ` — ${[...f].join(', ')}` : '';
+  const itens = lista.map(b => `• ${b.label}${b.tipo ? ' (' + b.tipo + ')' : ''}: ${(b.supervisores || []).map(s => s.nome).join(' + ') || '—'}`);
+  const texto = `📋 Escala de Sobreaviso — Supervisores${quem}\n${rotulo}\n\n${itens.join('\n')}`;
+  try {
+    await navigator.clipboard.writeText(texto);
+    showToast('Escala de supervisores copiada!', true);
+  } catch (e) {
+    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
+  }
 }
 
 // Confere TODAS as usinas do catálogo embutido na escala (não só as
