@@ -5751,6 +5751,12 @@ function initDashboard(session) {
     switchNav(_navDaUrl);
   }
   if (session.role === 'supervisor') { try { _sincronizarBottomNavComSidebar(); } catch (e) {} }
+  if (session.role === 'supervisor') {
+    // descarta qualquer mapeamento carregado antes do login (era o do Fred) e recarrega o dela
+    _mapUfvsCache = null; _tecnicosMapaRef = null; _tecnicosMapaCache = null;
+    try { selUsinaValues.clear(); selTecnico.clear(); } catch (e) {}
+    _mapUfvsCarregar(true).then(() => { try { populateFilters(); _renderCbTecnico(); } catch (e) {} });
+  }
   _carregarClientesConfigurados();
   _carregarDesligamentoManual().then(() => {
     if (session.role === 'supervisor') {
@@ -6747,9 +6753,12 @@ function _toggleAllClientes() {
 let _mapUfvsCache = null;
 async function _mapUfvsCarregar(force) {
   if (_mapUfvsCache && !force) return _mapUfvsCache;
+  const _supAntes = !!window._supFetchInstalado;
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/mapeamento-ufvs');
     const d = await resp.json();
+    // resposta pedida antes do login da supervisora (mapeamento completo do Fred) nunca entra no cache dela
+    if (!_supAntes && window._supFetchInstalado) return _mapUfvsCache;
     if (d && d.ok && Array.isArray(d.itens) && d.itens.length) _mapUfvsCache = d.itens;
   } catch (e) { console.error('[Mapeamento] falha ao carregar /mapeamento-ufvs', e); }
   return _mapUfvsCache;
@@ -6953,6 +6962,8 @@ function populateFilters() {
     _cbUsinaOpts = _mapUfvsCache
       .filter(u => cli.size === 0 || cli.has(String(u.cliente).toLowerCase()))
       .map(u => u.usina).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  } else if (window._supFetchInstalado) {
+    _cbUsinaOpts = [];  // supervisora: só o mapeamento dela (nunca a lista derivada dos dados do Fred)
   } else {
     _cbUsinaOpts = [...new Set(dataParaUsinas.map(d => d.usina))].sort();
   }
