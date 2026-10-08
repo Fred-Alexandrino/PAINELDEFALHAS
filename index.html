@@ -1513,7 +1513,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 body.role-supervisor #comTabBtnClientes, body.role-supervisor #comTabBtnOs, body.role-supervisor #comunicadoFontePcmBtn, body.role-supervisor #gcFontePcmBtn, body.role-supervisor #chGcFontePcmBtn, body.role-supervisor [id^="dispararBtn_"],body.role-supervisor [id^="dispararZelBtn_"],
 body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="dispararMeuBtn_"],
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
-body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
+body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
 body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
 </style>
 </head>
@@ -9953,6 +9953,8 @@ function _chamadoTemTicket(c) {
 // oficial (05/10/2026: a coluna Supervisor vem da planilha do SharePoint e ainda
 // mostrava o supervisor antigo em Ipixuna, Tupi Paulista, Mandaguaçu, Ceilândia etc.)
 function _chamadoEhMeu(c) {
+  // supervisora: a lista já vem restrita às usinas dela (backend + filtro do painel) — todo chamado é "dela"
+  if (window._supFetchInstalado) return true;
   if ((c['Supervisor'] || '').trim().toLowerCase() === 'fred alexandrino') return true;
   if (!_mapUfvsCache) return false;
   const minhas = new Set(_mapUfvsCache.map(u => u.usina));
