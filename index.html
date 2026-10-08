@@ -3752,6 +3752,34 @@ const _SUP_ESCOPOS = {
       {"cluster": "SP Leste 05", "cliente": "Thopen", "usina": "Embu Guaçu", "cidade": "Embu Guaçu", "responsavel": "Lucas Alberto Freitas de Faria", "funcao": "Técnico", "membros": []},
       {"cluster": "SP Leste 05", "cliente": "Thopen", "usina": "Cipó Guaçu", "cidade": "Cipó Guaçu", "responsavel": "Lucas Alberto Freitas de Faria", "funcao": "Técnico", "membros": []}
     ]
+  },
+  camila: {
+    nome: 'Camila',
+    usinas: [
+      {"cluster": "MT OESTE", "cliente": "Thopen", "usina": "Aparecida do Taboado", "cidade": "Aparecida do Taboado", "responsavel": "Paulo Sergio Ribeiro", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP NORTE 02", "cliente": "Thopen", "usina": "Barretos", "cidade": "Barretos", "responsavel": "Anderson Luiz Trigo Parente", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP NORTE 02", "cliente": "Thopen", "usina": "Altair", "cidade": "Altair", "responsavel": "Anderson Luiz Trigo Parente", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP NORTE 03", "cliente": "Thopen", "usina": "Brodowski", "cidade": "Brodowski", "responsavel": "Luis Paulo Alves de Moura", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP OESTE", "cliente": "Thopen", "usina": "Tanabi", "cidade": "Tanabi", "responsavel": "Paulo Sergio Ribeiro", "funcao": "Técnico", "membros": []},
+      {"cluster": "SP OESTE", "cliente": "Thopen", "usina": "Fernandópolis", "cidade": "Fernandópolis", "responsavel": "Paulo Sergio Ribeiro", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN SUL 01", "cliente": "Thopen", "usina": "Parelhas", "cidade": "Parelhas", "responsavel": "Claudio Martins da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN SUL 01", "cliente": "Thopen", "usina": "Rodrigues 1", "cidade": "Rodrigues", "responsavel": "Claudio Martins da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN SUL 01", "cliente": "Thopen", "usina": "Caicó", "cidade": "Caicó", "responsavel": "Claudio Martins da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN OESTE 01", "cliente": "Thopen", "usina": "Jucurutu", "cidade": "Jucurutu", "responsavel": "Cleiton Fernandes de Farias Júnior", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN OESTE 01", "cliente": "Thopen", "usina": "Itajá 1", "cidade": "Itajá", "responsavel": "Cleiton Fernandes de Farias Júnior", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN OESTE 01", "cliente": "Thopen", "usina": "Itajá 2", "cidade": "Itajá", "responsavel": "Cleiton Fernandes de Farias Júnior", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN LESTE 01", "cliente": "Thopen", "usina": "Rodrigues 2", "cidade": "Rodrigues", "responsavel": "Valdério Paz", "funcao": "Técnico", "membros": []},
+      {"cluster": "RN LESTE 01", "cliente": "Thopen", "usina": "Senador Elói", "cidade": "Senador Elói", "responsavel": "Valdério Paz", "funcao": "Técnico", "membros": []},
+      {"cluster": "AL OESTE 01", "cliente": "Thopen", "usina": "Santana do Ipanema", "cidade": "Santana do Ipanema", "responsavel": "Ricardo da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "AL OESTE 01", "cliente": "Thopen", "usina": "Inhapi", "cidade": "Inhapi", "responsavel": "Ricardo da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "AL OESTE 01", "cliente": "Thopen", "usina": "Ouro Branco", "cidade": "Ouro Branco", "responsavel": "Ricardo da Silva", "funcao": "Técnico", "membros": []},
+      {"cluster": "PA NORTE 01", "cliente": "Athon", "usina": "Santa Maria", "cidade": "Santa Maria", "responsavel": "Gilson Souza", "funcao": "Técnico", "membros": ["Manuel Silva"], "aliases": ["SMP100"]},
+      {"cluster": "PA NORTE 01", "cliente": "Athon", "usina": "Capitão Poço", "cidade": "Capitão Poço", "responsavel": "Gilson Souza", "funcao": "Técnico", "membros": ["Manuel Silva"], "aliases": ["CPP100"]},
+      {"cluster": "PA NORTE 02", "cliente": "Athon", "usina": "Mãe do Rio", "cidade": "Mãe do Rio", "responsavel": "Frank Melo", "funcao": "Técnico", "membros": ["Azinaldo"], "aliases": ["MRO100"]},
+      {"cluster": "PARÁ LESTE", "cliente": "Athon", "usina": "Jacundá", "cidade": "Jacundá", "responsavel": "James Chaves", "funcao": "Técnico", "membros": ["Joilson"], "aliases": ["JCD100"]},
+      {"cluster": "PARÁ LESTE", "cliente": "Athon", "usina": "Marabá 1", "cidade": "Marabá", "responsavel": "James Chaves", "funcao": "Técnico", "membros": ["Joilson"], "aliases": ["MAB100"]},
+      {"cluster": "PARÁ LESTE", "cliente": "Athon", "usina": "Marabá 2", "cidade": "Marabá", "responsavel": "James Chaves", "funcao": "Técnico", "membros": ["Joilson"], "aliases": ["MAB200"]}
+    ]
   }
 };
 const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados'];
@@ -3766,9 +3794,11 @@ function _supCli(c) { return String(c == null ? '' : c).replace(/\s+/g, ' ').tri
 function _supMontarIndice(esc) {
   const idx = new Map();
   esc.usinas.forEach(u => {
-    const k = _supChave(u.usina);
-    if (!idx.has(k)) idx.set(k, []);
-    idx.get(k).push(u);
+    [u.usina, ...(u.aliases || [])].forEach(nm => {
+      const k = _supChave(nm);
+      if (!idx.has(k)) idx.set(k, []);
+      if (!idx.get(k).includes(u)) idx.get(k).push(u);
+    });
   });
   esc._idx = idx;
   return esc;
@@ -3776,21 +3806,41 @@ function _supMontarIndice(esc) {
 // Devolve a entrada do escopo que casa com (usina, cliente) ou null.
 function _supBuscar(usina, cliente) {
   if (!_supEscopoAtivo) return null;
-  const lista = _supEscopoAtivo._idx.get(_supChave(usina));
-  if (!lista) return null;
+  const idx = _supEscopoAtivo._idx;
+  let nome = String(usina == null ? '' : usina).replace(/\s+-\s+[A-Za-z]{2}$/, '').replace(/\s+AL$/, '').trim();
   const c = _supCli(cliente);
-  if (!c) return lista[0];
-  return lista.find(u => _supCli(u.cliente) === c) || null;
+  const achar = (n) => {
+    const k0 = _supChave(n);
+    const tent = [k0];
+    if (/ 1$/.test(k0)) tent.push(k0.slice(0, -2));
+    else if (!idx.has(k0 + ' 2')) tent.push(k0 + ' 1');
+    for (const k of tent) {
+      const lista = idx.get(k);
+      if (!lista) continue;
+      const u = !c ? lista[0] : lista.find(x => _supCli(x.cliente) === c);
+      if (u) return u;
+    }
+    return null;
+  };
+  // linha combinada "Base 1 e 2": vale se as duas partes forem do escopo
+  const comb = nome.match(/^(.+?)\s+(\d+|[ivx]+)\s+e\s+(\d+|[ivx]+)$/i);
+  if (comb) {
+    const a = achar(comb[1] + ' ' + comb[2]), b = achar(comb[1] + ' ' + comb[3]);
+    return a && b ? a : null;
+  }
+  let r = achar(nome);
+  if (!r && nome.includes(' - ')) {
+    for (const parte of nome.split(' - ')) { r = achar(parte); if (r) break; }
+  }
+  return r;
 }
 function _supPermite(usina, cliente) { return !!_supBuscar(usina, cliente); }
 // Texto de UFV de chamados: "Cliente - Usina", ou combinada "Base 1 e 2".
 function _supChamadoPermitido(c) {
   const ufv = String(c['UFV'] || '');
   const semCli = ufv.replace(/^[^-]+-\s*/, '').trim();
-  const comb = semCli.match(/^(.+?)\s+(\d+|[ivx]+)\s+e\s+(\d+|[ivx]+)$/i);
-  const nomes = comb ? [comb[1] + ' ' + comb[2], comb[1] + ' ' + comb[3]] : [semCli];
   const cli = c['Cliente'] || (ufv.includes('-') ? ufv.split('-')[0] : '');
-  return nomes.some(n => _supPermite(n, cli));
+  return _supPermite(semCli, cli);
 }
 const _SUP_VAZIO_OK = { ok: true };
 function _supFiltrarResposta(path, data) {
@@ -3877,6 +3927,7 @@ function _supEhSessao(sessao) { return !!sessao && sessao.role === 'supervisor';
     { user: 'thopen',         pass: 'thopen2026',  role: 'client', cliente: 'Thopen'   },
     { user: 'renogrid',       pass: 'reno2026',    role: 'client', cliente: 'Renogrid' },
     { user: 'danuth',         pass: 'Danuth#Grid26', role: 'supervisor' },
+    { user: 'camila',         pass: 'Camila#Grid26', role: 'supervisor' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
