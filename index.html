@@ -1515,6 +1515,170 @@ body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="d
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
 body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
+/* ══════════════════════════════════════════════════════════
+   PAINEL DE OCORRÊNCIAS (substitui o antigo Painel de Falhas — 09/10/2026)
+   Tudo com prefixo .oc- para não colidir com o restante do dashboard.
+══════════════════════════════════════════════════════════ */
+#sec-ocorrencias{--oc-and:var(--blue);--oc-pausa:var(--text-dim);--oc-feito:var(--sla-ok);--oc-crit:var(--red);--oc-mat:var(--amber);}
+.oc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+.oc-kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden;text-align:left;font-family:inherit;color:inherit;cursor:default;}
+.oc-kpi[data-kf]{cursor:pointer;}
+.oc-kpi[data-kf]:hover{border-color:var(--border-strong);}
+.oc-kpi .n{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.oc-kpi .l{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-top:8px;line-height:1.3;}
+.oc-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--teal));opacity:.9;}
+.oc-kpi.alerta .n{color:var(--red);}
+
+.oc-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+.oc-bar .grow{flex:1;}
+.oc-seg{display:inline-flex;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;}
+.oc-seg button{display:flex;align-items:center;gap:6px;background:transparent;border:0;color:var(--text-dim);border-radius:8px;padding:6px 12px;font:500 13px 'Geist',sans-serif;cursor:pointer;white-space:nowrap;}
+.oc-seg button[aria-pressed="true"]{background:var(--teal);color:var(--ink);font-weight:600;}
+.oc-seg button .n{opacity:.75;font-size:12px;}
+.oc-btn{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:10px;padding:7px 14px;font:500 13px 'Geist',sans-serif;cursor:pointer;white-space:nowrap;transition:.15s;}
+.oc-btn:hover{border-color:var(--teal);color:var(--teal);}
+.oc-btn:disabled{opacity:.5;cursor:default;pointer-events:none;}
+.oc-btn.pri{background:var(--teal);border-color:var(--teal);color:var(--ink);font-weight:600;}
+.oc-btn.pri:hover{filter:brightness(1.08);color:var(--ink);}
+.oc-btn.perigo{border-color:rgba(239,68,68,.45);color:var(--red);}
+.oc-btn.perigo:hover{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red);}
+.oc-btn.sm{padding:4px 10px;font-size:12px;border-radius:8px;}
+.oc-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+.oc-link{background:none;border:0;padding:0;color:var(--teal);text-decoration:underline;text-underline-offset:2px;font:inherit;font-size:12px;cursor:pointer;}
+.oc-link.warn{color:var(--red);}
+
+.oc-filtros{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:grid;gap:12px;box-shadow:var(--shadow);}
+.oc-frow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.oc-search{flex:1 1 240px;min-width:0;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 12px;font:14px 'Geist',sans-serif;}
+.oc-search:focus,.oc-in:focus{outline:none;border-color:var(--teal);}
+.oc-fg h4{margin:0 0 7px;font-size:12px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;display:flex;gap:8px;align-items:baseline;}
+.oc-fg h4 small{text-transform:none;letter-spacing:0;font-weight:400;}
+.oc-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.oc-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);background:transparent;color:var(--text-dim);border-radius:99px;padding:4px 12px;font:13px 'Geist',sans-serif;cursor:pointer;transition:.12s;}
+.oc-chip:hover{border-color:var(--teal);}
+.oc-chip .n{color:var(--text-faint);font-size:12px;font-variant-numeric:tabular-nums;}
+.oc-chip[aria-pressed="true"]{background:rgba(34,211,238,.12);border-color:var(--teal);color:var(--teal);}
+.oc-chip[aria-pressed="true"] .n{color:var(--teal);opacity:.8;}
+.oc-chip.zero{opacity:.45;}
+.oc-sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none;background:var(--c,var(--text-dim));}
+details.oc-dd{position:relative;}
+details.oc-dd>summary{list-style:none;border:1px solid var(--border-strong);background:var(--panel);color:var(--text);border-radius:10px;padding:7px 14px;font:500 13px 'Geist',sans-serif;cursor:pointer;white-space:nowrap;}
+details.oc-dd>summary::-webkit-details-marker{display:none;}
+details.oc-dd>summary::after{content:" ▾";color:var(--text-faint);}
+details.oc-dd[open]>summary{border-color:var(--teal);}
+.oc-ddp{position:absolute;z-index:30;top:calc(100% + 4px);left:0;width:min(320px,calc(100vw - 32px));max-height:340px;overflow:auto;background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.4);padding:6px;}
+.oc-ddp label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:13.5px;cursor:pointer;}
+.oc-ddp label:hover{background:var(--panel-alt);}
+.oc-ddp label .n{margin-left:auto;color:var(--text-faint);font-size:12px;}
+.oc-ddp label.zero{opacity:.5;}
+.oc-res{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 2px 10px;font-size:13px;color:var(--text-dim);}
+
+.oc-board{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 24px;align-items:flex-start;scroll-snap-type:x proximity;}
+.oc-col{flex:1 0 310px;max-width:540px;background:var(--panel-alt);border:1px solid var(--border);border-radius:14px;scroll-snap-align:start;}
+.oc-col>header{padding:12px 14px 8px;border-top:3px solid var(--c);border-radius:14px 14px 0 0;}
+.oc-col h3{font-size:14px;margin:0;display:flex;justify-content:space-between;gap:8px;font-weight:600;}
+.oc-col h3 span{color:var(--text-faint);font-weight:500;font-variant-numeric:tabular-nums;}
+.oc-col p.d{margin:2px 0 0;font-size:12px;color:var(--text-faint);line-height:1.35;}
+.oc-cards{padding:6px 10px 12px;display:flex;flex-direction:column;gap:8px;}
+.oc-card{display:block;text-align:left;width:100%;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:10px;padding:11px 12px 9px;color:inherit;font-family:inherit;cursor:pointer;box-shadow:var(--shadow);transition:border-color .15s,background .12s;}
+.oc-card:hover{border-color:var(--border-strong);border-left-color:var(--c);background:var(--panel-alt);}
+.oc-card .t{font-weight:600;font-size:14px;line-height:1.35;margin:0 0 3px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+.oc-card .s{font-size:12.5px;color:var(--text-dim);margin:0 0 7px;overflow-wrap:anywhere;}
+.oc-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.oc-tag{font-size:11.5px;border-radius:5px;padding:1px 7px;background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;}
+.oc-card .oc-tag{background:var(--bg);}
+.oc-tag.red{background:rgba(239,68,68,.14)!important;border-color:rgba(239,68,68,.3);color:var(--red);}
+.oc-tag.amber{background:rgba(245,166,35,.14)!important;border-color:rgba(245,166,35,.3);color:var(--amber);}
+.oc-tag.blue{background:rgba(96,165,250,.14)!important;border-color:rgba(96,165,250,.3);color:var(--blue);}
+.oc-tag.note{background:rgba(34,197,94,.14)!important;border-color:rgba(34,197,94,.3);color:var(--sla-ok);font-weight:600;}
+.oc-card .f{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:12px;color:var(--text-faint);flex-wrap:wrap;}
+.oc-card .f .old{color:var(--red);font-weight:600;}
+.oc-snip{margin:8px 0 0;padding:5px 8px;border-left:2px solid var(--sla-ok);background:rgba(34,197,94,.07);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--text-dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.oc-more{margin:2px 0 4px;background:transparent;border:1px dashed var(--border-strong);border-radius:10px;padding:8px;font:13px 'Geist',sans-serif;color:var(--text-dim);cursor:pointer;width:100%;}
+.oc-more:hover{border-color:var(--teal);color:var(--teal);}
+.oc-vazio{font-size:13px;color:var(--text-faint);padding:6px 4px 10px;}
+.oc-nada{padding:36px 10px;color:var(--text-dim);text-align:center;}
+
+.oc-zwrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--panel);margin-bottom:20px;box-shadow:var(--shadow);}
+table.oc-z{width:100%;border-collapse:collapse;font-size:13.5px;}
+table.oc-z th,table.oc-z td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border-soft);vertical-align:top;}
+table.oc-z th{color:var(--text-faint);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:var(--panel-alt);}
+table.oc-z tbody tr[data-id]{cursor:pointer;}
+table.oc-z tbody tr[data-id]:hover{background:var(--panel-alt);}
+table.oc-z td.desc{min-width:260px;}
+.oc-bd{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;border:1px solid var(--c);color:var(--c);white-space:nowrap;font-weight:600;}
+.oc-num{font-variant-numeric:tabular-nums;}
+
+.oc-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:none;}
+.oc-scrim.on{display:block;}
+.oc-drawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100%);background:var(--panel);border-left:1px solid var(--border-strong);z-index:901;transform:translateX(102%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s;display:flex;flex-direction:column;outline:none;box-shadow:-18px 0 50px rgba(0,0,0,.4);}
+.oc-drawer.on{transform:none;visibility:visible;transition:transform .22s ease;}
+.oc-drawer>header{padding:16px 20px 12px;border-bottom:1px solid var(--border);border-top:4px solid var(--c);}
+.oc-kicker{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);margin-bottom:8px;flex-wrap:wrap;}
+.oc-kicker .x{margin-left:auto;}
+.oc-drawer h2{font-size:19px;line-height:1.3;margin:0;overflow-wrap:anywhere;font-weight:600;}
+.oc-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.oc-dbody{overflow-y:auto;padding:14px 20px 48px;flex:1;}
+.oc-kv{display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:6px 14px;margin:0 0 16px;font-size:14px;}
+.oc-kv dt{color:var(--text-faint);}
+.oc-kv dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap;min-width:0;}
+.oc-dbody h3{font-size:14px;margin:20px 0 10px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-weight:600;}
+.oc-dbody h3 .sub{color:var(--text-faint);font-weight:400;margin-right:auto;}
+.oc-tl{list-style:none;margin:0;padding:0;border-left:2px solid var(--border-strong);}
+.oc-tl li{position:relative;padding:3px 0 12px 16px;font-size:14px;color:var(--text-dim);overflow-wrap:anywhere;white-space:pre-wrap;}
+.oc-tl li::before{content:"";position:absolute;left:-6px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--c);border:2px solid var(--panel);}
+.oc-tl .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.oc-tl time{font-size:12.5px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.oc-tl li.last time{color:var(--c);}
+.oc-tl .acts{margin-left:auto;display:flex;gap:10px;}
+.oc-tl p{margin:2px 0 0;color:var(--text);}
+.oc-box{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--panel-alt);margin-bottom:8px;}
+.oc-box textarea,.oc-in,.oc-form textarea,.oc-form select,.oc-form input,.oc-plano textarea,.oc-plano input,.oc-plano select{width:100%;border:1px solid var(--border-strong);background:var(--bg);color:var(--text);border-radius:8px;padding:8px 10px;font:14px 'Geist',sans-serif;}
+.oc-box textarea,.oc-form textarea,.oc-plano textarea{min-height:76px;resize:vertical;}
+.oc-box textarea:focus,.oc-form textarea:focus,.oc-form select:focus,.oc-form input:focus,.oc-plano textarea:focus,.oc-plano input:focus,.oc-plano select:focus{outline:none;border-color:var(--teal);}
+.oc-nrow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+.oc-hint{font-size:12.5px;color:var(--text-faint);}
+.oc-hint.warn{color:var(--red);}
+.oc-nl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;}
+.oc-nl li{border-left:3px solid var(--sla-ok);background:var(--bg);border-radius:0 8px 8px 0;padding:8px 11px;}
+.oc-nl li.edit{border-left-color:var(--blue);}
+.oc-nl .m{font-size:12px;color:var(--text-faint);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.oc-nl .acts{margin-left:auto;display:flex;gap:10px;}
+.oc-nl p{margin:3px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;color:var(--text);}
+.oc-nl li.vazio{border-left-color:var(--border-strong);background:transparent;color:var(--text-faint);font-size:13px;}
+.oc-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.oc-form .full{grid-column:1/-1;}
+.oc-form label{display:block;font-size:12px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.oc-form .chk{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--text);font-weight:500;padding-top:22px;}
+.oc-form .chk input{width:auto;}
+.oc-erro{color:var(--red);font-size:13px;margin-top:10px;}
+
+.oc-plano{min-width:1000px;}
+.oc-plano td:nth-child(1){min-width:230px;max-width:300px;}
+.oc-plano td:nth-child(2){min-width:230px;max-width:320px;}
+.oc-plano td:nth-child(3){min-width:240px;}
+.oc-plano td:nth-child(4),.oc-plano td:nth-child(5),.oc-plano td:nth-child(6){min-width:130px;}
+.oc-plano .late{border-color:var(--red);color:var(--red);font-weight:600;}
+.oc-plano .an{margin:0 0 6px;padding:4px 8px;border-left:2px solid var(--sla-ok);background:rgba(34,197,94,.07);border-radius:0 6px 6px 0;font-size:13px;color:var(--text-dim);overflow-wrap:anywhere;white-space:pre-wrap;}
+.oc-plano .an small{display:block;color:var(--text-faint);font-size:11.5px;}
+.oc-rowbtn{background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer;}
+.oc-rowbtn b{color:var(--teal);text-decoration:underline;text-underline-offset:2px;}
+
+.oc-estado{padding:60px 16px;text-align:center;color:var(--text-dim);}
+.oc-estado .oc-btn{margin-top:14px;}
+@media (max-width:640px){
+  .oc-kv{grid-template-columns:1fr;gap:0;}
+  .oc-kv dd{margin-bottom:8px;}
+  .oc-col{flex-basis:86vw;}
+  .oc-form{grid-template-columns:1fr;}
+  .oc-kpi .n{font-size:26px;}
+}
+@media (prefers-reduced-motion:reduce){.oc-drawer{transition:none;}}
+#sec-ocorrencias [hidden]{display:none!important;}
+#sec-falhas{display:none!important;}
+body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
+#sbBadgeFalhas{display:none!important;}
+
 </style>
 </head>
 <body>
@@ -1558,10 +1722,11 @@ body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{di
         Atividades
         <span class="sb-nav-badge-unread" id="sbBadgeAtividades" style="display:none;"></span>
       </a>
-      <a href="#falhas" class="sb-nav-item" data-nav="falhas" data-label="Falhas" draggable="true">
+      <a href="#ocorrencias" class="sb-nav-item" data-nav="ocorrencias" data-label="Ocorrências" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Falhas
+        Ocorrências
         <span class="sb-nav-badge-unread" id="sbBadgeFalhas" style="display:none;"></span>
+        <span class="sb-nav-badge" id="sbBadgeOc" style="display:none;" title="Ocorrências em aberto">0</span>
       </a>
       <a href="#chamados" class="sb-nav-item" data-nav="chamados" data-label="Chamados" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
@@ -1889,6 +2054,49 @@ body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{di
         <div class="card-grid" id="cardGrid"></div>
         <div class="table-wrap" id="tableWrap" style="display:none"></div>
 
+      </section>
+
+      <!-- ── SEÇÃO: OCORRÊNCIAS (novo painel; substitui o Painel de Falhas) ── -->
+      <section class="content-section" id="sec-ocorrencias">
+        <div id="ocRoot">
+          <div class="oc-kpis" id="ocKpis"></div>
+
+          <div class="oc-bar">
+            <div class="oc-seg" role="group" aria-label="Seções">
+              <button type="button" id="ocTabOc" aria-pressed="true">Ocorrências</button>
+              <button type="button" id="ocTabPl" aria-pressed="false" hidden>Plano de Ação <span class="n" id="ocPlN"></span></button>
+            </div>
+            <span class="grow"></span>
+            <span class="oc-hint" id="ocMsg" aria-live="polite"></span>
+            <button class="oc-btn" id="ocExp" type="button"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar .xlsx</button>
+            <button class="oc-btn pri" id="ocNovo" type="button" hidden><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova ocorrência</button>
+          </div>
+
+          <div id="ocVOc">
+            <section class="oc-filtros" aria-label="Filtros">
+              <div class="oc-frow">
+                <input class="oc-search" id="ocQ" type="search" placeholder="Buscar por descrição, usina, fabricante, chamado, histórico…" aria-label="Buscar">
+                <details class="oc-dd" id="ocDdUsina"><summary id="ocUsinaSum">Todas as usinas</summary><div class="oc-ddp" id="ocUsinaList"></div></details>
+                <div class="oc-seg" role="group" aria-label="Visualização"><button type="button" id="ocVQ" aria-pressed="true">Quadro</button><button type="button" id="ocVL" aria-pressed="false">Lista</button></div>
+                <button class="oc-btn" id="ocClear" type="button">Limpar filtros</button>
+              </div>
+              <div class="oc-fg"><h4>Status <small>sem seleção mostra todos</small></h4><div class="oc-chips" id="ocFStatus"></div></div>
+              <div class="oc-fg"><h4>Equipamento</h4><div class="oc-chips" id="ocFEquip"></div></div>
+              <div class="oc-fg"><h4>Outros</h4><div class="oc-chips" id="ocFOutros"></div></div>
+            </section>
+            <div class="oc-res"><span id="ocRes"></span><span id="ocOrd"></span></div>
+            <div id="ocOut"></div>
+          </div>
+
+          <div id="ocVPl" hidden>
+            <section class="oc-filtros" aria-label="Filtros do plano de ação">
+              <div class="oc-frow"><input class="oc-search" id="ocPq" type="search" placeholder="Buscar no plano: usina, ocorrência, ação, responsável, anotação…" aria-label="Buscar no plano"><button class="oc-btn" id="ocPclear" type="button">Limpar filtros</button></div>
+              <div class="oc-fg"><h4>Situação <small>sem seleção mostra todas</small></h4><div class="oc-chips" id="ocPSit"></div></div>
+            </section>
+            <div class="oc-res"><span id="ocPRes"></span><span>Ordenado por prazo; sem prazo ao final</span></div>
+            <div id="ocPOut"></div>
+          </div>
+        </div>
       </section>
 
       <!-- ── SEÇÃO: RONDAS (placeholder inline) ────────────── -->
@@ -4579,7 +4787,8 @@ let _forcedCliente = null;
 let _activeNav = 'atividades';
 
 const NAV_TITLES = {
-  'falhas': 'Painel de Falhas',
+  'ocorrencias': 'Painel de Ocorrências',
+  'falhas': 'Painel de Ocorrências',
   'rondas': 'Verificar Rondas',
   'chamados': 'Chamados',
   'processos': 'Controle de Processos',
@@ -4596,6 +4805,8 @@ const NAV_TITLES = {
 };
 
 function switchNav(nav) {
+  if (nav === 'falhas') nav = 'ocorrencias';  // Painel de Falhas substituído pelo Painel de Ocorrências (09/10/2026)
+  if (nav === 'ocorrencias' && _currentSession && !['manager','admin'].includes(_currentSession.role)) nav = 'atividades';
   if (_currentSession && _currentSession.role === 'supervisor' && !_SUP_NAVS_PERMITIDOS.includes(nav)) nav = 'atividades';
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
@@ -4604,7 +4815,9 @@ function switchNav(nav) {
   if (nav === 'boletins') { carregarCompromissos(); }
   if (nav === 'comunicados') { _comSetTab(_comTabAtual); }
   if (nav === 'anotacoes') { carregarAnotacoes(); }
+  if (nav === 'ocorrencias' && window.OC) { OC.entrar(); }
   _activeNav = nav;
+  document.body.dataset.nav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
   // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
@@ -5921,6 +6134,11 @@ function initDashboard(session) {
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
   }
 
+  // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
+  if (session.role === 'manager' || session.role === 'admin') { try { OC.entrar(); } catch (e) {} }
+  if (session.role !== 'manager' && session.role !== 'admin') {
+    document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
+  }
   document.getElementById('appShell').classList.add('ready');
   // Se a URL já chegou com um #painel (ex.: aba nova aberta via clique do
   // meio ou "Abrir link em nova aba" num item da sidebar — pedido do Fred,
@@ -9702,6 +9920,7 @@ document.getElementById('chamadosBusca')?.addEventListener('input', (e) => {
 let _chamadosBuscaTexto = '';
 
 document.getElementById('updateBtn').addEventListener('click', () => {
+  if (_activeNav === 'ocorrencias' && window.OC) { OC.recarregar().then(() => showToast('Ocorrências atualizadas.', true)); return; }
   fetchSheet();
   if (_activeNav === 'atividades') carregarAtividades();
 });
@@ -17704,6 +17923,584 @@ function _pontoCopiarComunicado(id, btn) {
   });
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   PAINEL DE OCORRÊNCIAS — lógica (substitui o Painel de Falhas)
+   Fonte dos dados: abas Ocorrencias* da planilha, via backend (/ocorrencias*).
+   Perfis: manager (Fred) edita tudo e vê anotações + plano de ação;
+           admin só visualiza as ocorrências (sem anotações/plano);
+           supervisoras e clientes não chegam aqui.
+══════════════════════════════════════════════════════════ */
+(function () {
+  const API = 'https://api.168.138.232.237.sslip.io';
+  const $ = s => document.querySelector(s);
+  const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const pd = iso => { if (!iso) return null; const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
+  const dmy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
+  const fdt = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+
+  const ST = [
+    { k: 'Em andamento', c: '--oc-and', d: 'Tratativa em curso. As mais paradas aparecem primeiro.' },
+    { k: 'Pausado', c: '--oc-pausa', d: 'Pausadas, aguardando terceiros ou decisão.' },
+    { k: 'Finalizado', c: '--oc-feito', d: 'Concluídas, da mais recente para a mais antiga.' },
+  ];
+  const SK = Object.fromEntries(ST.map(s => [s.k, s]));
+  const SIT = ['A fazer', 'Em andamento', 'Concluída'];
+  const SITC = { 'A fazer': '--oc-mat', 'Em andamento': '--oc-and', 'Concluída': '--oc-feito' };
+  const CRITS = ['', 'Baixa', 'Média', 'Alta', 'Muito Alta'];
+
+  let ITENS = [], NOTAS = {}, PLANO = {}, HOJE = new Date();
+  let carregado = false, carregando = false, erro = '';
+  const F = { status: new Set(['Em andamento', 'Pausado']), usinas: new Set(), equips: new Set(), outros: new Set(), q: '' };
+  let PF = new Set(), aba = 'oc', view = 'quadro', lim = {}, ordemHist = 'novo';
+  let aberto = null, modo = 'ver', ultimoFoco = null, editNota = null, delNota = null, editHist = null, delHist = null, confirmaExcluir = false, ocupado = false;
+  const rascunho = {};
+  let dr = null, scrim = null, iniciado = false;
+
+  const sessao = () => (typeof _currentSession !== 'undefined' && _currentSession) || {};
+  const ehFred = () => sessao().role === 'manager';
+  const hojeIso = () => HOJE.getFullYear() + '-' + String(HOJE.getMonth() + 1).padStart(2, '0') + '-' + String(HOJE.getDate()).padStart(2, '0');
+  const dias = iso => iso ? Math.round((HOJE - pd(iso)) / 864e5) : null;
+  const toast = (m, ok = true) => { try { showToast(m, ok); } catch (e) {} };
+
+  async function api(path, corpo) {
+    const opt = corpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) };
+    const r = await fetch(API + path, opt);
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (!r.ok || !j || j.ok === false) throw new Error((j && j.error) || ('Falha na requisição (' + r.status + ')'));
+    return j;
+  }
+
+  /* ── dados ─────────────────────────────────────────────── */
+  function enriquecer(x) {
+    x.ref = x.ult || x.fim || x.inicio;
+    x.parado = x.status !== 'Finalizado' ? dias(x.ult || x.inicio) : null;
+    x.busca = norm([x.id, x.causa, x.usina, x.equip, x.fab, x.chamado, x.nequip, x.sn, x.impacto, x.cliente, (x.hist || []).map(h => h.t).join(' ')].join(' '));
+    return x;
+  }
+  function notasDe(x) { return NOTAS[x.id] || []; }
+  function nbusca(x) { return norm(notasDe(x).map(n => n.texto).join(' ')); }
+  function aplicarItem(item) {
+    if (!item) return;
+    enriquecer(item);
+    const i = ITENS.findIndex(y => y.id === item.id);
+    if (item.foraMapa) { if (i >= 0) ITENS.splice(i, 1); } else if (i >= 0) ITENS[i] = item; else ITENS.push(item);
+  }
+  async function carregar(forcar) {
+    if (carregando) return;
+    if (carregado && !forcar) { render(); return; }
+    carregando = true; erro = '';
+    if (!carregado) renderEstado('Carregando ocorrências…');
+    try {
+      const reqs = [api('/ocorrencias' + (forcar ? '?forcar=1' : ''))];
+      if (ehFred()) { reqs.push(api('/ocorrencias/anotacoes')); reqs.push(api('/ocorrencias/plano')); }
+      const [o, n, p] = await Promise.all(reqs);
+      HOJE = o.hoje ? pd(o.hoje) : new Date();
+      ITENS = o.itens.filter(x => !x.foraMapa).map(enriquecer);
+      NOTAS = {}; (n ? n.itens : []).forEach(a => { (NOTAS[a.ocorrencia] = NOTAS[a.ocorrencia] || []).push(a); });
+      PLANO = {}; (p ? p.itens : []).forEach(a => { PLANO[a.ocorrencia] = a; });
+      carregado = true;
+    } catch (e) {
+      erro = e.message || 'Não foi possível carregar.';
+    } finally { carregando = false; }
+    render();
+    if (aberto && modo !== 'novo') { if (ITENS.find(x => x.id === aberto)) desenharGaveta(); else fechar(); }
+  }
+  function renderEstado(msg, botao) {
+    $('#ocKpis').innerHTML = '';
+    $('#ocOut').innerHTML = `<div class="oc-estado">${esc(msg)}${botao ? '<br><button class="oc-btn" type="button" data-oc="recarregar">Tentar de novo</button>' : ''}</div>`;
+    $('#ocRes').textContent = ''; $('#ocOrd').textContent = '';
+  }
+
+  /* ── filtros ───────────────────────────────────────────── */
+  function passa(x, skip) {
+    if (skip !== 'status' && F.status.size && !F.status.has(x.status)) return false;
+    if (skip !== 'usina' && F.usinas.size && !F.usinas.has(x.usina)) return false;
+    if (skip !== 'equip' && F.equips.size && !F.equips.has(x.equip)) return false;
+    if (skip !== 'outros' && F.outros.size) {
+      const t = notasDe(x).length > 0;
+      for (const o of F.outros) {
+        if (o === 'grave' && !x.grave) return false;
+        if (o === 'parada' && !(x.status !== 'Finalizado' && x.parado > 30)) return false;
+        if (o === 'com' && !t) return false;
+        if (o === 'sem' && t) return false;
+      }
+    }
+    if (F.q && !(x.busca.includes(F.q) || nbusca(x).includes(F.q))) return false;
+    return true;
+  }
+  const lista = skip => ITENS.filter(x => passa(x, skip));
+  function contar(arr, key) { const m = new Map(); arr.forEach(x => m.set(x[key], (m.get(x[key]) || 0) + 1)); return m; }
+  function ordenar(st, arr) {
+    return st === 'Finalizado' ? arr.sort((a, b) => (b.ref || '').localeCompare(a.ref || '')) : arr.sort((a, b) => (a.ref || '').localeCompare(b.ref || ''));
+  }
+  const chip = (label, n, on, attrs, cor) => `<button type="button" class="oc-chip${n ? '' : ' zero'}" aria-pressed="${on}" ${attrs}>${cor ? `<i class="oc-sw" style="--c:var(${cor})"></i>` : ''}${esc(label)} <span class="n">${n}</span></button>`;
+
+  function kpis() {
+    const ab = ITENS.filter(x => x.status !== 'Finalizado');
+    const n = s => ITENS.filter(x => x.status === s).length;
+    const parada = ab.filter(x => x.parado > 30).length, graves = ab.filter(x => x.grave).length;
+    const k = (num, rot, cor, kf, alerta) => `<${kf ? 'button type="button"' : 'div'} class="oc-kpi${alerta ? ' alerta' : ''}" style="--c:var(${cor})"${kf ? ` data-kf="${kf}"` : ''}><div class="n">${num}</div><div class="l">${rot}</div></${kf ? 'button' : 'div'}>`;
+    $('#ocKpis').innerHTML =
+      k(ITENS.length, 'Ocorrências no total', '--teal', '') +
+      k(n('Em andamento'), 'Em andamento', '--oc-and', 'st:Em andamento') +
+      k(n('Pausado'), n('Pausado') === 1 ? 'Pausada' : 'Pausadas', '--oc-pausa', 'st:Pausado') +
+      k(n('Finalizado'), n('Finalizado') === 1 ? 'Finalizada' : 'Finalizadas', '--oc-feito', 'st:Finalizado') +
+      k(parada, 'Sem atualização há +30 dias', '--red', 'ou:parada', parada > 0) +
+      k(graves, graves === 1 ? 'Grave em aberto' : 'Graves em aberto', '--red', 'ou:grave', graves > 0);
+  }
+  function filtros() {
+    const cs = contar(lista('status'), 'status');
+    $('#ocFStatus').innerHTML = ST.map(s => chip(s.k, cs.get(s.k) || 0, F.status.has(s.k), `data-st="${esc(s.k)}"`, s.c)).join('');
+    const ce = contar(lista('equip'), 'equip');
+    const tot = new Map(); ITENS.forEach(x => tot.set(x.equip, (tot.get(x.equip) || 0) + 1));
+    const eqs = [...tot.keys()].sort((a, b) => tot.get(b) - tot.get(a) || a.localeCompare(b, 'pt-BR'));
+    $('#ocFEquip').innerHTML = eqs.map(e => chip(e, ce.get(e) || 0, F.equips.has(e), `data-eq="${esc(e)}"`)).join('');
+    const co = lista('outros'), nc = co.filter(x => notasDe(x).length).length;
+    let outros = chip('Graves', co.filter(x => x.grave).length, F.outros.has('grave'), 'data-ou="grave"') +
+      chip('Sem atualização +30 dias', co.filter(x => x.status !== 'Finalizado' && x.parado > 30).length, F.outros.has('parada'), 'data-ou="parada"');
+    if (ehFred()) outros += chip('Com anotações', nc, F.outros.has('com'), 'data-ou="com"') + chip('Sem anotações', co.length - nc, F.outros.has('sem'), 'data-ou="sem"');
+    $('#ocFOutros').innerHTML = outros;
+    const cu = contar(lista('usina'), 'usina');
+    const tu = new Map(); ITENS.forEach(x => tu.set(x.usina, (tu.get(x.usina) || 0) + 1));
+    const us = [...tu.keys()].sort((a, b) => (cu.get(b) || 0) - (cu.get(a) || 0) || a.localeCompare(b, 'pt-BR'));
+    $('#ocUsinaList').innerHTML = us.map(u => `<label class="${cu.get(u) ? '' : 'zero'}"><input type="checkbox" data-us="${esc(u)}"${F.usinas.has(u) ? ' checked' : ''}> ${esc(u)} <span class="n">${cu.get(u) || 0}</span></label>`).join('');
+    $('#ocUsinaSum').textContent = F.usinas.size ? (F.usinas.size === 1 ? [...F.usinas][0] : F.usinas.size + ' usinas') : 'Todas as usinas';
+  }
+
+  /* ── quadro / lista ────────────────────────────────────── */
+  function cartao(x) {
+    const col = SK[x.status].c, nn = notasDe(x);
+    const tags = [];
+    if (x.grave) tags.push('<span class="oc-tag red">Grave</span>');
+    if (x.crit) tags.push(`<span class="oc-tag ${/Alta/.test(x.crit) ? 'red' : 'amber'}">Criticidade ${esc(x.crit.toLowerCase())}</span>`);
+    tags.push(`<span class="oc-tag blue">${esc(x.equip)}</span>`);
+    if (x.fab) tags.push(`<span class="oc-tag">${esc(x.fab)}</span>`);
+    if (x.cliente) tags.push(`<span class="oc-tag">${esc(x.cliente)}</span>`);
+    if (nn.length) tags.push(`<span class="oc-tag note">${plural(nn.length, 'anotação', 'anotações')}</span>`);
+    let rod;
+    if (x.status === 'Finalizado') rod = `<span>${x.fim ? 'Fim ' + dmy(x.fim) : 'Início ' + dmy(x.inicio)}</span><span>${esc(x.id)}</span>`;
+    else { const d = x.parado; rod = `<span>Início ${dmy(x.inicio)}</span><span class="${d > 30 ? 'old' : ''}">${d == null ? '' : (d === 0 ? 'atualizada hoje' : 'sem atualização há ' + d + ' d')}</span>`; }
+    return `<button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(x.causa)}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>`;
+  }
+  function quadro(arr) {
+    const cols = F.status.size ? ST.filter(s => F.status.has(s.k)) : ST;
+    return '<div class="oc-board">' + cols.map(s => {
+      const its = ordenar(s.k, arr.filter(x => x.status === s.k)), n = lim[s.k] || 20;
+      return `<section class="oc-col" style="--c:var(${s.c})"><header><h3>${esc(s.k)} <span>${its.length}</span></h3><p class="d">${esc(s.d)}</p></header><div class="oc-cards">` +
+        (its.length ? its.slice(0, n).map(cartao).join('') + (its.length > n ? `<button class="oc-more" type="button" data-more="${esc(s.k)}">Mostrar mais ${Math.min(20, its.length - n)} de ${its.length - n}</button>` : '') : '<p class="oc-vazio">Nenhuma ocorrência com esses filtros.</p>') +
+        '</div></section>';
+    }).join('') + '</div>';
+  }
+  function tabela(arr) {
+    const its = arr.slice().sort((a, b) => {
+      const oa = a.status === 'Finalizado' ? 1 : 0, ob = b.status === 'Finalizado' ? 1 : 0;
+      if (oa !== ob) return oa - ob;
+      return oa ? (b.ref || '').localeCompare(a.ref || '') : (a.ref || '').localeCompare(b.ref || '');
+    });
+    const n = lim.lista || 60;
+    return `<div class="oc-zwrap"><table class="oc-z"><thead><tr><th>Nº</th><th>Status</th><th>Usina</th><th>Equipamento</th><th>Ocorrência</th><th>Início</th><th>Últ. atualização</th></tr></thead><tbody>` +
+      its.slice(0, n).map(x => `<tr data-id="${esc(x.id)}" tabindex="0"><td class="oc-num">${esc(x.id)}</td><td><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span></td><td>${esc(x.usina)}</td><td>${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</td><td class="desc">${esc(x.causa)}${x.grave ? ' <span class="oc-tag red">Grave</span>' : ''}</td><td class="oc-num">${dmy(x.inicio)}</td><td class="oc-num">${dmy(x.ult)}</td></tr>`).join('') +
+      `</tbody></table></div>` + (its.length > n ? `<button class="oc-more" type="button" data-more="lista">Mostrar mais ${Math.min(60, its.length - n)} de ${its.length - n}</button>` : '');
+  }
+  function render() {
+    if (erro) { renderEstado(erro, true); return; }
+    if (!carregado) return;
+    kpis(); filtros();
+    const arr = lista(), ab = arr.filter(x => x.status !== 'Finalizado').length;
+    $('#ocRes').textContent = arr.length === ITENS.length ? `${plural(arr.length, 'ocorrência', 'ocorrências')} (todas)` : `${plural(arr.length, 'ocorrência', 'ocorrências')} de ${ITENS.length}` + (ab ? ` · ${ab} em aberto` : '');
+    $('#ocOrd').textContent = view === 'quadro' ? 'Em aberto: mais paradas primeiro' : '';
+    const sc = document.querySelector('#ocOut .oc-board'), sl = sc ? sc.scrollLeft : 0;
+    $('#ocOut').innerHTML = arr.length ? (view === 'quadro' ? quadro(arr) : tabela(arr)) : '<p class="oc-nada">Nenhuma ocorrência com esses filtros. Use “Limpar filtros” para ver todas.</p>';
+    const sc2 = document.querySelector('#ocOut .oc-board'); if (sc2) sc2.scrollLeft = sl;
+    const nPl = planoIds().length; $('#ocPlN').textContent = nPl || '';
+    const bOc = document.getElementById('sbBadgeOc'); if (bOc) { const na = ITENS.filter(x => x.status !== 'Finalizado').length; bOc.textContent = na; bOc.style.display = na ? '' : 'none'; }
+    if (aba === 'pl') renderPlanoSeguro();
+  }
+
+  /* ── gaveta ────────────────────────────────────────────── */
+  const kv = (k, v) => v ? `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>` : '';
+  function cabecalhoStatus(x, col) {
+    return `<span class="oc-bd" style="--c:var(${col})">${esc(x.status)}</span>${x.grave ? '<span class="oc-tag red">Grave</span>' : ''}${x.crit ? `<span class="oc-tag ${/Alta/.test(x.crit) ? 'red' : 'amber'}">Criticidade ${esc(x.crit.toLowerCase())}</span>` : ''}<span class="oc-tag">${esc(x.id)}</span>`;
+  }
+  function desenharGaveta() {
+    if (modo === 'novo') return desenharForm(null);
+    const x = ITENS.find(y => y.id === aberto);
+    if (!x) { fechar(); return; }
+    if (modo === 'editar') return desenharForm(x);
+    const col = SK[x.status].c, h = (x.hist || []).slice();
+    if (ordemHist === 'novo') h.reverse();
+    const pode = ehFred();
+    const tl = h.length ? `<ul class="oc-tl" style="--c:var(${col})">` + h.map((e, i) => {
+      const ultimo = ordemHist === 'novo' ? i === 0 : i === h.length - 1;
+      if (editHist === e.hid) return `<li><div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="ehData" value="${esc(e.d || '')}" style="max-width:170px"></div><textarea id="ehTxt" rows="3" aria-label="Editar registro">${esc(e.t)}</textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-salvar" data-hid="${esc(e.hid)}">Salvar</button><button class="oc-btn sm" type="button" data-oc="hist-cancel">Cancelar</button></div></div></li>`;
+      const acts = !pode ? '' : (delHist === e.hid ? `<button type="button" class="oc-link warn" data-oc="hist-delconf" data-hid="${esc(e.hid)}">Confirmar exclusão</button><button type="button" class="oc-link" data-oc="hist-delcancel">Cancelar</button>` : `<button type="button" class="oc-link" data-oc="hist-edit" data-hid="${esc(e.hid)}">Editar</button><button type="button" class="oc-link" data-oc="hist-del" data-hid="${esc(e.hid)}">Excluir</button>`);
+      return `<li class="${ultimo ? 'last' : ''}"><div class="h"><time>${e.d ? dmy(e.d) : 'Sem data'}</time><span class="acts">${acts}</span></div><p>${esc(e.t)}</p></li>`;
+    }).join('') + '</ul>' : '<p class="oc-vazio">Sem registros de atualização.</p>';
+    const tempo = x.status === 'Finalizado' ? (x.fim && x.inicio ? `${Math.max(0, Math.round((pd(x.fim) - pd(x.inicio)) / 864e5))} dias do início ao fim` : '') : (x.inicio ? `aberta há ${dias(x.inicio)} dias` : '');
+    dr.style.setProperty('--c', `var(${col})`);
+    const botoes = pode ? `<div class="oc-acoes">
+      <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
+      ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
+      ${x.status === 'Em andamento' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Pausado">Pausar</button>' : ''}${x.status === 'Pausado' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Retomar</button>' : ''}
+      ${confirmaExcluir ? '<button class="oc-btn sm perigo" type="button" data-oc="excluir-conf">Confirmar exclusão da ocorrência</button><button class="oc-btn sm" type="button" data-oc="excluir-cancel">Cancelar</button>' : '<button class="oc-btn sm perigo" type="button" data-oc="excluir">Excluir</button>'}
+    </div>` : '';
+    const addHist = pode ? `<div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="nhData" value="${hojeIso()}" style="max-width:170px" aria-label="Data do registro"></div><textarea id="nhTxt" rows="3" placeholder="Novo registro de atualização (o que aconteceu, o que foi feito, o que aguarda)…" aria-label="Novo registro"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-add">Adicionar ao histórico</button><span class="oc-hint" id="nhHint">Ctrl+Enter também salva</span></div></div>` : '';
+    const notasHtml = pode ? `<h3>Anotações privadas <span class="sub" id="ncount"></span></h3><div class="oc-box"><textarea id="ntxt" rows="3" placeholder="Observação sua sobre este caso (só você vê)…" aria-label="Nova anotação"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="nota-add">Salvar anotação</button><span class="oc-hint" id="nhint">Ctrl+Enter também salva</span></div><ul class="oc-nl" id="nlist"></ul></div><div id="plBox"></div>` : '';
+    dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2>${esc(x.causa)}</h2>${botoes}</header>
+    <div class="oc-dbody"><dl class="oc-kv">${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
+    ${notasHtml}
+    <h3>Histórico <span class="sub">${plural((x.hist || []).length, 'registro', 'registros')}</span>${(x.hist || []).length > 1 ? `<button type="button" class="oc-btn sm" data-oc="ordem">${ordemHist === 'novo' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}</button>` : ''}</h3>${addHist}${tl}</div>`;
+    abrirVisual();
+    if (pode) {
+      const ta = $('#ntxt'); if (ta) { ta.value = rascunho['n' + x.id] || ''; ta.oninput = () => { rascunho['n' + x.id] = ta.value; }; ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); notaAcao('add'); } }; }
+      const th = $('#nhTxt'); if (th) { th.value = rascunho['h' + x.id] || ''; th.oninput = () => { rascunho['h' + x.id] = th.value; }; th.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); histAcao('add'); } }; }
+      listaNotas(x); planoBox(x);
+    }
+  }
+  function abrirVisual() {
+    if (!dr.classList.contains('on')) { ultimoFoco = document.activeElement; dr.classList.add('on'); scrim.classList.add('on'); dr.focus(); dr.querySelector('.oc-dbody').scrollTop = 0; }
+  }
+  function abrir(id) {
+    aberto = id; modo = 'ver'; editNota = delNota = editHist = delHist = null; confirmaExcluir = false;
+    desenharGaveta();
+  }
+  function fechar() {
+    dr.classList.remove('on'); scrim.classList.remove('on'); aberto = null; modo = 'ver';
+    if (ultimoFoco && document.contains(ultimoFoco)) try { ultimoFoco.focus(); } catch (e) {}
+  }
+
+  /* formulário (criar / editar) */
+  function opt(arr, v) { return arr.map(o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o || '—')}</option>`).join(''); }
+  function desenharForm(x) {
+    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', sn: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
+    const usinas = [...new Set(ITENS.map(i => i.usina))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const equips = [...new Set(ITENS.map(i => i.equip))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const fabs = [...new Set(ITENS.map(i => i.fab).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const col = SK[v.status].c;
+    dr.style.setProperty('--c', `var(${col})`);
+    dr.innerHTML = `<header><div class="oc-kicker"><strong>${novo ? 'Nova ocorrência' : 'Editar ' + esc(x.id)}</strong><button class="oc-btn sm x" type="button" data-oc="${novo ? 'fechar' : 'cancelar-edicao'}">Cancelar</button></div></header>
+    <div class="oc-dbody"><form class="oc-form" id="ocForm" autocomplete="off">
+      <div class="full"><label for="fCausa">Descrição da ocorrência *</label><textarea id="fCausa" rows="3" maxlength="1500">${esc(v.causa)}</textarea></div>
+      <div><label for="fUsina">Usina *</label><input id="fUsina" list="ocDlUsina" value="${esc(v.usina)}" maxlength="120"><datalist id="ocDlUsina">${usinas.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
+      <div><label for="fCliente">Cliente</label><input id="fCliente" value="${esc(v.cliente)}" maxlength="80" placeholder="automático pela usina"></div>
+      <div><label for="fEquip">Equipamento *</label><input id="fEquip" list="ocDlEquip" value="${esc(v.equip)}" maxlength="80"><datalist id="ocDlEquip">${equips.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
+      <div><label for="fNequip">Identificação (ex.: INV 3.2)</label><input id="fNequip" value="${esc(v.nequip)}" maxlength="200"></div>
+      <div><label for="fFab">Fabricante</label><input id="fFab" list="ocDlFab" value="${esc(v.fab)}" maxlength="60"><datalist id="ocDlFab">${fabs.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
+      <div><label for="fChamado">Nº do chamado</label><input id="fChamado" value="${esc(v.chamado)}" maxlength="120"></div>
+      <div><label for="fSn">S/N ou MAC</label><input id="fSn" value="${esc(v.sn)}" maxlength="120"></div>
+      <div><label for="fResp">Responsável</label><input id="fResp" value="${esc(v.resp)}" maxlength="80"></div>
+      <div class="full"><label for="fImpacto">Impacto</label><input id="fImpacto" value="${esc(v.impacto)}" maxlength="300" placeholder="ex.: perda de 1 MPPT, usina com geração reduzida"></div>
+      <div><label for="fStatus">Status</label><select id="fStatus">${opt(ST.map(s => s.k), v.status)}</select></div>
+      <div><label for="fCrit">Criticidade</label><select id="fCrit">${opt(CRITS, v.crit)}</select></div>
+      <div><label for="fInicio">Início</label><input id="fInicio" type="date" value="${esc(v.inicio)}"></div>
+      <div><label for="fFim">Fim</label><input id="fFim" type="date" value="${esc(v.fim || '')}"></div>
+      <div class="full"><label class="chk"><input type="checkbox" id="fGrave"${v.grave ? ' checked' : ''}> Ocorrência grave</label></div>
+      ${novo ? `<div class="full"><label for="fReg">Primeiro registro do histórico (opcional)</label><textarea id="fReg" rows="3" maxlength="8000" placeholder="O que foi constatado e as primeiras providências"></textarea></div>` : ''}
+    </form>
+    <div class="oc-erro" id="fErro" role="alert"></div>
+    <div class="oc-nrow" style="margin-top:14px"><button class="oc-btn pri" type="button" data-oc="form-salvar">${novo ? 'Criar ocorrência' : 'Salvar alterações'}</button><button class="oc-btn" type="button" data-oc="${novo ? 'fechar' : 'cancelar-edicao'}">Cancelar</button></div></div>`;
+    abrirVisual();
+    const f = $('#fCausa'); if (f) f.focus();
+  }
+  async function formSalvar() {
+    if (ocupado) return;
+    const g = id => ($('#' + id).value || '').trim(), novo = modo === 'novo';
+    const corpo = { causa: g('fCausa'), usina: g('fUsina'), cliente: g('fCliente'), equip: g('fEquip'), nequip: g('fNequip'), fab: g('fFab'), chamado: g('fChamado'), sn: g('fSn'), resp: g('fResp'), impacto: g('fImpacto'), status: g('fStatus'), crit: g('fCrit'), inicio: g('fInicio'), fim: g('fFim'), grave: $('#fGrave').checked };
+    const er = $('#fErro');
+    if (!corpo.causa) { er.textContent = 'Descreva a ocorrência.'; return; }
+    if (!corpo.usina) { er.textContent = 'Informe a usina.'; return; }
+    if (!corpo.equip) { er.textContent = 'Informe o equipamento.'; return; }
+    if (corpo.fim && corpo.inicio && corpo.fim < corpo.inicio) { er.textContent = 'A data de fim não pode ser anterior ao início.'; return; }
+    if (corpo.status === 'Finalizado' && !corpo.fim) corpo.fim = hojeIso();
+    if (corpo.status !== 'Finalizado') corpo.fim = '';
+    if (novo) { corpo.registro = g('fReg'); } else { corpo.id = aberto; }
+    er.textContent = ''; ocupado = true;
+    const b = dr.querySelector('[data-oc="form-salvar"]'); if (b) b.disabled = true;
+    try {
+      const r = await api('/ocorrencias/salvar', corpo);
+      aplicarItem(r.item); aberto = r.item.id; modo = 'ver';
+      toast(novo ? 'Ocorrência ' + r.item.id + ' criada.' : 'Ocorrência atualizada.');
+      render(); desenharGaveta();
+    } catch (e) { er.textContent = e.message; if (b) b.disabled = false; }
+    finally { ocupado = false; }
+  }
+
+  /* ações da gaveta */
+  async function mudarStatus(v) {
+    if (ocupado) return; ocupado = true;
+    try {
+      const corpo = { id: aberto, status: v };
+      const r = await api('/ocorrencias/salvar', corpo);
+      aplicarItem(r.item); toast('Status: ' + v + '.'); render(); desenharGaveta();
+    } catch (e) { toast(e.message, false); } finally { ocupado = false; }
+  }
+  async function excluirOcorrencia() {
+    if (ocupado) return; ocupado = true;
+    try {
+      await api('/ocorrencias/excluir', { id: aberto });
+      ITENS = ITENS.filter(x => x.id !== aberto); delete NOTAS[aberto]; delete PLANO[aberto];
+      toast('Ocorrência excluída.'); fechar(); render();
+    } catch (e) { toast(e.message, false); } finally { ocupado = false; }
+  }
+  async function histAcao(a, hid) {
+    if (ocupado) return;
+    const x = ITENS.find(y => y.id === aberto); if (!x) return;
+    if (a === 'edit') { editHist = hid; delHist = null; desenharGaveta(); return; }
+    if (a === 'cancel') { editHist = null; desenharGaveta(); return; }
+    if (a === 'del') { delHist = hid; editHist = null; desenharGaveta(); return; }
+    if (a === 'delcancel') { delHist = null; desenharGaveta(); return; }
+    ocupado = true;
+    try {
+      let r;
+      if (a === 'add') {
+        const t = ($('#nhTxt').value || '').trim(); if (!t) { const h = $('#nhHint'); h.textContent = 'Escreva o registro antes de salvar.'; h.className = 'oc-hint warn'; return; }
+        r = await api('/ocorrencias/historico/salvar', { ocorrencia: x.id, data: $('#nhData').value, texto: t }); rascunho['h' + x.id] = '';
+      } else if (a === 'salvar') {
+        const t = ($('#ehTxt').value || '').trim(); if (!t) return;
+        r = await api('/ocorrencias/historico/salvar', { ocorrencia: x.id, hid, data: $('#ehData').value, texto: t }); editHist = null;
+      } else if (a === 'delconf') { r = await api('/ocorrencias/historico/excluir', { hid }); delHist = null; }
+      if (r && r.item) { aplicarItem(r.item); render(); }
+      const st = dr.querySelector('.oc-dbody').scrollTop; desenharGaveta(); dr.querySelector('.oc-dbody').scrollTop = st;
+    } catch (e) { toast(e.message, false); } finally { ocupado = false; }
+  }
+
+  /* anotações */
+  function listaNotas(x) {
+    const ul = $('#nlist'); if (!ul) return;
+    const nn = notasDe(x), cur = $('#eTxt') ? $('#eTxt').value : null;
+    ul.innerHTML = nn.length ? nn.map(n => {
+      const id = esc(n.nid);
+      if (editNota === n.nid) return `<li class="edit"><textarea id="eTxt" rows="3" aria-label="Editar anotação">${esc(cur != null ? cur : n.texto)}</textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="nota-esalvar" data-nid="${id}">Salvar</button><button class="oc-btn sm" type="button" data-oc="nota-ecancel">Cancelar</button></div></li>`;
+      const acts = delNota === n.nid ? `<button type="button" class="oc-link warn" data-oc="nota-dconf" data-nid="${id}">Confirmar exclusão</button><button type="button" class="oc-link" data-oc="nota-dcancel">Cancelar</button>` : `<button type="button" class="oc-link" data-oc="nota-edit" data-nid="${id}">Editar</button><button type="button" class="oc-link" data-oc="nota-del" data-nid="${id}">Excluir</button>`;
+      return `<li><div class="m"><time>${esc(fdt(n.criada))}</time>${n.editada ? `<span class="oc-tag" title="Editada em ${esc(fdt(n.editada))}">editada</span>` : ''}<span class="acts">${acts}</span></div><p>${esc(n.texto)}</p></li>`;
+    }).join('') : '<li class="vazio">Nenhuma anotação neste caso ainda.</li>';
+    const c = $('#ncount'); if (c) c.textContent = nn.length ? '(' + nn.length + ')' : '';
+  }
+  function dicaNota(m, er) { const h = $('#nhint'); if (h) { h.textContent = m; h.className = 'oc-hint' + (er ? ' warn' : ''); } }
+  async function notaAcao(a, nid) {
+    const x = ITENS.find(y => y.id === aberto); if (!x || ocupado) return;
+    if (a === 'edit') { editNota = nid; delNota = null; listaNotas(x); const t = $('#eTxt'); if (t) t.focus(); return; }
+    if (a === 'ecancel') { editNota = null; listaNotas(x); return; }
+    if (a === 'del') { delNota = nid; editNota = null; listaNotas(x); return; }
+    if (a === 'dcancel') { delNota = null; listaNotas(x); return; }
+    ocupado = true;
+    try {
+      if (a === 'add') {
+        const ta = $('#ntxt'), t = ta.value.trim(); if (!t) { dicaNota('Escreva algo antes de salvar.', true); return; }
+        const r = await api('/ocorrencias/anotacoes/salvar', { ocorrencia: x.id, texto: t });
+        (NOTAS[x.id] = NOTAS[x.id] || []).unshift(r.nota); ta.value = ''; rascunho['n' + x.id] = ''; dicaNota('Anotação salva.');
+      } else if (a === 'esalvar') {
+        const t = $('#eTxt').value.trim(); if (!t) return;
+        const r = await api('/ocorrencias/anotacoes/salvar', { ocorrencia: x.id, nid, texto: t });
+        NOTAS[x.id] = notasDe(x).map(n => n.nid === nid ? r.nota : n); editNota = null;
+      } else if (a === 'dconf') {
+        await api('/ocorrencias/anotacoes/excluir', { nid });
+        NOTAS[x.id] = notasDe(x).filter(n => n.nid !== nid); delNota = null;
+      }
+    } catch (e) { dicaNota(e.message, true); }
+    finally { ocupado = false; listaNotas(x); planoBox(x); render(); }
+  }
+
+  /* plano de ação */
+  function planoIds() { return ITENS.filter(x => notasDe(x).length || PLANO[x.id]).map(x => x.id); }
+  function planoBox(x) {
+    const b = $('#plBox'); if (!b) return; const p = PLANO[x.id];
+    b.innerHTML = p ? `<p class="oc-hint">No plano de ação · ${esc(p.sit || 'A fazer')}${p.prazo ? ' · prazo ' + dmy(p.prazo) : ''} · <button type="button" class="oc-link" data-oc="plano-ver">Abrir plano de ação</button> · <button type="button" class="oc-link warn" data-oc="plano-rem">Remover do plano</button></p>` : `<button class="oc-btn sm" type="button" data-oc="plano-add">Incluir no plano de ação</button>`;
+  }
+  function linhasPlano(skipSit) {
+    const q = norm($('#ocPq').value.trim());
+    return ITENS.filter(x => notasDe(x).length || PLANO[x.id]).filter(x => {
+      const p = PLANO[x.id] || {}, s = p.sit || 'A fazer';
+      if (!skipSit && PF.size && !PF.has(s)) return false;
+      if (q && !norm([x.id, x.usina, x.causa, x.equip, p.acao, p.resp, notasDe(x).map(n => n.texto).join(' ')].join(' ')).includes(q)) return false;
+      return true;
+    });
+  }
+  function renderPlano() {
+    const base = linhasPlano(true), cnt = {}; SIT.forEach(s => cnt[s] = 0); base.forEach(x => cnt[(PLANO[x.id] || {}).sit || 'A fazer']++);
+    $('#ocPSit').innerHTML = SIT.map(s => chip(s, cnt[s], PF.has(s), `data-ps="${esc(s)}"`, SITC[s])).join('');
+    const rows = linhasPlano(false).sort((a, b) => {
+      const pa = PLANO[a.id] || {}, pb = PLANO[b.id] || {};
+      return (pa.prazo || '9999').localeCompare(pb.prazo || '9999') || SIT.indexOf(pa.sit || 'A fazer') - SIT.indexOf(pb.sit || 'A fazer') || (a.ref || '').localeCompare(b.ref || '');
+    });
+    const tot = planoIds().length;
+    $('#ocPRes').textContent = `${plural(rows.length, 'atividade', 'atividades')}${rows.length !== tot ? ' de ' + tot : ''}`;
+    if (!rows.length) { $('#ocPOut').innerHTML = '<p class="oc-nada">Nenhuma atividade no plano ainda. Escreva uma anotação em um caso, ou abra uma ocorrência e use “Incluir no plano de ação”.</p>'; return; }
+    $('#ocPOut').innerHTML = `<div class="oc-zwrap"><table class="oc-z oc-plano"><thead><tr><th>Atividade</th><th>Anotações</th><th>Ação a tomar</th><th>Responsável</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>` + rows.map(x => {
+      const p = PLANO[x.id] || {}, s = p.sit || 'A fazer', late = p.prazo && p.prazo < hojeIso() && s !== 'Concluída', nn = notasDe(x);
+      const ns = nn.slice(0, 3).map(n => `<div class="an"><small>${esc(fdt(n.criada))}</small>${esc(n.texto)}</div>`).join('') + (nn.length > 3 ? `<span class="oc-hint">+ ${nn.length - 3} anteriores (abra a ocorrência)</span>` : '');
+      return `<tr data-k="${esc(x.id)}"><td><button type="button" class="oc-rowbtn" data-id="${esc(x.id)}"><b>${esc(x.usina)}</b><br>${esc(x.causa)}</button><div class="oc-tags" style="margin-top:6px"><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span><span class="oc-tag blue">${esc(x.equip)}</span></div></td>
+      <td>${ns || '<span class="oc-hint">Sem anotações</span>'}</td>
+      <td><textarea data-f="acao" aria-label="Ação a tomar" placeholder="O que precisa ser feito">${esc(p.acao || '')}</textarea></td>
+      <td><input data-f="resp" type="text" aria-label="Responsável" value="${esc(p.resp || '')}" placeholder="Quem"></td>
+      <td><input data-f="prazo" type="date" aria-label="Prazo" class="${late ? 'late' : ''}" value="${esc(p.prazo || '')}"></td>
+      <td><select data-f="sit" aria-label="Situação">${SIT.map(o => `<option${o === s ? ' selected' : ''}>${o}</option>`).join('')}</select></td></tr>`;
+    }).join('') + `</tbody></table></div>`;
+  }
+  let plSujo = false;
+  function renderPlanoSeguro() {
+    const a = document.activeElement;
+    if (aba === 'pl' && a && a.closest && a.closest('#ocPOut') && a.matches('textarea,input,select')) { plSujo = true; return; }
+    plSujo = false; renderPlano();
+  }
+  async function salvarPlanoLinha(oid, campos) {
+    const antes = PLANO[oid];
+    const base = antes || { acao: '', resp: '', prazo: '', sit: 'A fazer' };
+    const novo = Object.assign({}, base, campos);
+    PLANO[oid] = Object.assign({ ocorrencia: oid }, novo);
+    try {
+      const r = await api('/ocorrencias/plano/salvar', { ocorrencia: oid, acao: novo.acao, resp: novo.resp, prazo: novo.prazo, sit: novo.sit });
+      PLANO[oid] = r.plano;
+    } catch (e) {
+      if (antes) PLANO[oid] = antes; else delete PLANO[oid];
+      toast('Não foi possível salvar o plano: ' + e.message, false);
+    }
+    const x = ITENS.find(y => y.id === oid); if (x) planoBox(x);
+    $('#ocPlN').textContent = planoIds().length || '';
+  }
+  async function planoRemover(oid) {
+    try { await api('/ocorrencias/plano/excluir', { ocorrencia: oid }); delete PLANO[oid]; toast('Removida do plano de ação.'); }
+    catch (e) { toast(e.message, false); }
+    const x = ITENS.find(y => y.id === oid); if (x) planoBox(x); render();
+  }
+  function setAba(a) {
+    if (a === 'pl' && !ehFred()) a = 'oc';
+    aba = a; $('#ocVOc').hidden = a !== 'oc'; $('#ocVPl').hidden = a !== 'pl';
+    $('#ocTabOc').setAttribute('aria-pressed', a === 'oc'); $('#ocTabPl').setAttribute('aria-pressed', a === 'pl');
+    if (a === 'pl') renderPlano();
+  }
+
+  /* exportação */
+  function carregarXlsx() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = () => falha(new Error('biblioteca de planilhas indisponível')); document.head.appendChild(s); });
+  }
+  async function exportar() {
+    const msg = $('#ocMsg');
+    try { msg.textContent = 'Gerando planilha…'; await carregarXlsx(); } catch (e) { msg.textContent = 'Exportação indisponível: ' + e.message + '.'; return; }
+    const fred = ehFred();
+    const dt = iso => { if (!iso) return null; const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
+    const ord = (F.status.size || F.usinas.size || F.equips.size || F.outros.size || F.q ? lista() : ITENS).slice().sort((a, b) => { const oa = a.status === 'Finalizado' ? 1 : 0, ob = b.status === 'Finalizado' ? 1 : 0; return oa - ob || (oa ? (b.ref || '').localeCompare(a.ref || '') : (a.ref || '').localeCompare(b.ref || '')); });
+    const nTxt = x => notasDe(x).slice().reverse().map(n => `[${fdt(n.criada)}] ${n.texto}`).join('\n');
+    const cab = ['Nº', 'Status', 'Usina', 'Cliente', 'Equipamento', 'Identificação', 'Ocorrência', 'Criticidade', 'Grave', 'Fabricante', 'Nº do chamado', 'Início', 'Fim', 'Última atualização', 'Dias sem atualização', 'Último registro do histórico'];
+    if (fred) cab.push('Anotações', 'Ação a tomar', 'Responsável (plano)', 'Prazo', 'Situação do plano');
+    const w1 = [cab];
+    ord.forEach(x => {
+      const p = PLANO[x.id] || {}, e = (x.hist || [])[(x.hist || []).length - 1];
+      const l = [x.id, x.status, x.usina, x.cliente, x.equip, x.nequip, x.causa, x.crit, x.grave ? 'Sim' : '', x.fab, x.chamado, dt(x.inicio), dt(x.fim), dt(x.ult), x.parado != null ? x.parado : '', e ? ((e.d ? dmy(e.d) + ' - ' : '') + e.t).slice(0, 3000) : ''];
+      if (fred) l.push(nTxt(x), p.acao || '', p.resp || '', p.prazo ? dt(p.prazo) : '', notasDe(x).length || PLANO[x.id] ? (p.sit || 'A fazer') : '');
+      w1.push(l);
+    });
+    const w4 = [['Nº', 'Status', 'Usina', 'Equipamento', 'Ocorrência', 'Data', 'Registro']];
+    ord.forEach(x => (x.hist || []).slice().reverse().forEach(e => w4.push([x.id, x.status, x.usina, x.equip, x.causa.slice(0, 200), dt(e.d), e.t.slice(0, 3000)])));
+    const wb = XLSX.utils.book_new();
+    const add = (rows, nome, widths, datas) => {
+      const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates: true });
+      ws['!cols'] = widths.map(w => ({ wch: w }));
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(rows.length - 1, 0), c: rows[0].length - 1 } }) };
+      datas.forEach(c => { for (let r = 1; r < rows.length; r++) { const a = ws[XLSX.utils.encode_cell({ r, c })]; if (a && a.t === 'd') a.z = 'dd/mm/yyyy'; } });
+      XLSX.utils.book_append_sheet(wb, ws, nome);
+    };
+    add(w1, 'Ocorrências', [9, 14, 24, 14, 16, 14, 46, 12, 8, 12, 14, 12, 12, 14, 12, 60, 60, 46, 16, 12, 14].slice(0, cab.length), fred ? [11, 12, 13, 19] : [11, 12, 13]);
+    if (fred) {
+      const pl = ord.filter(x => notasDe(x).length || PLANO[x.id]).sort((a, b) => ((PLANO[a.id] || {}).prazo || '9999').localeCompare((PLANO[b.id] || {}).prazo || '9999'));
+      const w2 = [['Nº', 'Usina', 'Ocorrência', 'Status da ocorrência', 'Anotações', 'Ação a tomar', 'Responsável', 'Prazo', 'Situação']];
+      pl.forEach(x => { const p = PLANO[x.id] || {}; w2.push([x.id, x.usina, x.causa, x.status, nTxt(x), p.acao || '', p.resp || '', p.prazo ? dt(p.prazo) : '', p.sit || 'A fazer']); });
+      add(w2, 'Plano de Ação', [9, 24, 46, 16, 60, 46, 16, 12, 14], [7]);
+      const w3 = [['Nº', 'Usina', 'Ocorrência', 'Data e hora', 'Anotação', 'Editada em']];
+      ord.forEach(x => notasDe(x).slice().reverse().forEach(n => w3.push([x.id, x.usina, x.causa, fdt(n.criada), n.texto, n.editada ? fdt(n.editada) : ''])));
+      add(w3, 'Anotações', [9, 24, 46, 18, 70, 18], []);
+    }
+    add(w4, 'Histórico', [9, 14, 24, 16, 40, 12, 90], [5]);
+    const d = new Date(), nome = `Painel_de_Ocorrencias_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.xlsx`;
+    try { XLSX.writeFile(wb, nome); msg.textContent = `Planilha gerada: ${plural(ord.length, 'ocorrência', 'ocorrências')}.`; }
+    catch (e) { msg.textContent = 'Não foi possível gerar a planilha.'; }
+  }
+
+  /* ── eventos ───────────────────────────────────────────── */
+  function alterna(set, v) { set.has(v) ? set.delete(v) : set.add(v); lim = {}; render(); }
+  function iniciar() {
+    if (iniciado) return; iniciado = true;
+    scrim = document.createElement('div'); scrim.className = 'oc-scrim'; scrim.id = 'ocScrim';
+    dr = document.createElement('aside'); dr.className = 'oc-drawer'; dr.id = 'ocDrawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-modal', 'true'); dr.setAttribute('aria-label', 'Detalhes da ocorrência'); dr.tabIndex = -1;
+    document.body.appendChild(scrim); document.body.appendChild(dr);
+    scrim.onclick = fechar;
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && dr.classList.contains('on')) fechar();
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('#ocOut tr[data-id]')) { e.preventDefault(); abrir(e.target.dataset.id); }
+    });
+    $('#ocFStatus').onclick = e => { const b = e.target.closest('[data-st]'); if (b) alterna(F.status, b.dataset.st); };
+    $('#ocFOutros').onclick = e => { const b = e.target.closest('[data-ou]'); if (b) alterna(F.outros, b.dataset.ou); };
+    $('#ocFEquip').onclick = e => { const b = e.target.closest('[data-eq]'); if (b) alterna(F.equips, b.dataset.eq); };
+    $('#ocUsinaList').onchange = e => { const c = e.target.closest('[data-us]'); if (c) { c.checked ? F.usinas.add(c.dataset.us) : F.usinas.delete(c.dataset.us); lim = {}; const sc = $('#ocUsinaList').scrollTop; render(); $('#ocUsinaList').scrollTop = sc; } };
+    $('#ocQ').oninput = e => { F.q = norm(e.target.value.trim()); lim = {}; render(); };
+    $('#ocClear').onclick = () => { F.status.clear(); F.usinas.clear(); F.equips.clear(); F.outros.clear(); F.q = ''; $('#ocQ').value = ''; lim = {}; render(); };
+    const setView = v => { view = v; $('#ocVQ').setAttribute('aria-pressed', v === 'quadro'); $('#ocVL').setAttribute('aria-pressed', v === 'lista'); render(); };
+    $('#ocVQ').onclick = () => setView('quadro'); $('#ocVL').onclick = () => setView('lista');
+    $('#ocKpis').onclick = e => {
+      const b = e.target.closest('[data-kf]'); if (!b) return; const [t, v] = b.dataset.kf.split(':');
+      F.status.clear(); F.outros.clear(); if (t === 'st') F.status.add(v); else { F.status.add('Em andamento'); F.status.add('Pausado'); F.outros.add(v); }
+      lim = {}; render();
+    };
+    $('#ocOut').onclick = e => {
+      const m = e.target.closest('[data-more]');
+      if (m) { const k = m.dataset.more; lim[k] = (lim[k] || (k === 'lista' ? 60 : 20)) + (k === 'lista' ? 60 : 20); render(); return; }
+      if (e.target.closest('[data-oc="recarregar"]')) { carregado = false; carregar(true); return; }
+      const c = e.target.closest('[data-id]'); if (c) abrir(c.dataset.id);
+    };
+    document.addEventListener('click', e => { const d = $('#ocDdUsina'); if (d && d.open && !d.contains(e.target)) d.open = false; });
+    $('#ocTabOc').onclick = () => setAba('oc'); $('#ocTabPl').onclick = () => setAba('pl');
+    $('#ocExp').onclick = exportar;
+    $('#ocNovo').onclick = novo;
+    $('#ocPq').oninput = () => renderPlano();
+    $('#ocPclear').onclick = () => { PF.clear(); $('#ocPq').value = ''; renderPlano(); };
+    $('#ocPSit').onclick = e => { const b = e.target.closest('[data-ps]'); if (b) { const v = b.dataset.ps; PF.has(v) ? PF.delete(v) : PF.add(v); renderPlano(); } };
+    $('#ocPOut').addEventListener('change', e => {
+      const tr = e.target.closest('tr[data-k]'); if (!tr || !e.target.matches('[data-f]')) return;
+      const g = f => tr.querySelector(`[data-f=${f}]`).value;
+      salvarPlanoLinha(tr.dataset.k, { acao: g('acao').trim(), resp: g('resp').trim(), prazo: g('prazo'), sit: g('sit') });
+    });
+    $('#ocPOut').addEventListener('click', e => { const b = e.target.closest('.oc-rowbtn'); if (b) abrir(b.dataset.id); });
+    $('#ocPOut').addEventListener('focusout', () => setTimeout(() => { if (plSujo && aba === 'pl' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#ocPOut'))) renderPlano(); }, 150));
+    dr.addEventListener('click', e => {
+      const b = e.target.closest('[data-oc]'); if (!b) return;
+      const a = b.dataset.oc, hid = b.dataset.hid, nid = b.dataset.nid;
+      if (a === 'fechar') fechar();
+      else if (a === 'editar') { modo = 'editar'; desenharGaveta(); }
+      else if (a === 'cancelar-edicao') { modo = 'ver'; desenharGaveta(); }
+      else if (a === 'form-salvar') formSalvar();
+      else if (a === 'status') mudarStatus(b.dataset.v);
+      else if (a === 'excluir') { confirmaExcluir = true; desenharGaveta(); }
+      else if (a === 'excluir-cancel') { confirmaExcluir = false; desenharGaveta(); }
+      else if (a === 'excluir-conf') excluirOcorrencia();
+      else if (a === 'ordem') { ordemHist = ordemHist === 'novo' ? 'antigo' : 'novo'; const st = dr.querySelector('.oc-dbody').scrollTop; desenharGaveta(); dr.querySelector('.oc-dbody').scrollTop = st; }
+      else if (a.startsWith('hist-')) histAcao(a.slice(5), hid);
+      else if (a.startsWith('nota-')) notaAcao(a.slice(5), nid);
+      else if (a === 'plano-add') { const x = aberto; salvarPlanoLinha(x, { acao: '', resp: '', prazo: '', sit: 'A fazer' }).then(render); }
+      else if (a === 'plano-rem') planoRemover(aberto);
+      else if (a === 'plano-ver') { fechar(); setAba('pl'); window.scrollTo(0, 0); }
+    });
+    // perfis
+    const fred = ehFred();
+    $('#ocNovo').hidden = !fred; $('#ocTabPl').hidden = !fred;
+  }
+  function novo() { if (!ehFred()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
+
+  /* API pública */
+  window.OC = {
+    entrar() { iniciar(); carregar(false); },
+    recarregar() { return carregar(true); },
+    novo() { iniciar(); if (!carregado) carregar(false).then(novo); else novo(); },
+    abrir(id) { iniciar(); const go = () => { if (ITENS.find(x => x.id === id)) { abrir(id); } }; carregado ? go() : carregar(false).then(go); },
+    itens: () => ITENS,
+    abertas: () => ITENS.filter(x => x.status !== 'Finalizado').length,
+  };
+})();
+
+/* Atalho 'Nova Ocorrência' da sidebar agora abre o formulário do novo painel */
+window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.OC) OC.novo(); };
 </script>
 
 <!-- BOTTOM NAVIGATION — mobile only -->
@@ -17712,9 +18509,9 @@ function _pontoCopiarComunicado(id, btn) {
     <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span>Atividades</span>
   </div>
-  <div class="bn-item" data-nav="falhas">
+  <div class="bn-item" data-nav="ocorrencias">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span>Falhas</span>
+    <span>Ocorrências</span>
   </div>
   <div class="bn-item" data-nav="chamados">
     <svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
