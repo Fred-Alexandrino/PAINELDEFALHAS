@@ -4030,7 +4030,7 @@ const _SUP_ESCOPOS = {
       {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Ibaté 1", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["THPN-IBT100"]},
       {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Ibaté 2", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["THPN-IBT200"]},
       {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Matão 1", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["THPN-MTO100"]},
-      {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Sítio Bonfim", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["THPN-STA100"]},
+      {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Santo Anastácio", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["Sto Anastácio", "THPN-STA100"]},
       {"cluster": "Sul · Maringá-PR", "cliente": "Thopen", "usina": "Taguaí 1 e 2", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["Taguaí 1", "Taguaí 2", "THPN-TGI100"]},
       {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Tanabi", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["THPN-TNB100"]},
       {"cluster": "SE · Oeste de SP", "cliente": "Thopen", "usina": "Topázio (Matão 2)", "cidade": "SP", "responsavel": "", "funcao": "Técnico", "membros": [], "aliases": ["Topázio", "Matão 2", "THPN-TPZ100"]},
@@ -4168,7 +4168,7 @@ const _SUP_ESCOPOS = {
     ]
   }
 };
-const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados'];
+const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
   let s = String(u == null ? '' : u).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -16587,7 +16587,8 @@ function relPopularClientes(){
   if (!sel) return;
   // 07/10/2026: Alves Lima e GD Energy saíram dos painéis, mas ainda têm a
   // apresentação semanal desta semana — aparecem só aqui (REMOVER depois).
-  const clientes = [...new Set([..._clientesDisponiveis(), 'Alves Lima', 'GD Energy'])].sort((x, y) => x.localeCompare(y, 'pt-BR'));
+  const _extras = window._supFetchInstalado ? [] : ['Alves Lima', 'GD Energy'];  // supervisora: só os clientes dela
+  const clientes = [...new Set([..._clientesDisponiveis(), ..._extras])].sort((x, y) => x.localeCompare(y, 'pt-BR'));
   sel.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
