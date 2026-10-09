@@ -2848,13 +2848,9 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
 
         <!-- ── ABA: SOBREAVISOS ── -->
         <div id="comTabPainelSobreaviso" style="display:none;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Envie o arquivo da Escala de Sobreaviso (o .html de 3.Em Operação), escolha o período e gere os comunicados por equipe — prontos pra copiar ou disparar direto no grupo.</div>
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escolha o período e gere os comunicados por equipe — prontos pra copiar ou disparar direto no grupo. A escala é atualizada quando você envia o link do "Sobreaviso Grid" pro Claude.</div>
 
-          <div id="sobreavisoUploadBox" style="border:1px dashed var(--border-strong);border-radius:10px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <button type="button" onclick="document.getElementById('sobreavisoFileInput').click()" style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
-              📎 Enviar arquivo da escala (.html)
-            </button>
-            <input type="file" id="sobreavisoFileInput" accept=".html,.htm" style="display:none;" onchange="_sobreavisoUpload(this.files)">
+          <div id="sobreavisoUploadBox" style="border:1px solid var(--border-strong);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
             <span id="sobreavisoUploadStatus" style="font-size:12.5px;color:var(--text-faint);">Nenhuma escala carregada ainda.</span>
           </div>
 
@@ -13615,32 +13611,6 @@ let _sobreavisoBlocoAtual = null;    // idx do bloco selecionado
 let _sobreavisoGruposCache = null;   // resposta de /gerar-comunicado-sobreaviso pro bloco atual
 let _sobreavisoTextoCache = {};      // idSeguro -> {texto, clusters}
 
-async function _sobreavisoUpload(files) {
-  const arquivo = files && files[0];
-  if (!arquivo) return;
-  const statusEl = document.getElementById('sobreavisoUploadStatus');
-  statusEl.textContent = 'Enviando e processando…';
-  try {
-    const fd = new FormData();
-    fd.append('arquivo', arquivo);
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/sobreaviso-upload', {
-      method: 'POST', body: fd, signal: AbortSignal.timeout(30000),
-    });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao processar o arquivo');
-    showToast('Escala de sobreaviso carregada!', true);
-    _sbTab.opcoes = null; _sbTab.data = null; _sbTab.linhas = []; _sbSup.init = false;  // opções da tabela vêm da escala nova
-    await _sobreavisoCarregarBlocos();
-    if (document.getElementById('sobreavisoTabelaBox')?.style.display !== 'none') _sbTabInit();
-    if (document.getElementById('sobreavisoSupBox')?.style.display !== 'none') _sbSupInit();
-  } catch (e) {
-    statusEl.textContent = 'Erro ao carregar: ' + e.message;
-    showToast('Erro ao carregar escala: ' + e.message, false);
-  } finally {
-    document.getElementById('sobreavisoFileInput').value = '';
-  }
-}
-
 async function _sobreavisoRefresh() {
   document.getElementById('sobreavisoModalResult').style.display = 'none';
   document.getElementById('sobreavisoConferenciaResult').style.display = 'none';
@@ -13655,7 +13625,7 @@ async function _sobreavisoCarregarBlocos() {
     const data = await resp.json();
     if (!data.ok) {
       document.getElementById('sobreavisoConteudo').style.display = 'none';
-      statusEl.textContent = 'Nenhuma escala carregada ainda — envie o arquivo .html acima.';
+      statusEl.textContent = 'Nenhuma escala carregada ainda — envie o link do Sobreaviso Grid pro Claude.';
       return;
     }
     _sobreavisoBlocosCache = data;
