@@ -17998,6 +17998,7 @@ function _pontoCopiarComunicado(id, btn) {
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const pd = iso => { if (!iso) return null; const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d); };
   const dmy = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
+  const tit = x => (x.titulo && x.titulo.trim()) || x.causa;
   const fdt = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
 
   const ST = [
@@ -18036,7 +18037,7 @@ function _pontoCopiarComunicado(id, btn) {
   function enriquecer(x) {
     x.ref = x.ult || x.fim || x.inicio;
     x.parado = x.status !== 'Finalizado' ? dias(x.ult || x.inicio) : null;
-    x.busca = norm([x.id, x.causa, x.usina, x.equip, x.fab, x.chamado, x.os, x.nequip, x.sn, x.impacto, x.cliente, (x.hist || []).map(h => h.t).join(' ')].join(' '));
+    x.busca = norm([x.id, x.titulo, x.causa, x.usina, x.equip, x.fab, x.chamado, x.os, x.nequip, x.sn, x.impacto, x.cliente, (x.hist || []).map(h => h.t).join(' ')].join(' '));
     return x;
   }
   function notasDe(x) { return NOTAS[x.id] || []; }
@@ -18146,7 +18147,7 @@ function _pontoCopiarComunicado(id, btn) {
     const ROT = { 'Em andamento': { p: 'Retomar', n: '' }, 'Pausado': { p: 'Pausar', n: '' }, 'Finalizado': { p: 'Finalizar', n: '' } };
     const prev = idx > 0 ? ST[idx - 1] : null, next = idx < ST.length - 1 ? ST[idx + 1] : null;
     const mv = ehFred() ? `<div class="oc-mv">${prev ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(prev.k)}" title="Voltar para ${esc(prev.k)}">‹ ${esc(prev.k === 'Em andamento' ? (x.status === 'Finalizado' ? 'Reabrir' : 'Retomar') : prev.k)}</button>` : '<span></span>'}${next ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(next.k)}" title="Enviar para ${esc(next.k)}">${esc(ROT[next.k].p)} ›</button>` : '<span></span>'}</div>` : '';
-    return `<div class="oc-cw"${ehFred() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(x.causa)}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
+    return `<div class="oc-cw"${ehFred() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(tit(x))}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
   }
   function quadro(arr) {
     const cols = F.status.size ? ST.filter(s => F.status.has(s.k)) : ST;
@@ -18165,7 +18166,7 @@ function _pontoCopiarComunicado(id, btn) {
     });
     const n = lim.lista || 60;
     return `<div class="oc-zwrap"><table class="oc-z"><thead><tr><th>Nº</th><th>Status</th><th>Usina</th><th>Equipamento</th><th>Ocorrência</th><th>Início</th><th>Últ. atualização</th></tr></thead><tbody>` +
-      its.slice(0, n).map(x => `<tr data-id="${esc(x.id)}" tabindex="0"><td class="oc-num">${esc(x.id)}</td><td><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span></td><td>${esc(x.usina)}</td><td>${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</td><td class="desc">${esc(x.causa)}${x.grave ? ' <span class="oc-tag red">Grave</span>' : ''}</td><td class="oc-num">${dmy(x.inicio)}</td><td class="oc-num">${dmy(x.ult)}</td></tr>`).join('') +
+      its.slice(0, n).map(x => `<tr data-id="${esc(x.id)}" tabindex="0"><td class="oc-num">${esc(x.id)}</td><td><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span></td><td>${esc(x.usina)}</td><td>${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</td><td class="desc">${esc(tit(x))}${x.grave ? ' <span class="oc-tag red">Grave</span>' : ''}</td><td class="oc-num">${dmy(x.inicio)}</td><td class="oc-num">${dmy(x.ult)}</td></tr>`).join('') +
       `</tbody></table></div>` + (its.length > n ? `<button class="oc-more" type="button" data-more="lista">Mostrar mais ${Math.min(60, its.length - n)} de ${its.length - n}</button>` : '');
   }
   function render() {
@@ -18212,8 +18213,8 @@ function _pontoCopiarComunicado(id, btn) {
     </div>` : '';
     const addHist = pode ? `<div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="nhData" value="${hojeIso()}" style="max-width:170px" aria-label="Data do registro"></div><textarea id="nhTxt" rows="3" placeholder="Novo registro de atualização (o que aconteceu, o que foi feito, o que aguarda)…" aria-label="Novo registro"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-add">Adicionar ao histórico</button><span class="oc-hint" id="nhHint">Ctrl+Enter também salva</span></div></div>` : '';
     const notasHtml = pode ? `<h3>Anotações privadas <span class="sub" id="ncount"></span></h3><div class="oc-box"><textarea id="ntxt" rows="3" placeholder="Observação sua sobre este caso (só você vê)…" aria-label="Nova anotação"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="nota-add">Salvar anotação</button><span class="oc-hint" id="nhint">Ctrl+Enter também salva</span></div><ul class="oc-nl" id="nlist"></ul></div><div id="plBox"></div>` : '';
-    dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2>${esc(x.causa)}</h2>${botoes}</header>
-    <div class="oc-dbody"><dl class="oc-kv">${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('OS (Fracttal)', x.os)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
+    dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2>${esc(tit(x))}</h2>${botoes}</header>
+    <div class="oc-dbody"><dl class="oc-kv">${(x.titulo && x.titulo.trim() && x.titulo.trim() !== x.causa) ? kv('Descrição', x.causa) : ''}${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('OS (Fracttal)', x.os)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
     ${notasHtml}
     <h3>Histórico <span class="sub">${plural((x.hist || []).length, 'registro', 'registros')}</span>${(x.hist || []).length > 1 ? `<button type="button" class="oc-btn sm" data-oc="ordem">${ordemHist === 'novo' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}</button>` : ''}</h3>${addHist}${tl}</div>`;
     abrirVisual();
@@ -18238,7 +18239,7 @@ function _pontoCopiarComunicado(id, btn) {
   /* formulário (criar / editar) */
   function opt(arr, v) { return arr.map(o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o || '—')}</option>`).join(''); }
   function desenharForm(x) {
-    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', os: '', sn: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
+    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', os: '', sn: '', titulo: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
     const usinas = [...new Set(ITENS.map(i => i.usina))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const equips = [...new Set(ITENS.map(i => i.equip))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const fabs = [...new Set(ITENS.map(i => i.fab).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -18246,6 +18247,7 @@ function _pontoCopiarComunicado(id, btn) {
     dr.style.setProperty('--c', `var(${col})`);
     dr.innerHTML = `<header><div class="oc-kicker"><strong>${novo ? 'Nova ocorrência' : 'Editar ' + esc(x.id)}</strong><button class="oc-btn sm x" type="button" data-oc="${novo ? 'fechar' : 'cancelar-edicao'}">Cancelar</button></div></header>
     <div class="oc-dbody"><form class="oc-form" id="ocForm" autocomplete="off">
+      <div class="full"><label for="fTitulo">Título da ocorrência</label><input id="fTitulo" value="${esc(v.titulo || '')}" maxlength="200" placeholder="${esc(v.causa ? 'Vazio = usa o texto da descrição / título da OS' : 'Ex.: Inversor 2.7 sem comunicação')}"></div>
       <div class="full"><label for="fCausa">Descrição da ocorrência *</label><textarea id="fCausa" rows="3" maxlength="1500">${esc(v.causa)}</textarea></div>
       <div><label for="fUsina">Usina *</label><input id="fUsina" list="ocDlUsina" value="${esc(v.usina)}" maxlength="120"><datalist id="ocDlUsina">${usinas.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
       <div><label for="fCliente">Cliente</label><input id="fCliente" value="${esc(v.cliente)}" maxlength="80" placeholder="automático pela usina"></div>
@@ -18267,12 +18269,12 @@ function _pontoCopiarComunicado(id, btn) {
     <div class="oc-erro" id="fErro" role="alert"></div>
     <div class="oc-nrow" style="margin-top:14px"><button class="oc-btn pri" type="button" data-oc="form-salvar">${novo ? 'Criar ocorrência' : 'Salvar alterações'}</button><button class="oc-btn" type="button" data-oc="${novo ? 'fechar' : 'cancelar-edicao'}">Cancelar</button></div></div>`;
     abrirVisual();
-    const f = $('#fCausa'); if (f) f.focus();
+    const f = $('#fTitulo'); if (f) f.focus();
   }
   async function formSalvar() {
     if (ocupado) return;
     const g = id => ($('#' + id).value || '').trim(), novo = modo === 'novo';
-    const corpo = { causa: g('fCausa'), usina: g('fUsina'), cliente: g('fCliente'), equip: g('fEquip'), nequip: g('fNequip'), fab: g('fFab'), chamado: g('fChamado'), os: g('fOs'), sn: g('fSn'), resp: g('fResp'), impacto: g('fImpacto'), status: g('fStatus'), crit: g('fCrit'), inicio: g('fInicio'), fim: g('fFim'), grave: $('#fGrave').checked };
+    const corpo = { titulo: g('fTitulo'), causa: g('fCausa'), usina: g('fUsina'), cliente: g('fCliente'), equip: g('fEquip'), nequip: g('fNequip'), fab: g('fFab'), chamado: g('fChamado'), os: g('fOs'), sn: g('fSn'), resp: g('fResp'), impacto: g('fImpacto'), status: g('fStatus'), crit: g('fCrit'), inicio: g('fInicio'), fim: g('fFim'), grave: $('#fGrave').checked };
     const er = $('#fErro');
     if (!corpo.causa) { er.textContent = 'Descreva a ocorrência.'; return; }
     if (!corpo.usina) { er.textContent = 'Informe a usina.'; return; }
@@ -18405,7 +18407,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocPOut').innerHTML = `<div class="oc-zwrap"><table class="oc-z oc-plano"><thead><tr><th>Atividade</th><th>Anotações</th><th>Ação a tomar</th><th>Responsável</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>` + rows.map(x => {
       const p = PLANO[x.id] || {}, s = p.sit || 'A fazer', late = p.prazo && p.prazo < hojeIso() && s !== 'Concluída', nn = notasDe(x);
       const ns = nn.slice(0, 3).map(n => `<div class="an"><small>${esc(fdt(n.criada))}</small>${esc(n.texto)}</div>`).join('') + (nn.length > 3 ? `<span class="oc-hint">+ ${nn.length - 3} anteriores (abra a ocorrência)</span>` : '');
-      return `<tr data-k="${esc(x.id)}"><td><button type="button" class="oc-rowbtn" data-id="${esc(x.id)}"><b>${esc(x.usina)}</b><br>${esc(x.causa)}</button><div class="oc-tags" style="margin-top:6px"><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span><span class="oc-tag blue">${esc(x.equip)}</span></div></td>
+      return `<tr data-k="${esc(x.id)}"><td><button type="button" class="oc-rowbtn" data-id="${esc(x.id)}"><b>${esc(x.usina)}</b><br>${esc(tit(x))}</button><div class="oc-tags" style="margin-top:6px"><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span><span class="oc-tag blue">${esc(x.equip)}</span></div></td>
       <td>${ns || '<span class="oc-hint">Sem anotações</span>'}</td>
       <td><textarea data-f="acao" aria-label="Ação a tomar" placeholder="O que precisa ser feito">${esc(p.acao || '')}</textarea></td>
       <td><input data-f="resp" type="text" aria-label="Responsável" value="${esc(p.resp || '')}" placeholder="Quem"></td>
@@ -18463,7 +18465,7 @@ function _pontoCopiarComunicado(id, btn) {
     const w1 = [cab];
     ord.forEach(x => {
       const p = PLANO[x.id] || {}, e = (x.hist || [])[(x.hist || []).length - 1];
-      const l = [x.id, x.status, x.usina, x.cliente, x.equip, x.nequip, x.causa, x.crit, x.grave ? 'Sim' : '', x.fab, x.os, x.chamado, dt(x.inicio), dt(x.fim), dt(x.ult), x.parado != null ? x.parado : '', e ? ((e.d ? dmy(e.d) + ' - ' : '') + e.t).slice(0, 3000) : ''];
+      const l = [x.id, x.status, x.usina, x.cliente, x.equip, x.nequip, tit(x), x.crit, x.grave ? 'Sim' : '', x.fab, x.os, x.chamado, dt(x.inicio), dt(x.fim), dt(x.ult), x.parado != null ? x.parado : '', e ? ((e.d ? dmy(e.d) + ' - ' : '') + e.t).slice(0, 3000) : ''];
       if (fred) l.push(nTxt(x), p.acao || '', p.resp || '', p.prazo ? dt(p.prazo) : '', notasDe(x).length || PLANO[x.id] ? (p.sit || 'A fazer') : '');
       w1.push(l);
     });
