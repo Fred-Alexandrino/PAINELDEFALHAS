@@ -15828,37 +15828,93 @@ async function _solicitarOSAtividade() {
   _registrarOSSolicitadaAtividade(a);
 }
 
+let _convAtiv = null, _convOcLista = [];
 async function _converterAtividadeEmOcorrencia() {
   const a = _ativDrawerList[_ativDrawerIndex]; if (!a) return;
-  const confirmar = confirm(
-    `Transformar esta atividade em ocorrência?\n\n` +
-    `${_ativEquipamento(a)} — ${a.descricao}\n\n` +
-    `O histórico completo será transferido para a nova ocorrência, e esta atividade ` +
-    `será marcada como "Convertida em Ocorrência".`
-  );
-  if (!confirmar) return;
-
-  const btn = document.getElementById('ativConverterBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Convertendo…'; }
+  _convAtiv = a;
+  let ov = document.getElementById('ativConvOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'ativConvOverlay'; ov.className = 'ch-overlay';
+    ov.addEventListener('click', e => { if (e.target === ov) ov.style.display = 'none'; });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `<div class="ch-modal" style="max-width:520px;border-top-color:var(--teal);">
+    <div class="ch-head"><div class="ch-head-row">
+      <div><div class="ch-title"><h2>Ocorrência desta atividade</h2></div>
+      <div class="ch-subtitle">${esc(_ativEquipamento(a))} — OS ${esc(a.numeroOS || 'sem número')}</div></div>
+      <button class="modal-close-btn" onclick="document.getElementById('ativConvOverlay').style.display='none'">✕</button>
+    </div></div>
+    <div class="ch-body">
+      <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:12px;">A atividade <b>continua no painel de Atividades</b> (é lá que a OS é controlada). A ocorrência passa a mostrar o número da OS que a trata.</div>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13.5px;cursor:pointer;"><input type="radio" name="convModo" value="nova" checked> Criar uma nova ocorrência</label>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13.5px;cursor:pointer;"><input type="radio" name="convModo" value="existente"> Vincular a uma ocorrência que já existe</label>
+      <div id="convExistenteBox" style="display:none;margin:4px 0 12px;">
+        <input class="nova-oc-input" id="convBusca" style="width:100%;margin-bottom:8px;" placeholder="Filtrar por usina, equipamento ou descrição…">
+        <select class="nova-oc-select" id="convSel" size="7" style="width:100%;height:auto;"></select>
+      </div>
+      <div id="convErr" style="display:none;color:var(--red);font-size:12px;margin:8px 0;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:12px;">
+        <span id="convStatus" style="font-size:12px;color:var(--text-faint);"></span>
+        <button class="modal-close-btn" id="convOkBtn" style="width:auto;padding:0 16px;font-size:12.5px;color:var(--teal);" onclick="_convConfirmar()">Confirmar</button>
+      </div>
+    </div></div>`;
+  ov.style.display = 'flex';
+  const box = ov.querySelector('#convExistenteBox');
+  ov.querySelectorAll('input[name=convModo]').forEach(r => r.addEventListener('change', () => {
+    box.style.display = ov.querySelector('input[name=convModo]:checked').value === 'existente' ? 'block' : 'none';
+    if (box.style.display === 'block') _convCarregarOcorrencias();
+  }));
+  ov.querySelector('#convBusca').addEventListener('input', _convRenderLista);
+}
+async function _convCarregarOcorrencias() {
+  if (_convOcLista.length) { _convRenderLista(); return; }
+  const sel = document.getElementById('convSel');
+  sel.innerHTML = '<option disabled>Carregando…</option>';
+  try {
+    const r = await fetch('https://api.168.138.232.237.sslip.io/ocorrencias');
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'falha');
+    _convOcLista = (d.itens || []).filter(x => x.status !== 'Finalizado');
+    _convRenderLista();
+  } catch (e) { sel.innerHTML = '<option disabled>Erro ao carregar: ' + esc(e.message || '') + '</option>'; }
+}
+function _convRenderLista() {
+  const sel = document.getElementById('convSel'); if (!sel) return;
+  const q = (document.getElementById('convBusca').value || '').toLowerCase();
+  const usina = (_convAtiv && _convAtiv.usina || '').toLowerCase();
+  let l = _convOcLista.filter(x => !q || [x.id, x.usina, x.equip, x.nequip, x.causa].join(' ').toLowerCase().includes(q));
+  // as da mesma usina da atividade primeiro
+  l = l.sort((a, b) => (b.usina.toLowerCase() === usina) - (a.usina.toLowerCase() === usina) || b.id.localeCompare(a.id));
+  sel.innerHTML = l.length ? l.slice(0, 200).map(x => `<option value="${esc(x.id)}">${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''} — ${esc((x.causa || '').slice(0, 70))}${x.os ? ' [OS ' + esc(x.os) + ']' : ''}</option>`).join('')
+    : '<option disabled>Nenhuma ocorrência em aberto encontrada</option>';
+}
+async function _convConfirmar() {
+  const a = _convAtiv; if (!a) return;
+  const ov = document.getElementById('ativConvOverlay');
+  const modo = ov.querySelector('input[name=convModo]:checked').value;
+  const errEl = document.getElementById('convErr'), st = document.getElementById('convStatus'), btn = document.getElementById('convOkBtn');
+  errEl.style.display = 'none';
+  const ocId = modo === 'existente' ? document.getElementById('convSel').value : '';
+  if (modo === 'existente' && !ocId) { errEl.textContent = 'Escolha a ocorrência.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; st.textContent = 'Salvando…';
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
-
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/converter-atividade-em-ocorrencia', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ id: a.id, editor })
+      body: JSON.stringify({ id: a.id, editor, ocorrenciaId: ocId })
     });
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao converter');
-
-    showToast(`Convertida! Nova ocorrência #${result.novaOcorrenciaId} criada.`, true);
-    _fecharAtivDrawer();
+    showToast(result.vinculada ? `OS vinculada à ocorrência ${result.novaOcorrenciaId}.`
+      : (result.jaExistia ? `Essa OS já está na ocorrência ${result.novaOcorrenciaId}.` : `Nova ocorrência ${result.novaOcorrenciaId} criada.`), true);
+    _convOcLista = [];
+    ov.style.display = 'none';
     await carregarAtividades();
-    if (typeof fetchSheet === 'function') fetchSheet();
+    _renderAtivDrawer && _renderAtivDrawer();
   } catch (e) {
-    showToast('Erro ao converter atividade: ' + (e.message||''), false);
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Transformar em Ocorrência'; }
-  }
+    errEl.textContent = 'Erro: ' + (e.message || ''); errEl.style.display = 'block';
+  } finally { btn.disabled = false; st.textContent = ''; }
 }
 
 async function _registrarOSSolicitadaAtividade(a) {
@@ -17974,7 +18030,7 @@ function _pontoCopiarComunicado(id, btn) {
   function enriquecer(x) {
     x.ref = x.ult || x.fim || x.inicio;
     x.parado = x.status !== 'Finalizado' ? dias(x.ult || x.inicio) : null;
-    x.busca = norm([x.id, x.causa, x.usina, x.equip, x.fab, x.chamado, x.nequip, x.sn, x.impacto, x.cliente, (x.hist || []).map(h => h.t).join(' ')].join(' '));
+    x.busca = norm([x.id, x.causa, x.usina, x.equip, x.fab, x.chamado, x.os, x.nequip, x.sn, x.impacto, x.cliente, (x.hist || []).map(h => h.t).join(' ')].join(' '));
     return x;
   }
   function notasDe(x) { return NOTAS[x.id] || []; }
@@ -18147,7 +18203,7 @@ function _pontoCopiarComunicado(id, btn) {
     const addHist = pode ? `<div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="nhData" value="${hojeIso()}" style="max-width:170px" aria-label="Data do registro"></div><textarea id="nhTxt" rows="3" placeholder="Novo registro de atualização (o que aconteceu, o que foi feito, o que aguarda)…" aria-label="Novo registro"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-add">Adicionar ao histórico</button><span class="oc-hint" id="nhHint">Ctrl+Enter também salva</span></div></div>` : '';
     const notasHtml = pode ? `<h3>Anotações privadas <span class="sub" id="ncount"></span></h3><div class="oc-box"><textarea id="ntxt" rows="3" placeholder="Observação sua sobre este caso (só você vê)…" aria-label="Nova anotação"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="nota-add">Salvar anotação</button><span class="oc-hint" id="nhint">Ctrl+Enter também salva</span></div><ul class="oc-nl" id="nlist"></ul></div><div id="plBox"></div>` : '';
     dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2>${esc(x.causa)}</h2>${botoes}</header>
-    <div class="oc-dbody"><dl class="oc-kv">${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
+    <div class="oc-dbody"><dl class="oc-kv">${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('OS (Fracttal)', x.os)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
     ${notasHtml}
     <h3>Histórico <span class="sub">${plural((x.hist || []).length, 'registro', 'registros')}</span>${(x.hist || []).length > 1 ? `<button type="button" class="oc-btn sm" data-oc="ordem">${ordemHist === 'novo' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}</button>` : ''}</h3>${addHist}${tl}</div>`;
     abrirVisual();
@@ -18172,7 +18228,7 @@ function _pontoCopiarComunicado(id, btn) {
   /* formulário (criar / editar) */
   function opt(arr, v) { return arr.map(o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o || '—')}</option>`).join(''); }
   function desenharForm(x) {
-    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', sn: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
+    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', os: '', sn: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
     const usinas = [...new Set(ITENS.map(i => i.usina))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const equips = [...new Set(ITENS.map(i => i.equip))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const fabs = [...new Set(ITENS.map(i => i.fab).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -18186,6 +18242,7 @@ function _pontoCopiarComunicado(id, btn) {
       <div><label for="fEquip">Equipamento *</label><input id="fEquip" list="ocDlEquip" value="${esc(v.equip)}" maxlength="80"><datalist id="ocDlEquip">${equips.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
       <div><label for="fNequip">Identificação (ex.: INV 3.2)</label><input id="fNequip" value="${esc(v.nequip)}" maxlength="200"></div>
       <div><label for="fFab">Fabricante</label><input id="fFab" list="ocDlFab" value="${esc(v.fab)}" maxlength="60"><datalist id="ocDlFab">${fabs.map(u => `<option value="${esc(u)}">`).join('')}</datalist></div>
+      <div><label for="fOs">OS que trata esta ocorrência</label><input id="fOs" value="${esc(v.os)}" maxlength="120" placeholder="Ex.: 16044, 16043"></div>
       <div><label for="fChamado">Nº do chamado</label><input id="fChamado" value="${esc(v.chamado)}" maxlength="120"></div>
       <div><label for="fSn">S/N ou MAC</label><input id="fSn" value="${esc(v.sn)}" maxlength="120"></div>
       <div><label for="fResp">Responsável</label><input id="fResp" value="${esc(v.resp)}" maxlength="80"></div>
@@ -18205,7 +18262,7 @@ function _pontoCopiarComunicado(id, btn) {
   async function formSalvar() {
     if (ocupado) return;
     const g = id => ($('#' + id).value || '').trim(), novo = modo === 'novo';
-    const corpo = { causa: g('fCausa'), usina: g('fUsina'), cliente: g('fCliente'), equip: g('fEquip'), nequip: g('fNequip'), fab: g('fFab'), chamado: g('fChamado'), sn: g('fSn'), resp: g('fResp'), impacto: g('fImpacto'), status: g('fStatus'), crit: g('fCrit'), inicio: g('fInicio'), fim: g('fFim'), grave: $('#fGrave').checked };
+    const corpo = { causa: g('fCausa'), usina: g('fUsina'), cliente: g('fCliente'), equip: g('fEquip'), nequip: g('fNequip'), fab: g('fFab'), chamado: g('fChamado'), os: g('fOs'), sn: g('fSn'), resp: g('fResp'), impacto: g('fImpacto'), status: g('fStatus'), crit: g('fCrit'), inicio: g('fInicio'), fim: g('fFim'), grave: $('#fGrave').checked };
     const er = $('#fErro');
     if (!corpo.causa) { er.textContent = 'Descreva a ocorrência.'; return; }
     if (!corpo.usina) { er.textContent = 'Informe a usina.'; return; }
@@ -18382,12 +18439,12 @@ function _pontoCopiarComunicado(id, btn) {
     const dt = iso => { if (!iso) return null; const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
     const ord = (F.status.size || F.usinas.size || F.equips.size || F.outros.size || F.q ? lista() : ITENS).slice().sort((a, b) => { const oa = a.status === 'Finalizado' ? 1 : 0, ob = b.status === 'Finalizado' ? 1 : 0; return oa - ob || (oa ? (b.ref || '').localeCompare(a.ref || '') : (a.ref || '').localeCompare(b.ref || '')); });
     const nTxt = x => notasDe(x).slice().reverse().map(n => `[${fdt(n.criada)}] ${n.texto}`).join('\n');
-    const cab = ['Nº', 'Status', 'Usina', 'Cliente', 'Equipamento', 'Identificação', 'Ocorrência', 'Criticidade', 'Grave', 'Fabricante', 'Nº do chamado', 'Início', 'Fim', 'Última atualização', 'Dias sem atualização', 'Último registro do histórico'];
+    const cab = ['Nº', 'Status', 'Usina', 'Cliente', 'Equipamento', 'Identificação', 'Ocorrência', 'Criticidade', 'Grave', 'Fabricante', 'OS', 'Nº do chamado', 'Início', 'Fim', 'Última atualização', 'Dias sem atualização', 'Último registro do histórico'];
     if (fred) cab.push('Anotações', 'Ação a tomar', 'Responsável (plano)', 'Prazo', 'Situação do plano');
     const w1 = [cab];
     ord.forEach(x => {
       const p = PLANO[x.id] || {}, e = (x.hist || [])[(x.hist || []).length - 1];
-      const l = [x.id, x.status, x.usina, x.cliente, x.equip, x.nequip, x.causa, x.crit, x.grave ? 'Sim' : '', x.fab, x.chamado, dt(x.inicio), dt(x.fim), dt(x.ult), x.parado != null ? x.parado : '', e ? ((e.d ? dmy(e.d) + ' - ' : '') + e.t).slice(0, 3000) : ''];
+      const l = [x.id, x.status, x.usina, x.cliente, x.equip, x.nequip, x.causa, x.crit, x.grave ? 'Sim' : '', x.fab, x.os, x.chamado, dt(x.inicio), dt(x.fim), dt(x.ult), x.parado != null ? x.parado : '', e ? ((e.d ? dmy(e.d) + ' - ' : '') + e.t).slice(0, 3000) : ''];
       if (fred) l.push(nTxt(x), p.acao || '', p.resp || '', p.prazo ? dt(p.prazo) : '', notasDe(x).length || PLANO[x.id] ? (p.sit || 'A fazer') : '');
       w1.push(l);
     });
