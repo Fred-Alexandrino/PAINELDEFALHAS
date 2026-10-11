@@ -1608,6 +1608,12 @@ details.oc-dd[open]>summary{border-color:var(--teal);}
 .oc-col p.d{margin:2px 0 0;font-size:12px;color:var(--text-faint);line-height:1.35;}
 .oc-cards{padding:6px 10px 12px;display:flex;flex-direction:column;gap:8px;}
 .oc-card{display:block;text-align:left;width:100%;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:10px;padding:11px 12px 9px;color:inherit;font-family:inherit;cursor:pointer;box-shadow:var(--shadow);transition:border-color .15s,background .12s;}
+.oc-cw{display:flex;flex-direction:column;gap:0;}
+.oc-cw.oc-dragging{opacity:.45;}
+.oc-col.oc-dropover{outline:2px dashed var(--c);outline-offset:-4px;background:var(--panel-alt);}
+.oc-mv{display:flex;justify-content:space-between;gap:6px;padding:4px 2px 0;}
+.oc-mvb{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:3px 10px;font:500 12px 'Geist',sans-serif;cursor:pointer;transition:.15s;}
+.oc-mvb:hover{color:var(--text);border-color:var(--c,var(--teal));background:var(--panel-alt);}
 .oc-card:hover{border-color:var(--border-strong);border-left-color:var(--c);background:var(--panel-alt);}
 .oc-card .t{font-weight:600;font-size:14px;line-height:1.35;margin:0 0 3px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .oc-card .s{font-size:12.5px;color:var(--text-dim);margin:0 0 7px;overflow-wrap:anywhere;}
@@ -18136,13 +18142,17 @@ function _pontoCopiarComunicado(id, btn) {
     let rod;
     if (x.status === 'Finalizado') rod = `<span>${x.fim ? 'Fim ' + dmy(x.fim) : 'Início ' + dmy(x.inicio)}</span><span>${esc(x.id)}</span>`;
     else { const d = x.parado; rod = `<span>Início ${dmy(x.inicio)}</span><span class="${d > 30 ? 'old' : ''}">${d == null ? '' : (d === 0 ? 'atualizada hoje' : 'sem atualização há ' + d + ' d')}</span>`; }
-    return `<button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(x.causa)}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>`;
+    const idx = ST.findIndex(s => s.k === x.status);
+    const ROT = { 'Em andamento': { p: 'Retomar', n: '' }, 'Pausado': { p: 'Pausar', n: '' }, 'Finalizado': { p: 'Finalizar', n: '' } };
+    const prev = idx > 0 ? ST[idx - 1] : null, next = idx < ST.length - 1 ? ST[idx + 1] : null;
+    const mv = ehFred() ? `<div class="oc-mv">${prev ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(prev.k)}" title="Voltar para ${esc(prev.k)}">‹ ${esc(prev.k === 'Em andamento' ? (x.status === 'Finalizado' ? 'Reabrir' : 'Retomar') : prev.k)}</button>` : '<span></span>'}${next ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(next.k)}" title="Enviar para ${esc(next.k)}">${esc(ROT[next.k].p)} ›</button>` : '<span></span>'}</div>` : '';
+    return `<div class="oc-cw"${ehFred() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(x.causa)}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
   }
   function quadro(arr) {
     const cols = F.status.size ? ST.filter(s => F.status.has(s.k)) : ST;
     return '<div class="oc-board">' + cols.map(s => {
       const its = ordenar(s.k, arr.filter(x => x.status === s.k)), n = lim[s.k] || 20;
-      return `<section class="oc-col" style="--c:var(${s.c})"><header><h3>${esc(s.k)} <span>${its.length}</span></h3><p class="d">${esc(s.d)}</p></header><div class="oc-cards">` +
+      return `<section class="oc-col" data-col="${esc(s.k)}" style="--c:var(${s.c})"><header><h3>${esc(s.k)} <span>${its.length}</span></h3><p class="d">${esc(s.d)}</p></header><div class="oc-cards">` +
         (its.length ? its.slice(0, n).map(cartao).join('') + (its.length > n ? `<button class="oc-more" type="button" data-more="${esc(s.k)}">Mostrar mais ${Math.min(20, its.length - n)} de ${its.length - n}</button>` : '') : '<p class="oc-vazio">Nenhuma ocorrência com esses filtros.</p>') +
         '</div></section>';
     }).join('') + '</div>';
@@ -18289,6 +18299,15 @@ function _pontoCopiarComunicado(id, btn) {
       const corpo = { id: aberto, status: v };
       const r = await api('/ocorrencias/salvar', corpo);
       aplicarItem(r.item); toast('Status: ' + v + '.'); render(); desenharGaveta();
+    } catch (e) { toast(e.message, false); } finally { ocupado = false; }
+  }
+  async function moverStatus(id, v) {
+    if (ocupado) return;
+    const x = ITENS.find(i => i.id === id); if (!x || x.status === v) return;
+    ocupado = true;
+    try {
+      const r = await api('/ocorrencias/salvar', { id, status: v });
+      aplicarItem(r.item); toast(id + ' → ' + v + '.'); render(); if (aberto === id) desenharGaveta();
     } catch (e) { toast(e.message, false); } finally { ocupado = false; }
   }
   async function excluirOcorrencia() {
@@ -18503,8 +18522,14 @@ function _pontoCopiarComunicado(id, btn) {
       const m = e.target.closest('[data-more]');
       if (m) { const k = m.dataset.more; lim[k] = (lim[k] || (k === 'lista' ? 60 : 20)) + (k === 'lista' ? 60 : 20); render(); return; }
       if (e.target.closest('[data-oc="recarregar"]')) { carregado = false; carregar(true); return; }
+      const mvb = e.target.closest('[data-mv]'); if (mvb) { e.stopPropagation(); moverStatus(mvb.dataset.mv, mvb.dataset.to); return; }
       const c = e.target.closest('[data-id]'); if (c) abrir(c.dataset.id);
     };
+    // arrastar o cartão para outra coluna também muda o status
+    $('#ocOut').addEventListener('dragstart', e => { const w = e.target.closest && e.target.closest('[data-drag]'); if (!w) return; e.dataTransfer.setData('text/plain', w.dataset.drag); e.dataTransfer.effectAllowed = 'move'; w.classList.add('oc-dragging'); });
+    $('#ocOut').addEventListener('dragend', e => { document.querySelectorAll('.oc-dragging,.oc-dropover').forEach(n => n.classList.remove('oc-dragging', 'oc-dropover')); });
+    $('#ocOut').addEventListener('dragover', e => { const col = e.target.closest && e.target.closest('[data-col]'); if (!col) return; e.preventDefault(); document.querySelectorAll('.oc-dropover').forEach(n => n !== col && n.classList.remove('oc-dropover')); col.classList.add('oc-dropover'); });
+    $('#ocOut').addEventListener('drop', e => { const col = e.target.closest && e.target.closest('[data-col]'); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); document.querySelectorAll('.oc-dropover').forEach(n => n.classList.remove('oc-dropover')); if (id) moverStatus(id, col.dataset.col); });
     document.addEventListener('click', e => { const d = $('#ocDdUsina'); if (d && d.open && !d.contains(e.target)) d.open = false; });
     $('#ocTabOc').onclick = () => setAba('oc'); $('#ocTabPl').onclick = () => setAba('pl');
     $('#ocExp').onclick = exportar;
