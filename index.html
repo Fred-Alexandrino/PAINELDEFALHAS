@@ -15919,6 +15919,7 @@ async function _convConfirmar() {
     showToast(result.vinculada ? `OS vinculada à ocorrência ${result.novaOcorrenciaId}.`
       : (result.jaExistia ? `Essa OS já está na ocorrência ${result.novaOcorrenciaId}.` : `Nova ocorrência ${result.novaOcorrenciaId} criada.`), true);
     _convOcLista = [];
+    try { if (window.OC) OC.recarregar(); } catch (e) {}
     ov.style.display = 'none';
     await carregarAtividades();
     _renderAtivDrawer && _renderAtivDrawer();
@@ -18600,7 +18601,8 @@ function _pontoCopiarComunicado(id, btn) {
 
   /* API pública */
   window.OC = {
-    entrar() { iniciar(); carregar(false); },
+    // Ao abrir o painel mostra o que já tem e SEMPRE rebusca (ocorrências criadas/vinculadas a partir de Atividades não apareciam: 12/10/2026).
+    entrar() { iniciar(); if (carregado) { render(); carregar(true); } else carregar(false); },
     recarregar() { return carregar(true); },
     novo() { iniciar(); if (!carregado) carregar(false).then(novo); else novo(); },
     abrir(id) { iniciar(); const go = () => { if (ITENS.find(x => x.id === id)) { abrir(id); } }; carregado ? go() : carregar(false).then(go); },
