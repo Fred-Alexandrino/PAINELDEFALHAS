@@ -7447,7 +7447,21 @@ function mapSalvar() {
 function mapRestaurar() { _mapEnviar({ usina: _mapEdit, restaurar: true }); }
 
 // Mantém a lista do filtro de usina da sidebar alinhada ao mapeamento oficial
-_mapUfvsCarregar(false).then(() => { try { populateFilters(); } catch (e) {} try { if (typeof CHAMADOS_FABRICANTE !== 'undefined' && CHAMADOS_FABRICANTE.length) { _atualizarBadgeChamados(); } } catch (e) {} });
+_mapUfvsCarregar(false).then(() => {
+  try { populateFilters(); } catch (e) {}
+  try {
+    if (typeof CHAMADOS_FABRICANTE !== 'undefined' && CHAMADOS_FABRICANTE.length) {
+      // Recalcula _usinasCanonicas agora que o mapeamento oficial chegou —
+      // cobre o caso de Chamados ter carregado ANTES do mapeamento (corrida
+      // entre as duas chamadas na inicialização), que deixaria a resolução
+      // de usina ambígua (ver _chamadoUsinasCanonicas) congelada sem o
+      // catálogo disponível. Reaplica e, se a seção estiver aberta, re-renderiza.
+      CHAMADOS_FABRICANTE.forEach(c => { c._usinasCanonicas = _chamadoUsinasCanonicas(c['UFV']); });
+      _atualizarBadgeChamados();
+      if (_activeNav === 'chamados') openChamadosInline();
+    }
+  } catch (e) {}
+});
 
 // Dados para os dropdowns customizados
 let _cbUsinaOpts = [];
@@ -10375,7 +10389,28 @@ function _chamadoUsinasCanonicas(ufvRaw) {
   if (!norm) return [];
   // corrige sufixo espúrio em usina de unidade única (ex.: "Poconé I" -> "Poconé")
   const semSufixo = norm.replace(/\s+(I|II)$/i, '').trim();
-  if (semSufixo !== norm && USINAS_UNIDADE_UNICA.includes(semSufixo)) norm = semSufixo;
+  if (semSufixo !== norm) {
+    if (USINAS_UNIDADE_UNICA.includes(semSufixo)) norm = semSufixo;
+  } else {
+    // Nenhum sufixo foi informado na planilha (norm já veio "puro"). Se a
+    // usina não é de unidade única E existem DUAS usinas canônicas reais
+    // pro mesmo nome base (ex.: "Nova Londrina I"/"Nova Londrina II" no
+    // mapeamento oficial), o chamado é ambíguo — não dá pra saber qual das
+    // duas é a certa só pelo nome "Nova Londrina" puro. Sem este tratamento
+    // o chamado nunca bate com nenhum filtro específico de usina ("Nova
+    // Londrina I" ou "II" isolados) e some do painel mesmo estando com dados
+    // válidos na planilha (bug real, achado 13/10/2026 — chamado
+    // 80015957/16165351/15914966, UFV "Thopen - Nova Londrina" sem sufixo).
+    // Resolvido retornando as DUAS unidades canônicas, pra aparecer em
+    // qualquer filtro por qualquer uma delas.
+    if (!USINAS_UNIDADE_UNICA.includes(norm) && typeof _mapUfvsCache !== 'undefined' && Array.isArray(_mapUfvsCache) && _mapUfvsCache.length) {
+      const catalogo = new Set(_mapUfvsCache.map(u => u.usina));
+      const unidadeI = norm + ' I', unidadeII = norm + ' II';
+      if (catalogo.has(unidadeI) && catalogo.has(unidadeII) && !catalogo.has(norm)) {
+        return [unidadeI, unidadeII];
+      }
+    }
+  }
   return [norm];
 }
 
