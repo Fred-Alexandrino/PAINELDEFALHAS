@@ -10379,11 +10379,16 @@ const USINAS_UNIDADE_UNICA = ['ABC Morada Nova','Araputanga','Crateús','Elias F
 function _chamadoUsinasCanonicas(ufvRaw) {
   const semCliente = (ufvRaw || '').replace(/^[^-]+-\s*/, '').trim();
   if (!semCliente) return [];
-  // linha combinando duas unidades: "<base> 1 e 2", "<base> I e II" etc.
-  const combinada = semCliente.match(/^(.+?)\s+(\d+|[ivx]+)\s+e\s+(\d+|[ivx]+)$/i);
+  // linha combinando 2+ unidades: "<base> 1 e 2", "<base> I e II",
+  // "<base> I e II e III e IV" (ex.: Guatambu, 4 unidades; Pharmas, 3
+  // unidades II/III/IV) — generalizado em 13/10/2026 junto com o fix do
+  // backend que agora monta esse formato pra UFV sem sufixo na planilha
+  // (ver resolver_usinas_chamado() no app.py).
+  const combinada = semCliente.match(/^(.+?)\s+((?:(?:\d+|[ivx]+)\s+e\s+)+(?:\d+|[ivx]+))$/i);
   if (combinada) {
     const base = combinada[1].trim();
-    return [normalizeUsina(`${base} ${combinada[2]}`), normalizeUsina(`${base} ${combinada[3]}`)].filter(Boolean);
+    const sufixos = combinada[2].split(/\s+e\s+/i);
+    return sufixos.map(suf => normalizeUsina(`${base} ${suf}`)).filter(Boolean);
   }
   let norm = normalizeUsina(semCliente);
   if (!norm) return [];
