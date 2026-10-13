@@ -12422,6 +12422,7 @@ const _PP_API = 'https://api.168.138.232.237.sslip.io';
 let _ppModo = 'semana';          // 'semana' | 'dia'
 let _ppSemana = null;            // última resposta de /programacao-pcm/semana
 let _ppAgruparOS = false;
+let _ppMostrarFora = false;      // OS do PCM de usinas que não estão no mapeamento (ex.: Sal Energia)
 let _ppEnvioStatus = {};
 let _ppDiaUlt = null;            // última resposta de /programacao-pcm (modo Dia)         // cluster -> {ok, msg}
 
@@ -12467,6 +12468,7 @@ function _ppItensFiltrados() {
 
 // Filtros da sidebar (Clientes, Usina, Cluster, Técnico) aplicados a este painel
 function _ppPassaSidebar(it) {
+  if (it.foraMapeamento && !_ppMostrarFora) return false;
   try {
     if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(it.cliente)) return false;
     if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(it.usinaCanonica)) return false;
@@ -12535,10 +12537,13 @@ function _ppRenderSemana() {
   if (!box || !r) return;
   if (r.aviso) { box.innerHTML = `<div class="empty-state">${esc(r.aviso)}</div>`; return; }
   const dias = _ppItensFiltrados();
+  const foraTotal = (r.dias || []).reduce((a, d) => a + d.itens.filter(it => it.foraMapeamento).length, 0);
   const hoje = _ppHojeStr();
   const totalSel = dias.reduce((a, d) => a + d.itens.length, 0);
   const horasSel = dias.reduce((a, d) => a + d.itens.reduce((x, it) => x + (it.duracaoH || 0), 0), 0);
   const aposSel = dias.reduce((a, d) => a + d.itens.filter(it => it.aposPlano).length, 0);
+  const _tEl = document.getElementById('progPcmTotal'); if (_tEl) _tEl.textContent = totalSel;
+  const _sEl = document.getElementById('progPcmSub'); if (_sEl) _sEl.textContent = `${r.rotulo || ''} · ${totalSel} atividade(s)`;
   const kpiDia = dias.map(d => `<div class="pps-kpi"><b>${d.itens.length}</b><span>${esc(d.rotulo)} ${esc(d.dataCurta)}</span></div>`).join('');
   box.innerHTML = _ppFiltroBarHtml() + `
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
@@ -12548,6 +12553,9 @@ function _ppRenderSemana() {
       <label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;">
         <input type="checkbox" ${_ppAgruparOS ? 'checked' : ''} onchange="_ppAgruparOS=this.checked;_ppRenderSemana();"> Agrupar por usina
       </label>
+      ${foraTotal ? `<label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="OS que o PCM programou pra você em usinas que não estão no seu mapeamento atual (ex.: Sal Energia). Não entram nos envios.">
+        <input type="checkbox" ${_ppMostrarFora ? 'checked' : ''} onchange="_ppMostrarFora=this.checked;_ppRenderSemana();"> Mostrar fora do mapeamento (${foraTotal})
+      </label>` : ''}
     </div>
     <div class="pps-kpis">
       <div class="pps-kpi"><b>${totalSel}</b><span>OS na semana</span></div>
