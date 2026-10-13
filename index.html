@@ -12555,10 +12555,10 @@ function _ppAjustaTexto(ctx, texto, largura) {
   return texto.trimEnd() + '…';
 }
 
-function _ppGerarImagemCluster(cluster) {
+function _ppGerarImagemCluster(cluster, grupoId) {
   const r = _ppSemana;
-  const info = (r.clusters || []).find(c => c.cluster === cluster) || {};
-  const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster && _ppPassaSidebar(it)) }));
+  const info = (r.envios || []).find(e => e.cluster === cluster && (e.grupoId || null) === (grupoId || null)) || {};
+  const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster && (it.grupo || null) === (grupoId || null) && _ppPassaSidebar(it)) }));
   const COL_W = 330, PAD = 24, GAP = 12, HEAD_H = 118, DIA_H = 62;
   const LINHA_H = 58, USINA_H = 26;
   const W = PAD * 2 + COL_W * 5 + GAP * 4;
@@ -12584,7 +12584,7 @@ function _ppGerarImagemCluster(cluster) {
   ctx.fillStyle = '#9FB8BD'; ctx.font = `600 15px ${FONT}`;
   ctx.fillText('PROGRAMAÇÃO PCM · GRID CO. O&M', PAD, 32);
   ctx.fillStyle = '#FFFFFF'; ctx.font = `800 34px ${FONT}`;
-  ctx.fillText(cluster, PAD, 72);
+  ctx.fillText(cluster + (info.multi && info.grupoNome ? '  ·  ' + info.grupoNome : ''), PAD, 72);
   ctx.fillStyle = '#E8F6F8'; ctx.font = `600 18px ${FONT}`;
   const tot = dias.reduce((a, d) => a + d.itens.length, 0);
   const hrs = dias.reduce((a, d) => a + d.itens.reduce((x, it) => x + (it.duracaoH || 0), 0), 0);
@@ -12656,9 +12656,9 @@ function _ppGerarImagemCluster(cluster) {
   return cv.toDataURL('image/png');
 }
 
-function _ppLegenda(cluster) {
+function _ppLegenda(cluster, grupoId) {
   const r = _ppSemana;
-  const d = r.dias.map(x => ({ rot: x.rotulo, cur: x.dataCurta, n: x.itens.filter(it => it.cluster === cluster && _ppPassaSidebar(it)).length }));
+  const d = r.dias.map(x => ({ rot: x.rotulo, cur: x.dataCurta, n: x.itens.filter(it => it.cluster === cluster && (it.grupo || null) === (grupoId || null) && _ppPassaSidebar(it)).length }));
   const tot = d.reduce((a, x) => a + x.n, 0);
   const nomes = { SEG: 'Seg', TER: 'Ter', QUA: 'Qua', QUI: 'Qui', SEX: 'Sex' };
   const msg = (document.getElementById('ppEnvioMsg')?.value || '').trim();
@@ -12679,11 +12679,16 @@ function _ppAbrirEnvio() {
 }
 function _ppFecharEnvio() { const ov = document.getElementById('ppEnvioOverlay'); if (ov) ov.style.display = 'none'; }
 
+function _ppChaveEnvio(c) { return c.cluster + '|' + (c.grupoId || ''); }
 function _ppClustersEnvio() {
-  // total recalculado com os filtros da sidebar: o que aparece na tela é o que é enviado
+  // destinos = (cluster do mapeamento, grupo de WhatsApp); total recalculado com
+  // os filtros da sidebar: o que aparece na tela é o que é enviado
   const cont = {};
-  _ppSemana.dias.forEach(d => d.itens.forEach(it => { if (_ppPassaSidebar(it)) cont[it.cluster] = (cont[it.cluster] || 0) + 1; }));
-  return (_ppSemana.clusters || []).filter(c => cont[c.cluster] > 0).map(c => ({ ...c, total: cont[c.cluster] }));
+  _ppSemana.dias.forEach(d => d.itens.forEach(it => {
+    if (_ppPassaSidebar(it)) { const k = it.cluster + '|' + (it.grupo || ''); cont[k] = (cont[k] || 0) + 1; }
+  }));
+  return (_ppSemana.envios || []).map(e => ({ ...e, total: cont[_ppChaveEnvio(e)] || 0, grupoConfigurado: !!e.grupoId }))
+    .filter(e => e.total > 0);
 }
 
 function _ppRenderListaEnvio() {
@@ -12694,13 +12699,13 @@ function _ppRenderListaEnvio() {
   const cls = _ppClustersEnvio();
   if (!cls.length) { lista.innerHTML = '<div class="empty-state">Nenhum cluster com OS nesta semana.</div>'; return; }
   lista.innerHTML = cls.map((c, i) => {
-    const st = _ppEnvioStatus[c.cluster];
+    const st = _ppEnvioStatus[_ppChaveEnvio(c)];
     const stTxt = st ? `<div class="st" style="color:${st.ok ? '#22c55e' : 'var(--red)'};">${esc(st.msg)}</div>` : '';
     const grupo = c.grupoConfigurado
-      ? `Grupo: ${esc(c.grupoNome || '—')}${c.gruposDistintos > 1 ? ' (⚠ usinas em ' + c.gruposDistintos + ' grupos — vai pro mais comum)' : ''}`
+      ? `Grupo: ${esc(c.grupoNome || '—')}${c.multi ? ' · ' + esc((c.usinas || []).join(', ')) : ''}`
       : '<span style="color:var(--red);">⚠ Sem grupo de WhatsApp configurado</span>';
     return `<div class="pps-row">
-      <div><div class="n">${esc(c.cluster)} <span class="tab-count">${c.total}</span></div>
+      <div><div class="n">${esc(c.cluster)}${c.multi && c.grupoNome ? ' · ' + esc(c.grupoNome) : ''} <span class="tab-count">${c.total}</span></div>
         <div class="s">${esc(c.tecnicos || '')}${c.tecnicos ? ' · ' : ''}${grupo}</div>${stTxt}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="pps-btn" onclick="_ppPrevia(${i})">👁 Ver</button>
@@ -12712,8 +12717,8 @@ function _ppRenderListaEnvio() {
 function _ppPrevia(i) {
   const c = _ppClustersEnvio()[i];
   if (!c) return;
-  const url = _ppGerarImagemCluster(c.cluster);
-  document.getElementById('ppEnvioPreviewTitulo').textContent = `Prévia — ${c.cluster}`;
+  const url = _ppGerarImagemCluster(c.cluster, c.grupoId);
+  document.getElementById('ppEnvioPreviewTitulo').textContent = `Prévia — ${c.cluster}${c.multi && c.grupoNome ? ' · ' + c.grupoNome : ''}`;
   document.getElementById('ppEnvioPreviewImg').src = url;
   const p = document.getElementById('ppEnvioPreview');
   p.style.display = 'block';
@@ -12721,21 +12726,21 @@ function _ppPrevia(i) {
 }
 
 async function _ppEnviarCluster(c) {
-  const imagem = _ppGerarImagemCluster(c.cluster);
+  const imagem = _ppGerarImagemCluster(c.cluster, c.grupoId);
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), 90000);
   try {
     const resp = await fetch(`${_PP_API}/disparar-comunicado-programacao-pcm`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
-      body: JSON.stringify({ cluster: c.cluster, imagemBase64: imagem, legenda: _ppLegenda(c.cluster) }),
+      body: JSON.stringify({ cluster: c.cluster, grupoId: c.grupoId || '', imagemBase64: imagem, legenda: _ppLegenda(c.cluster, c.grupoId) }),
     });
     const j = await resp.json().catch(() => ({}));
     if (!resp.ok || !j.ok) throw new Error(j.error || ('HTTP ' + resp.status));
     const hh = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    _ppEnvioStatus[c.cluster] = { ok: true, msg: `✅ Enviado às ${hh} → ${j.grupo || 'grupo do cluster'}` };
+    _ppEnvioStatus[_ppChaveEnvio(c)] = { ok: true, msg: `✅ Enviado às ${hh} → ${j.grupo || 'grupo do cluster'}` };
     return true;
   } catch (e) {
-    _ppEnvioStatus[c.cluster] = { ok: false, msg: '❌ Falhou: ' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) };
+    _ppEnvioStatus[_ppChaveEnvio(c)] = { ok: false, msg: '❌ Falhou: ' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) };
     return false;
   } finally { clearTimeout(tid); }
 }
@@ -12747,12 +12752,12 @@ async function _ppEnviarUm(i) {
   const btn = document.getElementById('ppEnvBtn' + i);
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   const ok = await _ppEnviarCluster(c);
-  showToast(ok ? `Programação enviada: ${c.cluster}` : `Falha ao enviar ${c.cluster}`, ok);
+  showToast(ok ? `Programação enviada: ${c.cluster}` : `Falha ao enviar ${c.cluster}: ${(_ppEnvioStatus[_ppChaveEnvio(c)] || {}).msg || ''}`, ok);
   _ppRenderListaEnvio();
 }
 
 async function _ppEnviarTodos() {
-  const cls = _ppClustersEnvio().filter(c => c.grupoConfigurado && !(_ppEnvioStatus[c.cluster] && _ppEnvioStatus[c.cluster].ok));
+  const cls = _ppClustersEnvio().filter(c => c.grupoConfigurado && !(_ppEnvioStatus[_ppChaveEnvio(c)] && _ppEnvioStatus[_ppChaveEnvio(c)].ok));
   if (!cls.length) { showToast('Nada pendente pra enviar.', false); return; }
   if (!confirm(`Enviar a programação da semana pra ${cls.length} cluster(s), cada um no seu grupo?`)) return;
   const btn = document.getElementById('ppEnvioTodosBtn');
