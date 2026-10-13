@@ -7543,6 +7543,7 @@ function _renderCbTecnico() {
       else selTecnico.add(val);
       _renderCbTecnico();
       if (typeof renderAtividadeCards === 'function' && _activeNav === 'atividades') renderAtividadeCards();
+      try { _ppReaplicarSidebar(); } catch (e) {}
     });
   });
   if (labelEl) {
@@ -7696,6 +7697,7 @@ function applyFilters() {
     return true;
   });
   applySortAndRender();
+  try { if (typeof _ppReaplicarSidebar === 'function') _ppReaplicarSidebar(); } catch (e) {}
   try { if (_mapUfvsCache && document.getElementById('mapTbody') && !_mapEdit) mapRender(); } catch (e) {}
   if (_activeNav === 'atividades') renderAtividadeCards();
   if (_activeNav === 'chamados') openChamadosInline();
@@ -12379,9 +12381,9 @@ async function carregarAtividades(tentativa = 1) {
 const _PP_API = 'https://api.168.138.232.237.sslip.io';
 let _ppModo = 'semana';          // 'semana' | 'dia'
 let _ppSemana = null;            // última resposta de /programacao-pcm/semana
-let _ppClusterFiltro = '';
 let _ppAgruparOS = false;
-let _ppEnvioStatus = {};         // cluster -> {ok, msg}
+let _ppEnvioStatus = {};
+let _ppDiaUlt = null;            // última resposta de /programacao-pcm (modo Dia)         // cluster -> {ok, msg}
 
 function _ppHojeStr() {
   const d = new Date();
@@ -12419,8 +12421,44 @@ function _ppItensFiltrados() {
   if (!_ppSemana || !_ppSemana.dias) return [];
   return _ppSemana.dias.map(d => ({
     ...d,
-    itens: d.itens.filter(it => !_ppClusterFiltro || it.cluster === _ppClusterFiltro),
+    itens: d.itens.filter(_ppPassaSidebar),
   }));
+}
+
+// Filtros da sidebar (Clientes, Usina, Cluster, Técnico) aplicados a este painel
+function _ppPassaSidebar(it) {
+  try {
+    if (typeof selCliente !== 'undefined' && selCliente.size > 0 && !selCliente.has(it.cliente)) return false;
+    if (typeof selUsinaValues !== 'undefined' && selUsinaValues.size > 0 && !selUsinaValues.has(it.usinaCanonica)) return false;
+    if (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro && it.cluster !== _ativClusterFiltro) return false;
+    if (typeof selTecnico !== 'undefined' && selTecnico.size > 0) {
+      const k = it.tecnico ? _tecnicosDoMapa().find(n => _tecCasa(n, it.tecnico)) : null;
+      if (!k || !selTecnico.has(k)) return false;
+    }
+  } catch (e) { /* sidebar indisponível: não filtra */ }
+  return true;
+}
+function _ppResumoSidebar() {
+  const p = [];
+  try {
+    if (selCliente.size) p.push('cliente: ' + [...selCliente].join(', '));
+    if (selUsinaValues.size) p.push('usina: ' + (selUsinaValues.size > 3 ? selUsinaValues.size + ' selecionadas' : [...selUsinaValues].join(', ')));
+    if (_ativClusterFiltro) p.push('cluster: ' + _ativClusterFiltro);
+    if (selTecnico.size) p.push('técnico: ' + (selTecnico.size > 3 ? selTecnico.size + ' selecionados' : [...selTecnico].join(', ')));
+  } catch (e) {}
+  return p;
+}
+function _ppFiltroBarHtml() {
+  const p = _ppResumoSidebar();
+  return p.length
+    ? `<div style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span>🔎 Filtros da sidebar → ${esc(p.join(' · '))}</span><button class="pps-btn" onclick="document.getElementById('sbClearBtn')?.click()">Limpar filtros</button></div>`
+    : `<div style="font-size:12.5px;color:var(--text-faint);margin-bottom:10px;">🔎 Use os filtros da sidebar (Clientes, Usina, Cluster, Técnico) para filtrar este painel.</div>`;
+}
+// chamado por applyFilters() sempre que a sidebar muda
+function _ppReaplicarSidebar() {
+  if (typeof _activeNav !== 'undefined' && _activeNav !== 'programacao-pcm') return;
+  if (_ppModo === 'semana') { if (_ppSemana) _ppRenderSemana(); }
+  else if (_ppDiaUlt) _ppRenderDia();
 }
 
 async function carregarProgramacaoPcmSemana(dataParam, forcar) {
@@ -12461,16 +12499,12 @@ function _ppRenderSemana() {
   const totalSel = dias.reduce((a, d) => a + d.itens.length, 0);
   const horasSel = dias.reduce((a, d) => a + d.itens.reduce((x, it) => x + (it.duracaoH || 0), 0), 0);
   const aposSel = dias.reduce((a, d) => a + d.itens.filter(it => it.aposPlano).length, 0);
-  const optsCl = ['<option value="">Todos os clusters</option>'].concat(
-    (r.clusters || []).filter(c => c.total > 0).map(c => `<option value="${esc(c.cluster)}"${c.cluster === _ppClusterFiltro ? ' selected' : ''}>${esc(c.cluster)} (${c.total})</option>`)
-  ).join('');
   const kpiDia = dias.map(d => `<div class="pps-kpi"><b>${d.itens.length}</b><span>${esc(d.rotulo)} ${esc(d.dataCurta)}</span></div>`).join('');
-  box.innerHTML = `
+  box.innerHTML = _ppFiltroBarHtml() + `
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
       <button class="pps-nav" onclick="_ppMoverSemana(-1)">◀</button>
       <strong style="font-size:14px;">${esc(r.rotulo)}</strong>
       <button class="pps-nav" onclick="_ppMoverSemana(1)">▶</button>
-      <select class="sb-select" style="width:auto;" onchange="_ppClusterFiltro=this.value;_ppRenderSemana();">${optsCl}</select>
       <label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;">
         <input type="checkbox" ${_ppAgruparOS ? 'checked' : ''} onchange="_ppAgruparOS=this.checked;_ppRenderSemana();"> Agrupar por usina
       </label>
@@ -12491,7 +12525,7 @@ function _ppCardItem(it, mostrarUsina) {
     <div class="h"><span>${hora}${it.turno ? ' · ' + esc(it.turno) : ''}</span><span>${it.aposPlano ? '<span class="pps-tag" title="Criada após o plano">NOVA</span> ' : ''}OS ${esc(it.os || '—')}</span></div>
     ${mostrarUsina ? `<div class="u">${esc(it.usina)}</div>` : ''}
     <div class="t">${esc(_ppTarefaCurta(it.tarefa) || it.tipo || '—')}</div>
-    <div class="c">${esc(it.estado || '')}${it.tecnico ? ' · ' + esc(it.tecnico) : ''}${!_ppClusterFiltro ? ' · ' + esc(it.cluster) : ''}${(it.semanas && it.semanas > 1) ? ' · ' + it.semanas + 'ª sem' : ''}</div>
+    <div class="c">${esc(it.estado || '')}${it.tecnico ? ' · ' + esc(it.tecnico) : ''}${!(typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? ' · ' + esc(it.cluster) : ''}${(it.semanas && it.semanas > 1) ? ' · ' + it.semanas + 'ª sem' : ''}</div>
   </div>`;
 }
 
@@ -12524,7 +12558,7 @@ function _ppAjustaTexto(ctx, texto, largura) {
 function _ppGerarImagemCluster(cluster) {
   const r = _ppSemana;
   const info = (r.clusters || []).find(c => c.cluster === cluster) || {};
-  const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster) }));
+  const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster && _ppPassaSidebar(it)) }));
   const COL_W = 330, PAD = 24, GAP = 12, HEAD_H = 118, DIA_H = 62;
   const LINHA_H = 58, USINA_H = 26;
   const W = PAD * 2 + COL_W * 5 + GAP * 4;
@@ -12624,7 +12658,7 @@ function _ppGerarImagemCluster(cluster) {
 
 function _ppLegenda(cluster) {
   const r = _ppSemana;
-  const d = r.dias.map(x => ({ rot: x.rotulo, cur: x.dataCurta, n: x.itens.filter(it => it.cluster === cluster).length }));
+  const d = r.dias.map(x => ({ rot: x.rotulo, cur: x.dataCurta, n: x.itens.filter(it => it.cluster === cluster && _ppPassaSidebar(it)).length }));
   const tot = d.reduce((a, x) => a + x.n, 0);
   const nomes = { SEG: 'Seg', TER: 'Ter', QUA: 'Qua', QUI: 'Qui', SEX: 'Sex' };
   const msg = (document.getElementById('ppEnvioMsg')?.value || '').trim();
@@ -12646,12 +12680,16 @@ function _ppAbrirEnvio() {
 function _ppFecharEnvio() { const ov = document.getElementById('ppEnvioOverlay'); if (ov) ov.style.display = 'none'; }
 
 function _ppClustersEnvio() {
-  return (_ppSemana.clusters || []).filter(c => c.total > 0);
+  // total recalculado com os filtros da sidebar: o que aparece na tela é o que é enviado
+  const cont = {};
+  _ppSemana.dias.forEach(d => d.itens.forEach(it => { if (_ppPassaSidebar(it)) cont[it.cluster] = (cont[it.cluster] || 0) + 1; }));
+  return (_ppSemana.clusters || []).filter(c => cont[c.cluster] > 0).map(c => ({ ...c, total: cont[c.cluster] }));
 }
 
 function _ppRenderListaEnvio() {
   const r = _ppSemana;
-  document.getElementById('ppEnvioSub').textContent = `${r.rotulo} · cada cluster recebe só a própria programação, no grupo dele.`;
+  const _fs = _ppResumoSidebar();
+  document.getElementById('ppEnvioSub').textContent = `${r.rotulo} · cada cluster recebe só a própria programação, no grupo dele.` + (_fs.length ? ' Filtros da sidebar aplicados: ' + _fs.join(' · ') : '');
   const lista = document.getElementById('ppEnvioLista');
   const cls = _ppClustersEnvio();
   if (!cls.length) { lista.innerHTML = '<div class="empty-state">Nenhum cluster com OS nesta semana.</div>'; return; }
@@ -12735,6 +12773,36 @@ function _progPcmEstadoSlug(estado) {
   return map[estado] || 'pendente';
 }
 
+function _ppRenderDia() {
+  const result = _ppDiaUlt;
+  const sub = document.getElementById('progPcmSub');
+  const totalEl = document.getElementById('progPcmTotal');
+  const gruposEl = document.getElementById('progPcmGrupos');
+  if (!result || !gruposEl) return;
+  const grupos = (result.grupos || []).map(g => ({ usina: g.usina, itens: g.itens.filter(_ppPassaSidebar) })).filter(g => g.itens.length);
+  const total = grupos.reduce((a, g) => a + g.itens.length, 0);
+  const atrasadas = grupos.reduce((a, g) => a + g.itens.filter(it => it.atrasado).length, 0);
+  if (totalEl) totalEl.textContent = total;
+  if (sub) sub.textContent = `${total} atividade(s)${atrasadas ? ` · ${atrasadas} atrasada(s)` : ''}${result.diaSemana ? ` · ${result.diaSemana}` : ''}`;
+  if (result.aviso) { gruposEl.innerHTML = `<div class="empty-state">${esc(result.aviso)}</div>`; return; }
+  if (!grupos.length) { gruposEl.innerHTML = _ppFiltroBarHtml() + `<div class="empty-state">Nenhuma atividade programada pelo PCM para ${esc(result.data)}${_ppResumoSidebar().length ? ' com os filtros da sidebar' : ''}.</div>`; return; }
+  gruposEl.innerHTML = _ppFiltroBarHtml() + grupos.map(g => `
+    <div class="prog-pcm-usina">
+      <div class="prog-pcm-usina-head">${esc(g.usina)} <span class="tab-count">${g.itens.length}</span></div>
+      <div class="prog-pcm-itens">
+        ${g.itens.map(it => `
+          <div class="prog-pcm-item${it.atrasado ? ' atrasado' : ''}">
+            <span class="prog-pcm-hora">${it.hIni ? esc(it.hIni) + (it.hFim ? '–' + esc(it.hFim) : '') : ''}</span>
+            <span class="prog-pcm-os">OS ${esc(it.os || '—')}</span>
+            <span class="prog-pcm-tarefa" title="${esc(it.tarefa || it.tipo || '')}">${esc(it.tarefa || it.tipo || '—')}</span>
+            <span class="prog-pcm-estado prog-pcm-estado-${_progPcmEstadoSlug(it.estado)}">${esc(it.estado || '—')}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
 // Espelho somente leitura do que o PCM (Fillipe Figueiro, via Power
 // Automate → gridco-pcm-data) programou para as equipes do Fred
 // Alexandrino. O backend já cacheia por hash, então chamar isto com
@@ -12758,35 +12826,8 @@ async function carregarProgramacaoPcm(dataParam, forcar) {
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar programação');
     if (dataInput && !dataInput.value) dataInput.value = result.data;
-    if (totalEl) totalEl.textContent = result.total || 0;
-    if (sub) {
-      const atrasadasTxt = result.atrasadas ? ` · ${result.atrasadas} atrasada(s)` : '';
-      const diaTxt = result.diaSemana ? ` · ${result.diaSemana}` : '';
-      sub.textContent = `${result.total} atividade(s)${atrasadasTxt}${diaTxt}`;
-    }
-    if (gruposEl) {
-      if (result.aviso) {
-        gruposEl.innerHTML = `<div class="empty-state">${esc(result.aviso)}</div>`;
-      } else if (!result.grupos || result.grupos.length === 0) {
-        gruposEl.innerHTML = `<div class="empty-state">Nenhuma atividade programada pelo PCM para ${esc(result.data)}.</div>`;
-      } else {
-        gruposEl.innerHTML = result.grupos.map(g => `
-          <div class="prog-pcm-usina">
-            <div class="prog-pcm-usina-head">${esc(g.usina)} <span class="tab-count">${g.itens.length}</span></div>
-            <div class="prog-pcm-itens">
-              ${g.itens.map(it => `
-                <div class="prog-pcm-item${it.atrasado ? ' atrasado' : ''}">
-                  <span class="prog-pcm-hora">${it.hIni ? esc(it.hIni) + (it.hFim ? '–' + esc(it.hFim) : '') : ''}</span>
-                  <span class="prog-pcm-os">OS ${esc(it.os || '—')}</span>
-                  <span class="prog-pcm-tarefa" title="${esc(it.tarefa || it.tipo || '')}">${esc(it.tarefa || it.tipo || '—')}</span>
-                  <span class="prog-pcm-estado prog-pcm-estado-${_progPcmEstadoSlug(it.estado)}">${esc(it.estado || '—')}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('');
-      }
-    }
+    _ppDiaUlt = result;
+    _ppRenderDia();
   } catch (e) {
     if (sub) sub.textContent = 'Erro ao carregar.';
     if (gruposEl) gruposEl.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar a programação PCM agora (${esc(e.message || 'falha de conexão')}). Clique em Atualizar para tentar de novo.</div>`;
