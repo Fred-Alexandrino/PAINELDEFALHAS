@@ -4272,7 +4272,7 @@ const _SUP_ESCOPOS = {
     ]
   }
 };
-const _SUP_NAVS_PERMITIDOS = ['atividades', 'chamados', 'comunicados', 'relatorios'];
+const _SUP_NAVS_PERMITIDOS = ['atividades', 'ocorrencias', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
   let s = String(u == null ? '' : u).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -4910,7 +4910,7 @@ const NAV_TITLES = {
 
 function switchNav(nav) {
   if (nav === 'falhas') nav = 'ocorrencias';  // Painel de Falhas substituído pelo Painel de Ocorrências (09/10/2026)
-  if (nav === 'ocorrencias' && _currentSession && !['manager','admin'].includes(_currentSession.role)) nav = 'atividades';
+  if (nav === 'ocorrencias' && _currentSession && !['manager','admin','supervisor'].includes(_currentSession.role)) nav = 'atividades';
   if (_currentSession && _currentSession.role === 'supervisor' && !_SUP_NAVS_PERMITIDOS.includes(nav)) nav = 'atividades';
   if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
@@ -6190,7 +6190,7 @@ function initDashboard(session) {
     if (sbQuickActions) sbQuickActions.style.display = '';
     if (ativAcoesWrap) ativAcoesWrap.style.display = '';
     ['sbSketchbookBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-    document.querySelectorAll('#sbQuickActions button[onclick*="_openNovaOcorrencia"], #sbQuickActions a[href="fv-energias.html"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#sbQuickActions a[href="fv-energias.html"]').forEach(el => el.style.display = 'none');
   } else if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
     if (navRondas) navRondas.style.display = '';
@@ -6239,8 +6239,8 @@ function initDashboard(session) {
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
-  if (session.role === 'manager' || session.role === 'admin') { try { OC.entrar(); } catch (e) {} }
-  if (session.role !== 'manager' && session.role !== 'admin') {
+  if (session.role === 'manager' || session.role === 'admin' || session.role === 'supervisor') { try { OC.entrar(); } catch (e) {} }
+  if (session.role !== 'manager' && session.role !== 'admin' && session.role !== 'supervisor') {
     document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
   }
   document.getElementById('appShell').classList.add('ready');
@@ -18521,7 +18521,7 @@ function _pontoCopiarComunicado(id, btn) {
    Fonte dos dados: abas Ocorrencias* da planilha, via backend (/ocorrencias*).
    Perfis: manager (Fred) edita tudo e vê anotações + plano de ação;
            admin só visualiza as ocorrências (sem anotações/plano);
-           supervisoras e clientes não chegam aqui.
+           supervisoras editam só as ocorrências das usinas delas (sem anotações/plano); clientes não chegam aqui.
 ══════════════════════════════════════════════════════════ */
 (function () {
   const API = 'https://api.168.138.232.237.sslip.io';
@@ -18576,6 +18576,9 @@ function _pontoCopiarComunicado(id, btn) {
 
   const sessao = () => (typeof _currentSession !== 'undefined' && _currentSession) || {};
   const ehFred = () => sessao().role === 'manager';
+  /* quem edita ocorrências: Fred (tudo) e supervisoras (só as das usinas delas, sem anotações/plano) */
+  const ehEdit = () => ['manager', 'supervisor'].includes(sessao().role);
+  const nomeResp = () => { const r = sessao(); if (r.role !== 'supervisor') return 'Fred'; const e = (typeof _SUP_ESCOPOS !== 'undefined') && _SUP_ESCOPOS[String(r.user || '').toLowerCase()]; return (e && e.nome) || String(r.user || 'Supervisor'); };
   const hojeIso = () => HOJE.getFullYear() + '-' + String(HOJE.getMonth() + 1).padStart(2, '0') + '-' + String(HOJE.getDate()).padStart(2, '0');
   const dias = iso => iso ? Math.round((HOJE - pd(iso)) / 864e5) : null;
   const toast = (m, ok = true) => { try { showToast(m, ok); } catch (e) {} };
@@ -18701,8 +18704,8 @@ function _pontoCopiarComunicado(id, btn) {
     const idx = ST.findIndex(s => s.k === x.status);
     const ROT = { 'Em andamento': { p: 'Retomar', n: '' }, 'Pausado': { p: 'Pausar', n: '' }, 'Finalizado': { p: 'Finalizar', n: '' } };
     const prev = idx > 0 ? ST[idx - 1] : null, next = idx < ST.length - 1 ? ST[idx + 1] : null;
-    const mv = ehFred() ? `<div class="oc-mv">${prev ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(prev.k)}" title="Voltar para ${esc(prev.k)}">‹ ${esc(prev.k === 'Em andamento' ? (x.status === 'Finalizado' ? 'Reabrir' : 'Retomar') : prev.k)}</button>` : '<span></span>'}${next ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(next.k)}" title="Enviar para ${esc(next.k)}">${esc(ROT[next.k].p)} ›</button>` : '<span></span>'}</div>` : '';
-    return `<div class="oc-cw"${ehFred() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(tit(x))}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
+    const mv = ehEdit() ? `<div class="oc-mv">${prev ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(prev.k)}" title="Voltar para ${esc(prev.k)}">‹ ${esc(prev.k === 'Em andamento' ? (x.status === 'Finalizado' ? 'Reabrir' : 'Retomar') : prev.k)}</button>` : '<span></span>'}${next ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(next.k)}" title="Enviar para ${esc(next.k)}">${esc(ROT[next.k].p)} ›</button>` : '<span></span>'}</div>` : '';
+    return `<div class="oc-cw"${ehEdit() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(tit(x))}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
   }
   function quadro(arr) {
     const cols = F.status.size ? ST.filter(s => F.status.has(s.k)) : ST;
@@ -18751,7 +18754,7 @@ function _pontoCopiarComunicado(id, btn) {
     if (modo === 'editar') return desenharForm(x);
     const col = SK[x.status].c, h = (x.hist || []).slice();
     if (ordemHist === 'novo') h.reverse();
-    const pode = ehFred();
+    const pode = ehEdit();
     const tl = h.length ? `<ul class="oc-tl" style="--c:var(${col})">` + h.map((e, i) => {
       const ultimo = ordemHist === 'novo' ? i === 0 : i === h.length - 1;
       if (editHist === e.hid) return `<li><div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="ehData" value="${esc(e.d || '')}" style="max-width:170px"></div><textarea id="ehTxt" rows="3" aria-label="Editar registro">${esc(e.t)}</textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-salvar" data-hid="${esc(e.hid)}">Salvar</button><button class="oc-btn sm" type="button" data-oc="hist-cancel">Cancelar</button></div></div></li>`;
@@ -18795,8 +18798,9 @@ function _pontoCopiarComunicado(id, btn) {
   /* formulário (criar / editar) */
   function opt(arr, v) { return arr.map(o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o || '—')}</option>`).join(''); }
   function desenharForm(x) {
-    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', os: '', sn: '', titulo: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: 'Fred' };
-    const usinas = [...new Set(ITENS.map(i => i.usina))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const novo = !x, v = x || { status: 'Em andamento', crit: '', grave: false, usina: '', cliente: '', equip: '', nequip: '', fab: '', chamado: '', os: '', sn: '', titulo: '', causa: '', impacto: '', inicio: hojeIso(), fim: '', resp: nomeResp() };
+    const _usEsc = (sessao().role === 'supervisor' && typeof _supEscopoAtivo !== 'undefined' && _supEscopoAtivo && _supEscopoAtivo.usinas) ? _supEscopoAtivo.usinas.map(u => u.usina) : [];
+    const usinas = [...new Set([...ITENS.map(i => i.usina), ..._usEsc])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const equips = [...new Set(ITENS.map(i => i.equip))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const fabs = [...new Set(ITENS.map(i => i.fab).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const col = SK[v.status].c;
@@ -19122,9 +19126,9 @@ function _pontoCopiarComunicado(id, btn) {
     });
     // perfis
     const fred = ehFred();
-    $('#ocNovo').hidden = !fred; $('#ocTabPl').hidden = !fred;
+    $('#ocNovo').hidden = !ehEdit(); $('#ocTabPl').hidden = !fred;
   }
-  function novo() { if (!ehFred()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
+  function novo() { if (!ehEdit()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
 
   /* API pública */
   window.OC = {
