@@ -1753,6 +1753,27 @@ table.oc-z td.desc{min-width:260px;}
 }
 @media (prefers-reduced-motion:reduce){.oc-drawer{transition:none;}}
 #sec-ocorrencias [hidden]{display:none!important;}
+
+/* ── Comunicado da ocorrência (modal) ── */
+.oc-modal{position:fixed;inset:0;z-index:910;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;}
+.oc-modal.on{display:flex;}
+.oc-mbox{background:var(--panel);border:1px solid var(--border-strong);border-radius:16px;width:min(980px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+.oc-mbox>header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);}
+.oc-mbox>header strong{flex:1;font-size:15px;overflow-wrap:anywhere;}
+.oc-mbody{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;padding:16px 18px;overflow-y:auto;}
+.oc-mcol label.t{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.oc-mcol textarea{width:100%;min-height:300px;resize:vertical;border:1px solid var(--border-strong);background:var(--bg);color:var(--text);border-radius:10px;padding:10px 12px;font:14px/1.5 'Geist',sans-serif;}
+.oc-mcol textarea:focus,.oc-mcol input[type=text]:focus,.oc-mcol input[type=search]:focus{outline:none;border-color:var(--teal);}
+.oc-mcol input[type=text],.oc-mcol input[type=search]{flex:1;min-width:0;border:1px solid var(--border-strong);background:var(--bg);color:var(--text);border-radius:8px;padding:7px 10px;font:13px 'Geist',sans-serif;}
+.oc-glist{border:1px solid var(--border);border-radius:10px;max-height:340px;overflow:auto;margin-top:8px;background:var(--bg);}
+.oc-glist label{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--border-soft);}
+.oc-glist label:last-child{border-bottom:0;}
+.oc-glist label:hover{background:var(--panel-alt);}
+.oc-glist .sug{margin-left:auto;font-size:11px;color:var(--teal);border:1px solid rgba(34,211,238,.4);border-radius:99px;padding:0 7px;white-space:nowrap;}
+.oc-mbox>footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--border);}
+.oc-mbox>footer .chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim);margin-right:auto;cursor:pointer;}
+.oc-mbox>footer .oc-erro{margin:0;flex-basis:100%;}
+@media (max-width:760px){.oc-mbody{grid-template-columns:1fr;}.oc-mcol textarea{min-height:220px;}}
 #sec-falhas{display:none!important;}
 body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
 #sbBadgeFalhas{display:none!important;}
@@ -18817,6 +18838,7 @@ function _pontoCopiarComunicado(id, btn) {
     dr.style.setProperty('--c', `var(${col})`);
     const botoes = pode ? `<div class="oc-acoes">
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
+      <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
       ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
       ${x.status === 'Em andamento' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Pausado">Pausar</button>' : ''}${x.status === 'Pausado' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Retomar</button>' : ''}
       ${confirmaExcluir ? '<button class="oc-btn sm perigo" type="button" data-oc="excluir-conf">Confirmar exclusão da ocorrência</button><button class="oc-btn sm" type="button" data-oc="excluir-cancel">Cancelar</button>' : '<button class="oc-btn sm perigo" type="button" data-oc="excluir">Excluir</button>'}
@@ -19174,6 +19196,7 @@ function _pontoCopiarComunicado(id, btn) {
       else if (a.startsWith('nota-')) notaAcao(a.slice(5), nid);
       else if (a === 'plano-add') { const x = aberto; salvarPlanoLinha(x, { acao: '', resp: '', prazo: '', sit: 'A fazer' }).then(render); }
       else if (a === 'plano-rem') planoRemover(aberto);
+      else if (a === 'comunicado') abrirComunicado(aberto);
       else if (a === 'plano-ver') { fechar(); setAba('pl'); window.scrollTo(0, 0); }
     });
     // perfis
@@ -19181,6 +19204,128 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocNovo').hidden = !ehEdit(); $('#ocTabPl').hidden = !fred;
   }
   function novo() { if (!ehEdit()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
+
+
+  /* ── comunicado da ocorrência: texto (plano de ação + histórico) → grupos ou cópia ── */
+  let com = null, comEl = null;
+  const comSelN = () => com.sel.size;
+  async function abrirComunicado(id) {
+    const x = ITENS.find(y => y.id === id); if (!x || !ehFred()) return;
+    if (!comEl) {
+      comEl = document.createElement('div'); comEl.className = 'oc-modal'; comEl.id = 'ocCom';
+      document.body.appendChild(comEl);
+      comEl.addEventListener('click', comClick);
+      comEl.addEventListener('input', comInput);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && comEl.classList.contains('on')) { e.stopPropagation(); comFechar(); } }, true);
+    }
+    com = { id, x, texto: '', fonte: '', grupos: [], sel: new Set(), sug: new Set(), carregando: true, confirma: false, enviando: false, erro: '', filtro: '', instrucao: '' };
+    desenharCom(); comEl.classList.add('on');
+    const pg = fetch(API + '/grupos-configurados').then(r => r.json()).catch(() => ({ ok: false }));
+    await Promise.all([gerarCom(true), pg.then(d => { if (com && com.id === id) { com.grupos = d.ok ? (d.itens || []) : []; if (!d.ok) com.erro = 'Não consegui carregar a lista de grupos — você ainda pode copiar o texto.'; } })]);
+    if (!com || com.id !== id) return;
+    com.sug.forEach(gid => { if (!com.grupos.some(g => g.id === gid.id)) com.grupos.push(gid); });
+    com.grupos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    com.sug.forEach(g => com.sel.add(g.id));
+    com.sug = new Set([...com.sug].map(g => g.id));
+    desenharCom();
+  }
+  async function gerarCom(primeira) {
+    com.carregando = true; com.erro = '';
+    if (!primeira) desenharCom();
+    const id = com.id;
+    try {
+      const r = await api('/ocorrencias/comunicado/gerar', { id, instrucao: com.instrucao || undefined });
+      if (!com || com.id !== id) return;
+      com.texto = r.texto; com.fonte = r.fonte; com.temPlano = r.temPlano;
+      if (primeira) com.sug = new Set(r.gruposSugeridos || []);
+    } catch (e) { if (com && com.id === id) com.erro = 'Não foi possível gerar o texto: ' + e.message; }
+    if (com && com.id === id) { com.carregando = false; if (!primeira) desenharCom(); }
+  }
+  function desenharCom() {
+    const x = com.x;
+    comEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Comunicado da ocorrência">
+      <header><strong>Comunicado — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-c="fechar">Fechar</button></header>
+      <div class="oc-mbody">
+        <div class="oc-mcol">
+          <label class="t" for="comTxt"><span>Texto do comunicado</span><span class="oc-hint" style="text-transform:none;letter-spacing:0;font-weight:400">${com.carregando ? 'gerando…' : (com.fonte === 'modelo' ? 'modelo fixo (IA indisponível)' : (com.temPlano ? 'gerado do plano de ação + histórico' : 'sem plano de ação — gerado do histórico'))}</span></label>
+          <textarea id="comTxt" ${com.carregando ? 'disabled placeholder="Gerando o comunicado a partir do plano de ação e do histórico…"' : ''}>${esc(com.texto)}</textarea>
+          <div class="oc-nrow"><input type="text" id="comInstr" value="${esc(com.instrucao)}" placeholder="Ajuste para regerar (ex.: mais curto, citar o prazo)" maxlength="600"><button class="oc-btn sm" type="button" data-c="regerar"${com.carregando ? ' disabled' : ''}>Regerar</button></div>
+        </div>
+        <div class="oc-mcol">
+          <label class="t"><span>Enviar para (grupos mapeados)</span><span class="oc-hint" id="comNSel" style="text-transform:none;letter-spacing:0;font-weight:400"></span></label>
+          <input type="search" id="comFiltro" placeholder="Filtrar grupos…" value="${esc(com.filtro)}">
+          <div class="oc-glist" id="comGrupos"></div>
+          <div class="oc-nrow"><button type="button" class="oc-link" data-c="limpar">Limpar seleção</button></div>
+        </div>
+      </div>
+      <footer id="comRodape"></footer></div>`;
+    desenharGruposCom(); desenharRodapeCom();
+  }
+  function desenharGruposCom() {
+    const q = norm(com.filtro.trim());
+    const lst = com.grupos.filter(g => !q || norm(g.nome).includes(q)).sort((a, b) => (com.sug.has(b.id) - com.sug.has(a.id)) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    $('#comGrupos').innerHTML = lst.length ? lst.map(g => `<label><input type="checkbox" data-g="${esc(g.id)}"${com.sel.has(g.id) ? ' checked' : ''}> ${esc(g.nome)}${com.sug.has(g.id) ? '<span class="sug">grupo da usina</span>' : ''}</label>`).join('') : `<p class="oc-vazio" style="padding:10px">${com.grupos.length ? 'Nenhum grupo com esse filtro.' : 'Carregando grupos…'}</p>`;
+    $('#comNSel').textContent = comSelN() ? plural(comSelN(), 'selecionado', 'selecionados') : '';
+  }
+  function desenharRodapeCom() {
+    const n = comSelN(), vazio = !(com.texto || '').trim();
+    $('#comRodape').innerHTML = `<label class="chk"><input type="checkbox" id="comReg"${com.registrar === false ? '' : ' checked'}> Registrar no histórico da ocorrência</label>
+      <button class="oc-btn" type="button" data-c="copiar"${vazio ? ' disabled' : ''}>Copiar texto</button>
+      ${com.confirma ? `<button class="oc-btn pri" type="button" data-c="enviar-conf"${com.enviando ? ' disabled' : ''}>${com.enviando ? 'Enviando…' : 'Confirmar envio para ' + plural(n, 'grupo', 'grupos')}</button><button class="oc-btn" type="button" data-c="enviar-cancel"${com.enviando ? ' disabled' : ''}>Cancelar</button>` : `<button class="oc-btn pri" type="button" data-c="enviar"${n && !vazio ? '' : ' disabled'}>${n ? 'Enviar para ' + plural(n, 'grupo', 'grupos') : 'Selecione um grupo para enviar'}</button>`}
+      ${com.erro ? `<div class="oc-erro" role="alert">${esc(com.erro)}</div>` : ''}`;
+  }
+  function comInput(e) {
+    if (!com) return;
+    if (e.target.id === 'comTxt') { com.texto = e.target.value; desenharRodapeCom(); }
+    else if (e.target.id === 'comInstr') com.instrucao = e.target.value;
+    else if (e.target.id === 'comFiltro') { com.filtro = e.target.value; desenharGruposCom(); }
+    else if (e.target.dataset && e.target.dataset.g) { e.target.checked ? com.sel.add(e.target.dataset.g) : com.sel.delete(e.target.dataset.g); com.confirma = false; $('#comNSel').textContent = comSelN() ? plural(comSelN(), 'selecionado', 'selecionados') : ''; desenharRodapeCom(); }
+    else if (e.target.id === 'comReg') com.registrar = e.target.checked;
+  }
+  function comFechar() { if (com && com.enviando) return; comEl.classList.remove('on'); com = null; }
+  async function comRegistrar(txt) {
+    if (com && com.registrar === false) return;
+    try {
+      const r = await api('/ocorrencias/historico/salvar', { ocorrencia: com.id, data: hojeIso(), texto: txt });
+      aplicarItem(r.item); render(); if (aberto === com.id && modo === 'ver') desenharGaveta();
+    } catch (e) { toast('Comunicado feito, mas não consegui registrar no histórico: ' + e.message, false); }
+  }
+  async function comClick(e) {
+    const b = e.target.closest('[data-c]');
+    if (!b) { if (e.target === comEl) comFechar(); return; }
+    const a = b.dataset.c;
+    if (a === 'fechar') comFechar();
+    else if (a === 'regerar') { com.instrucao = ($('#comInstr') || {}).value || ''; gerarCom(false); }
+    else if (a === 'limpar') { com.sel.clear(); com.confirma = false; desenharGruposCom(); desenharRodapeCom(); }
+    else if (a === 'enviar') { com.confirma = true; com.erro = ''; desenharRodapeCom(); }
+    else if (a === 'enviar-cancel') { com.confirma = false; desenharRodapeCom(); }
+    else if (a === 'copiar') {
+      const t = ($('#comTxt').value || '').trim(); if (!t) return;
+      try { await navigator.clipboard.writeText(t); }
+      catch (err) { const ta = $('#comTxt'); ta.select(); try { document.execCommand('copy'); } catch (e2) { com.erro = 'Não consegui copiar automaticamente — selecione o texto e copie.'; desenharRodapeCom(); return; } }
+      toast('Texto copiado — cole no WhatsApp.');
+      await comRegistrar('Comunicado de ações copiado para envio manual.');
+    }
+    else if (a === 'enviar-conf') {
+      const texto = ($('#comTxt').value || '').trim(), ids = [...com.sel];
+      if (!texto || !ids.length || com.enviando) return;
+      com.enviando = true; com.erro = ''; desenharRodapeCom();
+      try {
+        const r = await fetch(API + '/disparar-comunicado-livre', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto, grupos: ids }), signal: AbortSignal.timeout(120000) });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'Erro ao enviar');
+        const nome = gid => (com.grupos.find(g => g.id === gid) || {}).nome || gid;
+        const okIds = d.enviados || [], erros = d.erros || [];
+        com.enviando = false; com.confirma = false;
+        if (okIds.length) await comRegistrar('Comunicado de ações enviado para: ' + okIds.map(nome).join(', ') + '.');
+        if (!com) return;
+        if (!erros.length) { toast('Comunicado enviado para ' + plural(okIds.length, 'grupo', 'grupos') + '.'); comFechar(); return; }
+        com.sel = new Set(erros.map(x => x.grupo));
+        com.erro = 'Enviado para ' + okIds.length + ', mas falhou em: ' + erros.map(x => nome(x.grupo)).join(', ') + '. Os grupos com falha continuam marcados para tentar de novo.';
+        desenharGruposCom(); desenharRodapeCom();
+      } catch (err) { if (com) { com.enviando = false; com.confirma = false; com.erro = 'Erro ao enviar: ' + (err.message || 'falha de conexão') + '. Confira os grupos antes de reenviar (a mensagem pode ter saído).'; desenharRodapeCom(); } }
+    }
+  }
 
   /* API pública */
   window.OC = {
