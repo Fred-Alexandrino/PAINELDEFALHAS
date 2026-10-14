@@ -267,6 +267,13 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 }
 .sb-section-label-row[draggable="true"]{cursor:grab;}
 .sb-section-label-row[draggable="true"]:active{cursor:grabbing;}
+/* Seções recolhíveis (todas): chevron + itens escondidos por classe (não por
+   style inline, pra não brigar com o submenu "Mais" nem com sup-oculto). */
+.sb-section-label-row{cursor:pointer;}
+.sb-section-label-row .sb-sec-chevron{width:12px;height:12px;margin-left:auto;transition:transform .15s;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.sb-section-label-row[data-aberto="false"] .sb-sec-chevron{transform:rotate(-90deg);}
+.sb-secao-oculta{display:none !important;}
+@media (max-width:767px){.sb-section-label-row{padding-top:6px;padding-bottom:6px;}}
 
 /* Central de Notificações — pop-up central, estilo WhatsApp */
 .central-notif-backdrop{
@@ -1812,10 +1819,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </a>
-      <div class="sb-section-label-row" data-section-key="gestao" draggable="true" onclick="_toggleGrupoGestao(event)" title="Recolher/expandir Gestão">
-        Gestão
-        <svg class="sb-gestao-chevron" id="navGestaoChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
+      <div class="sb-section-label-row" data-section-key="gestao" draggable="true">Gestão</div>
       <a href="#localizacao" class="sb-nav-item" data-nav="localizacao" data-label="Localização" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Localização
@@ -4936,6 +4940,10 @@ function switchNav(nav) {
   if (_navEstaNoGrupoGestao(nav)) {
     _toggleGrupoGestao(null, true);
   }
+  // qualquer outra seção recolhida que contenha o item ativo também reabre
+  document.querySelectorAll('#sbNav .sb-section-label-row[data-aberto="false"]').forEach(h => {
+    if (_sbSectionItemsOf(h).some(el => el.dataset && el.dataset.nav === nav)) _sbSecaoToggle(h, true, false);
+  });
   document.getElementById('sbSketchbookBtn')?.classList.toggle('active', nav === 'anotacoes');
   // Atualiza bottom nav (pode ser null se ainda não renderizou)
   document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
@@ -4993,15 +5001,58 @@ function _navGestaoItens() {
 function _navEstaNoGrupoGestao(nav) {
   return _navGestaoItens().some(el => el.dataset && el.dataset.nav === nav);
 }
+// Recolher/expandir QUALQUER seção (Painéis, Gestão, Ferramentas). Estado
+// lembrado em localStorage (sbSecoesFechadas_v1 = {chave:true}). Itens são
+// escondidos pela classe .sb-secao-oculta, calculados por posição no DOM.
+function _sbSecoesFechadasLer() {
+  try { return JSON.parse(localStorage.getItem('sbSecoesFechadas_v1') || '{}') || {}; } catch (e) { return {}; }
+}
+function _sbSecoesFechadasSalvar(m) {
+  try { localStorage.setItem('sbSecoesFechadas_v1', JSON.stringify(m)); } catch (e) {}
+}
+function _sbSecaoAplicar(headerEl, abrir) {
+  if (!headerEl) return;
+  headerEl.dataset.aberto = abrir ? 'true' : 'false';
+  headerEl.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  _sbSectionItemsOf(headerEl).forEach(el => el.classList.toggle('sb-secao-oculta', !abrir));
+}
+function _sbSecaoToggle(headerEl, forcarAberto, salvar) {
+  if (!headerEl) return;
+  const abrir = forcarAberto !== undefined ? forcarAberto : headerEl.dataset.aberto === 'false';
+  _sbSecaoAplicar(headerEl, abrir);
+  if (salvar) {
+    const m = {};
+    document.querySelectorAll('#sbNav .sb-section-label-row').forEach(h => { if (h.dataset.aberto === 'false') m[h.dataset.sectionKey] = true; });
+    _sbSecoesFechadasSalvar(m);
+  }
+}
+// Reaplica o estado de todas as seções (depois de reordenar, a posição dos itens muda).
+function _sbSecoesReaplicar() {
+  document.querySelectorAll('#sbNav .sb-section-label-row').forEach(h => _sbSecaoAplicar(h, h.dataset.aberto !== 'false'));
+}
+function _sbSecoesInit() {
+  const fechadas = _sbSecoesFechadasLer();
+  const temSalvo = (() => { try { return localStorage.getItem('sbSecoesFechadas_v1') !== null; } catch (e) { return false; } })();
+  document.querySelectorAll('#sbNav .sb-section-label-row').forEach(h => {
+    if (!h.querySelector('.sb-sec-chevron')) {
+      h.insertAdjacentHTML('beforeend', '<svg class="sb-sec-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>');
+    }
+    h.title = 'Recolher/expandir ' + h.textContent.trim();
+    h.setAttribute('role', 'button');
+    if (!h.dataset.secClick) {
+      h.dataset.secClick = '1';
+      h.addEventListener('click', ev => { ev.stopPropagation(); _sbSecaoToggle(h, undefined, true); });
+    }
+    const k = h.dataset.sectionKey;
+    // padrão: Gestão começa recolhida no celular (como antes); o resto aberto
+    const fechar = temSalvo ? !!fechadas[k] : (k === 'gestao' && window.innerWidth < 768);
+    _sbSecaoAplicar(h, !fechar);
+  });
+}
+// compat: chamadas antigas
 function _toggleGrupoGestao(ev, forcarAberto) {
   if (ev) ev.stopPropagation();
-  const inicio = _navGestaoInicio();
-  if (!inicio) return;
-  const abrir = forcarAberto !== undefined ? forcarAberto : inicio.dataset.gestaoAberto === 'false';
-  inicio.dataset.gestaoAberto = abrir ? 'true' : 'false';
-  _navGestaoItens().forEach(el => { el.style.display = abrir ? '' : 'none'; });
-  const chevron = document.getElementById('navGestaoChevron');
-  if (chevron) chevron.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
+  _sbSecaoToggle(_navGestaoInicio(), forcarAberto, false);
 }
 
 // ── Reordenar itens do menu lateral por drag-and-drop ──────────────────
@@ -5116,6 +5167,7 @@ function _sbNavApplyStoredOrder() {
 }
 
 function _sbNavSaveOrder() {
+  setTimeout(() => { try { _sbSecoesReaplicar(); } catch (e) {} }, 0);
   const order = _sbNavTopItems().map(_sbNavKeyOf);
   try { localStorage.setItem(SB_NAV_ORDER_KEY, JSON.stringify(order)); } catch (e) {}
   _sincronizarBottomNavComSidebar();
@@ -5222,7 +5274,7 @@ _initSidebarDragReorder();
 // itens + seção Gestão empurrava os filtros (Clientes/Usina/Cluster) e as
 // Ações Rápidas pra muito baixo na sidebar, dificultando o toque. No
 // desktop continua expandido, como sempre foi.
-if (window.innerWidth < 768) { _toggleGrupoGestao(null, false); }
+_sbSecoesInit();
 
 // ── Reordenar itens do menu lateral por toque (tablet/celular) ─────────
 // O Drag-and-Drop nativo do HTML5 (usado acima) só dispara com mouse.
