@@ -2252,7 +2252,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             <h2 style="font-size:16px;font-weight:700;">Zeladoria</h2>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button class="tb-btn" id="zelComunicadoBtn" onclick="_abrirComunicadosZel()" style="background:rgba(91,155,213,.1);border-color:rgba(91,155,213,.4);color:#5B9BD5;"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>Comunicado de Zeladoria</button>
             <button class="tb-btn" id="zelExtrairBtn" onclick="_abrirZelExtrairPrint()" style="background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.4);color:var(--teal);"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Enviar Print/Observação</button>
           </div>
         </div>
@@ -2718,10 +2717,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Clientes
           </button>
-          <button type="button" class="tab-btn" id="comTabBtnZeladoria" onclick="_comSetTab('zeladoria')">
-            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-            Zeladoria
-          </button>
           <button type="button" class="tab-btn" id="comTabBtnLivre" onclick="_comSetTab('livre')">
             <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             Livre
@@ -2861,26 +2856,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             </div>
             <div id="gcError" style="display:none;color:var(--red);font-size:12.5px;padding:16px 0;text-align:center;"></div>
           </div>
-        </div>
-
-        <!-- ── ABA: ZELADORIA ── -->
-        <div id="comTabPainelZeladoria" style="display:none;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Selecione os clusters e dispare o pedido quinzenal de fotos de vegetação e sujidade dos módulos.</div>
-          <div id="comunicadoZelModalIntro" style="display:flex;flex-direction:column;gap:14px;padding:6px 0 16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <span style="font-size:13px;color:var(--text-dim);" id="comunicadoZelSemanaLabel">Carregando…</span>
-              <div style="display:flex;gap:8px;">
-                <button onclick="_comunicadoZelSelecionarTodas(true)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;">Selecionar todas</button>
-                <button onclick="_comunicadoZelSelecionarTodas(false)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;">Limpar</button>
-              </div>
-            </div>
-            <div id="comunicadoZelListaClusters" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
-            <button id="comunicadoZelGerarBtn" onclick="_gerarComunicadosZel()" style="width:100%;background:#5B9BD5;border:none;color:#04182b;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-              <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-              Gerar comunicados
-            </button>
-          </div>
-          <div id="comunicadoZelModalResult" style="display:none;"></div>
         </div>
 
         <!-- ── ABA: LIVRE ── -->
@@ -13535,7 +13510,7 @@ let _comTabAtual = 'tecnicos';
 
 function _comSetTab(tab) {
   _comTabAtual = tab;
-  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', zeladoria: 'Zeladoria', livre: 'Livre', sobreaviso: 'Sobreaviso', os: 'Os' };
+  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', livre: 'Livre', sobreaviso: 'Sobreaviso', os: 'Os' };
   Object.keys(abas).forEach(t => {
     document.getElementById('comTabBtn' + abas[t])?.classList.toggle('active', t === tab);
     const painel = document.getElementById('comTabPainel' + abas[t]);
@@ -13543,7 +13518,6 @@ function _comSetTab(tab) {
   });
   if (tab === 'tecnicos') _comTecnicosRefresh();
   else if (tab === 'clientes') _gcAbrirAba();
-  else if (tab === 'zeladoria') _comZeladoriaRefresh();
   else if (tab === 'livre') _comLivreReset();
   else if (tab === 'sobreaviso') _sobreavisoRefresh();
   else if (tab === 'os') _osElabRefresh();
@@ -14112,123 +14086,6 @@ async function _dispararComunicadoCluster(cluster, idSeguro, btnEl) {
     if (!data.ok) throw new Error(data.error || 'Erro ao disparar');
     btnEl.innerHTML = '✓ Enviado!';
     showToast('Comunicado enviado pro WhatsApp!', true);
-    setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 2500);
-  } catch (e) {
-    btnEl.innerHTML = original;
-    btnEl.disabled = false;
-    showToast('Erro ao disparar: ' + e.message, false);
-  }
-}
-
-
-// ── Comunicado de Zeladoria (fotos de vegetação/sujidade) ──────────────
-let _comunicadoZelCache = null;      // {ok, semana, clusters:[{cluster, usinas, texto}]}
-let _comunicadoZelTextoCache = {};
-
-// Ponto de entrada: usado pelo botão "Comunicado de Zeladoria" dentro da
-// seção Zeladoria/Processos. Navega pro painel de Comunicados já na aba
-// Zeladoria.
-function _abrirComunicadosZel() {
-  switchNav('comunicados');
-  _comSetTab('zeladoria');
-}
-
-async function _comZeladoriaRefresh() {
-  document.getElementById('comunicadoZelModalIntro').style.display = 'flex';
-  document.getElementById('comunicadoZelModalResult').style.display = 'none';
-  document.getElementById('comunicadoZelSemanaLabel').textContent = 'Carregando…';
-  document.getElementById('comunicadoZelListaClusters').innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text-faint);font-size:12.5px;">Carregando clusters…</div>`;
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/gerar-comunicado-zeladoria', { signal: AbortSignal.timeout(20000) });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao montar comunicados');
-    _comunicadoZelCache = data;
-    document.getElementById('comunicadoZelSemanaLabel').textContent = `Semana ${data.semana} · Clusters com usinas cadastradas`;
-    const lista = document.getElementById('comunicadoZelListaClusters');
-    lista.innerHTML = data.clusters.map(c => `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
-      <input type="checkbox" class="comunicado-zel-cluster-check" value="${esc(c.cluster)}" checked style="width:16px;height:16px;accent-color:var(--teal);flex:none;">
-      <span style="flex:1;font-size:13px;color:var(--text);">${esc(c.cluster)}</span>
-      <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">${c.usinas.length} usina${c.usinas.length!==1?'s':''}</span>
-    </label>`).join('') || `<div style="font-size:12.5px;color:var(--text-faint);text-align:center;padding:20px 0;">Nenhum cluster com usina cadastrada. Configure em _Sistema: "cluster_usina:&lt;Usina&gt;".</div>`;
-  } catch (e) {
-    document.getElementById('comunicadoZelSemanaLabel').textContent = '';
-    document.getElementById('comunicadoZelListaClusters').innerHTML = `<div style="font-size:12.5px;color:var(--red);text-align:center;padding:20px 0;">Erro ao carregar: ${esc(e.message)}</div>`;
-  }
-}
-
-function _comunicadoZelSelecionarTodas(marcar) {
-  document.querySelectorAll('.comunicado-zel-cluster-check').forEach(cb => cb.checked = marcar);
-}
-
-function _gerarComunicadosZel() {
-  if (!_comunicadoZelCache) return;
-  const marcadas = Array.from(document.querySelectorAll('.comunicado-zel-cluster-check:checked')).map(cb => cb.value);
-  if (marcadas.length === 0) { showToast('Selecione ao menos um cluster.', false); return; }
-
-  const result = document.getElementById('comunicadoZelModalResult');
-  _comunicadoZelTextoCache = {};
-  let html = '';
-  marcadas.forEach(cluster => {
-    const info = _comunicadoZelCache.clusters.find(c => c.cluster === cluster);
-    if (!info) return;
-    const idSeguro = cluster.replace(/[^a-zA-Z0-9]/g, '_');
-    _comunicadoZelTextoCache[idSeguro] = info.texto;
-
-    html += `<div style="margin-bottom:22px;border:1px solid var(--border-strong);border-radius:10px;padding:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);">📍 ${esc(cluster)}</div>
-          <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${info.usinas.length} usina${info.usinas.length!==1?'s':''}: ${esc(info.usinas.join(', '))}</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="_copiarComunicadoZel('${idSeguro}')" style="background:var(--teal);border:none;color:#042F36;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-            <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            Copiar mensagem
-          </button>
-          <button id="dispararZelBtn_${idSeguro}" onclick="_dispararComunicadoZelCluster('${esc(cluster)}','${idSeguro}', this)" style="background:transparent;border:1px solid #5B9BD5;color:#5B9BD5;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-            <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Disparar comunicado
-          </button>
-        </div>
-      </div>
-      <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(info.texto)}</pre>
-    </div>`;
-  });
-
-  document.getElementById('comunicadoZelModalIntro').style.display = 'none';
-  result.innerHTML = html + `<button onclick="document.getElementById('comunicadoZelModalIntro').style.display='flex';document.getElementById('comunicadoZelModalResult').style.display='none';" style="width:100%;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:10px;font-size:12.5px;cursor:pointer;margin-top:4px;">← Voltar pra seleção de clusters</button>`;
-  result.style.display = 'block';
-}
-
-async function _copiarComunicadoZel(idSeguro) {
-  const texto = _comunicadoZelTextoCache[idSeguro];
-  if (!texto) return;
-  try {
-    await navigator.clipboard.writeText(texto);
-    showToast('Mensagem copiada! Cole no WhatsApp.', true);
-  } catch (e) {
-    showToast('Não consegui copiar automaticamente — selecione o texto manualmente.', false);
-  }
-}
-
-async function _dispararComunicadoZelCluster(cluster, idSeguro, btnEl) {
-  const texto = _comunicadoZelTextoCache[idSeguro];
-  if (!texto) return;
-  if (!confirm(`Enviar esse comunicado de zeladoria agora pro grupo de WhatsApp do cluster "${cluster}"?`)) return;
-  const original = btnEl.innerHTML;
-  btnEl.disabled = true;
-  btnEl.innerHTML = 'Enviando…';
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-cluster', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cluster, texto }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao disparar');
-    btnEl.innerHTML = '✓ Enviado!';
-    showToast('Comunicado de zeladoria enviado pro WhatsApp!', true);
     setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 2500);
   } catch (e) {
     btnEl.innerHTML = original;
