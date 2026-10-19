@@ -10038,23 +10038,26 @@ document.getElementById('tabHistorico').addEventListener('click', () => {
 // de seção automaticamente (mesmo padrão usado no deep-link de push:
 // switchNav + abrir o drawer específico). Aceita OS compostas tipo
 // "8467/9035" (busca em qualquer um dos números separados por barra).
-function _buscarPorNumeroOS() {
+async function _buscarPorNumeroOS() {
   const input = document.getElementById('topbarOsSearch');
   const q = (input?.value || '').trim();
   if (!q) return;
 
   const bateOS = (numeroOS) => {
     if (!numeroOS) return false;
-    return String(numeroOS).split('/').map(s => s.trim()).includes(q);
+    return String(numeroOS).split(/[\/,]/).map(s => s.trim()).includes(q);
   };
+  const acharAtiv = () => (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).find(a => bateOS(a.numeroOS));
+  const abrirAtiv = (ativ) => { switchNav('atividades'); _abrirAtivDrawer(ativ.id); input.value = ''; };
 
-  const ativ = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).find(a => bateOS(a.numeroOS));
-  if (ativ) {
-    switchNav('atividades');
-    _abrirAtivDrawer(ativ.id);
-    input.value = '';
-    return;
-  }
+  const ativ = acharAtiv();
+  if (ativ) { abrirAtiv(ativ); return; }
+
+  // Ocorrências (painel que substituiu Falhas): OS vinculadas ficam na ocorrência.
+  try {
+    const oc = (window.OC ? OC.itens() : []).find(x => bateOS(x.os ?? x.OS ?? x.numeroOS ?? x.numerosOS));
+    if (oc) { switchNav('ocorrencias'); OC.abrir(oc.id); input.value = ''; return; }
+  } catch (e) {}
 
   const ocorrencia = (typeof DATA !== 'undefined' ? DATA : []).find(d => bateOS(d.numeroOS));
   if (ocorrencia) {
@@ -10064,7 +10067,31 @@ function _buscarPorNumeroOS() {
     return;
   }
 
-  showToast(`OS ${q} não encontrada em Atividades nem em Falhas.`, false);
+  // Não está carregada: pode ter acabado de nascer na Fracttal (a descoberta
+  // roda a cada poucos minutos) — pede a OS direto ao backend, que cria a
+  // atividade se estiver no escopo ou devolve o motivo de não entrar.
+  if (!/^\d{3,9}$/.test(q)) { showToast(`OS ${q} não encontrada no painel.`, false); return; }
+  showToast(`Buscando OS ${q} na Fracttal…`, true);
+  try {
+    const r = await fetch('https://api.168.138.232.237.sslip.io/os-sincronizar/' + encodeURIComponent(q), { method: 'POST' });
+    const d = await r.json();
+    if (d.status === 'criada' || d.status === 'ja_existe') {
+      await carregarAtividades();
+      const nova = acharAtiv();
+      if (nova) { abrirAtiv(nova); showToast(d.status === 'criada' ? `OS ${q} puxada da Fracttal (${d.usina || 'usina'}).` : `OS ${q} aberta.`, true); return; }
+      showToast(`OS ${q} existe, mas está fora do seu mapeamento/filtros atuais.`, false);
+    } else if (d.status === 'nao_encontrada_na_fracttal') {
+      showToast(`OS ${q} não existe na Fracttal.`, false);
+    } else if (d.status === 'fora_do_escopo') {
+      showToast(`OS ${q} é de outro cliente/supervisor (fora do mapeamento).`, false);
+    } else if (d.status === 'revisao_manual') {
+      showToast(`OS ${q} não entrou: ${d.motivo}`, false);
+    } else {
+      showToast(`Não foi possível buscar a OS ${q}: ${d.erro || 'erro no servidor'}.`, false);
+    }
+  } catch (e) {
+    showToast(`Não foi possível buscar a OS ${q} agora (${e.message || 'falha de conexão'}).`, false);
+  }
 }
 
 document.getElementById('topbarOsSearchBtn')?.addEventListener('click', _buscarPorNumeroOS);
