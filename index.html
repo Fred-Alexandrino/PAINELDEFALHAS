@@ -10696,7 +10696,7 @@ function _seCardHtml(c) {
     <div class="se-ass">${esc(c.assunto)}</div>
     ${acao ? `<div class="se-acao"><b>O que fazer:</b> ${esc(acao)}</div>` : ''}
     <div class="se-meta"><span>Aberto em ${esc(_seDataBR(c.criado))}${d != null ? ` (${d} dia${d === 1 ? '' : 's'})` : ''}</span>
-      ${c.rma ? `<span>RMA ${esc(c.rma)}</span>` : ''}${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
+      ${(c.osVinculadas || []).length ? `<span>OS ${esc(c.osVinculadas.map(v => v.os).join(', '))}</span>` : ''}${c.rma ? `<span>RMA ${esc(c.rma)}</span>` : ''}${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
       ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div></div>`;
 }
 
@@ -10730,6 +10730,7 @@ function _seAbrirCase(num) {
     <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${esc(c.descricao || '—')}</div></div>
     <div class="se-sec"><h4>Histórico de comentários</h4>${timeline}</div>
     <div class="se-sec"><h4>Anexos / documentos</h4>${docs}</div>
+    <div class="se-sec"><h4>OS vinculadas a este chamado</h4><div id="seOsVincBox">${_seOsVincHtml(c)}</div></div>
     <div class="se-sec"><h4>Testes de campo (OS da Grid)</h4><div id="seTestesBox">${_seTestesHtml(c)}</div></div>
     <div class="se-sec"><h4>Controle da Grid</h4>
       <div style="display:grid;grid-template-columns:1fr 160px;gap:8px;margin-bottom:8px;">
@@ -10742,6 +10743,7 @@ function _seAbrirCase(num) {
         <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
         <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
   document.body.appendChild(ov);
+  _seOsVincStatus(c.case);
 }
 
 
@@ -10849,7 +10851,7 @@ async function _seTesteAdd(num) {
   const msg = document.getElementById('seTstMsg'); msg.textContent = 'Salvando…';
   try {
     const l = await _sePostTeste({ case: num, acao: 'add', os: document.getElementById('seTstOS').value, data: document.getElementById('seTstData').value, equipamento: document.getElementById('seTstEq').value, resultado: document.getElementById('seTstRes').value });
-    _seAtualizaTestes(num, l); showToast('Teste de campo registrado.', true);
+    _seAtualizaTestes(num, l); const osn = (document.getElementById('seTstOS')?.value || '').replace(/\D/g, ''); try { const j = await (await fetch(_SE_API + '/solaredge-chamados')).json(); const it = (j.itens || []).find(x => x.case === num); if (it) _seAtualizaVinc(num, it.osVinculadas || []); } catch (e) {} showToast('Teste de campo registrado.', true);
   } catch (e) { msg.textContent = 'Erro: ' + (e.message || 'falha'); }
 }
 async function _seTesteAcao(num, acao, id, valor) {
@@ -10860,6 +10862,50 @@ function _seCopiarResposta(num, id) {
   const c = _SE.itens.find(x => x.case === num); const t = (c && c.testesCampo || []).find(x => x.id === id); if (!t) return;
   const txt = `Olá, equipe SolarEdge. Segue o retorno dos testes realizados em campo${t.equipamento ? ' no equipamento ' + t.equipamento : ''}${t.data ? ' em ' + _seDataBR(t.data) : ''}${t.os ? ' (Ordem de Serviço Grid nº ' + t.os + ', em anexo)' : ''}.\n\nResultado:\n${t.resultado || '(descrever)'}\n\nFicamos à disposição e aguardamos o parecer para os próximos passos.`;
   navigator.clipboard?.writeText(txt).then(() => showToast('Resposta copiada — cole no case no site da SolarEdge.', true)).catch(() => showToast('Não consegui copiar.', false));
+}
+
+
+/* ── OS vinculadas ao case (rastreabilidade) ── */
+function _seOsVincHtml(c) {
+  const l = (c.osVinculadas || []).map(v => `<div class="se-msg grid" style="margin-bottom:6px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;">
+    <div><b>OS ${esc(v.os)}</b>${v.finalidade ? ' · ' + esc(v.finalidade) : ''}${v.vinculadoEm ? ' · vinculada em ' + esc(_seDataBR(v.vinculadoEm.replace('T', ' '))) : ''}
+      ${v.nota ? `<div style="font-size:12.5px;margin-top:2px;">${esc(v.nota)}</div>` : ''}
+      <div id="seOsSt_${esc(v.os)}" style="font-size:12px;color:var(--text-faint);margin-top:2px;">Situação na Fracttal: consultando…</div></div>
+    <button class="se-btn" onclick="_seOsVincDel('${esc(c.case)}','${esc(v.os)}')">Desvincular</button></div>`).join('') || '<div style="font-size:13px;color:var(--text-faint);margin-bottom:8px;">Nenhuma OS vinculada a este chamado.</div>';
+  return l + `<div style="display:grid;grid-template-columns:170px 1fr;gap:8px;margin-top:8px;">
+      <input id="seVincOS" class="se-in" placeholder="Nº da OS (vários: 15548, 15600)">
+      <input id="seVincFin" class="se-in" list="seVincFinList" placeholder="Finalidade (ex.: Teste de campo, Troca de peça, Inspeção)"><datalist id="seVincFinList"><option value="Teste de campo"><option value="Inspeção"><option value="Troca de peça / RMA"><option value="Correção de comunicação"><option value="Evidência solicitada pelo fabricante"></datalist></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;"><button class="se-btn pri" onclick="_seOsVincAdd('${esc(c.case)}')">Vincular OS</button><span id="seVincMsg" style="font-size:12px;color:var(--text-faint);"></span></div>`;
+}
+async function _seOsVincStatus(num) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return;
+  for (const v of (c.osVinculadas || [])) {
+    const el = document.getElementById('seOsSt_' + v.os); if (!el) continue;
+    try {
+      const r = await fetch(_SE_API + '/os-historico-fracttal/' + v.os); const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+      const ev = j.eventos || [];
+      const fim = ev.find(e => /conclu|finaliz/i.test(e.titulo)); const ini = ev.slice().reverse().find(e => /iniciada/i.test(e.titulo));
+      el.textContent = 'Fracttal: ' + (fim ? `${fim.titulo.toLowerCase()} em ${fim.dataFormatada}` : (ini ? `em andamento (iniciada ${ini.dataFormatada})` : 'criada, ainda não iniciada')) + ` · ${j.totalTarefas} tarefa(s)`;
+    } catch (e) { el.textContent = 'Fracttal: não consegui consultar esta OS.'; }
+  }
+}
+async function _sePostVinc(corpo) {
+  const r = await fetch(_SE_API + '/solaredge-chamados/os-vinculada', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro'); return j.osVinculadas;
+}
+function _seAtualizaVinc(num, lista) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return; c.osVinculadas = lista;
+  const box = document.getElementById('seOsVincBox'); if (box) box.innerHTML = _seOsVincHtml(c);
+  _seOsVincStatus(num); _seRender();
+}
+async function _seOsVincAdd(num) {
+  const msg = document.getElementById('seVincMsg'); msg.textContent = 'Salvando…';
+  try { _seAtualizaVinc(num, await _sePostVinc({ case: num, acao: 'add', os: document.getElementById('seVincOS').value, finalidade: document.getElementById('seVincFin').value })); showToast('OS vinculada ao chamado.', true); }
+  catch (e) { msg.textContent = 'Erro: ' + (e.message || 'falha'); }
+}
+async function _seOsVincDel(num, os) {
+  if (!confirm('Desvincular a OS ' + os + ' deste chamado?')) return;
+  try { _seAtualizaVinc(num, await _sePostVinc({ case: num, acao: 'del', os })); } catch (e) { showToast('Erro: ' + (e.message || 'falha'), false); }
 }
 
 async function _seSalvarInterno(num) {
