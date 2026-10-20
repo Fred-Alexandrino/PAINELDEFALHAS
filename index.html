@@ -4445,6 +4445,14 @@ function _supInstalarEscopo(sessao) {
   if (esc.campo) {
     document.body.classList.add('role-campo');
     _SUP_NAVS_PERMITIDOS.length = 0; esc.navs.forEach(n => _SUP_NAVS_PERMITIDOS.push(n));
+    // sem WhatsApp: o botão só abre as prévias/cópia da imagem por cluster
+    try {
+      const bt = document.getElementById('progPcmEnviarBtn');
+      if (bt) { bt.textContent = '🖼 Imagem por cluster'; bt.style.background = ''; bt.style.color = ''; }
+      const tt = document.querySelector('#ppEnvioOverlay .ch-title');
+      if (tt) tt.textContent = '🖼 Programação da semana por cluster — copiar imagem';
+      const sb = document.getElementById('ppEnvioSub'); if (sb) sb.dataset.campo = '1';
+    } catch (e) {}
   }
   const _fetchOrig = window.fetch.bind(window);
   window.fetch = async function(input, init) {
@@ -4460,6 +4468,9 @@ function _supInstalarEscopo(sessao) {
       } catch (e) {}
       if (esc.somenteLeitura && method !== 'GET' && method !== 'OPTIONS' && !/^\/gerar-comunicado/.test(path)) {
         return _supJson({ ok: false, error: 'Perfil somente leitura.' }, 403);
+      }
+      if (esc.campo && /disparar|enviar|alertar|notificar|testar-alerta/.test(path)) {
+        return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil.' }, 403);
       }
       if (_SUP_BLOQUEIO_ENVIO.test(path)) {
         return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
