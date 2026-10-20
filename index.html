@@ -1583,6 +1583,9 @@ body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="d
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
 body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
+/* Supervisor de Campo (Vitor): Comunicados só aba Técnicos, sem "Seguir Programação PCM"; sem envio por WhatsApp */
+body.role-campo #comTabBtnClientes, body.role-campo #comTabBtnLivre, body.role-campo #comTabBtnSobreaviso, body.role-campo #comTabBtnOs,
+body.role-campo #sbQuickActions, body.role-campo #ativAcoesWrap, body.role-campo #chatIaBubble, body.role-campo #comunicadoFontePcmBtn, body.role-campo [id^="ppEnvBtn"], body.role-campo #ppEnvioTodosBtn, body.role-campo #ppEnvioMsg, body.role-campo label[for="ppEnvioMsg"]{display:none !important;}
 /* ══════════════════════════════════════════════════════════
    PAINEL DE OCORRÊNCIAS (substitui o antigo Painel de Falhas — 09/10/2026)
    Tudo com prefixo .oc- para não colidir com o restante do dashboard.
@@ -3262,7 +3265,10 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
       <div id="ppEnvioPreview" style="display:none;margin-top:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <strong id="ppEnvioPreviewTitulo" style="font-size:13px;"></strong>
-          <button class="pps-btn" onclick="document.getElementById('ppEnvioPreview').style.display='none'">Fechar prévia</button>
+          <span style="display:flex;gap:6px;">
+            <button class="pps-btn pri" id="ppCopiarHdBtn" onclick="_ppCopiarImagemHD()">📋 Copiar imagem (HD)</button>
+            <button class="pps-btn" onclick="document.getElementById('ppEnvioPreview').style.display='none'">Fechar prévia</button>
+          </span>
         </div>
         <div style="max-height:55vh;overflow:auto;border:1px solid var(--border);border-radius:8px;"><img id="ppEnvioPreviewImg" style="width:100%;display:block;" alt="Prévia"></div>
       </div>
@@ -4298,6 +4304,10 @@ const _SUP_ESCOPOS = {
     ]
   }
 };
+// Vitor Valadares (Supervisor de Campo): visão TOTAL (mesmos dados do Fred), só leitura/cópia:
+// Programação PCM, Atividades e Comunicados (aba Técnicos, sem "Seguir Programação PCM").
+_SUP_ESCOPOS.vitor = { cargo: 'Supervisor de Campo', total: true, somenteLeitura: true,
+  navs: ['atividades', 'programacao-pcm', 'comunicados'], usinas: [] };
 const _SUP_NAVS_PERMITIDOS = ['atividades', 'ocorrencias', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
@@ -4322,6 +4332,7 @@ function _supMontarIndice(esc) {
 // Devolve a entrada do escopo que casa com (usina, cliente) ou null.
 function _supBuscar(usina, cliente) {
   if (!_supEscopoAtivo) return null;
+  if (_supEscopoAtivo.total) return { usina: usina, cliente: cliente, cluster: '' };
   const idx = _supEscopoAtivo._idx;
   let nome = String(usina == null ? '' : usina).replace(/\s+-\s+[A-Za-z]{2}$/, '').replace(/\s+AL$/, '').trim();
   const c = _supCli(cliente);
@@ -4360,6 +4371,7 @@ function _supChamadoPermitido(c) {
 }
 const _SUP_VAZIO_OK = { ok: true };
 function _supFiltrarResposta(path, data) {
+  if (_supEscopoAtivo && _supEscopoAtivo.total) return null;
   if (path === '/atividades') {
     const out = (data.atividades || []).filter(a => _supPermite(a.usina, a.cliente)).map(a => {
       const e = _supBuscar(a.usina, a.cliente);
@@ -4397,6 +4409,10 @@ function _supInstalarEscopo(sessao) {
   const _supEscopoId = String(sessao.user || '').toLowerCase();
   window._supFetchInstalado = true;
   document.body.classList.add('role-supervisor');
+  if (esc.total) {
+    document.body.classList.add('role-campo');
+    _SUP_NAVS_PERMITIDOS.length = 0; esc.navs.forEach(n => _SUP_NAVS_PERMITIDOS.push(n));
+  }
   const _fetchOrig = window.fetch.bind(window);
   window.fetch = async function(input, init) {
     let url = typeof input === 'string' ? input : (input && input.url) || '';
@@ -4406,14 +4422,17 @@ function _supInstalarEscopo(sessao) {
       // escopo da supervisora no backend: aba e catálogo próprios (nada do Fred)
       try {
         const _h = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
-        _h.set('X-Escopo', _supEscopoId);
+        if (!esc.total) _h.set('X-Escopo', _supEscopoId);
         init = Object.assign({}, init || {}, { headers: _h });
       } catch (e) {}
+      if (esc.somenteLeitura && method !== 'GET' && method !== 'OPTIONS' && !/^\/gerar-comunicado/.test(path)) {
+        return _supJson({ ok: false, error: 'Perfil somente leitura.' }, 403);
+      }
       if (_SUP_BLOQUEIO_ENVIO.test(path)) {
         return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
       }
       if (method === 'GET') {
-        if (_SUP_GET_VAZIO.test(path)) {
+        if (_SUP_GET_VAZIO.test(path) && !(esc.total && /^\/programacao-pcm/.test(path))) {
           return _supJson({ ok: true, itens: [], grupos: [], total: 0, atividades: [], blocos: [], regras: [], anotacoes: [], localizacoes: [] });
         }
         const resp = await _fetchOrig(input, init);
@@ -4446,6 +4465,7 @@ function _supEhSessao(sessao) { return !!sessao && sessao.role === 'supervisor';
     { user: 'camila',         pass: 'Camila#Grid26', role: 'supervisor' },
     { user: 'daniel',         pass: 'Daniel#Grid26', role: 'supervisor' },
     { user: 'patrick',        pass: 'Patrick#Grid26', role: 'supervisor' },
+    { user: 'vitor',          pass: 'Vitor#Grid26', role: 'supervisor' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -6313,7 +6333,7 @@ function initDashboard(session) {
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
-  if (session.role === 'manager' || session.role === 'admin' || session.role === 'supervisor') { try { OC.entrar(); } catch (e) {} }
+  if (session.role === 'manager' || session.role === 'admin' || (session.role === 'supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.total))) { try { OC.entrar(); } catch (e) {} }
   if (session.role !== 'manager' && session.role !== 'admin' && session.role !== 'supervisor') {
     document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
   }
@@ -6339,6 +6359,7 @@ function initDashboard(session) {
       // Sem Falhas/PCM do Fred: só os dados dos 3 painéis liberados.
       DATA = []; try { applyFilters(); } catch(e){}
       carregarAtividades().then(() => _abrirDeepLinkNotificacao());
+      if (_supEscopoAtivo && _supEscopoAtivo.total) { carregarProgramacaoPcm(); return; }
       carregarChamadosFabricante();
       return;
     }
@@ -6394,7 +6415,7 @@ async function _abrirDeepLinkNotificacao() {
   };
   await tentarAbrir(1);
 }
-function canEdit() { return _currentSession.role==='manager' || _currentSession.role==='supervisor'; }
+function canEdit() { return _currentSession.role==='manager' || (_currentSession.role==='supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.somenteLeitura)); }
 
 document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('om_role');
@@ -13147,7 +13168,7 @@ function _ppAjustaTexto(ctx, texto, largura) {
   return texto.trimEnd() + '…';
 }
 
-function _ppGerarImagemCluster(cluster, grupoId) {
+function _ppGerarImagemCluster(cluster, grupoId, escala) {
   const r = _ppSemana;
   const info = (r.envios || []).find(e => e.cluster === cluster && (e.grupoId || null) === (grupoId || null)) || {};
   const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster && (it.grupo || null) === (grupoId || null) && _ppPassaSidebar(it)) }));
@@ -13163,7 +13184,7 @@ function _ppGerarImagemCluster(cluster, grupoId) {
   const maxCol = Math.max(...dias.map(alturaDia));
   const FOOT_H = 40;
   const H = HEAD_H + DIA_H + maxCol + FOOT_H + PAD;
-  const esc2 = 2;
+  const esc2 = escala || 2;
   const cv = document.createElement('canvas');
   cv.width = W * esc2; cv.height = H * esc2;
   const ctx = cv.getContext('2d');
@@ -13301,17 +13322,51 @@ function _ppRenderListaEnvio() {
         <div class="s">${esc(c.tecnicos || '')}${c.tecnicos ? ' · ' : ''}${grupo}</div>${stTxt}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="pps-btn" onclick="_ppPrevia(${i})">👁 Ver</button>
+        <button class="pps-btn" title="Copiar a imagem em alta definição" onclick="_ppCopiarClusterHD(${i})">📋 Copiar HD</button>
         <button class="pps-btn pri" id="ppEnvBtn${i}" ${c.grupoConfigurado ? '' : 'disabled'} onclick="_ppEnviarUm(${i})">Enviar</button>
       </div></div>`;
   }).join('');
 }
 
+let _ppPreviaAtual = null;
+// Copia a imagem do cluster em alta definição (3x) para a área de transferência;
+// se o navegador não permitir, baixa o PNG.
+async function _ppCopiarImagemHD() {
+  if (!_ppPreviaAtual) { showToast('Abra a prévia primeiro.', false); return; }
+  const btn = document.getElementById('ppCopiarHdBtn');
+  const txt0 = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Gerando HD…'; }
+  try {
+    const dataUrl = _ppGerarImagemCluster(_ppPreviaAtual.cluster, _ppPreviaAtual.grupoId, 3);
+    const blob = await (await fetch(dataUrl)).blob();
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showToast('Imagem HD copiada — é só colar (Ctrl+V) no WhatsApp.', true);
+    } else { throw new Error('sem suporte a copiar imagem'); }
+  } catch (e) {
+    try {
+      const dataUrl = _ppGerarImagemCluster(_ppPreviaAtual.cluster, _ppPreviaAtual.grupoId, 3);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = ('programacao-pcm-' + _ppPreviaAtual.cluster + '.png').replace(/[^\w.\-]+/g, '_');
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Não foi possível copiar — baixei a imagem HD.', false);
+    } catch (e2) { showToast('Falha ao gerar a imagem HD.', false); }
+  } finally { if (btn) { btn.disabled = false; btn.textContent = txt0; } }
+}
+function _ppCopiarClusterHD(i) {
+  const c = _ppClustersEnvio()[i];
+  if (!c) return;
+  _ppPreviaAtual = { cluster: c.cluster, grupoId: c.grupoId || null };
+  return _ppCopiarImagemHD();
+}
 function _ppPrevia(i) {
   const c = _ppClustersEnvio()[i];
   if (!c) return;
   const url = _ppGerarImagemCluster(c.cluster, c.grupoId);
   document.getElementById('ppEnvioPreviewTitulo').textContent = `Prévia — ${c.cluster}${c.multi && c.grupoNome ? ' · ' + c.grupoNome : ''}`;
   document.getElementById('ppEnvioPreviewImg').src = url;
+  _ppPreviaAtual = { cluster: c.cluster, grupoId: c.grupoId || null };
   const p = document.getElementById('ppEnvioPreview');
   p.style.display = 'block';
   p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
