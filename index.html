@@ -10898,8 +10898,45 @@ function _seComunicado(num, modo, idx) {
     <textarea id="seComTxt" class="se-in" rows="16" style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:12.5px;">${esc(_seMontarComunicado(c, pedido, modo))}</textarea>
     <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
       <button class="se-btn pri" onclick="_seComunicadoCopiar('${esc(num)}','${modo}')">Copiar texto</button>
-      <span style="font-size:12px;color:var(--text-faint);">Ao copiar, fica registrado na nota interna do case.</span></div></div>`;
+      <span style="font-size:12px;color:var(--text-faint);">Ao copiar, fica registrado na nota interna do case.</span></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;">Enviar direto no WhatsApp</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="seComGrupo" class="se-in" style="flex:1;min-width:220px;"><option value="">Carregando grupos…</option></select>
+        <button class="se-btn" id="seComEnviarBtn" style="border-color:#25D366;color:#25D366;" onclick="_seComunicadoEnviar('${esc(num)}','${modo}')">Enviar no grupo</button></div>
+      <div id="seComGrupoMsg" style="font-size:12px;color:var(--text-faint);margin-top:6px;"></div></div></div>`;
   document.body.appendChild(ov);
+  _seComGruposCarregar(c);
+}
+let _seGruposCache = null;
+async function _seComGruposCarregar(c) {
+  const sel = document.getElementById('seComGrupo'), msg = document.getElementById('seComGrupoMsg'); if (!sel) return;
+  try {
+    if (!_seGruposCache) { const r = await fetch(_SE_API + '/grupos-configurados'); const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro'); _seGruposCache = j.itens || []; }
+    const alvo = c.grupoId || '';
+    sel.innerHTML = (alvo ? '' : '<option value="">— selecione o grupo —</option>') + _seGruposCache.map(g => `<option value="${esc(g.id)}" ${g.id === alvo ? 'selected' : ''}>${esc(g.nome)}${g.id === alvo ? ' (grupo da usina)' : ''}</option>`).join('');
+    msg.textContent = alvo ? `Grupo da usina ${c.usina}: ${c.grupoNome || alvo}.` : `A usina ${c.usina || '(não identificada)'} não tem grupo mapeado — escolha o grupo de destino.`;
+  } catch (e) { sel.innerHTML = '<option value="">Não consegui carregar os grupos</option>'; msg.textContent = 'Erro: ' + (e.message || 'falha'); }
+}
+async function _seComunicadoEnviar(num, modo) {
+  const c = _SE.itens.find(x => x.case === num); const t = document.getElementById('seComTxt'), sel = document.getElementById('seComGrupo'); if (!c || !t || !sel) return;
+  const texto = t.value.trim(); const gid = sel.value;
+  if (!texto) { showToast('O texto está vazio.', false); return; }
+  if (!gid) { showToast('Selecione o grupo de destino.', false); return; }
+  const nomeG = sel.options[sel.selectedIndex].text.replace(' (grupo da usina)', '');
+  if (!confirm(`Enviar este comunicado agora no grupo "${nomeG}" do WhatsApp?`)) return;
+  const btn = document.getElementById('seComEnviarBtn'), msg = document.getElementById('seComGrupoMsg');
+  btn.disabled = true; msg.textContent = 'Enviando…';
+  try {
+    const r = await fetch(_SE_API + '/disparar-comunicado-livre', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto, grupos: [gid] }), signal: AbortSignal.timeout(45000) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro ao enviar');
+    if ((j.erros || []).length) throw new Error('O WhatsApp recusou o envio: ' + (j.erros[0].erro || 'erro'));
+    const rot = { procedimento: 'procedimento da SolarEdge', acompanhamento: 'acompanhamento', coleta: 'coleta/devolução do equipamento' }[modo] || modo;
+    const nota = (c.notaGrid ? c.notaGrid + '\n' : '') + `[${new Date().toLocaleString('pt-BR').slice(0, 16)}] Comunicado ao técnico ENVIADO no grupo "${nomeG}" (${rot}).`;
+    try { const r2 = await fetch(_SE_API + '/solaredge-chamados/interno', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ case: num, notaGrid: nota }) }); const j2 = await r2.json(); if (j2.ok) c.notaGrid = nota; } catch (e) {}
+    msg.textContent = `✓ Enviado no grupo "${nomeG}".`; showToast('Comunicado enviado no grupo do WhatsApp.', true);
+  } catch (e) { msg.textContent = 'Falha: ' + (e.message || 'erro'); showToast('Não foi possível enviar: ' + (e.message || 'erro'), false); }
+  btn.disabled = false;
 }
 async function _seComunicadoCopiar(num, modo) {
   const c = _SE.itens.find(x => x.case === num); const t = document.getElementById('seComTxt'); if (!c || !t) return;
