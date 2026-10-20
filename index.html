@@ -10761,7 +10761,7 @@ function _seParseSteps(texto) {
   let partes = t.split(/(?:^|\s)\d{1,2}\s*[\)\.]\s+(?=[A-Za-zÀ-ú])/).map(x => x.trim()).filter(Boolean);
   if (partes.length >= 3) { if (!/^\d/.test(t)) partes = partes.slice(1); }
   else partes = t.split(/(?<=[\.\!\?])\s+/).map(x => x.trim()).filter(x => x.length > 12);
-  return partes.slice(0, 20).map(x => x.replace(/;$/, '.'));
+  return partes.slice(0, 20).map(x => { x = x.replace(/;$/, '.'); return x.charAt(0).toUpperCase() + x.slice(1); });
 }
 function _seMontarOS(c, pedido, osIA) {
   const cab = `SOLICITAÇÃO DA SOLAREDGE — Case #${c.case}${c.equipamento ? ' · ' + c.equipamento : ''} (${pedido.autor}${pedido.data ? ', ' + _seDataBR(pedido.data) : ''}). Texto exato:\n"${pedido.texto}"`;
