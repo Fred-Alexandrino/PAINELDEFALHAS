@@ -10775,7 +10775,8 @@ function _seCardHtml(c) {
     ${_seSolicBox(c, false)}${acao && !_seSolic(c) ? `<div class="se-acao"><b>O que fazer:</b> ${esc(acao)}</div>` : ''}
     <div class="se-meta"><span>Aberto em ${esc(_seDataBR(c.criado))}${d != null ? ` (${d} dia${d === 1 ? '' : 's'})` : ''}</span>
       ${(c.osVinculadas || []).length ? `<span>OS ${esc(c.osVinculadas.map(v => v.os).join(', '))}</span>` : ''}${c.rma ? `<span>RMA ${esc(c.rma)}</span>` : ''}${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
-      ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div></div>`;
+      ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div>
+    ${_seAberto(c) ? `<div style="margin-top:8px;" onclick="event.stopPropagation()"><button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}')">Comunicado ao técnico</button></div>` : ''}</div>`;
 }
 
 /* ── Aba AGUARDANDO COLETA SOLAREDGE ── */
@@ -10804,6 +10805,7 @@ function _seColRender() {
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
         ${feito ? `<button class="se-btn" onclick="_seConcluirRapido('${esc(c.case)}', false)">Reabrir</button>`
                 : `<button class="se-btn" style="border-color:#34d399;color:#34d399;" onclick="_seConcluirRapido('${esc(c.case)}', true)">Coleta confirmada ✓</button>`}
+        <button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}','coleta')">Comunicado ao técnico</button>
         <button class="se-btn" onclick="_seAbrirCase('${esc(c.case)}')">Detalhes / nota</button></div></div>`;
   };
   const ordenar = a => a.slice().sort((x, y) => (dEta(y) || 0) - (dEta(x) || 0));
@@ -10823,6 +10825,92 @@ function _seSyncAgora() {
     showToast('Sincronizando com a SolarEdge em segundo plano… o painel atualiza sozinho em ~1 min.', true);
     setTimeout(() => _seCarregar(true), 75000);
   }, 700);
+}
+
+/* ── Comunicado ao técnico (texto pronto p/ WhatsApp), baseado no retorno da SolarEdge ── */
+function _seLimpaMsg(t) {
+  return String(t || '').split('\n').map(x => x.trim()).filter(x => x && !/^(ol[áa]\b|prezados|caros|atenciosamente|equipe de suporte|obrigad[oa] por entrar)/i.test(x) && !/^[=\-_\s]+$/.test(x)).join('\n').trim();
+}
+function _seModoComunicado(c, pedido) {
+  if (_seColetaPend(c)) return 'coleta';
+  const t = pedido.texto || '';
+  if (!/(^|\n|\s)1\s*[\)\.]\s+\S/.test(t) && /monitore|acompanhe|monitor the|pr[óo]ximas?\s*\d+\s*(a|à|-)\s*\d+\s*horas|next\s*\d+\s*(to|-)\s*\d+\s*hours/i.test(t)) return 'acompanhamento';
+  return 'procedimento';
+}
+function _seMontarComunicado(c, pedido, modo) {
+  const L = [];
+  const dt = pedido.data ? _seDataBR(pedido.data) : '';
+  L.push(`*COMUNICADO — CASE SOLAREDGE #${c.case}*`);
+  L.push(`*Usina:* ${c.usina || '—'}${c.equipamento ? '  |  *Equipamento:* ' + c.equipamento : ''}${c.serial ? '  |  *S/N:* ' + c.serial : ''}`);
+  L.push(`*Status no fabricante:* ${c.status} (${_seStatusPT(c.status)})`);
+  L.push('');
+  if (modo === 'coleta') {
+    L.push(`O equipamento de reposição já foi enviado pela SolarEdge${c.rma ? ' (RMA ' + c.rma + ')' : ''}${c.envioEta ? ', previsão/ETA de envio ' + _seDataBR(String(c.envioEta).split(' | ')[0].slice(0, 10)) : ''}${c.rastreio ? ', rastreio ' + c.rastreio : ''}. O case aguarda a devolução/coleta do equipamento defeituoso.`);
+    L.push('');
+    L.push('*O que precisa ser feito:*');
+    ['Confirmar se o equipamento de reposição foi recebido e instalado (S/N recebido e S/N instalado).', 'Localizar o equipamento substituído (defeituoso) e conferir o S/N' + (c.serial ? ' (' + c.serial + ')' : '') + '.', 'Embalar e deixar disponível para coleta/devolução conforme orientação da SolarEdge.', 'Registrar fotos do S/N e da embalagem.'].forEach((x, i) => L.push(`${i + 1}. ${x}`));
+    L.push('');
+    L.push('*Informar ao final:* data de recebimento do equipamento novo, data/forma da devolução (ou coleta) e o código de rastreio, se houver.');
+  } else if (modo === 'acompanhamento') {
+    const h = /(\d+)\s*(?:a|à|-|e)\s*(\d+)\s*horas/i.exec(pedido.texto || '');
+    L.push(`*Retorno da SolarEdge${dt ? ' (' + dt + (pedido.autor ? ' – ' + pedido.autor : '') + ')' : ''}:*`);
+    const r = _seLimpaMsg(pedido.texto); L.push(r.length > 800 ? r.slice(0, 800).trim() + '…' : r);
+    L.push('');
+    L.push('*O que precisa ser feito:*');
+    L.push(`Acompanhar o equipamento${c.equipamento ? ' ' + c.equipamento : ''} ${h ? 'por ' + h[1] + ' a ' + h[2] + ' horas' : 'nos próximos dias'}, sempre em horário de geração, e nos informar se normalizou ou se o problema persiste.`);
+    L.push('');
+    L.push('*Informar:* estado do equipamento (comunicação/produção), potência e tensão observadas, prints do supervisório/portal SolarEdge e o horário da verificação. Se o problema persistir, avisar para respondermos à SolarEdge.');
+  } else {
+    L.push(`*Procedimento solicitado pela SolarEdge${dt ? ' (' + dt + (pedido.autor ? ' – ' + pedido.autor : '') + ')' : ''}:*`);
+    const linhas = _seLimpaMsg(pedido.texto).split('\n');
+    const iNum = linhas.findIndex(x => /^\d{1,2}\s*[\)\.]\s+\S/.test(x));
+    let intro = '', passos = [];
+    if (iNum >= 0) {
+      intro = linhas.slice(0, iNum).join(' ');
+      linhas.slice(iNum).forEach(x => { if (/^\d{1,2}\s*[\)\.]\s+\S/.test(x)) passos.push(x.replace(/^\d{1,2}\s*[\)\.]\s+/, '')); else if (passos.length) passos[passos.length - 1] += ' ' + x; });
+    } else {
+      passos = _seParseSteps(linhas.join(' '));
+      if (!passos.length) passos = [linhas.join(' ')];
+    }
+    if (intro) L.push(intro);
+    L.push('');
+    L.push('*O que precisa ser feito:*');
+    passos.forEach((x, i) => L.push(`${i + 1}. ${x}`));
+    L.push('');
+    L.push('*Ao concluir, informar:* resultado de cada passo, valores medidos, fotos/prints das evidências e se o problema persiste. Registrar tudo na OS.');
+  }
+  return L.join('\n');
+}
+function _seComunicado(num, modo, idx) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return;
+  document.getElementById('seComOverlay')?.remove();
+  const msgs = _seMsgsSolarEdge(c);
+  const iMsg = idx == null ? msgs.length - 1 : idx;
+  const pedido = _seTextoPedido(c, iMsg);
+  modo = modo || _seModoComunicado(c, pedido);
+  const sel = msgs.length > 1 ? `<select class="se-in" style="margin:8px 0;" onchange="_seComunicado('${esc(num)}', '${modo}', +this.value)">${msgs.map((m, i) => `<option value="${i}" ${i === iMsg ? 'selected' : ''}>${esc(_seDataBR(m.data) || 's/ data')} · ${esc(m.autor || '')} — ${esc((m.texto || '').replace(/\s+/g, ' ').slice(0, 70))}…</option>`).join('')}</select>` : '';
+  const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seComOverlay'; ov.style.zIndex = 10001;
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  const b = (m, rot) => `<button class="se-btn ${m === modo ? 'pri' : ''}" onclick="_seComunicado('${esc(num)}','${m}',${iMsg})">${rot}</button>`;
+  ov.innerHTML = `<div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Comunicado ao técnico — Case #${esc(c.case)}${c.equipamento ? ' · ' + esc(c.equipamento) : ''}</h3><button class="se-btn" onclick="document.getElementById('seComOverlay').remove()">Fechar</button></div>
+    <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 8px;">Texto pronto para copiar, montado a partir do retorno da SolarEdge. Escolha o tipo e ajuste o que precisar antes de enviar.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${b('procedimento', 'Procedimento da SolarEdge')}${b('acompanhamento', 'Acompanhamento')}${b('coleta', 'Coleta / devolução do equipamento')}</div>${sel}
+    <textarea id="seComTxt" class="se-in" rows="16" style="margin-top:8px;font-family:'Geist Mono',monospace;font-size:12.5px;">${esc(_seMontarComunicado(c, pedido, modo))}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+      <button class="se-btn pri" onclick="_seComunicadoCopiar('${esc(num)}','${modo}')">Copiar texto</button>
+      <span style="font-size:12px;color:var(--text-faint);">Ao copiar, fica registrado na nota interna do case.</span></div></div>`;
+  document.body.appendChild(ov);
+}
+async function _seComunicadoCopiar(num, modo) {
+  const c = _SE.itens.find(x => x.case === num); const t = document.getElementById('seComTxt'); if (!c || !t) return;
+  try { await navigator.clipboard.writeText(t.value); } catch (e) { t.select(); document.execCommand && document.execCommand('copy'); }
+  const rot = { procedimento: 'procedimento da SolarEdge', acompanhamento: 'acompanhamento', coleta: 'coleta/devolução do equipamento' }[modo] || modo;
+  const nota = (c.notaGrid ? c.notaGrid + '\n' : '') + `[${new Date().toLocaleDateString('pt-BR')}] Comunicado ao técnico gerado (${rot}).`;
+  try {
+    const r = await fetch(_SE_API + '/solaredge-chamados/interno', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ case: num, notaGrid: nota }) });
+    const j = await r.json(); if (j.ok) c.notaGrid = nota;
+  } catch (e) {}
+  showToast('Comunicado copiado — cole no WhatsApp do técnico.', true);
 }
 
 function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
@@ -10867,6 +10955,7 @@ function _seAbrirCase(num) {
         <button class="se-btn pri" onclick="_seSalvarInterno('${esc(c.case)}')">Salvar</button>
         ${_seConcluido(c) ? `<button class="se-btn" onclick="_seConcluirRapido('${esc(c.case)}', false)">Reabrir</button>` : `<button class="se-btn" style="border-color:#34d399;color:#34d399;" onclick="_seConcluirRapido('${esc(c.case)}', true)">Marcar como concluído</button>`}
         <button class="se-btn" style="border-color:var(--teal);color:var(--teal);" onclick="_seSolicitarOS('${esc(c.case)}')">Solicitar OS</button>
+        <button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}')">Comunicado ao técnico</button>
         <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
         <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
   document.body.appendChild(ov);
