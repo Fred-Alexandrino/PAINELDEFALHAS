@@ -2210,6 +2210,11 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
 
       <!-- ── SEÇÃO: CHAMADOS ───────────────────────────────── -->
       <section class="content-section" id="sec-chamados">
+        <div class="tabs-wrapper" style="width:100%;margin-bottom:16px;">
+          <button type="button" class="tab-btn active" id="chTabBtnFab" onclick="_chSetTab('fabricante')">Chamados Fabricante</button>
+          <button type="button" class="tab-btn" id="chTabBtnSe" onclick="_chSetTab('solaredge')">CHAMADOS SOLAREDGE <span id="chTabSeCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
+        </div>
+        <div id="chamadosPainelFabricante">
         <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <h2 style="font-size:16px;font-weight:700;">Chamados — Ticket Fabricante</h2>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -2242,6 +2247,27 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <div id="chamadosSyncIndicator" style="margin-bottom:12px;"></div>
         <div id="chamadosStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
         <div id="chamadosBody"></div>
+        </div>
+        <div id="chamadosPainelSolaredge" style="display:none;">
+          <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h2 style="font-size:16px;font-weight:700;">CHAMADOS SOLAREDGE</h2>
+              <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Fonte: site SolarEdge Service Center (Support Cases). <span id="seSync"></span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <input type="text" id="seBusca" placeholder="Buscar case, usina, inversor, S/N…" oninput="_SE.busca=this.value;_seRender()"
+                     style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
+              <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
+              <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <button class="tb-btn" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
+              <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
+              <input type="file" id="seArquivo" accept=".xlsx,.xls" style="display:none;" onchange="_seImportar(this)">
+            </div>
+          </div>
+          <div id="seImportMsg" style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;"></div>
+          <div id="seKpis" class="se-kpis"></div>
+          <div id="seLista"></div>
+        </div>
       </section>
 
       <!-- ── SEÇÃO: PROCESSOS (Zeladorias) ─────────────────── -->
@@ -4949,7 +4975,7 @@ function switchNav(nav) {
   const title = document.getElementById('topbarTitle');
   if (title) title.textContent = NAV_TITLES[nav] || nav;
   closeMobileSidebar();
-  if (nav === 'chamados') carregarChamadosFabricante();
+  if (nav === 'chamados') { carregarChamadosFabricante(); _seInjetarCss(); _seCarregar(true); }
   if (nav === 'processos') openZeladoriasInline();
   if (nav === 'localizacao') carregarLocalizacoes();
   if (nav === 'historico-log') {/* carregado via botão */}
@@ -10498,6 +10524,280 @@ function _chamadoUsinasCanonicas(ufvRaw) {
 }
 
 let CHAMADOS_FABRICANTE = [];
+
+/* ══════════ CHAMADOS SOLAREDGE (subpainel do Painel de Chamados) — 20/10/2026 ══════════
+   Fonte da verdade = site SolarEdge Service Center. Os dados vêm de GET /solaredge-chamados
+   (espelho na aba SolarEdgeCases), atualizado por "Importar export (.xlsx)" ou pelo Claude
+   (que lê os comentários de dentro de cada case). Controle interno (status/nota) é da Grid. */
+const _SE_API = 'https://api.168.138.232.237.sslip.io';
+const _SE_SITE = 'https://www.solaredge.com/service/support/cases';
+const _SE = { itens: [], opcoes: [], ultima: '', carregado: false, carregando: false, filtro: 'todos', usina: '', busca: '', msg: '' };
+
+function _seInjetarCss() {
+  if (document.getElementById('seStyle')) return;
+  const st = document.createElement('style'); st.id = 'seStyle';
+  st.textContent = `
+  .se-kpis{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .se-kpi{flex:1 1 130px;min-width:120px;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;font-family:'Geist',sans-serif;color:var(--text);}
+  .se-kpi:hover{border-color:var(--border-strong);}
+  .se-kpi.active{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset;}
+  .se-kpi b{display:block;font-size:22px;font-weight:700;font-family:'Geist Mono',monospace;line-height:1.1;}
+  .se-kpi span{font-size:12px;color:var(--text-dim);}
+  .se-kpi.grid b{color:var(--amber);} .se-kpi.red b{color:var(--red);}
+  .se-grp{margin-bottom:18px;}
+  .se-grp-h{display:flex;align-items:baseline;gap:8px;margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim);}
+  .se-grp-h small{font-weight:500;color:var(--text-faint);text-transform:none;letter-spacing:0;}
+  .se-card{background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;}
+  .se-card:hover{border-color:var(--teal);}
+  .se-card.grid{border-left:3px solid var(--amber);} .se-card.fechado{opacity:.6;}
+  .se-top{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:5px;}
+  .se-num{font-family:'Geist Mono',monospace;font-size:13px;font-weight:700;color:var(--teal);}
+  .se-eq{font-family:'Geist Mono',monospace;font-size:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:1px 6px;}
+  .se-badge{font-size:11.5px;font-weight:600;border-radius:20px;padding:2px 9px;border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;}
+  .se-badge.grid{color:var(--amber);border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.08);}
+  .se-badge.se{color:var(--blue);border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.08);}
+  .se-badge.ok{color:var(--sla-ok);border-color:rgba(74,222,128,.4);}
+  .se-badge.red{color:var(--red);border-color:rgba(248,113,113,.45);}
+  .se-ass{font-size:13.5px;font-weight:600;line-height:1.35;margin-bottom:4px;}
+  .se-acao{font-size:12.5px;line-height:1.45;color:var(--text);background:rgba(251,191,36,.07);border-radius:7px;padding:7px 9px;margin-top:6px;white-space:pre-wrap;}
+  .se-meta{font-size:12px;color:var(--text-faint);margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 12px;}
+  .se-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px;}
+  .se-modal{background:var(--panel);border:1px solid var(--border-strong);border-radius:14px;width:100%;max-width:760px;padding:18px 20px;color:var(--text);font-family:'Geist',sans-serif;}
+  .se-modal h3{font-size:16px;margin:0 0 4px;} .se-sec{margin-top:16px;} .se-sec>h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 7px;}
+  .se-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 14px;}
+  .se-grade div span{display:block;font-size:11.5px;color:var(--text-faint);} .se-grade div b{font-size:13px;font-weight:600;word-break:break-word;}
+  .se-desc{font-size:13px;line-height:1.5;white-space:pre-wrap;background:var(--panel-alt);border-radius:8px;padding:10px 12px;}
+  .se-msg{border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:13px;line-height:1.5;white-space:pre-wrap;border:1px solid var(--border);background:var(--panel-alt);}
+  .se-msg.fab{border-left:3px solid var(--blue);} .se-msg.grid{border-left:3px solid var(--amber);}
+  .se-msg small{display:block;font-size:11.5px;color:var(--text-faint);margin-bottom:3px;font-weight:600;}
+  .se-in{width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:'Geist',sans-serif;box-sizing:border-box;}
+  .se-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;}
+  .se-btn.pri{background:var(--teal);border-color:var(--teal);color:var(--ink,#042F36);}
+  `;
+  document.head.appendChild(st);
+}
+
+function _chSetTab(t) {
+  const se = t === 'solaredge';
+  document.getElementById('chamadosPainelFabricante').style.display = se ? 'none' : 'block';
+  document.getElementById('chamadosPainelSolaredge').style.display = se ? 'block' : 'none';
+  document.getElementById('chTabBtnFab')?.classList.toggle('active', !se);
+  document.getElementById('chTabBtnSe')?.classList.toggle('active', se);
+  try { localStorage.setItem('chTabAtual', t); } catch (e) {}
+  if (se) { _seInjetarCss(); _seCarregar(false); }
+}
+
+function _seDataBR(iso) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)(?:[ T](\d\d:\d\d))?/.exec(iso || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}${m[4] ? ' ' + m[4] : ''}` : (iso || '');
+}
+function _seDias(iso) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); if (!m) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(+m[1], +m[2] - 1, +m[3]).getTime()) / 86400000));
+}
+function _seAcaoPadrao(c) {
+  if (c.acao) return c.acao;
+  if (/waiting for return/i.test(c.status || '')) return 'Devolver à SolarEdge o equipamento substituído (RMA' + (c.rma ? ' ' + c.rma : '') + ') e confirmar o rastreio da devolução.';
+  return 'Abrir o case no site e responder à SolarEdge (feedback solicitado — texto ainda não lido pelo Claude).';
+}
+function _seAberto(c) { return (c.situacaoSite || 'Aberto') === 'Aberto'; }
+function _seStatusPT(s) {
+  const x = (s || '').toLowerCase();
+  if (x === 'feedback requested') return 'SolarEdge pediu retorno da Grid';
+  if (x === 'in progress') return 'Em análise pela SolarEdge';
+  if (x === 'rma shipment processing') return 'RMA em processamento';
+  if (x.startsWith('rma shipped')) return 'RMA enviado — aguardando devolução';
+  return s || '—';
+}
+function _seBadgeQuem(c) {
+  if (!_seAberto(c)) return '<span class="se-badge">Não consta mais no site</span>';
+  return c.quemAge === 'Grid' ? '<span class="se-badge grid">Ação da Grid</span>' : '<span class="se-badge se">Com a SolarEdge</span>';
+}
+
+async function _seCarregar(silencioso) {
+  if (_SE.carregando) return;
+  _SE.carregando = true;
+  const lista = document.getElementById('seLista');
+  if (lista && !silencioso && !_SE.carregado) lista.innerHTML = '<div class="ch-empty">Carregando chamados SolarEdge…</div>';
+  try {
+    const r = await fetch(_SE_API + '/solaredge-chamados');
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'erro');
+    _SE.itens = j.itens || []; _SE.opcoes = j.statusInternoOpcoes || []; _SE.ultima = j.ultimaImportacao || ''; _SE.carregado = true;
+  } catch (e) {
+    if (lista && !silencioso) lista.innerHTML = `<div class="ch-empty">Erro ao carregar (${esc(e.message || 'falha de conexão')}).</div>`;
+  }
+  _SE.carregando = false;
+  _seAtualizarBadgeAba();
+  if (document.getElementById('chamadosPainelSolaredge')?.style.display !== 'none') _seRender();
+}
+
+function _seAtualizarBadgeAba() {
+  const n = _SE.itens.filter(c => _seAberto(c) && c.quemAge === 'Grid').length;
+  const el = document.getElementById('chTabSeCount');
+  if (el) { el.textContent = n; el.style.display = n ? 'inline-block' : 'none'; }
+}
+
+function _seFiltrados() {
+  const q = (_SE.busca || '').toLowerCase().trim();
+  return _SE.itens.filter(c => {
+    const ab = _seAberto(c);
+    if (_SE.filtro === 'fechados') { if (ab) return false; }
+    else if (!ab) return false;
+    if (_SE.filtro === 'grid' && c.quemAge !== 'Grid') return false;
+    if (_SE.filtro === 'se' && c.quemAge !== 'SolarEdge') return false;
+    if (_SE.filtro === 'rma' && !/rma/i.test(c.status)) return false;
+    if (_SE.usina && (c.usina || '—') !== _SE.usina) return false;
+    if (q) {
+      const txt = [c.case, c.assunto, c.usina, c.equipamento, c.serial, c.rma, c.status, c.acao, c.statusInterno, c.notaGrid].join(' ').toLowerCase();
+      if (!txt.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function _seRender() {
+  const root = document.getElementById('seLista'); if (!root) return;
+  const ab = _SE.itens.filter(_seAberto);
+  const cont = {
+    todos: ab.length, grid: ab.filter(c => c.quemAge === 'Grid').length, se: ab.filter(c => c.quemAge === 'SolarEdge').length,
+    rma: ab.filter(c => /rma/i.test(c.status)).length, fechados: _SE.itens.length - ab.length,
+  };
+  const kp = (k, n, rot, cls) => `<button type="button" class="se-kpi ${cls || ''} ${_SE.filtro === k ? 'active' : ''}" onclick="_seSetFiltro('${k}')"><b>${n}</b><span>${rot}</span></button>`;
+  document.getElementById('seKpis').innerHTML =
+    kp('todos', cont.todos, 'Abertos no site') + kp('grid', cont.grid, 'Ação da Grid', 'grid') + kp('se', cont.se, 'Com a SolarEdge') +
+    kp('rma', cont.rma, 'Com RMA') + (cont.fechados ? kp('fechados', cont.fechados, 'Não constam mais no site', 'red') : '');
+  const usinas = [...new Set(_SE.itens.map(c => c.usina || '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const sel = document.getElementById('seFiltroUsina');
+  if (sel) sel.innerHTML = '<option value="">Todas as usinas</option>' + usinas.map(u => `<option value="${esc(u)}" ${u === _SE.usina ? 'selected' : ''}>${esc(u === '—' ? 'Sem usina identificada' : u)}</option>`).join('');
+  document.getElementById('seSync').textContent = _SE.ultima ? 'Atualizado em ' + _seDataBR(_SE.ultima.replace('T', ' ')) : 'Nunca importado';
+  const itens = _seFiltrados();
+  if (!itens.length) { root.innerHTML = '<div class="ch-empty">Nenhum chamado neste filtro.</div>'; return; }
+  const grupos = {};
+  itens.forEach(c => { const u = c.usina || '—'; (grupos[u] = grupos[u] || []).push(c); });
+  const ord = Object.keys(grupos).sort((a, b) => {
+    const ga = grupos[a].some(c => c.quemAge === 'Grid' && _seAberto(c)), gb = grupos[b].some(c => c.quemAge === 'Grid' && _seAberto(c));
+    return (gb - ga) || a.localeCompare(b, 'pt-BR');
+  });
+  root.innerHTML = ord.map(u => {
+    const arr = grupos[u].sort((a, b) => ((b.quemAge === 'Grid') - (a.quemAge === 'Grid')) || String(a.criado).localeCompare(String(b.criado)));
+    return `<div class="se-grp"><div class="se-grp-h">${esc(u === '—' ? 'Sem usina identificada' : u)} <small>${arr.length} chamado(s)${arr[0].cliente ? ' · ' + esc(arr[0].cliente) : ''}</small></div>${arr.map(_seCardHtml).join('')}</div>`;
+  }).join('');
+}
+
+function _seCardHtml(c) {
+  const d = _seDias(c.criado);
+  const acao = c.quemAge === 'Grid' && _seAberto(c)
+    ? _seAcaoPadrao(c) : '';
+  return `<div class="se-card ${c.quemAge === 'Grid' && _seAberto(c) ? 'grid' : ''} ${_seAberto(c) ? '' : 'fechado'}" onclick="_seAbrirCase('${esc(c.case)}')">
+    <div class="se-top"><span class="se-num">#${esc(c.case)}</span>${c.equipamento ? `<span class="se-eq">${esc(c.equipamento)}</span>` : ''}
+      ${_seBadgeQuem(c)}<span class="se-badge">${esc(_seStatusPT(c.status))}</span>
+      ${c.statusInterno ? `<span class="se-badge ok">${esc(c.statusInterno)}</span>` : ''}</div>
+    <div class="se-ass">${esc(c.assunto)}</div>
+    ${acao ? `<div class="se-acao"><b>O que fazer:</b> ${esc(acao)}</div>` : ''}
+    <div class="se-meta"><span>Aberto em ${esc(_seDataBR(c.criado))}${d != null ? ` (${d} dia${d === 1 ? '' : 's'})` : ''}</span>
+      ${c.rma ? `<span>RMA ${esc(c.rma)}</span>` : ''}${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
+      ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div></div>`;
+}
+
+function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
+
+function _seAbrirCase(num) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return;
+  document.getElementById('seOverlay')?.remove();
+  const campo = (rot, v) => `<div><span>${esc(rot)}</span><b>${v ? esc(v) : '—'}</b></div>`;
+  const d = _seDias(c.criado);
+  const coms = (c.comentarios || []).slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  const timeline = coms.length ? coms.map(m => `<div class="se-msg ${m.quem === 'Grid' ? 'grid' : 'fab'}"><small>${m.quem === 'Grid' ? 'Grid Co.' : 'SolarEdge'} · ${esc(m.autor || '')}${m.data ? ' · ' + esc(_seDataBR(m.data)) : ''}</small>${esc(m.texto)}</div>`).join('')
+    : '<div class="ch-empty" style="padding:14px;">Comentários deste case ainda não foram lidos do site. Peça ao Claude para atualizar este case.</div>';
+  const docs = (c.documentos || []).length ? (c.documentos || []).map(x => `<div style="font-size:13px;">📎 ${esc(x)}</div>`).join('') : '<span style="font-size:13px;color:var(--text-faint);">Nenhum anexo listado.</span>';
+  const opcoes = ['', ..._SE.opcoes].map(o => `<option value="${esc(o)}" ${o === (c.statusInterno || '') ? 'selected' : ''}>${esc(o || '— sem status interno —')}</option>`).join('');
+  const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seOverlay';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div class="se-modal">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+      <div><h3>Case #${esc(c.case)} ${c.equipamento ? '· ' + esc(c.equipamento) : ''}</h3>
+        <div style="font-size:13px;color:var(--text-dim);">${esc(c.usina || 'Sem usina identificada')}${c.cliente ? ' · ' + esc(c.cliente) : ''}</div></div>
+      <button class="se-btn" onclick="document.getElementById('seOverlay').remove()">Fechar</button></div>
+    <div class="se-top" style="margin-top:10px;">${_seBadgeQuem(c)}<span class="se-badge">${esc(c.status)} — ${esc(_seStatusPT(c.status))}</span></div>
+    <div class="se-ass" style="margin-top:8px;font-size:15px;">${esc(c.assunto)}</div>
+    ${c.quemAge === 'Grid' && _seAberto(c) ? `<div class="se-acao" style="font-size:13.5px;"><b>O que precisamos fazer:</b> ${esc(_seAcaoPadrao(c))}</div>` : ''}
+    <div class="se-sec"><h4>Dados do case</h4><div class="se-grade">
+      ${campo('Aberto em', _seDataBR(c.criado) + (d != null ? ` (${d} dias)` : ''))}${campo('Tipo', c.tipo)}${campo('Categoria', c.categoria)}${campo('Subcategoria', c.subCategoria)}
+      ${campo('S/N do inversor', c.serial)}${campo('Código de erro', c.codigoErro)}${campo('Severidade', c.severidade)}${campo('Site (SolarEdge)', c.site)}${campo('Site ID', c.siteId)}
+      ${campo('RMA', c.rma)}${campo('Previsão de envio (ETA)', c.envioEta)}${campo('Rastreio', c.rastreio)}${campo('Situação no site', c.situacaoSite)}${campo('Último comentário', _seDataBR(c.ultimoComentarioEm))}${campo('Atualizado no painel', _seDataBR((c.atualizadoEm || '').replace('T', ' ')))}
+    </div></div>
+    <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${esc(c.descricao || '—')}</div></div>
+    <div class="se-sec"><h4>Histórico de comentários</h4>${timeline}</div>
+    <div class="se-sec"><h4>Anexos / documentos</h4>${docs}</div>
+    <div class="se-sec"><h4>Controle da Grid</h4>
+      <div style="display:grid;grid-template-columns:1fr 160px;gap:8px;margin-bottom:8px;">
+        <select id="seIntStatus" class="se-in">${opcoes}</select>
+        <input id="seIntEquip" class="se-in" placeholder="Inversor (ex.: INV05)" value="${esc(c.equipamento || '')}"></div>
+      <textarea id="seIntNota" class="se-in" rows="3" placeholder="Nota interna (o que foi feito em campo, próximos passos…)">${esc(c.notaGrid || '')}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="se-btn pri" onclick="_seSalvarInterno('${esc(c.case)}')">Salvar</button>
+        <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
+        <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
+  document.body.appendChild(ov);
+}
+
+async function _seSalvarInterno(num) {
+  const msg = document.getElementById('seIntMsg'); msg.textContent = 'Salvando…';
+  const corpo = { case: num, statusInterno: document.getElementById('seIntStatus').value, notaGrid: document.getElementById('seIntNota').value, equipamento: document.getElementById('seIntEquip').value };
+  try {
+    const r = await fetch(_SE_API + '/solaredge-chamados/interno', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+    const c = _SE.itens.find(x => x.case === num);
+    if (c) { c.statusInterno = corpo.statusInterno; c.notaGrid = corpo.notaGrid; c.equipamento = corpo.equipamento.trim() || c.equipamento; }
+    msg.textContent = 'Salvo ✓'; _seRender();
+  } catch (e) { msg.textContent = 'Erro ao salvar: ' + (e.message || 'falha'); }
+}
+
+/* ── Importar o export (.xlsx) do site: Support Cases > Export ── */
+function _seLimpa(v) { return String(v == null ? '' : v).replace(/&amp;/g, '&').trim().replace(/^\.\s*/, '').trim(); }
+function _seLimpaDesc(v) {
+  let s = _seLimpa(v); const i = s.indexOf('…');
+  if (i > 0) { const head = s.slice(0, i).trim(), rest = s.slice(i + 1).trim(); if (rest && rest.startsWith(head.slice(0, 40))) s = rest; }
+  return s.replace(/\n\s*\n+/g, '\n').replace(/[ \t]+/g, ' ').trim();
+}
+function _seIsoData(d) { const m = /^(\d\d)\/(\d\d)\/(\d\d) (\d\d:\d\d)/.exec(d || ''); return m ? `20${m[3]}-${m[2]}-${m[1]} ${m[4]}` : (d || ''); }
+function _seCarregarXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = () => falha(new Error('biblioteca de planilhas indisponível')); document.head.appendChild(s); });
+}
+async function _seImportar(input) {
+  const arq = input.files && input.files[0]; input.value = '';
+  if (!arq) return;
+  const msg = document.getElementById('seImportMsg'); msg.textContent = 'Lendo arquivo…';
+  try {
+    await _seCarregarXlsx();
+    const wb = XLSX.read(await arq.arrayBuffer(), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+    const hi = rows.findIndex(r => String(r[0]).trim() === 'Case'); if (hi < 0) throw new Error('não parece um export de Support Cases');
+    const H = rows[hi].map(x => String(x).trim()); const col = n => H.indexOf(n);
+    const cases = [];
+    rows.slice(hi + 1).forEach(r => {
+      const num = _seLimpa(r[col('Case')]).replace(/\D/g, ''); if (!num) return;
+      const o = { case: num }; const put = (k, v) => { if (v) o[k] = v; };
+      put('subject', _seLimpa(r[col('Subject')])); put('category', _seLimpa(r[col('Category')])); put('subCategory', _seLimpa(r[col('Sub Category')]));
+      put('siteId', _seLimpa(r[col('Site ID')])); put('siteName', _seLimpa(r[col('Site Name')])); put('serial', _seLimpa(r[col('Inverter S/N')]));
+      put('rma', _seLimpa(r[col('RMA')])); put('eta', _seLimpa(r[col('Shipment ETA')])); put('tracking', _seLimpa(r[col('Tracking')]));
+      put('status', _seLimpa(r[col('Status')])); put('created', _seIsoData(_seLimpa(r[col('Created')]))); put('type', _seLimpa(r[col('Type')]));
+      put('errorCode', _seLimpa(r[col('Error Code')])); put('severity', _seLimpa(r[col('Severity')])); put('description', _seLimpaDesc(r[col('Description')]));
+      cases.push(o);
+    });
+    if (!cases.length) throw new Error('nenhum case encontrado no arquivo');
+    const conhecidos = new Set(_SE.itens.map(c => c.case)); const novos = cases.filter(c => !conhecidos.has(c.case)).length;
+    const somem = _SE.itens.filter(c => _seAberto(c) && !cases.some(x => x.case === c.case)).length;
+    if (!confirm(`Importar ${cases.length} cases (${novos} novo(s)).\n${somem} case(s) hoje abertos no painel não estão no arquivo e serão marcados como "Não consta mais no site".\nO controle interno e os comentários já lidos são preservados. Continuar?`)) { msg.textContent = ''; return; }
+    msg.textContent = 'Importando…';
+    const r = await fetch(_SE_API + '/solaredge-chamados/importar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cases, snapshotCompleto: true }) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+    msg.textContent = `Importado: ${j.novos} novo(s), ${j.atualizados} atualizado(s), ${j.naoConstamMais} não constam mais.${novos ? ' Cases novos ainda sem comentários lidos — peça ao Claude para ler.' : ''}`;
+    await _seCarregar(true); _seRender();
+  } catch (e) { msg.textContent = 'Erro: ' + (e.message || 'falha na importação'); }
+}
 
 async function carregarChamadosFabricante() {
   const body = document.getElementById('chamadosBody');
