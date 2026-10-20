@@ -4306,8 +4306,10 @@ const _SUP_ESCOPOS = {
 };
 // Vitor Valadares (Supervisor de Campo): visão TOTAL (mesmos dados do Fred), só leitura/cópia:
 // Programação PCM, Atividades e Comunicados (aba Técnicos, sem "Seguir Programação PCM").
-_SUP_ESCOPOS.vitor = { cargo: 'Supervisor de Campo', total: true, somenteLeitura: true,
-  navs: ['atividades', 'programacao-pcm', 'comunicados'], usinas: [] };
+_SUP_ESCOPOS.vitor = { cargo: 'Supervisor de Campo', campo: true, somenteLeitura: true,
+  navs: ['atividades', 'programacao-pcm', 'comunicados'],
+  clustersPcm: ["MT Leste 01", "MT Leste 02", "MT Norte 01", "MT Sul 01", "MT Sul 03", "PA Norte 03", "GO Leste 02", "MS Leste 01"],
+  usinas: [{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina I","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina II","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana I","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana II","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Ribeirão Cascalheira","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder I","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder II","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Sul 01","cliente": "2C Energia","usina": "Araputanga","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 01","cliente": "Thopen","usina": "Poconé","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 03","cliente": "Renogrid","usina": "Nobres","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Sul 03","cliente": "Thopen","usina": "Diamantino","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "PA Norte 03","cliente": "2C Energia","usina": "Ipixuna do Pará I","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia I","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia II","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Sítio dos Nogueiras","cidade": "GO","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado I","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado II","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "PA Norte 03","cliente": "2C Energia","usina": "Ipixuna do Pará II","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": []}] };
 const _SUP_NAVS_PERMITIDOS = ['atividades', 'ocorrencias', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
@@ -4332,7 +4334,6 @@ function _supMontarIndice(esc) {
 // Devolve a entrada do escopo que casa com (usina, cliente) ou null.
 function _supBuscar(usina, cliente) {
   if (!_supEscopoAtivo) return null;
-  if (_supEscopoAtivo.total) return { usina: usina, cliente: cliente, cluster: '' };
   const idx = _supEscopoAtivo._idx;
   let nome = String(usina == null ? '' : usina).replace(/\s+-\s+[A-Za-z]{2}$/, '').replace(/\s+AL$/, '').trim();
   const c = _supCli(cliente);
@@ -4370,8 +4371,40 @@ function _supChamadoPermitido(c) {
   return _supPermite(semCli, cli);
 }
 const _SUP_VAZIO_OK = { ok: true };
+// Supervisor de campo: PCM só dos clusters dele (filtra qualquer lista de objetos com "cluster").
+function _supFiltroClusterPcm(obj, set) {
+  if (Array.isArray(obj)) {
+    const temCl = obj.some(x => x && typeof x === 'object' && 'cluster' in x);
+    const base = temCl ? obj.filter(x => x && typeof x === 'object' && 'cluster' in x ? set.has(x.cluster) : true) : obj;
+    return base.map(x => _supFiltroClusterPcm(x, set));
+  }
+  if (obj && typeof obj === 'object') {
+    const o = {};
+    for (const k of Object.keys(obj)) o[k] = _supFiltroClusterPcm(obj[k], set);
+    return o;
+  }
+  return obj;
+}
+function _supFiltrarPcmCampo(path, data) {
+  const set = new Set(_supEscopoAtivo.clustersPcm || []);
+  const r = _supFiltroClusterPcm(data, set);
+  if (Array.isArray(r.dias)) {
+    let tot = 0;
+    r.dias.forEach(d => {
+      const it = d.itens || [];
+      if (Array.isArray(d.itens)) {
+        d.total = it.length; d.aposPlano = it.filter(i => i.aposPlano).length;
+        d.finalizadas = it.filter(i => i.estado === 'Finalizada').length;
+        d.horas = Math.round(it.reduce((a, i) => a + (i.duracaoH || 0), 0) * 10) / 10;
+        tot += it.length;
+      }
+    });
+    r.total = tot;
+  }
+  return r;
+}
 function _supFiltrarResposta(path, data) {
-  if (_supEscopoAtivo && _supEscopoAtivo.total) return null;
+  if (_supEscopoAtivo && _supEscopoAtivo.campo && /^\/programacao-pcm/.test(path)) return _supFiltrarPcmCampo(path, data);
   if (path === '/atividades') {
     const out = (data.atividades || []).filter(a => _supPermite(a.usina, a.cliente)).map(a => {
       const e = _supBuscar(a.usina, a.cliente);
@@ -4409,7 +4442,7 @@ function _supInstalarEscopo(sessao) {
   const _supEscopoId = String(sessao.user || '').toLowerCase();
   window._supFetchInstalado = true;
   document.body.classList.add('role-supervisor');
-  if (esc.total) {
+  if (esc.campo) {
     document.body.classList.add('role-campo');
     _SUP_NAVS_PERMITIDOS.length = 0; esc.navs.forEach(n => _SUP_NAVS_PERMITIDOS.push(n));
   }
@@ -4422,7 +4455,7 @@ function _supInstalarEscopo(sessao) {
       // escopo da supervisora no backend: aba e catálogo próprios (nada do Fred)
       try {
         const _h = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
-        if (!esc.total) _h.set('X-Escopo', _supEscopoId);
+        if (!esc.campo) _h.set('X-Escopo', _supEscopoId);
         init = Object.assign({}, init || {}, { headers: _h });
       } catch (e) {}
       if (esc.somenteLeitura && method !== 'GET' && method !== 'OPTIONS' && !/^\/gerar-comunicado/.test(path)) {
@@ -4432,7 +4465,7 @@ function _supInstalarEscopo(sessao) {
         return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
       }
       if (method === 'GET') {
-        if (_SUP_GET_VAZIO.test(path) && !(esc.total && /^\/programacao-pcm/.test(path))) {
+        if (_SUP_GET_VAZIO.test(path) && !(esc.campo && /^\/programacao-pcm/.test(path))) {
           return _supJson({ ok: true, itens: [], grupos: [], total: 0, atividades: [], blocos: [], regras: [], anotacoes: [], localizacoes: [] });
         }
         const resp = await _fetchOrig(input, init);
@@ -4443,7 +4476,7 @@ function _supInstalarEscopo(sessao) {
           return novo ? _supJson(novo, resp.status) : resp;
         } catch (e) {
           // falha fechada: se não deu pra filtrar um endpoint de dados, não devolve o original
-          if (path === '/atividades' || path === '/chamados-fabricante') return _supJson({ ok: false, error: 'Falha ao aplicar o filtro do seu perfil.' }, 500);
+          if (path === '/atividades' || path === '/chamados-fabricante' || /^\/programacao-pcm/.test(path)) return _supJson({ ok: false, error: 'Falha ao aplicar o filtro do seu perfil.' }, 500);
           return resp;
         }
       }
@@ -6333,7 +6366,7 @@ function initDashboard(session) {
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
-  if (session.role === 'manager' || session.role === 'admin' || (session.role === 'supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.total))) { try { OC.entrar(); } catch (e) {} }
+  if (session.role === 'manager' || session.role === 'admin' || (session.role === 'supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.campo))) { try { OC.entrar(); } catch (e) {} }
   if (session.role !== 'manager' && session.role !== 'admin' && session.role !== 'supervisor') {
     document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
   }
@@ -6359,7 +6392,7 @@ function initDashboard(session) {
       // Sem Falhas/PCM do Fred: só os dados dos 3 painéis liberados.
       DATA = []; try { applyFilters(); } catch(e){}
       carregarAtividades().then(() => _abrirDeepLinkNotificacao());
-      if (_supEscopoAtivo && _supEscopoAtivo.total) { carregarProgramacaoPcm(); return; }
+      if (_supEscopoAtivo && _supEscopoAtivo.campo) { carregarProgramacaoPcm(); return; }
       carregarChamadosFabricante();
       return;
     }
