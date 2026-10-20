@@ -10730,6 +10730,7 @@ function _seAbrirCase(num) {
     <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${esc(c.descricao || '—')}</div></div>
     <div class="se-sec"><h4>Histórico de comentários</h4>${timeline}</div>
     <div class="se-sec"><h4>Anexos / documentos</h4>${docs}</div>
+    <div class="se-sec"><h4>Testes de campo (OS da Grid)</h4><div id="seTestesBox">${_seTestesHtml(c)}</div></div>
     <div class="se-sec"><h4>Controle da Grid</h4>
       <div style="display:grid;grid-template-columns:1fr 160px;gap:8px;margin-bottom:8px;">
         <select id="seIntStatus" class="se-in">${opcoes}</select>
@@ -10737,9 +10738,128 @@ function _seAbrirCase(num) {
       <textarea id="seIntNota" class="se-in" rows="3" placeholder="Nota interna (o que foi feito em campo, próximos passos…)">${esc(c.notaGrid || '')}</textarea>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
         <button class="se-btn pri" onclick="_seSalvarInterno('${esc(c.case)}')">Salvar</button>
+        <button class="se-btn" style="border-color:var(--teal);color:var(--teal);" onclick="_seSolicitarOS('${esc(c.case)}')">Solicitar OS</button>
         <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
         <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
   document.body.appendChild(ov);
+}
+
+
+/* ── Solicitar OS a partir do que a SolarEdge pediu ── */
+function _seMsgsSolarEdge(c) {
+  const l = (c.comentarios || []).filter(m => m.quem !== 'Grid' && (m.texto || '').trim())
+    .slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  return l;
+}
+function _seTextoPedido(c, idx) {
+  const l = _seMsgsSolarEdge(c);
+  if (l.length) { const m = l[idx == null || idx < 0 || idx >= l.length ? l.length - 1 : idx]; return { texto: m.texto.trim(), autor: m.autor || 'SolarEdge', data: m.data || '' }; }
+  return { texto: (c.descricao || '').trim(), autor: 'Descrição do case', data: c.criado || '' };
+}
+function _seParseSteps(texto) {
+  const t = String(texto || '').replace(/\s+/g, ' ').trim();
+  let partes = t.split(/(?:^|\s)\d{1,2}\s*[\)\.]\s+(?=[A-Za-zÀ-ú])/).map(x => x.trim()).filter(Boolean);
+  if (partes.length >= 3) { if (!/^\d/.test(t)) partes = partes.slice(1); }
+  else partes = t.split(/(?<=[\.\!\?])\s+/).map(x => x.trim()).filter(x => x.length > 12);
+  return partes.slice(0, 20).map(x => x.replace(/;$/, '.'));
+}
+function _seMontarOS(c, pedido, osIA) {
+  const cab = `SOLICITAÇÃO DA SOLAREDGE — Case #${c.case}${c.equipamento ? ' · ' + c.equipamento : ''} (${pedido.autor}${pedido.data ? ', ' + _seDataBR(pedido.data) : ''}). Texto exato:\n"${pedido.texto}"`;
+  const fixos = ['Registro fotográfico da atividade', 'Ficou alguma pendência? Se sim, descreva'];
+  let subs;
+  let extra = '';
+  if (osIA && osIA.subtarefas && osIA.subtarefas.length) {
+    subs = osIA.subtarefas.filter(x => !/^registro fotogr[áa]fico da atividade$/i.test(x) && !/^ficou alguma pend/i.test(x)).concat(fixos);
+    extra = (osIA.observacao || '').trim();
+  } else {
+    subs = _seParseSteps(pedido.texto).concat(fixos);
+  }
+  const tit = (osIA && osIA.titulo) ? osIA.titulo : `${(c.assunto || 'Atendimento SolarEdge').replace(/^\s*[-–]\s*/, '')}`.slice(0, 110);
+  return { titulo: `${tit} — Case SolarEdge #${c.case}`.slice(0, 150), observacao: cab + (extra ? '\n\nOrientações de segurança/execução: ' + extra : ''), subtarefas: subs };
+}
+async function _seSolicitarOS(num, idx) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return;
+  document.getElementById('seOsOverlay')?.remove();
+  const msgs = _seMsgsSolarEdge(c);
+  const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seOsOverlay'; ov.style.zIndex = 10001;
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  const sel = msgs.length > 1 ? `<select id="seOsMsg" class="se-in" style="margin:8px 0;" onchange="_seSolicitarOS('${esc(num)}', +this.value)">${msgs.map((m, i) => `<option value="${i}" ${i === (idx == null ? msgs.length - 1 : idx) ? 'selected' : ''}>${esc(_seDataBR(m.data) || 's/ data')} · ${esc(m.autor || '')} — ${esc((m.texto || '').slice(0, 70))}…</option>`).join('')}</select>` : '';
+  ov.innerHTML = `<div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Solicitar OS — Case #${esc(c.case)}</h3><button class="se-btn" onclick="document.getElementById('seOsOverlay').remove()">Fechar</button></div>
+    <div style="font-size:12.5px;color:var(--text-dim);">Passo a passo montado a partir do que a SolarEdge pediu. A Observação leva o texto exato da SolarEdge.</div>${sel}
+    <div id="seOsCorpo" style="margin-top:10px;font-size:13px;color:var(--text-faint);">Montando o passo a passo…</div></div>`;
+  document.body.appendChild(ov);
+  const pedido = _seTextoPedido(c, idx);
+  let osIA = null, aviso = '';
+  try {
+    const lista = await _gerarTextosOSComIA({
+      cliente: c.cliente || '', usina: c.usina || '', equipamento: c.equipamento || '',
+      falha: `Case SolarEdge #${c.case} — ${c.assunto}. Solicitação EXATA da SolarEdge (siga somente o que ela pede, um passo de campo para cada orientação, na mesma ordem; não invente etapas): ${pedido.texto}`,
+      causa: '', acao: '', historico: '', responsavel: ''
+    });
+    osIA = lista && lista[0];
+  } catch (e) { aviso = 'IA indisponível — passo a passo extraído diretamente do texto da SolarEdge.'; }
+  const corpo = document.getElementById('seOsCorpo'); if (!corpo) return;
+  const os = _seMontarOS(c, pedido, osIA);
+  corpo.style.color = 'inherit';
+  corpo.innerHTML = (aviso ? `<div style="font-size:12px;color:var(--amber);margin-bottom:8px;">${esc(aviso)}</div>` : '') + `<div id="seOsCampos">${_htmlCamposOS([os])}</div>
+    <div style="font-size:12px;color:var(--text-faint);margin-top:10px;">Copie cada campo para a plataforma de solicitação de OS. Depois de gerada a OS, registre o nº dela em "Testes de campo" neste case.</div>`;
+  _wireCopiaCamposOS(document.getElementById('seOsCampos'));
+  const ta = corpo.querySelector('textarea'); if (ta) ta.rows = 8;
+}
+
+/* ── Testes de campo registrados por case ── */
+function _seTestesHtml(c) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const lista = (c.testesCampo || []).map(t => `<div class="se-msg grid" style="margin-bottom:6px;">
+    <small>${t.os ? 'OS ' + esc(t.os) : 'Sem OS'}${t.equipamento ? ' · ' + esc(t.equipamento) : ''}${t.data ? ' · ' + esc(_seDataBR(t.data)) : ''} · ${t.enviado ? '✓ resposta enviada à SolarEdge' : 'resposta ainda não enviada'}</small>
+    ${esc(t.resultado || '(sem resultado descrito)')}
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+      <button class="se-btn" onclick="_seCopiarResposta('${esc(c.case)}','${esc(t.id)}')">Copiar resposta p/ SolarEdge</button>
+      <button class="se-btn" onclick="_seTesteAcao('${esc(c.case)}','enviado','${esc(t.id)}',${t.enviado ? 'false' : 'true'})">${t.enviado ? 'Desmarcar enviado' : 'Marcar como enviado'}</button>
+      <button class="se-btn" onclick="_seTesteAcao('${esc(c.case)}','del','${esc(t.id)}')">Excluir</button></div></div>`).join('') || '<div style="font-size:13px;color:var(--text-faint);margin-bottom:8px;">Nenhum teste de campo registrado neste case.</div>';
+  return lista + `<div style="display:grid;grid-template-columns:130px 150px 1fr;gap:8px;margin-top:8px;">
+      <input id="seTstOS" class="se-in" placeholder="Nº da OS (Fracttal)" inputmode="numeric">
+      <input id="seTstData" class="se-in" type="date" value="${hoje}">
+      <input id="seTstEq" class="se-in" placeholder="Equipamento testado" value="${esc(c.equipamento || '')}"></div>
+    <textarea id="seTstRes" class="se-in" rows="3" style="margin-top:8px;" placeholder="Resultado do teste em campo (valores medidos, o que foi trocado/testado, hora/data, observações)"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+      <button class="se-btn pri" onclick="_seTesteAdd('${esc(c.case)}')">Registrar teste</button>
+      <button class="se-btn" onclick="_seConferirOS()">Conferir OS na Fracttal</button>
+      <span id="seTstMsg" style="font-size:12px;color:var(--text-faint);"></span></div>`;
+}
+async function _seConferirOS() {
+  const os = (document.getElementById('seTstOS').value || '').replace(/\D/g, ''); const msg = document.getElementById('seTstMsg');
+  if (!os) { msg.textContent = 'Informe o nº da OS.'; return; }
+  msg.textContent = 'Consultando Fracttal…';
+  try {
+    const r = await fetch(_SE_API + '/os-historico-fracttal/' + os); const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+    const fim = (j.eventos || []).find(e => /conclu|finaliz/i.test(e.titulo)); const ini = (j.eventos || []).slice().reverse().find(e => /iniciada/i.test(e.titulo));
+    msg.textContent = `OS ${os}: ${j.totalTarefas} tarefa(s)` + (ini ? ` · iniciada ${ini.dataFormatada}` : '') + (fim ? ` · ${fim.titulo.toLowerCase()} ${fim.dataFormatada}` : ' · ainda não concluída');
+  } catch (e) { msg.textContent = 'Não consegui consultar: ' + (e.message || 'falha'); }
+}
+function _seAtualizaTestes(num, lista) {
+  const c = _SE.itens.find(x => x.case === num); if (c) c.testesCampo = lista;
+  const box = document.getElementById('seTestesBox'); if (box && c) box.innerHTML = _seTestesHtml(c);
+}
+async function _sePostTeste(corpo) {
+  const r = await fetch(_SE_API + '/solaredge-chamados/teste-campo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro'); return j.testesCampo;
+}
+async function _seTesteAdd(num) {
+  const msg = document.getElementById('seTstMsg'); msg.textContent = 'Salvando…';
+  try {
+    const l = await _sePostTeste({ case: num, acao: 'add', os: document.getElementById('seTstOS').value, data: document.getElementById('seTstData').value, equipamento: document.getElementById('seTstEq').value, resultado: document.getElementById('seTstRes').value });
+    _seAtualizaTestes(num, l); showToast('Teste de campo registrado.', true);
+  } catch (e) { msg.textContent = 'Erro: ' + (e.message || 'falha'); }
+}
+async function _seTesteAcao(num, acao, id, valor) {
+  if (acao === 'del' && !confirm('Excluir este teste registrado?')) return;
+  try { _seAtualizaTestes(num, await _sePostTeste({ case: num, acao, id, valor })); } catch (e) { showToast('Erro: ' + (e.message || 'falha'), false); }
+}
+function _seCopiarResposta(num, id) {
+  const c = _SE.itens.find(x => x.case === num); const t = (c && c.testesCampo || []).find(x => x.id === id); if (!t) return;
+  const txt = `Olá, equipe SolarEdge. Segue o retorno dos testes realizados em campo${t.equipamento ? ' no equipamento ' + t.equipamento : ''}${t.data ? ' em ' + _seDataBR(t.data) : ''}${t.os ? ' (Ordem de Serviço Grid nº ' + t.os + ', em anexo)' : ''}.\n\nResultado:\n${t.resultado || '(descrever)'}\n\nFicamos à disposição e aguardamos o parecer para os próximos passos.`;
+  navigator.clipboard?.writeText(txt).then(() => showToast('Resposta copiada — cole no case no site da SolarEdge.', true)).catch(() => showToast('Não consegui copiar.', false));
 }
 
 async function _seSalvarInterno(num) {
