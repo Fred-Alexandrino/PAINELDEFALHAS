@@ -2213,7 +2213,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <div class="tabs-wrapper" style="width:100%;margin-bottom:16px;">
           <button type="button" class="tab-btn active" id="chTabBtnFab" onclick="_chSetTab('fabricante')">Chamados Fabricante</button>
           <button type="button" class="tab-btn" id="chTabBtnSe" onclick="_chSetTab('solaredge')">CHAMADOS SOLAREDGE <span id="chTabSeCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
-          <button type="button" class="tab-btn" id="chTabBtnCol" onclick="_chSetTab('coleta')">AGUARDANDO COLETA SOLAREDGE <span id="chTabColCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
+          
         </div>
         <div id="chamadosPainelFabricante">
         <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -2222,6 +2222,10 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer;user-select:none;">
               <input type="checkbox" id="chamadosSoMeus" checked style="cursor:pointer;">
               Mostrar só meus chamados (Fred Alexandrino)
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer;user-select:none;">
+              <input type="checkbox" id="chamadosMostrarSE" style="cursor:pointer;">
+              Mostrar chamados SolarEdge (já estão no painel próprio)
             </label>
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);cursor:pointer;user-select:none;">
               <input type="checkbox" id="chamadosOcultarSemTicket" checked style="cursor:pointer;">
@@ -2276,10 +2280,15 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
               3) Clique no favorito. Em cerca de 1 minuto o painel recebe status, RMA/rastreio, comentários e anexos de todos os cases. Nenhuma senha é lida ou guardada.
             </div>
           </details>
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button type="button" class="se-btn pri" id="seSubBtnLista" onclick="_seSubTab('lista')">Chamados</button>
+            <button type="button" class="se-btn" id="seSubBtnColeta" onclick="_seSubTab('coleta')">Aguardando coleta SolarEdge <span id="chTabColCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
+          </div>
+          <div id="seSubLista">
           <div id="seKpis" class="se-kpis"></div>
           <div id="seLista"></div>
-        </div>
-        <div id="chamadosPainelColeta" style="display:none;">
+          </div>
+        <div id="seSubColeta" style="display:none;">
           <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
             <div>
               <h2 style="font-size:16px;font-weight:700;">AGUARDANDO COLETA SOLAREDGE</h2>
@@ -2292,6 +2301,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
           </div>
           <div id="seColKpis" class="se-kpis"></div>
           <div id="seColLista"></div>
+        </div>
         </div>
       </section>
 
@@ -10153,6 +10163,10 @@ document.getElementById('chamadosSoMeus')?.addEventListener('change', () => {
   _atualizarBadgeChamados();
   openChamadosInline();
 });
+document.getElementById('chamadosMostrarSE')?.addEventListener('change', () => {
+  _atualizarBadgeChamados();
+  openChamadosInline();
+});
 document.getElementById('chamadosOcultarSemTicket')?.addEventListener('change', () => {
   _atualizarBadgeChamados();
   openChamadosInline();
@@ -10603,15 +10617,22 @@ function _seInjetarCss() {
 }
 
 function _chSetTab(t) {
-  const se = t === 'solaredge', col = t === 'coleta';
-  document.getElementById('chamadosPainelFabricante').style.display = (se || col) ? 'none' : 'block';
+  const col = t === 'coleta', se = t === 'solaredge' || col;
+  document.getElementById('chamadosPainelFabricante').style.display = se ? 'none' : 'block';
   document.getElementById('chamadosPainelSolaredge').style.display = se ? 'block' : 'none';
-  const pc = document.getElementById('chamadosPainelColeta'); if (pc) pc.style.display = col ? 'block' : 'none';
-  document.getElementById('chTabBtnFab')?.classList.toggle('active', !se && !col);
+  document.getElementById('chTabBtnFab')?.classList.toggle('active', !se);
   document.getElementById('chTabBtnSe')?.classList.toggle('active', se);
-  document.getElementById('chTabBtnCol')?.classList.toggle('active', col);
-  try { localStorage.setItem('chTabAtual', t); } catch (e) {}
-  if (se || col) { _seInjetarCss(); _seCarregar(false); }
+  try { localStorage.setItem('chTabAtual', se ? 'solaredge' : 'fabricante'); } catch (e) {}
+  if (se) { _seInjetarCss(); _seSubTab(col ? 'coleta' : (_SE.sub || 'lista'), true); _seCarregar(false); }
+}
+function _seSubTab(k, semRender) {
+  _SE.sub = k;
+  const c = k === 'coleta';
+  const a = document.getElementById('seSubLista'), b = document.getElementById('seSubColeta');
+  if (a) a.style.display = c ? 'none' : 'block'; if (b) b.style.display = c ? 'block' : 'none';
+  document.getElementById('seSubBtnLista')?.classList.toggle('pri', !c);
+  document.getElementById('seSubBtnColeta')?.classList.toggle('pri', c);
+  if (!semRender && _SE.carregado) _seRender();
 }
 
 function _seDataBR(iso) {
@@ -11183,6 +11204,9 @@ function _chamadoEhMeu(c) {
   return (c._usinasCanonicas || []).some(u => minhas.has(u));
 }
 
+function _chamadoEhSolarEdge(c) { return /solar\s*edge/i.test(c['Fabricante'] || ''); }
+function _chamadoMostraSE() { const el = document.getElementById('chamadosMostrarSE'); return !!(el && el.checked); }
+
 function _atualizarBadgeChamados() {
   const soMeusEl = document.getElementById('chamadosSoMeus');
   const soMeus = soMeusEl ? soMeusEl.checked : true;
@@ -11192,6 +11216,7 @@ function _atualizarBadgeChamados() {
     ? CHAMADOS_FABRICANTE.filter(_chamadoEhMeu)
     : CHAMADOS_FABRICANTE;
   if (ocultarSemTicket) base = base.filter(_chamadoTemTicket);
+  if (!_chamadoMostraSE()) base = base.filter(c => !_chamadoEhSolarEdge(c));
   const abertos = base.filter(_chamadoEstaAberto).length;
   const badge = document.getElementById('sbChamadosBadge');
   if (badge) badge.textContent = abertos;
@@ -11249,6 +11274,7 @@ function openChamadosInline(){
     if (usinaCluster && !usinasChamado.some(u => usinaCluster[u] === _ativClusterFiltro)) return false;
     if (selTipoEquip.size > 0 && !selTipoEquip.has(_chamadoTipoEquipamento(c))) return false;
     if (soMeus && !_chamadoEhMeu(c)) return false;
+    if (!_chamadoMostraSE() && _chamadoEhSolarEdge(c)) return false;
     return true;
   });
   const semTicketCount = dataBasePreTicket.filter(c => !_chamadoTemTicket(c)).length;
