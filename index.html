@@ -2271,15 +2271,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             </div>
           </div>
           <div id="seImportMsg" style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;"></div>
-          <details style="margin-bottom:10px;font-size:12.5px;color:var(--text-dim);">
-            <summary style="cursor:pointer;color:var(--teal);font-weight:600;">Atualizar tudo do site em 1 clique (favorito)</summary>
-            <div style="padding:8px 2px;line-height:1.55;">
-              1) Arraste este botão para a barra de favoritos do navegador:
-              <a href="javascript:(function(){var s=document.createElement('script');s.src='https://api.168.138.232.237.sslip.io/solaredge-sync.js?'+Date.now();document.head.appendChild(s)})();" onclick="event.preventDefault();showToast('Arraste este botão para a barra de favoritos (não clique).',false);" style="display:inline-block;background:rgba(34,211,238,.12);border:1px solid var(--teal);color:var(--teal);border-radius:7px;padding:4px 10px;font-weight:700;text-decoration:none;">Sync SolarEdge → Painel</a><br>
-              2) Entre no <a href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="color:var(--teal);">Service Center da SolarEdge</a> (login normal) e espere a lista carregar.<br>
-              3) Clique no favorito. Em cerca de 1 minuto o painel recebe status, RMA/rastreio, comentários e anexos de todos os cases. Nenhuma senha é lida ou guardada.
-            </div>
-          </details>
           <div style="display:flex;gap:6px;margin-bottom:12px;">
             <button type="button" class="se-btn pri" id="seSubBtnLista" onclick="_seSubTab('lista')">Chamados</button>
             <button type="button" class="se-btn" id="seSubBtnColeta" onclick="_seSubTab('coleta')">Aguardando coleta SolarEdge <span id="chTabColCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
@@ -10827,7 +10818,7 @@ window.addEventListener('message', e => { if (e.source === window && e.data && e
 function _seSyncAgora() {
   window.postMessage({ tipo: 'GRID_SE_PING' }, '*');
   setTimeout(() => {
-    if (!window._seExt) { showToast('Extensão “Grid Sync SolarEdge” não detectada neste navegador. Instale-a no Chrome (ou use o favorito abaixo) e recarregue o painel.', false); return; }
+    if (!window._seExt) { showToast('Extensão “Grid Sync SolarEdge” não detectada neste navegador. Instale-a no Chrome e recarregue o painel.', false); return; }
     window.postMessage({ tipo: 'GRID_SE_SYNC' }, '*');
     showToast('Sincronizando com a SolarEdge em segundo plano… o painel atualiza sozinho em ~1 min.', true);
     setTimeout(() => _seCarregar(true), 75000);
