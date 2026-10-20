@@ -10666,7 +10666,7 @@ function _seStatusPT(s) {
   const x = (s || '').toLowerCase();
   if (x === 'feedback requested') return 'SolarEdge pediu retorno da Grid';
   if (x === 'in progress') return 'Em análise pela SolarEdge';
-  if (x === 'rma shipment processing') return 'RMA em processamento';
+  if (x === 'rma shipment processing') return 'RMA em processamento — equipamento em envio para a usina';
   if (x.startsWith('rma shipped')) return 'RMA enviado — aguardando devolução';
   return s || '—';
 }
@@ -10941,18 +10941,20 @@ function _seTestesHtml(c) {
     <textarea id="seTstRes" class="se-in" rows="3" style="margin-top:8px;" placeholder="Resultado do teste em campo (valores medidos, o que foi trocado/testado, hora/data, observações)"></textarea>
     <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
       <button class="se-btn pri" onclick="_seTesteAdd('${esc(c.case)}')">Registrar teste</button>
-      <button class="se-btn" onclick="_seConferirOS()">Conferir OS na Fracttal</button>
       <span id="seTstMsg" style="font-size:12px;color:var(--text-faint);"></span></div>`;
 }
-async function _seConferirOS() {
-  const os = (document.getElementById('seTstOS').value || '').replace(/\D/g, ''); const msg = document.getElementById('seTstMsg');
-  if (!os) { msg.textContent = 'Informe o nº da OS.'; return; }
-  msg.textContent = 'Consultando Fracttal…';
-  try {
-    const r = await fetch(_SE_API + '/os-historico-fracttal/' + os); const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
-    const fim = (j.eventos || []).find(e => /conclu|finaliz/i.test(e.titulo)); const ini = (j.eventos || []).slice().reverse().find(e => /iniciada/i.test(e.titulo));
-    msg.textContent = `OS ${os}: ${j.totalTarefas} tarefa(s)` + (ini ? ` · iniciada ${ini.dataFormatada}` : '') + (fim ? ` · ${fim.titulo.toLowerCase()} ${fim.dataFormatada}` : ' · ainda não concluída');
-  } catch (e) { msg.textContent = 'Não consegui consultar: ' + (e.message || 'falha'); }
+async function _seConferirOS(inId, msgId) {
+  const nums = (document.getElementById(inId || 'seVincOS').value || '').match(/\d+/g) || []; const msg = document.getElementById(msgId || 'seVincMsg');
+  if (!nums.length) { msg.textContent = 'Informe o nº da OS (ou várias separadas por vírgula).'; return; }
+  msg.textContent = 'Consultando Fracttal…'; const out = [];
+  for (const os of nums) {
+    try {
+      const r = await fetch(_SE_API + '/os-historico-fracttal/' + os); const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+      const fim = (j.eventos || []).find(e => /conclu|finaliz/i.test(e.titulo)); const ini = (j.eventos || []).slice().reverse().find(e => /iniciada/i.test(e.titulo));
+      out.push(`OS ${os}: ${j.totalTarefas} tarefa(s)` + (ini ? ` · iniciada ${ini.dataFormatada}` : '') + (fim ? ` · ${fim.titulo.toLowerCase()} ${fim.dataFormatada}` : ' · ainda não concluída'));
+    } catch (e) { out.push(`OS ${os}: não consegui consultar (${e.message || 'falha'})`); }
+  }
+  msg.innerHTML = out.map(esc).join('<br>');
 }
 function _seAtualizaTestes(num, lista) {
   const c = _SE.itens.find(x => x.case === num); if (c) c.testesCampo = lista;
@@ -10990,7 +10992,7 @@ function _seOsVincHtml(c) {
   return l + `<div style="display:grid;grid-template-columns:170px 1fr;gap:8px;margin-top:8px;">
       <input id="seVincOS" class="se-in" placeholder="Nº da OS (vários: 15548, 15600)">
       <input id="seVincFin" class="se-in" list="seVincFinList" placeholder="Finalidade (ex.: Teste de campo, Troca de peça, Inspeção)"><datalist id="seVincFinList"><option value="Teste de campo"><option value="Inspeção"><option value="Troca de peça / RMA"><option value="Correção de comunicação"><option value="Evidência solicitada pelo fabricante"></datalist></div>
-    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;"><button class="se-btn pri" onclick="_seOsVincAdd('${esc(c.case)}')">Vincular OS</button><span id="seVincMsg" style="font-size:12px;color:var(--text-faint);"></span></div>`;
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;"><button class="se-btn pri" onclick="_seOsVincAdd('${esc(c.case)}')">Vincular OS</button><button class="se-btn" onclick="_seConferirOS('seVincOS','seVincMsg')">Conferir OS na Fracttal</button><span id="seVincMsg" style="font-size:12px;color:var(--text-faint);"></span></div>`;
 }
 async function _seOsVincStatus(num) {
   const c = _SE.itens.find(x => x.case === num); if (!c) return;
