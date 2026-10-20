@@ -2213,6 +2213,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <div class="tabs-wrapper" style="width:100%;margin-bottom:16px;">
           <button type="button" class="tab-btn active" id="chTabBtnFab" onclick="_chSetTab('fabricante')">Chamados Fabricante</button>
           <button type="button" class="tab-btn" id="chTabBtnSe" onclick="_chSetTab('solaredge')">CHAMADOS SOLAREDGE <span id="chTabSeCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
+          <button type="button" class="tab-btn" id="chTabBtnCol" onclick="_chSetTab('coleta')">AGUARDANDO COLETA SOLAREDGE <span id="chTabColCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
         </div>
         <div id="chamadosPainelFabricante">
         <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -2276,6 +2277,20 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
           </details>
           <div id="seKpis" class="se-kpis"></div>
           <div id="seLista"></div>
+        </div>
+        <div id="chamadosPainelColeta" style="display:none;">
+          <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h2 style="font-size:16px;font-weight:700;">AGUARDANDO COLETA SOLAREDGE</h2>
+              <div style="font-size:12px;color:var(--text-faint);margin-top:2px;">Equipamento de reposição (RMA) já enviado pela SolarEdge; falta a coleta/devolução do equipamento defeituoso. Entram aqui os cases com status <b>RMA Shipped - Waiting for return</b> no site e os marcados manualmente como “Aguardando coleta SolarEdge”.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
+            </div>
+          </div>
+          <div id="seColKpis" class="se-kpis"></div>
+          <div id="seColLista"></div>
         </div>
       </section>
 
@@ -10587,13 +10602,15 @@ function _seInjetarCss() {
 }
 
 function _chSetTab(t) {
-  const se = t === 'solaredge';
-  document.getElementById('chamadosPainelFabricante').style.display = se ? 'none' : 'block';
+  const se = t === 'solaredge', col = t === 'coleta';
+  document.getElementById('chamadosPainelFabricante').style.display = (se || col) ? 'none' : 'block';
   document.getElementById('chamadosPainelSolaredge').style.display = se ? 'block' : 'none';
-  document.getElementById('chTabBtnFab')?.classList.toggle('active', !se);
+  const pc = document.getElementById('chamadosPainelColeta'); if (pc) pc.style.display = col ? 'block' : 'none';
+  document.getElementById('chTabBtnFab')?.classList.toggle('active', !se && !col);
   document.getElementById('chTabBtnSe')?.classList.toggle('active', se);
+  document.getElementById('chTabBtnCol')?.classList.toggle('active', col);
   try { localStorage.setItem('chTabAtual', t); } catch (e) {}
-  if (se) { _seInjetarCss(); _seCarregar(false); }
+  if (se || col) { _seInjetarCss(); _seCarregar(false); }
 }
 
 function _seDataBR(iso) {
@@ -10640,6 +10657,9 @@ function _seSolicBox(c, completo) {
 ${esc(txt)}</div>`;
 }
 function _seConcluido(c) { return /^Conclu/i.test(c.statusInterno || ''); }
+/* Aguardando coleta: RMA já enviado, falta a SolarEdge coletar/receber o equipamento defeituoso */
+function _seEhColeta(c) { return /waiting for return/i.test(c.status || '') || (c.statusInterno || '') === 'Aguardando coleta SolarEdge'; }
+function _seColetaPend(c) { return (c.situacaoSite || 'Aberto') === 'Aberto' && !_seConcluido(c) && _seEhColeta(c); }
 function _seAberto(c) { return (c.situacaoSite || 'Aberto') === 'Aberto' && !_seConcluido(c); }
 function _seStatusPT(s) {
   const x = (s || '').toLowerCase();
@@ -10674,9 +10694,12 @@ async function _seCarregar(silencioso) {
 }
 
 function _seAtualizarBadgeAba() {
-  const n = _SE.itens.filter(c => _seAberto(c) && c.quemAge === 'Grid').length;
+  const n = _SE.itens.filter(c => _seAberto(c) && !_seColetaPend(c) && c.quemAge === 'Grid').length;
   const el = document.getElementById('chTabSeCount');
   if (el) { el.textContent = n; el.style.display = n ? 'inline-block' : 'none'; }
+  const m = _SE.itens.filter(_seColetaPend).length;
+  const e2 = document.getElementById('chTabColCount');
+  if (e2) { e2.textContent = m; e2.style.display = m ? 'inline-block' : 'none'; }
 }
 
 function _seFiltrados() {
@@ -10684,7 +10707,7 @@ function _seFiltrados() {
   return _SE.itens.filter(c => {
     const ab = _seAberto(c);
     if (_SE.filtro === 'fechados') { if (ab) return false; }
-    else if (!ab) return false;
+    else if (!ab || _seColetaPend(c)) return false;
     if (_SE.filtro === 'grid' && c.quemAge !== 'Grid') return false;
     if (_SE.filtro === 'se' && c.quemAge !== 'SolarEdge') return false;
     if (_SE.filtro === 'rma' && !/rma/i.test(c.status)) return false;
@@ -10699,10 +10722,11 @@ function _seFiltrados() {
 
 function _seRender() {
   const root = document.getElementById('seLista'); if (!root) return;
-  const ab = _SE.itens.filter(_seAberto);
+  _seColRender();
+  const ab = _SE.itens.filter(c => _seAberto(c) && !_seColetaPend(c));
   const cont = {
     todos: ab.length, grid: ab.filter(c => c.quemAge === 'Grid').length, se: ab.filter(c => c.quemAge === 'SolarEdge').length,
-    rma: ab.filter(c => /rma/i.test(c.status)).length, fechados: _SE.itens.length - ab.length,
+    rma: ab.filter(c => /rma/i.test(c.status)).length, fechados: _SE.itens.filter(c => !_seAberto(c)).length,
   };
   const kp = (k, n, rot, cls) => `<button type="button" class="se-kpi ${cls || ''} ${_SE.filtro === k ? 'active' : ''}" onclick="_seSetFiltro('${k}')"><b>${n}</b><span>${rot}</span></button>`;
   document.getElementById('seKpis').innerHTML =
@@ -10741,6 +10765,40 @@ function _seCardHtml(c) {
       ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div></div>`;
 }
 
+/* ── Aba AGUARDANDO COLETA SOLAREDGE ── */
+function _seColRender() {
+  const root = document.getElementById('seColLista'); if (!root) return;
+  const pend = _SE.itens.filter(_seColetaPend);
+  const feitos = _SE.itens.filter(c => _seConcluido(c) && _seEhColeta(c));
+  const dEta = c => { const m = /(\d{4}-\d\d-\d\d)/.exec(c.envioEta || ''); return m ? _seDias(m[1]) : null; };
+  const atras = pend.filter(c => (dEta(c) || 0) > 30).length;
+  document.getElementById('seColKpis').innerHTML =
+    `<div class="se-kpi grid"><b>${pend.length}</b><span>Aguardando coleta</span></div>` +
+    `<div class="se-kpi red"><b>${atras}</b><span>Envio há mais de 30 dias</span></div>` +
+    `<div class="se-kpi"><b>${feitos.length}</b><span>Coleta confirmada</span></div>`;
+  const card = (c, feito) => {
+    const de = dEta(c);
+    return `<div class="se-card ${feito ? 'fechado' : 'grid'}" onclick="_seAbrirCase('${esc(c.case)}')">
+      <div class="se-top"><span class="se-num">#${esc(c.case)}</span>${c.equipamento ? `<span class="se-eq">${esc(c.equipamento)}</span>` : ''}
+        <span class="se-badge">${esc(c.usina || 'Sem usina')}</span>${c.rma ? `<span class="se-badge se">RMA ${esc(c.rma)}</span>` : ''}
+        ${feito ? '<span class="se-badge ok">Coleta confirmada pela Grid</span>' : '<span class="se-badge grid">Aguardando coleta</span>'}</div>
+      <div class="se-ass">${esc(c.assunto)}</div>
+      <div class="se-meta">${c.envioEta ? `<span>ETA de envio: ${esc(_seDataBR(String(c.envioEta).split(' | ')[0]))}${de != null ? ` (há ${de} dia${de === 1 ? '' : 's'})` : ''}</span>` : '<span>ETA de envio: —</span>'}
+        <span>Rastreio: ${c.rastreio ? esc(c.rastreio) : '—'}</span>${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
+        ${c.ultimoComentarioEm ? `<span>Último comentário: ${esc(_seDataBR(c.ultimoComentarioEm))}</span>` : ''}
+        ${(c.osVinculadas || []).length ? `<span>OS ${esc(c.osVinculadas.map(v => v.os).join(', '))}</span>` : ''}</div>
+      ${c.notaGrid ? `<div class="se-acao"><b>Nota:</b> ${esc(c.notaGrid)}</div>` : ''}
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+        ${feito ? `<button class="se-btn" onclick="_seConcluirRapido('${esc(c.case)}', false)">Reabrir</button>`
+                : `<button class="se-btn" style="border-color:#34d399;color:#34d399;" onclick="_seConcluirRapido('${esc(c.case)}', true)">Coleta confirmada ✓</button>`}
+        <button class="se-btn" onclick="_seAbrirCase('${esc(c.case)}')">Detalhes / nota</button></div></div>`;
+  };
+  const ordenar = a => a.slice().sort((x, y) => (dEta(y) || 0) - (dEta(x) || 0));
+  let h = pend.length ? ordenar(pend).map(c => card(c, false)).join('') : '<div class="ch-empty">Nenhum chamado aguardando coleta.</div>';
+  if (feitos.length) h += `<details style="margin-top:14px;"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;">Coleta confirmada (${feitos.length})</summary><div style="margin-top:8px;">${feitos.map(c => card(c, true)).join('')}</div></details>`;
+  root.innerHTML = h;
+}
+
 function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
 
 function _seAbrirCase(num) {
@@ -10751,7 +10809,8 @@ function _seAbrirCase(num) {
   const coms = (c.comentarios || []).slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
   const timeline = coms.length ? coms.map(m => `<div class="se-msg ${m.quem === 'Grid' ? 'grid' : 'fab'}"><small>${m.quem === 'Grid' ? 'Grid Co.' : 'SolarEdge'} · ${esc(m.autor || '')}${m.data ? ' · ' + esc(_seDataBR(m.data)) : ''}</small>${esc(m.texto)}</div>`).join('')
     : '<div class="ch-empty" style="padding:14px;">Comentários deste case ainda não foram lidos do site. Peça ao Claude para atualizar este case.</div>';
-  const docs = (c.documentos || []).length ? (c.documentos || []).map(x => `<div style="font-size:13px;">📎 ${esc(x)}</div>`).join('') : '<span style="font-size:13px;color:var(--text-faint);">Nenhum anexo listado.</span>';
+  const docsU = [...new Set(c.documentos || [])];
+  const docs = docsU.length ? docsU.map(x => `<div style="font-size:13px;">📎 ${esc(x)}</div>`).join('') : '<span style="font-size:13px;color:var(--text-faint);">Nenhum anexo listado.</span>';
   const opcoes = ['', ..._SE.opcoes].map(o => `<option value="${esc(o)}" ${o === (c.statusInterno || '') ? 'selected' : ''}>${esc(o || '— sem status interno —')}</option>`).join('');
   const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seOverlay';
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
@@ -10768,7 +10827,7 @@ function _seAbrirCase(num) {
       ${campo('S/N do inversor', c.serial)}${campo('Código de erro', c.codigoErro)}${campo('Severidade', c.severidade)}${campo('Site (SolarEdge)', c.site)}${campo('Site ID', c.siteId)}
       ${campo('RMA', c.rma)}${campo('Previsão de envio (ETA)', c.envioEta)}${campo('Rastreio', c.rastreio)}${campo('Situação no site', c.situacaoSite)}${campo('Último comentário', _seDataBR(c.ultimoComentarioEm))}${campo('Atualizado no painel', _seDataBR((c.atualizadoEm || '').replace('T', ' ')))}
     </div></div>
-    <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${esc(c.descricao || '—')}</div></div>
+    <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${c.descricao ? esc(c.descricao) : `<span style="color:var(--text-faint);">O campo “Description” deste case está em branco no site da SolarEdge. O conteúdo do chamado está nos comentários abaixo${coms.length ? ' (o primeiro é de ' + esc(coms[0].autor || 'SolarEdge') + ', ' + esc(_seDataBR(coms[0].data)) + ')' : ''}.</span>`}</div></div>
     <div class="se-sec"><h4>Histórico de comentários</h4>${timeline}</div>
     <div class="se-sec"><h4>Anexos / documentos</h4>${docs}</div>
     <div class="se-sec"><h4>OS vinculadas a este chamado</h4><div id="seOsVincBox">${_seOsVincHtml(c)}</div></div>
