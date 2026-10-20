@@ -4455,7 +4455,7 @@ function _supInstalarEscopo(sessao) {
       // escopo da supervisora no backend: aba e catálogo próprios (nada do Fred)
       try {
         const _h = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
-        if (!esc.campo) _h.set('X-Escopo', _supEscopoId);
+        if (!esc.campo) _h.set('X-Escopo', _supEscopoId); else _h.set('X-Visao', _supEscopoId);
         init = Object.assign({}, init || {}, { headers: _h });
       } catch (e) {}
       if (esc.somenteLeitura && method !== 'GET' && method !== 'OPTIONS' && !/^\/gerar-comunicado/.test(path)) {
