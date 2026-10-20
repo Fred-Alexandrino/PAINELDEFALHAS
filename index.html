@@ -10639,7 +10639,8 @@ function _seSolicBox(c, completo) {
   return `<div class="se-acao" style="border-left:3px solid ${s.pendente ? 'var(--amber,#f59e0b)' : 'var(--border)'};"><b>O que a SolarEdge solicitou</b> — ${esc(s.tipo)} · ${esc(_seDataBR(s.m.data))} · ${esc(s.m.autor || 'SolarEdge')}${s.pendente ? ' · <b>sem resposta da Grid</b>' : ' · já respondido pela Grid'}
 ${esc(txt)}</div>`;
 }
-function _seAberto(c) { return (c.situacaoSite || 'Aberto') === 'Aberto'; }
+function _seConcluido(c) { return /^Conclu/i.test(c.statusInterno || ''); }
+function _seAberto(c) { return (c.situacaoSite || 'Aberto') === 'Aberto' && !_seConcluido(c); }
 function _seStatusPT(s) {
   const x = (s || '').toLowerCase();
   if (x === 'feedback requested') return 'SolarEdge pediu retorno da Grid';
@@ -10649,6 +10650,7 @@ function _seStatusPT(s) {
   return s || '—';
 }
 function _seBadgeQuem(c) {
+  if (_seConcluido(c)) return '<span class="se-badge ok">Concluído (confirmado pela Grid)</span>';
   if (!_seAberto(c)) return '<span class="se-badge">Não consta mais no site</span>';
   return c.quemAge === 'Grid' ? '<span class="se-badge grid">Ação da Grid</span>' : '<span class="se-badge se">Com a SolarEdge</span>';
 }
@@ -10705,7 +10707,7 @@ function _seRender() {
   const kp = (k, n, rot, cls) => `<button type="button" class="se-kpi ${cls || ''} ${_SE.filtro === k ? 'active' : ''}" onclick="_seSetFiltro('${k}')"><b>${n}</b><span>${rot}</span></button>`;
   document.getElementById('seKpis').innerHTML =
     kp('todos', cont.todos, 'Abertos no site') + kp('grid', cont.grid, 'Ação da Grid', 'grid') + kp('se', cont.se, 'Com a SolarEdge') +
-    kp('rma', cont.rma, 'Com RMA') + (cont.fechados ? kp('fechados', cont.fechados, 'Não constam mais no site', 'red') : '');
+    kp('rma', cont.rma, 'Com RMA') + (cont.fechados ? kp('fechados', cont.fechados, 'Concluídos / fora do site', 'red') : '');
   const usinas = [...new Set(_SE.itens.map(c => c.usina || '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const sel = document.getElementById('seFiltroUsina');
   if (sel) sel.innerHTML = '<option value="">Todas as usinas</option>' + usinas.map(u => `<option value="${esc(u)}" ${u === _SE.usina ? 'selected' : ''}>${esc(u === '—' ? 'Sem usina identificada' : u)}</option>`).join('');
@@ -10778,6 +10780,7 @@ function _seAbrirCase(num) {
       <textarea id="seIntNota" class="se-in" rows="3" placeholder="Nota interna (o que foi feito em campo, próximos passos…)">${esc(c.notaGrid || '')}</textarea>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
         <button class="se-btn pri" onclick="_seSalvarInterno('${esc(c.case)}')">Salvar</button>
+        ${_seConcluido(c) ? `<button class="se-btn" onclick="_seConcluirRapido('${esc(c.case)}', false)">Reabrir</button>` : `<button class="se-btn" style="border-color:#34d399;color:#34d399;" onclick="_seConcluirRapido('${esc(c.case)}', true)">Marcar como concluído</button>`}
         <button class="se-btn" style="border-color:var(--teal);color:var(--teal);" onclick="_seSolicitarOS('${esc(c.case)}')">Solicitar OS</button>
         <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
         <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
@@ -10945,6 +10948,25 @@ async function _seOsVincAdd(num) {
 async function _seOsVincDel(num, os) {
   if (!confirm('Desvincular a OS ' + os + ' deste chamado?')) return;
   try { _seAtualizaVinc(num, await _sePostVinc({ case: num, acao: 'del', os })); } catch (e) { showToast('Erro: ' + (e.message || 'falha'), false); }
+}
+
+
+async function _seConcluirRapido(num, concluir) {
+  const c = _SE.itens.find(x => x.case === num); if (!c) return;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  let nota = c.notaGrid || '';
+  if (concluir) {
+    const motivo = prompt('Motivo / observação (ex.: equipamento entregue, site da SolarEdge ainda não atualizou):', 'Concluído — site da SolarEdge ainda não atualizou.');
+    if (motivo === null) return;
+    nota = (nota ? nota + '\n' : '') + `[${hoje}] Marcado como concluído pela Grid: ${motivo}`;
+  } else nota = (nota ? nota + '\n' : '') + `[${hoje}] Reaberto pela Grid.`;
+  const corpo = { case: num, statusInterno: concluir ? 'Concluído (confirmado pela Grid)' : '', notaGrid: nota };
+  try {
+    const r = await fetch(_SE_API + '/solaredge-chamados/interno', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+    c.statusInterno = corpo.statusInterno; c.notaGrid = nota;
+    document.getElementById('seOverlay')?.remove(); _seRender(); showToast(concluir ? 'Case marcado como concluído.' : 'Case reaberto.', true);
+  } catch (e) { showToast('Erro: ' + (e.message || 'falha'), false); }
 }
 
 async function _seSalvarInterno(num) {
