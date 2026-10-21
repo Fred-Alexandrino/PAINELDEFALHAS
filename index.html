@@ -1774,6 +1774,8 @@ table.oc-z td.desc{min-width:260px;}
 .oc-mbox>footer .chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim);margin-right:auto;cursor:pointer;}
 .oc-mbox>footer .oc-erro{margin:0;flex-basis:100%;}
 @media (max-width:760px){.oc-mbody{grid-template-columns:1fr;}.oc-mcol textarea{min-height:220px;}}
+.oc-ostag{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--c);color:var(--c);border-radius:99px;padding:0 7px;margin-left:6px;white-space:nowrap;}
+.oc-osx-h .oc-link{margin-left:auto;}
 #sec-falhas{display:none!important;}
 body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
 #sbBadgeFalhas{display:none!important;}
@@ -19241,15 +19243,17 @@ function _pontoCopiarComunicado(id, btn) {
      Os dados vêm de ATIVIDADES (sincronizadas da Fracttal) pelo número da OS. */
   function osAnexos(x) {
     const nums = String(x.os || '').split(/[,;/\s]+/).filter(Boolean);
-    if (!nums.length) return '';
+    const ed = ehEdit();
+    const btnVinc = ed ? `<button type="button" class="oc-btn sm" data-oc="os-vincular">${nums.length ? 'Gerenciar OS' : 'Vincular OS'}</button>` : '';
+    if (!nums.length) return ed ? `<h3>OS vinculadas <span class="sub">Fracttal</span>${btnVinc}</h3><p class="oc-vazio">Nenhuma OS vinculada a esta ocorrência ainda.</p>` : '';
     const lista = (typeof ATIVIDADES !== 'undefined' && Array.isArray(ATIVIDADES)) ? ATIVIDADES : [];
     const cards = nums.map(n => {
       const a = lista.find(t => String(t.numeroOS || '').trim() === n);
-      if (!a) return `<div class="oc-osx"><div class="oc-osx-h"><b>OS ${esc(n)}</b></div><p class="oc-vazio">Sem dados sincronizados desta OS no painel de Atividades.</p></div>`;
+      if (!a) return `<div class="oc-osx"><div class="oc-osx-h"><b>OS ${esc(n)}</b>${ed ? `<button type="button" class="oc-link warn" data-oc="os-desvincular" data-n="${esc(n)}">desvincular</button>` : ''}</div><p class="oc-vazio">Sem dados sincronizados desta OS no painel de Atividades.</p></div>`;
       const pct = (a.percentualOS !== undefined && a.percentualOS !== '') ? a.percentualOS : null;
       const etiquetas = a.etiquetasOS ? a.etiquetasOS.split(',').map(e => e.trim()).filter(Boolean) : [];
       return `<div class="oc-osx">
-        <div class="oc-osx-h"><b>OS ${esc(n)}</b>${a.responsavel ? `<span>${esc(a.responsavel)}</span>` : ''}${a.prazo ? `<span>prazo ${esc(a.prazo)}</span>` : ''}</div>
+        <div class="oc-osx-h"><b>OS ${esc(n)}</b>${a.responsavel ? `<span>${esc(a.responsavel)}</span>` : ''}${a.prazo ? `<span>prazo ${esc(a.prazo)}</span>` : ''}${ed ? `<button type="button" class="oc-link warn" data-oc="os-desvincular" data-n="${esc(n)}">desvincular</button>` : ''}</div>
         <div class="oc-osx-t">${esc(a.descricao || '')}</div>
         ${pct !== null ? `<div class="oc-osx-p"><div style="display:flex;justify-content:flex-end;font-size:12px;color:var(--text-dim);margin-bottom:4px;">${esc(pct)}% concluído</div><div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;"><div style="height:100%;width:${esc(pct)}%;background:${pct === '100' ? 'var(--teal)' : 'var(--blue)'};border-radius:3px;"></div></div></div>` : ''}
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">${typeof _ativBadgeStatus === 'function' ? _ativBadgeStatus(a) : ''}${etiquetas.map(e => `<span class="oc-tag">🏷️ ${esc(e)}</span>`).join('')}</div>
@@ -19258,7 +19262,7 @@ function _pontoCopiarComunicado(id, btn) {
         ${a.linkOS ? `<a class="oc-btn sm" style="margin-top:10px;text-decoration:none;" href="${esc(a.linkOS)}" target="_blank" rel="noopener">Abrir OS no Fracttal ↗</a>` : ''}
       </div>`;
     }).join('');
-    return `<h3>OS vinculadas <span class="sub">${plural(nums.length, 'OS', 'OSs')} · Fracttal</span></h3>${cards}`;
+    return `<h3>OS vinculadas <span class="sub">${plural(nums.length, 'OS', 'OSs')} · Fracttal</span>${btnVinc}</h3>${cards}`;
   }
   const fdt = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
 
@@ -19830,6 +19834,8 @@ function _pontoCopiarComunicado(id, btn) {
       else if (a === 'plano-add') { const x = aberto; salvarPlanoLinha(x, { acao: '', resp: '', prazo: '', sit: 'A fazer' }).then(render); }
       else if (a === 'plano-rem') planoRemover(aberto);
       else if (a === 'comunicado') abrirComunicado(aberto);
+      else if (a === 'os-vincular') abrirVincularOS(aberto);
+      else if (a === 'os-desvincular') desvincularOS(aberto, b.dataset.n);
       else if (a === 'plano-ver') { fechar(); setAba('pl'); window.scrollTo(0, 0); }
     });
     // perfis
@@ -19838,6 +19844,162 @@ function _pontoCopiarComunicado(id, btn) {
   }
   function novo() { if (!ehEdit()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
 
+
+
+  /* ── vincular OS (Fracttal) à ocorrência: lista as OS da usina e grava no campo "OS" ── */
+  let osm = null, osEl = null;
+  const OS_SIT = [
+    { k: 'aberta', t: 'Em aberto', c: '--oc-mat' },
+    { k: 'proc', t: 'Em processo', c: '--oc-and' },
+    { k: 'verif', t: 'Em verificação', c: '--oc-pausa' },
+    { k: 'conc', t: 'Concluída', c: '--oc-feito' },
+    { k: 'canc', t: 'Cancelada', c: '--text-faint' },
+  ];
+  const OS_SITK = Object.fromEntries(OS_SIT.map(z => [z.k, z]));
+  const osNums = v => String(v || '').split(/[,;/\s]+/).map(t => t.trim()).filter(Boolean);
+  const osUsinaChave = u => norm(typeof normalizeUsina === 'function' ? normalizeUsina(String(u || '')) : String(u || '')).replace(/\s+/g, ' ').trim();
+  function osMesmaUsina(a, b) { const p = osUsinaChave(a), q = osUsinaChave(b); return !!p && !!q && (p === q || p.startsWith(q + ' ') || q.startsWith(p + ' ')); }
+  function osSit(a) {
+    const so = norm(a.statusOS), sg = norm(a.statusGeralOS), st = norm(a.status);
+    if (so.includes('cancel') || st === 'cancelado') return 'canc';
+    if (so.includes('finaliz') || st === 'concluido') return 'conc';
+    if (so.includes('revis')) return 'verif';
+    if (sg.includes('nao iniciada') || (!sg && st === 'em aberto')) return 'aberta';
+    return 'proc';
+  }
+  function osLinhas() {
+    const m = new Map();
+    (osm.lista || []).forEach(a => osNums(a.numeroOS).forEach(n => { if (!m.has(n)) m.set(n, { n, a, sit: osSit(a), usinaOk: osMesmaUsina(a.usina, osm.x.usina) }); }));
+    osm.sel.forEach(n => { if (!m.has(n)) m.set(n, { n, a: null, sit: '', usinaOk: true }); });
+    return [...m.values()];
+  }
+  async function abrirVincularOS(id) {
+    const x = ITENS.find(y => y.id === id); if (!x || !ehEdit()) return;
+    if (!osEl) {
+      osEl = document.createElement('div'); osEl.className = 'oc-modal'; osEl.id = 'ocOs';
+      document.body.appendChild(osEl);
+      osEl.addEventListener('click', osClick);
+      osEl.addEventListener('input', osInput);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && osEl.classList.contains('on')) { e.stopPropagation(); osFechar(); } }, true);
+    }
+    const base = (typeof ATIVIDADES !== 'undefined' && Array.isArray(ATIVIDADES)) ? ATIVIDADES.slice() : [];
+    osm = { id, x, lista: base, sel: new Set(osNums(x.os)), sit: new Set(['aberta', 'proc', 'verif', 'conc']), q: '', todas: false, lim: 60, salvando: false, erro: '', info: '', atualizando: true, busca: '' };
+    desenharOs(); osEl.classList.add('on');
+    try {
+      const r = await fetch(API + '/atividades'); const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'erro ao carregar');
+      if (osm && osm.id === id) osm.lista = (d.atividades || []).map(a => ({ ...a, cliente: typeof normalizeCliente === 'function' ? normalizeCliente(a.cliente) : a.cliente, usina: typeof normalizeUsina === 'function' ? normalizeUsina(a.usina) : a.usina })).filter(a => !(typeof _usinaForaDoMapa === 'function' && _usinaForaDoMapa(a.usina)));
+    } catch (e) { if (osm && osm.id === id) osm.info = 'Não consegui atualizar a lista agora — mostrando as OS já carregadas no painel.'; }
+    if (osm && osm.id === id) { osm.atualizando = false; desenharOs(); }
+  }
+  function osFiltradas() {
+    const q = norm(osm.q.trim());
+    return osLinhas().filter(l => {
+      if (osm.sel.has(l.n) && !l.a) return true;
+      if (!osm.todas && !l.usinaOk) return false;
+      if (!osm.sit.has(l.sit)) return false;
+      if (!q) return true;
+      return norm([l.n, l.a.descricao, l.a.responsavel, l.a.equipamento, l.a.etiquetasOS, l.a.usina].join(' ')).includes(q);
+    }).sort((p, r) => {
+      const ord = k => (k ? OS_SIT.findIndex(z => z.k === k) : -1);
+      return (ord(p.sit) - ord(r.sit)) || (parseInt(r.n, 10) || 0) - (parseInt(p.n, 10) || 0);
+    });
+  }
+  function desenharOs() {
+    const x = osm.x, todas = osLinhas();
+    const base = todas.filter(l => osm.todas || l.usinaOk || !l.a);
+    const cont = k => base.filter(l => l.a && l.sit === k).length;
+    osEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Vincular OS à ocorrência" style="width:min(820px,100%)">
+      <header><strong>Vincular OS — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-o="fechar">Fechar</button></header>
+      <div class="oc-mbody" style="grid-template-columns:1fr">
+        <div class="oc-mcol">
+          <label class="t"><span>OS do Fracttal${osm.todas ? ' (todas as usinas)' : ' desta usina'}</span><span class="oc-hint" style="text-transform:none;letter-spacing:0;font-weight:400">${osm.atualizando ? 'atualizando…' : 'marque a(s) OS que tratam esta ocorrência'}</span></label>
+          <div class="oc-chips" id="osChips" style="margin-bottom:8px">${OS_SIT.map(z => `<button type="button" class="oc-chip${cont(z.k) ? '' : ' zero'}" data-o="sit" data-k="${z.k}" aria-pressed="${osm.sit.has(z.k)}">${z.t} <span class="n">${cont(z.k)}</span></button>`).join('')}</div>
+          <div class="oc-nrow" style="margin:0 0 6px"><input type="search" id="osQ" placeholder="Filtrar por nº da OS, descrição, responsável…" value="${esc(osm.q)}"></div>
+          <label class="chk" style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim);cursor:pointer;margin:2px 0 8px"><input type="checkbox" id="osTodas"${osm.todas ? ' checked' : ''}> Mostrar OS de todas as usinas</label>
+          <div class="oc-glist" id="osLista" style="max-height:360px"></div>
+          <div class="oc-nrow" style="margin-top:10px"><input type="text" id="osBusca" inputmode="numeric" placeholder="OS recém-criada não aparece? Digite o nº para buscar no Fracttal" value="${esc(osm.busca)}" maxlength="9"><button class="oc-btn sm" type="button" data-o="buscar" id="osBtnBusca">Buscar no Fracttal</button></div>
+          ${osm.info ? `<p class="oc-hint" style="margin:8px 0 0">${esc(osm.info)}</p>` : ''}
+        </div>
+      </div>
+      <footer id="osRodape"></footer></div>`;
+    desenharListaOs(); desenharRodapeOs();
+  }
+  function desenharListaOs() {
+    const lst = osFiltradas(), mostra = lst.slice(0, osm.lim);
+    $('#osLista').innerHTML = mostra.length ? mostra.map(l => {
+      const a = l.a, z = OS_SITK[l.sit];
+      const meta = a ? [a.responsavel, a.prazo ? 'prazo ' + a.prazo : '', (a.percentualOS !== undefined && a.percentualOS !== '') ? a.percentualOS + '%' : '', !l.usinaOk ? a.usina : ''].filter(Boolean).join(' · ') : '';
+      return `<label style="align-items:flex-start"><input type="checkbox" data-n="${esc(l.n)}"${osm.sel.has(l.n) ? ' checked' : ''} style="margin-top:3px"><span style="flex:1;min-width:0"><b>OS ${esc(l.n)}</b>${z ? ` <span class="oc-ostag" style="--c:var(${z.c})">${z.t}</span>` : ''}<span style="display:block;color:var(--text);font-size:13px;overflow-wrap:anywhere">${a ? esc((a.descricao || '').slice(0, 220)) : '<i>Sem dados sincronizados desta OS (informada manualmente)</i>'}</span>${meta ? `<span style="display:block;color:var(--text-faint);font-size:12px">${esc(meta)}</span>` : ''}</span></label>`;
+    }).join('') + (lst.length > mostra.length ? `<div style="padding:8px 10px"><button type="button" class="oc-link" data-o="mais">Mostrar mais ${Math.min(60, lst.length - mostra.length)} de ${lst.length - mostra.length} restantes</button></div>` : '')
+      : `<p class="oc-vazio" style="padding:10px">${osm.atualizando ? 'Carregando…' : 'Nenhuma OS encontrada com estes filtros.' + (osm.todas ? '' : ' Tente marcar “Mostrar OS de todas as usinas” ou buscar o número no Fracttal.')}</p>`;
+  }
+  function desenharRodapeOs() {
+    const n = osm.sel.size, igual = [...osm.sel].sort().join(',') === osNums(osm.x.os).slice().sort().join(',');
+    $('#osRodape').innerHTML = `<span class="oc-hint" style="margin-right:auto">${n ? plural(n, 'OS selecionada', 'OSs selecionadas') : 'Nenhuma OS selecionada'}${n && !igual ? ' · alterações não salvas' : ''}</span>
+      <button class="oc-btn pri" type="button" data-o="salvar"${osm.salvando || igual ? ' disabled' : ''}>${osm.salvando ? 'Salvando…' : ((n || igual) ? 'Salvar vínculo' : 'Remover todas as OS')}</button>
+      <button class="oc-btn" type="button" data-o="fechar"${osm.salvando ? ' disabled' : ''}>Cancelar</button>
+      ${osm.erro ? `<div class="oc-erro" role="alert">${esc(osm.erro)}</div>` : ''}`;
+  }
+  function osInput(e) {
+    if (!osm) return;
+    const t = e.target;
+    if (t.id === 'osQ') { osm.q = t.value; osm.lim = 60; desenharListaOs(); }
+    else if (t.id === 'osBusca') { osm.busca = t.value.replace(/\D/g, ''); }
+    else if (t.id === 'osTodas') { osm.todas = t.checked; osm.lim = 60; desenharOs(); const q = $('#osQ'); if (q) q.focus(); }
+    else if (t.dataset && t.dataset.n) { t.checked ? osm.sel.add(t.dataset.n) : osm.sel.delete(t.dataset.n); osm.erro = ''; desenharRodapeOs(); }
+  }
+  async function osClick(e) {
+    const b = e.target.closest('[data-o]');
+    if (!b) { if (e.target === osEl) osFechar(); return; }
+    const a = b.dataset.o;
+    if (a === 'fechar') osFechar();
+    else if (a === 'sit') { const k = b.dataset.k; osm.sit.has(k) ? osm.sit.delete(k) : osm.sit.add(k); osm.lim = 60; b.setAttribute('aria-pressed', osm.sit.has(k)); desenharListaOs(); }
+    else if (a === 'mais') { osm.lim += 60; desenharListaOs(); }
+    else if (a === 'salvar') osSalvar();
+    else if (a === 'buscar') osBuscarNoFracttal();
+  }
+  async function osBuscarNoFracttal() {
+    const n = (osm.busca || '').trim(); if (!/^\d{3,9}$/.test(n)) { osm.info = 'Digite o número da OS (somente dígitos).'; desenharOs(); return; }
+    const b = $('#osBtnBusca'); if (b) { b.disabled = true; b.textContent = 'Buscando…'; }
+    const id = osm.id;
+    try {
+      const r = await fetch(API + '/os-sincronizar/' + encodeURIComponent(n), { method: 'POST' }); const d = await r.json();
+      if (!osm || osm.id !== id) return;
+      if (d.status === 'criada' || d.status === 'ja_existe') {
+        const rl = await fetch(API + '/atividades'); const dl = await rl.json();
+        if (dl.ok) osm.lista = (dl.atividades || []).map(a => ({ ...a, cliente: typeof normalizeCliente === 'function' ? normalizeCliente(a.cliente) : a.cliente, usina: typeof normalizeUsina === 'function' ? normalizeUsina(a.usina) : a.usina }));
+        const achou = osm.lista.find(a => osNums(a.numeroOS).includes(n));
+        if (achou) { osm.sel.add(n); if (!osMesmaUsina(achou.usina, osm.x.usina)) osm.todas = true; osm.info = 'OS ' + n + (d.status === 'criada' ? ' puxada do Fracttal' : ' encontrada') + ' (' + (achou.usina || 'usina não identificada') + ') e já marcada.'; osm.busca = ''; }
+        else osm.info = 'OS ' + n + ' existe, mas está fora do seu mapeamento/filtros atuais.';
+      } else if (d.status === 'nao_encontrada_na_fracttal') osm.info = 'OS ' + n + ' não existe no Fracttal.';
+      else if (d.status === 'fora_do_escopo') osm.info = 'OS ' + n + ' é de outro cliente/supervisor (fora do mapeamento).';
+      else if (d.status === 'revisao_manual') osm.info = 'OS ' + n + ' não entrou: ' + (d.motivo || 'revisão manual necessária') + '.';
+      else osm.info = 'Não foi possível buscar a OS ' + n + ': ' + (d.erro || 'erro no servidor') + '.';
+    } catch (err) { if (osm && osm.id === id) osm.info = 'Não foi possível buscar a OS agora (' + (err.message || 'falha de conexão') + ').'; }
+    if (osm && osm.id === id) desenharOs();
+  }
+  async function osSalvar() {
+    if (!osm || osm.salvando) return;
+    osm.salvando = true; osm.erro = ''; desenharRodapeOs();
+    const id = osm.id;
+    try {
+      const os = [...osm.sel].sort((p, r) => (parseInt(p, 10) || 0) - (parseInt(r, 10) || 0)).join(', ');
+      const r = await api('/ocorrencias/salvar', { id, os });
+      aplicarItem(r.item); render(); if (aberto === id && modo === 'ver') desenharGaveta();
+      toast(os ? 'OS vinculada(s): ' + os + '.' : 'Vínculo de OS removido.');
+      osm.salvando = false; osFechar();
+    } catch (err) { if (osm) { osm.salvando = false; osm.erro = 'Não consegui salvar: ' + err.message; desenharRodapeOs(); } }
+  }
+  function osFechar() { if (osm && osm.salvando) return; osEl.classList.remove('on'); osm = null; }
+  async function desvincularOS(id, n) {
+    const x = ITENS.find(y => y.id === id); if (!x || ocupado || !n) return; ocupado = true;
+    try {
+      const os = osNums(x.os).filter(t => t !== n).join(', ');
+      const r = await api('/ocorrencias/salvar', { id, os });
+      aplicarItem(r.item); render(); if (aberto === id) desenharGaveta(); toast('OS ' + n + ' desvinculada.');
+    } catch (e) { toast(e.message, false); } finally { ocupado = false; }
+  }
 
   /* ── comunicado da ocorrência: texto (plano de ação + histórico) → grupos ou cópia ── */
   let com = null, comEl = null;
