@@ -19484,7 +19484,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocFStatus').innerHTML = ST.map(s => chip(s.k, cs.get(s.k) || 0, F.status.has(s.k), `data-st="${esc(s.k)}"`, s.c)).join('');
     const ce = contar(lista('equip'), 'equip');
     const tot = new Map(); ITENS.forEach(x => tot.set(x.equip, (tot.get(x.equip) || 0) + 1));
-    const eqs = [...tot.keys()].sort((a, b) => tot.get(b) - tot.get(a) || a.localeCompare(b, 'pt-BR'));
+    const eqs = [...tot.keys()].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true, sensitivity: 'base' }));
     $('#ocFEquip').innerHTML = eqs.map(e => chip(e, ce.get(e) || 0, F.equips.has(e), `data-eq="${esc(e)}"`)).join('');
     const co = lista('outros'), nc = co.filter(x => notasDe(x).length).length;
     let outros = chip('Graves', co.filter(x => x.grave).length, F.outros.has('grave'), 'data-ou="grave"') +
@@ -19493,7 +19493,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocFOutros').innerHTML = outros;
     const cu = contar(lista('usina'), 'usina');
     const tu = new Map(); ITENS.forEach(x => tu.set(x.usina, (tu.get(x.usina) || 0) + 1));
-    const us = [...tu.keys()].sort((a, b) => (cu.get(b) || 0) - (cu.get(a) || 0) || a.localeCompare(b, 'pt-BR'));
+    const us = [...tu.keys()].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true, sensitivity: 'base' }));
     $('#ocUsinaList').innerHTML = us.map(u => `<label class="${cu.get(u) ? '' : 'zero'}"><input type="checkbox" data-us="${esc(u)}"${F.usinas.has(u) ? ' checked' : ''}> ${esc(u)} <span class="n">${cu.get(u) || 0}</span></label>`).join('');
     $('#ocUsinaSum').textContent = F.usinas.size ? (F.usinas.size === 1 ? [...F.usinas][0] : F.usinas.size + ' usinas') : 'Todas as usinas';
   }
