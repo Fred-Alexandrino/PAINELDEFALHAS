@@ -3946,7 +3946,16 @@ Manutenção preventiva e corretiva.</textarea>
     </div>
     <div class="ch-body">
       <div id="osRapidaInputStep">
-        <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc…" rows="5" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc… (pode colar prints aqui com Ctrl+V)" rows="5" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
+        <div id="osRapidaDrop" style="margin-top:8px;border:1px dashed var(--border);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel-alt);">
+          <label for="osRapidaArquivos" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--text);font-family:'Geist',sans-serif;">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Anexar prints
+          </label>
+          <input type="file" id="osRapidaArquivos" accept="image/*" multiple style="display:none;">
+          <span id="osRapidaDropHint" style="font-size:11.5px;color:var(--text-faint);">ou arraste / cole (Ctrl+V) — até 6 imagens</span>
+          <div id="osRapidaThumbs" style="display:flex;flex-wrap:wrap;gap:8px;width:100%;"></div>
+        </div>
         <button onclick="_gerarOSRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#042F36;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Gerar
@@ -9579,6 +9588,7 @@ async function _gerarTextosOSComIA(d, tentativa = 1) {
         cliente: d.cliente||'', usina: d.usina||'', equipamento: d.equipamento||'',
         falha: d.falha||'', causa: d.causa||'', acao: d.acao||'',
         historico: d.historico||'', responsavel: d.responsavel||'',
+        imagens: Array.isArray(d.imagens) ? d.imagens : [],
       }),
       // 110s: o backend pode levar até ~100s quando o Gemini está lento
       // ou com 429 (3 tentativas + chave reserva). Com 45s o navegador
@@ -11855,6 +11865,84 @@ async function _toggleNotificacoes() {
 }
 
 /* ══ OS RÁPIDA (sidebar) ══ */
+// Prints anexados ao gerador de OS (21/10/2026). Cada item:
+// {mime, data(base64 sem prefixo), url(dataURL p/ miniatura)}.
+// As imagens são reduzidas no navegador (lado maior 1600px, JPEG) pra
+// manter a requisição leve e legível pela IA.
+let _osRapidaImagens = [];
+const _OS_RAPIDA_MAX_IMG = 6;
+
+function _osRapidaReduzirImagem(file) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => reject(new Error('Falha ao ler a imagem'));
+    leitor.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Arquivo de imagem inválido'));
+      img.onload = () => {
+        const MAX = 1600;
+        let { width: w, height: h } = img;
+        if (Math.max(w, h) > MAX) { const f = MAX / Math.max(w, h); w = Math.round(w * f); h = Math.round(h * f); }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const url = cv.toDataURL('image/jpeg', 0.85);
+        resolve({ mime: 'image/jpeg', data: url.split(',')[1], url });
+      };
+      img.src = leitor.result;
+    };
+    leitor.readAsDataURL(file);
+  });
+}
+
+async function _osRapidaAdicionarArquivos(files) {
+  const imgs = Array.from(files || []).filter(f => f && /^image\//.test(f.type));
+  if (!imgs.length) return;
+  for (const f of imgs) {
+    if (_osRapidaImagens.length >= _OS_RAPIDA_MAX_IMG) { showToast(`Máximo de ${_OS_RAPIDA_MAX_IMG} imagens por OS.`, false); break; }
+    try { _osRapidaImagens.push(await _osRapidaReduzirImagem(f)); }
+    catch (e) { showToast(e.message || 'Não consegui ler a imagem.', false); }
+  }
+  _osRapidaRenderThumbs();
+}
+
+function _osRapidaRenderThumbs() {
+  const box = document.getElementById('osRapidaThumbs');
+  if (!box) return;
+  box.innerHTML = _osRapidaImagens.map((im, i) => `
+    <div style="position:relative;width:72px;height:72px;border-radius:6px;overflow:hidden;border:1px solid var(--border);">
+      <img src="${im.url}" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <button type="button" data-rm="${i}" title="Remover" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:20px;cursor:pointer;padding:0;">✕</button>
+    </div>`).join('');
+  box.style.display = _osRapidaImagens.length ? 'flex' : 'none';
+}
+
+(function _osRapidaWireImagens() {
+  const inp = document.getElementById('osRapidaArquivos');
+  inp?.addEventListener('change', async () => { await _osRapidaAdicionarArquivos(inp.files); inp.value = ''; });
+  document.getElementById('osRapidaThumbs')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    _osRapidaImagens.splice(Number(b.dataset.rm), 1); _osRapidaRenderThumbs();
+  });
+  // Colar print (Ctrl+V) em qualquer ponto do modal enquanto ele está aberto
+  document.addEventListener('paste', e => {
+    const ov = document.getElementById('osRapidaOverlay');
+    const passo = document.getElementById('osRapidaInputStep');
+    if (!ov || ov.style.display !== 'flex' || !passo || passo.style.display === 'none') return;
+    const arquivos = Array.from(e.clipboardData?.items || [])
+      .filter(it => it.kind === 'file' && /^image\//.test(it.type)).map(it => it.getAsFile()).filter(Boolean);
+    if (!arquivos.length) return; // texto comum segue o fluxo normal
+    e.preventDefault();
+    _osRapidaAdicionarArquivos(arquivos);
+  });
+  const drop = document.getElementById('osRapidaDrop');
+  ['dragenter','dragover'].forEach(ev => drop?.addEventListener(ev, e => { e.preventDefault(); drop.style.borderColor = 'var(--teal)'; }));
+  ['dragleave','drop'].forEach(ev => drop?.addEventListener(ev, e => { e.preventDefault(); drop.style.borderColor = ''; }));
+  drop?.addEventListener('drop', e => _osRapidaAdicionarArquivos(e.dataTransfer?.files));
+})();
+
 function _openElaborarOS() {
   document.getElementById('osRapidaOverlay').style.display = 'flex';
   document.getElementById('osRapidaInputStep').style.display = 'block';
@@ -11863,11 +11951,14 @@ function _openElaborarOS() {
   document.getElementById('osRapidaError').style.display = 'none';
   const input = document.getElementById('osRapidaInput');
   if (input) input.value = '';
+  _osRapidaImagens = [];
+  _osRapidaRenderThumbs();
 }
 
 async function _gerarOSRapida() {
   const txt = (document.getElementById('osRapidaInput')?.value || '').trim();
-  if (!txt) { showToast('Descreva o problema antes de gerar.', false); return; }
+  const imagens = _osRapidaImagens.map(im => ({ mime: im.mime, data: im.data }));
+  if (!txt && !imagens.length) { showToast('Descreva o problema ou anexe um print antes de gerar.', false); return; }
 
   // Usa a mesma biblioteca de templates, criando um objeto sintético
   const pseudo = {
@@ -11878,6 +11969,7 @@ async function _gerarOSRapida() {
     historico: '',
     impactados: '',
     usina: '',
+    imagens,
   };
 
   const inputStep = document.getElementById('osRapidaInputStep');
@@ -11894,7 +11986,15 @@ async function _gerarOSRapida() {
     osList = await _gerarTextosOSComIA(pseudo);
   } catch (errIA) {
     console.error('[Gemini] Falhou, usando fallback local:', errIA);
-    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
+    if (!txt) {
+      // Só print, sem texto: o modelo local não lê imagem — melhor avisar
+      // do que gerar uma OS genérica sem relação com o print.
+      loading.style.display = 'none';
+      inputStep.style.display = 'block';
+      showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') e o modelo local não lê prints. Tente de novo ou descreva em texto.', false);
+      return;
+    }
+    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão (sem ler os prints).', false);
     try {
       osList = [_dividirTextoOSAntigo(_gerarTextoOS(pseudo))]; // fallback: gerador local baseado em regras
     } catch (err) {
