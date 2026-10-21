@@ -1583,6 +1583,9 @@ body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="d
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
 body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
+/* Supervisor de Campo (Vitor): Comunicados só aba Técnicos, sem "Seguir Programação PCM"; sem envio por WhatsApp */
+body.role-campo #comTabBtnClientes, body.role-campo #comTabBtnLivre, body.role-campo #comTabBtnSobreaviso, body.role-campo #comTabBtnOs,
+body.role-campo #sbQuickActions, body.role-campo #ativAcoesWrap, body.role-campo #chatIaBubble, body.role-campo #comunicadoFontePcmBtn, body.role-campo [id^="ppEnvBtn"], body.role-campo #ppEnvioTodosBtn, body.role-campo #ppEnvioMsg, body.role-campo label[for="ppEnvioMsg"]{display:none !important;}
 /* ══════════════════════════════════════════════════════════
    PAINEL DE OCORRÊNCIAS (substitui o antigo Painel de Falhas — 09/10/2026)
    Tudo com prefixo .oc- para não colidir com o restante do dashboard.
@@ -3290,7 +3293,10 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
       <div id="ppEnvioPreview" style="display:none;margin-top:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <strong id="ppEnvioPreviewTitulo" style="font-size:13px;"></strong>
-          <button class="pps-btn" onclick="document.getElementById('ppEnvioPreview').style.display='none'">Fechar prévia</button>
+          <span style="display:flex;gap:6px;">
+            <button class="pps-btn pri" id="ppCopiarHdBtn" onclick="_ppCopiarImagemHD()">📋 Copiar imagem (HD)</button>
+            <button class="pps-btn" onclick="document.getElementById('ppEnvioPreview').style.display='none'">Fechar prévia</button>
+          </span>
         </div>
         <div style="max-height:55vh;overflow:auto;border:1px solid var(--border);border-radius:8px;"><img id="ppEnvioPreviewImg" style="width:100%;display:block;" alt="Prévia"></div>
       </div>
@@ -4335,6 +4341,12 @@ const _SUP_ESCOPOS = {
     ]
   }
 };
+// Vitor Valadares (Supervisor de Campo): visão TOTAL (mesmos dados do Fred), só leitura/cópia:
+// Programação PCM, Atividades e Comunicados (aba Técnicos, sem "Seguir Programação PCM").
+_SUP_ESCOPOS.vitor = { cargo: 'Supervisor de Campo', campo: true, somenteLeitura: true,
+  navs: ['atividades', 'programacao-pcm', 'comunicados'],
+  clustersPcm: ["MT Leste 01", "MT Leste 02", "MT Norte 01", "MT Sul 01", "MT Sul 03", "PA Norte 03", "GO Leste 02", "MS Leste 01", "PA Norte 01", "PA Norte 02", "PA Leste 01"],
+  usinas: [{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina I","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina II","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana I","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana II","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Ribeirão Cascalheira","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder I","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder II","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Sul 01","cliente": "2C Energia","usina": "Araputanga","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 01","cliente": "Thopen","usina": "Poconé","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 03","cliente": "Renogrid","usina": "Nobres","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Sul 03","cliente": "Thopen","usina": "Diamantino","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "PA Norte 03","cliente": "2C Energia","usina": "Ipixuna do Pará I","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia I","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia II","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Sítio dos Nogueiras","cidade": "GO","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado I","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado II","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "PA Norte 01","cliente": "Athon","usina": "Santa Maria do Pará 100","cidade": "PA","responsavel": "Gilson Souza","funcao": "Técnico","membros": ["Manuel Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 01","cliente": "Athon","usina": "Capitão Poço 100","cidade": "PA","responsavel": "Gilson Souza","funcao": "Técnico","membros": ["Manuel Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 02","cliente": "Athon","usina": "Mãe do Rio 100","cidade": "PA","responsavel": "Frank Melo","funcao": "Técnico","membros": ["Azinaldo Santos (Mantenedor)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Jacundá 100","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Marabá 100","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Marabá 200","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 03","cliente": "Thopen","usina": "Ipixuna I","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": ["Ipixuna 1"]},{"cluster": "PA Norte 03","cliente": "Thopen","usina": "Ipixuna II","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": ["Ipixuna 2"]}] };
 const _SUP_NAVS_PERMITIDOS = ['atividades', 'ocorrencias', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
@@ -4396,7 +4408,40 @@ function _supChamadoPermitido(c) {
   return _supPermite(semCli, cli);
 }
 const _SUP_VAZIO_OK = { ok: true };
+// Supervisor de campo: PCM só dos clusters dele (filtra qualquer lista de objetos com "cluster").
+function _supFiltroClusterPcm(obj, set) {
+  if (Array.isArray(obj)) {
+    const temCl = obj.some(x => x && typeof x === 'object' && 'cluster' in x);
+    const base = temCl ? obj.filter(x => x && typeof x === 'object' && 'cluster' in x ? set.has(x.cluster) : true) : obj;
+    return base.map(x => _supFiltroClusterPcm(x, set));
+  }
+  if (obj && typeof obj === 'object') {
+    const o = {};
+    for (const k of Object.keys(obj)) o[k] = _supFiltroClusterPcm(obj[k], set);
+    return o;
+  }
+  return obj;
+}
+function _supFiltrarPcmCampo(path, data) {
+  const set = new Set(_supEscopoAtivo.clustersPcm || []);
+  const r = _supFiltroClusterPcm(data, set);
+  if (Array.isArray(r.dias)) {
+    let tot = 0;
+    r.dias.forEach(d => {
+      const it = d.itens || [];
+      if (Array.isArray(d.itens)) {
+        d.total = it.length; d.aposPlano = it.filter(i => i.aposPlano).length;
+        d.finalizadas = it.filter(i => i.estado === 'Finalizada').length;
+        d.horas = Math.round(it.reduce((a, i) => a + (i.duracaoH || 0), 0) * 10) / 10;
+        tot += it.length;
+      }
+    });
+    r.total = tot;
+  }
+  return r;
+}
 function _supFiltrarResposta(path, data) {
+  if (_supEscopoAtivo && _supEscopoAtivo.campo && /^\/programacao-pcm/.test(path)) return _supFiltrarPcmCampo(path, data);
   if (path === '/atividades') {
     const out = (data.atividades || []).filter(a => _supPermite(a.usina, a.cliente)).map(a => {
       const e = _supBuscar(a.usina, a.cliente);
@@ -4434,6 +4479,18 @@ function _supInstalarEscopo(sessao) {
   const _supEscopoId = String(sessao.user || '').toLowerCase();
   window._supFetchInstalado = true;
   document.body.classList.add('role-supervisor');
+  if (esc.campo) {
+    document.body.classList.add('role-campo');
+    _SUP_NAVS_PERMITIDOS.length = 0; esc.navs.forEach(n => _SUP_NAVS_PERMITIDOS.push(n));
+    // sem WhatsApp: o botão só abre as prévias/cópia da imagem por cluster
+    try {
+      const bt = document.getElementById('progPcmEnviarBtn');
+      if (bt) { bt.textContent = '🖼 Imagem por cluster'; bt.style.background = ''; bt.style.color = ''; }
+      const tt = document.querySelector('#ppEnvioOverlay .ch-title');
+      if (tt) tt.textContent = '🖼 Programação da semana por cluster — copiar imagem';
+      const sb = document.getElementById('ppEnvioSub'); if (sb) sb.dataset.campo = '1';
+    } catch (e) {}
+  }
   const _fetchOrig = window.fetch.bind(window);
   window.fetch = async function(input, init) {
     let url = typeof input === 'string' ? input : (input && input.url) || '';
@@ -4443,14 +4500,20 @@ function _supInstalarEscopo(sessao) {
       // escopo da supervisora no backend: aba e catálogo próprios (nada do Fred)
       try {
         const _h = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
-        _h.set('X-Escopo', _supEscopoId);
+        if (!esc.campo) _h.set('X-Escopo', _supEscopoId); else _h.set('X-Visao', _supEscopoId);
         init = Object.assign({}, init || {}, { headers: _h });
       } catch (e) {}
+      if (esc.somenteLeitura && method !== 'GET' && method !== 'OPTIONS' && !/^\/gerar-comunicado/.test(path)) {
+        return _supJson({ ok: false, error: 'Perfil somente leitura.' }, 403);
+      }
+      if (esc.campo && /disparar|enviar|alertar|notificar|testar-alerta/.test(path)) {
+        return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil.' }, 403);
+      }
       if (_SUP_BLOQUEIO_ENVIO.test(path)) {
         return _supJson({ ok: false, error: 'Envio por WhatsApp não está habilitado no seu perfil — use "Copiar" e envie manualmente.' }, 403);
       }
       if (method === 'GET') {
-        if (_SUP_GET_VAZIO.test(path)) {
+        if (_SUP_GET_VAZIO.test(path) && !(esc.campo && /^\/programacao-pcm/.test(path))) {
           return _supJson({ ok: true, itens: [], grupos: [], total: 0, atividades: [], blocos: [], regras: [], anotacoes: [], localizacoes: [] });
         }
         const resp = await _fetchOrig(input, init);
@@ -4461,7 +4524,7 @@ function _supInstalarEscopo(sessao) {
           return novo ? _supJson(novo, resp.status) : resp;
         } catch (e) {
           // falha fechada: se não deu pra filtrar um endpoint de dados, não devolve o original
-          if (path === '/atividades' || path === '/chamados-fabricante') return _supJson({ ok: false, error: 'Falha ao aplicar o filtro do seu perfil.' }, 500);
+          if (path === '/atividades' || path === '/chamados-fabricante' || /^\/programacao-pcm/.test(path)) return _supJson({ ok: false, error: 'Falha ao aplicar o filtro do seu perfil.' }, 500);
           return resp;
         }
       }
@@ -4483,6 +4546,7 @@ function _supEhSessao(sessao) { return !!sessao && sessao.role === 'supervisor';
     { user: 'camila',         pass: 'Camila#Grid26', role: 'supervisor' },
     { user: 'daniel',         pass: 'Daniel#Grid26', role: 'supervisor' },
     { user: 'patrick',        pass: 'Patrick#Grid26', role: 'supervisor' },
+    { user: 'vitor',          pass: 'Vitor#Grid26', role: 'supervisor' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -6350,7 +6414,7 @@ function initDashboard(session) {
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
-  if (session.role === 'manager' || session.role === 'admin' || session.role === 'supervisor') { try { OC.entrar(); } catch (e) {} }
+  if (session.role === 'manager' || session.role === 'admin' || (session.role === 'supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.campo))) { try { OC.entrar(); } catch (e) {} }
   if (session.role !== 'manager' && session.role !== 'admin' && session.role !== 'supervisor') {
     document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
   }
@@ -6376,6 +6440,7 @@ function initDashboard(session) {
       // Sem Falhas/PCM do Fred: só os dados dos 3 painéis liberados.
       DATA = []; try { applyFilters(); } catch(e){}
       carregarAtividades().then(() => _abrirDeepLinkNotificacao());
+      if (_supEscopoAtivo && _supEscopoAtivo.campo) { carregarProgramacaoPcm(); return; }
       carregarChamadosFabricante();
       return;
     }
@@ -6431,7 +6496,7 @@ async function _abrirDeepLinkNotificacao() {
   };
   await tentarAbrir(1);
 }
-function canEdit() { return _currentSession.role==='manager' || _currentSession.role==='supervisor'; }
+function canEdit() { return _currentSession.role==='manager' || (_currentSession.role==='supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.somenteLeitura)); }
 
 document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('om_role');
@@ -10205,7 +10270,7 @@ const ANOT_CATALOGO_USINAS = {
              'Alto Paraná I', 'Alto Paraná II', 'Paranavaí', 'Assis Chateaubriand', 'Céu Azul', 'Colorado I', 'Colorado II', 'Mandaguaçu', 'Sarandi',
              'Nova Londrina I', 'Nova Londrina II', 'Cidade Gaúcha', 'Pharmas II', 'Pharmas III', 'Pharmas IV', 'Santo Antonio da Platina',
              'Coração I', 'Coração II', 'Guatambu I', 'Guatambu II', 'Guatambu III', 'Guatambu IV',
-             'Ceilândia I', 'Ceilândia II', 'Sítio dos Nogueiras', 'Aparecida do Taboado I', 'Aparecida do Taboado II'],
+             'Ceilândia I', 'Ceilândia II', 'Sítio dos Nogueiras', 'Aparecida do Taboado I', 'Aparecida do Taboado II', 'Ipixuna I', 'Ipixuna II'],
   '2C Energia': ['Araputanga', 'Sete Lagoas', 'União I', 'União II', 'Ipixuna do Pará I', 'Tupi Paulista I'],
 };
 
@@ -13528,7 +13593,7 @@ function _ppAjustaTexto(ctx, texto, largura) {
   return texto.trimEnd() + '…';
 }
 
-function _ppGerarImagemCluster(cluster, grupoId) {
+function _ppGerarImagemCluster(cluster, grupoId, escala) {
   const r = _ppSemana;
   const info = (r.envios || []).find(e => e.cluster === cluster && (e.grupoId || null) === (grupoId || null)) || {};
   const dias = r.dias.map(d => ({ ...d, itens: d.itens.filter(it => it.cluster === cluster && (it.grupo || null) === (grupoId || null) && _ppPassaSidebar(it)) }));
@@ -13544,7 +13609,7 @@ function _ppGerarImagemCluster(cluster, grupoId) {
   const maxCol = Math.max(...dias.map(alturaDia));
   const FOOT_H = 40;
   const H = HEAD_H + DIA_H + maxCol + FOOT_H + PAD;
-  const esc2 = 2;
+  const esc2 = escala || 2;
   const cv = document.createElement('canvas');
   cv.width = W * esc2; cv.height = H * esc2;
   const ctx = cv.getContext('2d');
@@ -13682,17 +13747,51 @@ function _ppRenderListaEnvio() {
         <div class="s">${esc(c.tecnicos || '')}${c.tecnicos ? ' · ' : ''}${grupo}</div>${stTxt}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button class="pps-btn" onclick="_ppPrevia(${i})">👁 Ver</button>
+        <button class="pps-btn" title="Copiar a imagem em alta definição" onclick="_ppCopiarClusterHD(${i})">📋 Copiar HD</button>
         <button class="pps-btn pri" id="ppEnvBtn${i}" ${c.grupoConfigurado ? '' : 'disabled'} onclick="_ppEnviarUm(${i})">Enviar</button>
       </div></div>`;
   }).join('');
 }
 
+let _ppPreviaAtual = null;
+// Copia a imagem do cluster em alta definição (3x) para a área de transferência;
+// se o navegador não permitir, baixa o PNG.
+async function _ppCopiarImagemHD() {
+  if (!_ppPreviaAtual) { showToast('Abra a prévia primeiro.', false); return; }
+  const btn = document.getElementById('ppCopiarHdBtn');
+  const txt0 = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Gerando HD…'; }
+  try {
+    const dataUrl = _ppGerarImagemCluster(_ppPreviaAtual.cluster, _ppPreviaAtual.grupoId, 3);
+    const blob = await (await fetch(dataUrl)).blob();
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showToast('Imagem HD copiada — é só colar (Ctrl+V) no WhatsApp.', true);
+    } else { throw new Error('sem suporte a copiar imagem'); }
+  } catch (e) {
+    try {
+      const dataUrl = _ppGerarImagemCluster(_ppPreviaAtual.cluster, _ppPreviaAtual.grupoId, 3);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = ('programacao-pcm-' + _ppPreviaAtual.cluster + '.png').replace(/[^\w.\-]+/g, '_');
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Não foi possível copiar — baixei a imagem HD.', false);
+    } catch (e2) { showToast('Falha ao gerar a imagem HD.', false); }
+  } finally { if (btn) { btn.disabled = false; btn.textContent = txt0; } }
+}
+function _ppCopiarClusterHD(i) {
+  const c = _ppClustersEnvio()[i];
+  if (!c) return;
+  _ppPreviaAtual = { cluster: c.cluster, grupoId: c.grupoId || null };
+  return _ppCopiarImagemHD();
+}
 function _ppPrevia(i) {
   const c = _ppClustersEnvio()[i];
   if (!c) return;
   const url = _ppGerarImagemCluster(c.cluster, c.grupoId);
   document.getElementById('ppEnvioPreviewTitulo').textContent = `Prévia — ${c.cluster}${c.multi && c.grupoNome ? ' · ' + c.grupoNome : ''}`;
   document.getElementById('ppEnvioPreviewImg').src = url;
+  _ppPreviaAtual = { cluster: c.cluster, grupoId: c.grupoId || null };
   const p = document.getElementById('ppEnvioPreview');
   p.style.display = 'block';
   p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
