@@ -19576,6 +19576,7 @@ function _pontoCopiarComunicado(id, btn) {
     const botoes = pode ? `<div class="oc-acoes">
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
       <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
+      <button class="oc-btn sm" type="button" data-oc="os-solicitar"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
       ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
       ${x.status === 'Em andamento' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Pausado">Pausar</button>' : ''}${x.status === 'Pausado' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Retomar</button>' : ''}
       ${confirmaExcluir ? '<button class="oc-btn sm perigo" type="button" data-oc="excluir-conf">Confirmar exclusão da ocorrência</button><button class="oc-btn sm" type="button" data-oc="excluir-cancel">Cancelar</button>' : '<button class="oc-btn sm perigo" type="button" data-oc="excluir">Excluir</button>'}
@@ -19935,6 +19936,7 @@ function _pontoCopiarComunicado(id, btn) {
       else if (a === 'plano-rem') planoRemover(aberto);
       else if (a === 'comunicado') abrirComunicado(aberto);
       else if (a === 'os-vincular') abrirVincularOS(aberto);
+      else if (a === 'os-solicitar') abrirSolicitarOS(aberto);
       else if (a === 'os-desvincular') desvincularOS(aberto, b.dataset.n);
       else if (a === 'plano-ver') { fechar(); setAba('pl'); window.scrollTo(0, 0); }
     });
@@ -19945,6 +19947,79 @@ function _pontoCopiarComunicado(id, btn) {
   function novo() { if (!ehEdit()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
 
 
+
+
+  /* ── solicitar OS: texto da OS (título, observação, subtarefas) a partir de título + descrição + plano de ação + anotações + histórico ── */
+  let sol = null, solEl = null;
+  function solPayload(x) {
+    const t = (x.titulo || '').trim(), d = (x.causa || '').trim();
+    const eq = [x.equip, x.nequip, x.fab ? '(' + x.fab + ')' : '', x.sn ? 'S/N ' + x.sn : ''].filter(Boolean).join(' ');
+    const falha = [t && t !== d ? t : '', d].filter(Boolean).join('\n');
+    const blocos = ['INSTRUÇÃO: a OS deve cobrir o que PRECISA SER EXECUTADO agora para resolver esta ocorrência (conforme plano de ação, anotações e pendências do histórico) — não repita o que já foi feito.'];
+    const p = PLANO[x.id];
+    if (p && (p.acao || '').trim()) blocos.push('PLANO DE AÇÃO (o que ainda precisa ser feito):\n' + p.acao.trim() + (p.resp ? '\nResponsável: ' + p.resp : '') + (p.prazo ? '\nPrazo: ' + dmy(p.prazo) : ''));
+    if (sol && sol.notas) { const nn = notasDe(x).map(n => String(n.texto || '').trim()).filter(Boolean).map(n => '- ' + n); if (nn.length) blocos.push('ANOTAÇÕES DO SUPERVISOR:\n' + nn.join('\n')); }
+    const h = (x.hist || []).filter(e => e.t).slice(-15).map(e => (e.d ? dmy(e.d) + ': ' : '') + String(e.t).trim().slice(0, 600));
+    if (h.length) blocos.push('HISTÓRICO DA OCORRÊNCIA (do mais antigo ao mais recente):\n' + h.join('\n'));
+    if (sol && sol.instrucao.trim()) blocos.push('ORIENTAÇÃO ADICIONAL PARA ESTA OS: ' + sol.instrucao.trim());
+    return { cliente: x.cliente || '', usina: x.usina || '', equipamento: eq, falha, causa: x.impacto ? 'Impacto: ' + x.impacto : '', acao: '', historico: blocos.join('\n\n').slice(0, 9000), responsavel: x.resp || '' };
+  }
+  function abrirSolicitarOS(id) {
+    const x = ITENS.find(y => y.id === id); if (!x || !ehEdit()) return;
+    if (typeof _gerarTextosOSComIA !== 'function') { toast('Gerador de OS indisponível nesta versão.', false); return; }
+    if (!solEl) {
+      solEl = document.createElement('div'); solEl.className = 'oc-modal'; solEl.id = 'ocSol';
+      document.body.appendChild(solEl);
+      solEl.addEventListener('click', solClick);
+      solEl.addEventListener('input', e => { if (!sol) return; if (e.target.id === 'solInstr') sol.instrucao = e.target.value; else if (e.target.id === 'solNotas') sol.notas = e.target.checked; });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && solEl.classList.contains('on')) { e.stopPropagation(); solFechar(); } }, true);
+    }
+    const nNotas = ehFred() ? notasDe(x).length : 0;
+    sol = { id, x, instrucao: '', notas: nNotas > 0, nNotas, estado: 'gerando', lista: [], erro: '' };
+    solEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Solicitar OS" style="width:min(820px,100%)">
+      <header><strong>Solicitar OS — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-s="fechar">Fechar</button></header>
+      <div class="oc-mbody" style="grid-template-columns:1fr"><div class="oc-mcol">
+        <p class="oc-hint" style="margin:0 0 10px">O texto da OS é montado a partir do título, da descrição, do plano de ação${nNotas ? ', das suas anotações' : ''} e do histórico desta ocorrência. Copie cada campo para a plataforma de solicitação de OS.</p>
+        ${nNotas ? `<label class="chk" style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim);cursor:pointer;margin:0 0 8px"><input type="checkbox" id="solNotas" checked> Considerar minhas anotações privadas (${plural(nNotas, 'anotação', 'anotações')})</label>` : ''}
+        <div class="oc-nrow" style="margin:0 0 12px"><input type="text" id="solInstr" placeholder="Orientação para a IA (opcional): ex.: só a parte do tracker; incluir teste de comunicação" maxlength="600"><button class="oc-btn sm" type="button" data-s="gerar" id="solBtnGerar">Gerar de novo</button></div>
+        <div id="solRes"></div>
+      </div></div>
+      <footer id="solRodape"></footer></div>`;
+    solEl.classList.add('on'); solRender(); solGerar();
+  }
+  function solRender() {
+    const r = $('#solRes'), f = $('#solRodape'), g = $('#solBtnGerar'); if (!r || !sol) return;
+    if (g) g.disabled = sol.estado === 'gerando';
+    if (sol.estado === 'gerando') r.innerHTML = `<p class="oc-vazio" style="padding:14px 0">Gerando a OS com a IA… pode levar até 1–2 minutos.</p>`;
+    else if (sol.estado === 'erro') r.innerHTML = `<div class="oc-erro" role="alert">Não foi possível gerar a OS agora: ${esc(sol.erro)}. Use “Gerar de novo”.</div>`;
+    else { r.innerHTML = _htmlCamposOS(sol.lista); _wireCopiaCamposOS(r); }
+    const ok = sol.estado === 'ok' && sol.lista.length;
+    f.innerHTML = `<span class="oc-hint" style="margin-right:auto">${ok ? 'Revise o texto antes de colar na plataforma. Depois de criar a OS no Fracttal, vincule-a aqui.' : ''}</span>
+      <button class="oc-btn" type="button" data-s="copiar-tudo"${ok ? '' : ' disabled'}>Copiar OS completa</button>
+      <button class="oc-btn pri" type="button" data-s="vincular">Já criei a OS — vincular</button>`;
+  }
+  async function solGerar() {
+    if (!sol) return; const id = sol.id; sol.estado = 'gerando'; sol.erro = ''; solRender();
+    try {
+      const lista = await _gerarTextosOSComIA(solPayload(sol.x));
+      if (!sol || sol.id !== id) return;
+      sol.lista = lista || []; sol.estado = sol.lista.length ? 'ok' : 'erro'; if (!sol.lista.length) sol.erro = 'a IA não devolveu nenhuma OS';
+    } catch (e) { if (!sol || sol.id !== id) return; sol.estado = 'erro'; sol.erro = (e && e.message) || 'falha de conexão'; }
+    solRender();
+  }
+  async function solClick(e) {
+    const b = e.target.closest('[data-s]');
+    if (!b) { if (e.target === solEl) solFechar(); return; }
+    const a = b.dataset.s;
+    if (a === 'fechar') solFechar();
+    else if (a === 'gerar') solGerar();
+    else if (a === 'vincular') { const id = sol.id; solFechar(); abrirVincularOS(id); }
+    else if (a === 'copiar-tudo') {
+      const txt = sol.lista.map((o, i) => (sol.lista.length > 1 ? 'OS ' + (i + 1) + ' de ' + sol.lista.length + '\n' : '') + 'Título: ' + (o.titulo || '') + (o.observacao ? '\n\nObservação:\n' + o.observacao : '') + '\n\nSubtarefas:\n' + (o.subtarefas || []).map((t, j) => (j + 1) + '. ' + t).join('\n')).join('\n\n----------\n\n');
+      try { await navigator.clipboard.writeText(txt); toast('OS copiada.'); } catch (err) { toast('Não consegui copiar automaticamente.', false); }
+    }
+  }
+  function solFechar() { solEl.classList.remove('on'); sol = null; }
 
   /* ── vincular OS (Fracttal) à ocorrência: lista as OS da usina e grava no campo "OS" ── */
   let osm = null, osEl = null;
