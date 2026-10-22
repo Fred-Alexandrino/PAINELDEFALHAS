@@ -1779,6 +1779,8 @@ table.oc-z td.desc{min-width:260px;}
 @media (max-width:760px){.oc-mbody{grid-template-columns:1fr;}.oc-mcol textarea{min-height:220px;}}
 .oc-ostag{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--c);color:var(--c);border-radius:99px;padding:0 7px;margin-left:6px;white-space:nowrap;}
 .oc-osx-h .oc-link{margin-left:auto;}
+.oc-cid{display:block;font:600 11.5px/1 'Geist Mono',ui-monospace,monospace;letter-spacing:.04em;color:var(--teal);margin:0 0 5px;}
+.oc-card .oc-cid{margin-bottom:6px;}
 #sec-falhas{display:none!important;}
 body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
 #sbBadgeFalhas{display:none!important;}
@@ -19614,7 +19616,7 @@ function _pontoCopiarComunicado(id, btn) {
     const ROT = { 'Em andamento': { p: 'Retomar', n: '' }, 'Pausado': { p: 'Pausar', n: '' }, 'Finalizado': { p: 'Finalizar', n: '' } };
     const prev = idx > 0 ? ST[idx - 1] : null, next = idx < ST.length - 1 ? ST[idx + 1] : null;
     const mv = ehEdit() ? `<div class="oc-mv">${prev ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(prev.k)}" title="Voltar para ${esc(prev.k)}">‹ ${esc(prev.k === 'Em andamento' ? (x.status === 'Finalizado' ? 'Reabrir' : 'Retomar') : prev.k)}</button>` : '<span></span>'}${next ? `<button type="button" class="oc-mvb" data-mv="${esc(x.id)}" data-to="${esc(next.k)}" title="Enviar para ${esc(next.k)}">${esc(ROT[next.k].p)} ›</button>` : '<span></span>'}</div>` : '';
-    return `<div class="oc-cw"${ehEdit() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="t">${esc(tit(x))}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
+    return `<div class="oc-cw"${ehEdit() ? ` draggable="true" data-drag="${esc(x.id)}"` : ''}><button class="oc-card" style="--c:var(${col})" type="button" data-id="${esc(x.id)}"><p class="oc-cid">${esc(x.id)}</p><p class="t">${esc(tit(x))}</p><p class="s">${esc(x.usina)}${x.nequip ? ' · ' + esc(x.nequip) : ''}</p><div class="oc-tags">${tags.join('')}</div>${nn.length ? `<p class="oc-snip">${esc(nn[0].texto)}</p>` : ''}<div class="f">${rod}</div></button>${mv}</div>`;
   }
   function quadro(arr) {
     const cols = F.status.size ? ST.filter(s => F.status.has(s.k)) : ST;
@@ -19682,7 +19684,7 @@ function _pontoCopiarComunicado(id, btn) {
     </div>` : '';
     const addHist = pode ? `<div class="oc-box"><div class="oc-nrow" style="margin:0 0 8px"><input class="oc-in" type="date" id="nhData" value="${hojeIso()}" style="max-width:170px" aria-label="Data do registro"></div><textarea id="nhTxt" rows="3" placeholder="Novo registro de atualização (o que aconteceu, o que foi feito, o que aguarda)…" aria-label="Novo registro"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="hist-add">Adicionar ao histórico</button><span class="oc-hint" id="nhHint">Ctrl+Enter também salva</span></div></div>` : '';
     const notasHtml = pode ? `<h3>Anotações privadas <span class="sub" id="ncount"></span></h3><div class="oc-box"><textarea id="ntxt" rows="3" placeholder="Observação sua sobre este caso (só você vê)…" aria-label="Nova anotação"></textarea><div class="oc-nrow"><button class="oc-btn pri sm" type="button" data-oc="nota-add">Salvar anotação</button><span class="oc-hint" id="nhint">Ctrl+Enter também salva</span></div><ul class="oc-nl" id="nlist"></ul></div><div id="plBox"></div>` : '';
-    dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2>${esc(tit(x))}</h2>${botoes}</header>
+    dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2><span class="oc-cid">${esc(x.id)}</span>${esc(tit(x))}</h2>${botoes}</header>
     <div class="oc-dbody"><dl class="oc-kv">${(x.titulo && x.titulo.trim() && x.titulo.trim() !== x.causa) ? kv('Descrição', x.causa) : ''}${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('OS (Fracttal)', x.os)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
     ${osAnexos(x)}
     ${notasHtml}
@@ -19878,7 +19880,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocPOut').innerHTML = `<div class="oc-zwrap"><table class="oc-z oc-plano"><thead><tr><th>Atividade</th><th>Anotações</th><th>Ação a tomar</th><th>Responsável</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>` + rows.map(x => {
       const p = PLANO[x.id] || {}, s = p.sit || 'A fazer', late = p.prazo && p.prazo < hojeIso() && s !== 'Concluída', nn = notasDe(x);
       const ns = nn.slice(0, 3).map(n => `<div class="an"><small>${esc(fdt(n.criada))}</small>${esc(n.texto)}</div>`).join('') + (nn.length > 3 ? `<span class="oc-hint">+ ${nn.length - 3} anteriores (abra a ocorrência)</span>` : '');
-      return `<tr data-k="${esc(x.id)}"><td><button type="button" class="oc-rowbtn" data-id="${esc(x.id)}"><b>${esc(x.usina)}</b><br>${esc(tit(x))}</button><div class="oc-tags" style="margin-top:6px"><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span><span class="oc-tag blue">${esc(x.equip)}</span></div></td>
+      return `<tr data-k="${esc(x.id)}"><td><button type="button" class="oc-rowbtn" data-id="${esc(x.id)}"><span class="oc-cid">${esc(x.id)}</span><b>${esc(x.usina)}</b><br>${esc(tit(x))}</button><div class="oc-tags" style="margin-top:6px"><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span><span class="oc-tag blue">${esc(x.equip)}</span></div></td>
       <td>${ns || '<span class="oc-hint">Sem anotações</span>'}</td>
       <td><textarea data-f="acao" aria-label="Ação a tomar" placeholder="O que precisa ser feito">${esc(p.acao || '')}</textarea></td>
       <td><input data-f="resp" type="text" aria-label="Responsável" value="${esc(p.resp || '')}" placeholder="Quem"></td>
