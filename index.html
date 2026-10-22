@@ -11035,7 +11035,7 @@ async function _seComunicadoCopiar(num, modo) {
 
 /* ── Texto para a apresentação semanal (slide "CHAMADOS COM FABRICANTE") ── */
 function _seCodigoApres(eq) {
-  eq = (eq || '').trim(); const m = /^INV(\d+)$/i.exec(eq);
+  eq = (eq || '').trim(); if (/otimizador/i.test(eq)) return 'OTM'; if (/v[áa]rios/i.test(eq)) return 'UFV'; const m = /^INV(\d+)$/i.exec(eq);
   return m ? 'INV' + m[1].padStart(2, '0') : (eq || 'Equipamento não informado');
 }
 function _seRotuloApres(c) {
