@@ -2274,6 +2274,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
                      style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
               <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
               <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
+              <button class="tb-btn" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
               <button class="tb-btn" style="color:var(--teal);border-color:rgba(34,211,238,.4);" onclick="_seSyncAgora()" title="Requer a extensão Grid Sync SolarEdge instalada no Chrome">Sincronizar agora</button>
               <button class="tb-btn" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
               <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
@@ -11030,6 +11031,41 @@ async function _seComunicadoCopiar(num, modo) {
     const j = await r.json(); if (j.ok) c.notaGrid = nota;
   } catch (e) {}
   showToast('Comunicado copiado — cole no WhatsApp do técnico.', true);
+}
+
+/* ── Texto para a apresentação semanal (slide "CHAMADOS COM FABRICANTE") ── */
+function _seCodigoApres(eq) {
+  eq = (eq || '').trim(); const m = /^INV(\d+)$/i.exec(eq);
+  return m ? 'INV' + m[1].padStart(2, '0') : (eq || 'Equipamento não informado');
+}
+function _seRotuloApres(c) {
+  const si = (c.statusInterno || '').trim(); if (si && !/^conclu/i.test(si)) return si;
+  const s = (c.status || '').toLowerCase();
+  if (s === 'feedback requested') return 'Aguardando retorno da Grid';
+  if (/waiting for return/.test(s)) return 'Aguardando coleta SolarEdge';
+  if (s === 'rma shipment processing') return 'RMA em envio para a usina';
+  return 'Aguardando retorno do Fabricante';
+}
+function _seTextoApresMontar(cliente) {
+  const ab = _SE.itens.filter(c => _seAberto(c) && (!cliente || (c.cliente || '') === cliente));
+  const por = {}; ab.forEach(c => { const u = c.usina || 'Usina não informada'; (por[u] = por[u] || []).push(c); });
+  const num = c => parseFloat((/[\d.]+/.exec(c.equipamento || '') || ['999'])[0]);
+  return Object.keys(por).sort((a, b) => a.localeCompare(b, 'pt-BR')).map(u =>
+    u + '\n' + por[u].sort((a, b) => (num(a) - num(b)) || a.case.localeCompare(b.case)).map(c => `${_seCodigoApres(c.equipamento)} – #${c.case} – ${_seRotuloApres(c)}`).join('\n')).join('\n\n');
+}
+function _seTextoApresentacao() {
+  document.getElementById('seApOverlay')?.remove();
+  const clientes = [...new Set(_SE.itens.filter(_seAberto).map(c => c.cliente || ''))].filter(Boolean).sort();
+  const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seApOverlay'; ov.style.zIndex = 10001;
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Texto para a apresentação semanal</h3><button class="se-btn" onclick="document.getElementById('seApOverlay').remove()">Fechar</button></div>
+    <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 8px;">Chamados SolarEdge em aberto, no formato do slide “CHAMADOS COM FABRICANTE” (usina, depois “INV – #case – status”). Fonte: este subpainel.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span style="font-size:12.5px;">Cliente:</span>
+      <select id="seApCliente" class="se-in" style="width:auto;" onchange="document.getElementById('seApTxt').value=_seTextoApresMontar(this.value)">
+        <option value="">Todos</option>${clientes.map(c => `<option value="${esc(c)}" ${c === 'Renogrid' ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+    <textarea id="seApTxt" class="se-in" rows="18" style="font-family:'Geist Mono',monospace;font-size:12.5px;">${esc(_seTextoApresMontar(clientes.includes('Renogrid') ? 'Renogrid' : ''))}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;"><button class="se-btn pri" onclick="navigator.clipboard.writeText(document.getElementById('seApTxt').value).then(()=>showToast('Texto copiado — cole no slide.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar texto</button></div></div>`;
+  document.body.appendChild(ov);
 }
 
 function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
