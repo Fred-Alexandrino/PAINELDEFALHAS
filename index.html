@@ -1683,6 +1683,21 @@ details.oc-dd[open]>summary{border-color:var(--teal);}
 .oc-zwrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--panel);margin-bottom:20px;box-shadow:var(--shadow);}
 table.oc-z{width:100%;border-collapse:collapse;font-size:13.5px;}
 table.oc-z th,table.oc-z td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border-soft);vertical-align:top;}
+table.oc-z th .oc-thw{display:flex;align-items:center;gap:2px;}
+.oc-th{background:none;border:0;padding:2px 4px;margin:-2px 0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;border-radius:6px;display:inline-flex;gap:5px;align-items:center;}
+.oc-th:hover,.oc-fb:hover{background:var(--border-soft);}
+.oc-th .oc-arr{font-size:10px;opacity:.45;}.oc-th.on .oc-arr{opacity:1;color:var(--teal);}
+.oc-fb{background:none;border:0;padding:4px;border-radius:6px;cursor:pointer;display:inline-flex;color:var(--text-faint);opacity:.6;}
+.oc-fb svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;}
+.oc-fb.on{opacity:1;color:var(--teal);background:var(--border-soft);}.oc-fb.on svg{fill:currentColor;}
+.oc-fp{position:fixed;z-index:9999;width:278px;background:var(--panel,#fff);color:var(--text,inherit);border:1px solid var(--border-soft);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);padding:10px;display:none;}
+.oc-fp.on{display:block;}
+.oc-fp input[type=search],.oc-fp input[type=text]{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--border-soft);border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:13px;margin-bottom:8px;}
+.oc-fp .lst{max-height:220px;overflow:auto;margin-bottom:8px;}
+.oc-fp .lst label{display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:6px;font-size:13px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;}
+.oc-fp .lst label:hover{background:var(--border-soft);}
+.oc-fp .lst .n{margin-left:auto;color:var(--text-faint);font-size:11.5px;}
+.oc-fp .rod{display:flex;justify-content:space-between;align-items:center;}
 table.oc-z th{color:var(--text-faint);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:var(--panel-alt);}
 table.oc-z tbody tr[data-id]{cursor:pointer;}
 table.oc-z tbody tr[data-id]:hover{background:var(--panel-alt);}
@@ -19671,15 +19686,107 @@ function _pontoCopiarComunicado(id, btn) {
         '</div></section>';
     }).join('') + '</div>';
   }
+  /* ── lista estilo planilha: clique no cabeçalho ordena; funil filtra a coluna ── */
+  const cmpTxt = fn => (a, b) => String(fn(a) || '').localeCompare(String(fn(b) || ''), 'pt-BR', { numeric: true, sensitivity: 'base' });
+  const COLS = [
+    { k: 'num', t: 'Nº', val: x => x.id, srt: (a, b) => numOc(a) - numOc(b), filt: 'list' },
+    { k: 'status', t: 'Status', val: x => x.status, srt: (a, b) => ST.findIndex(s => s.k === a.status) - ST.findIndex(s => s.k === b.status), filt: 'list' },
+    { k: 'usina', t: 'Usina', val: x => x.usina, srt: cmpTxt(x => x.usina), filt: 'list' },
+    { k: 'equip', t: 'Equipamento', val: x => x.equip, srt: cmpTxt(x => x.equip + ' ' + (x.nequip || '')), filt: 'list' },
+    { k: 'desc', t: 'Ocorrência', val: x => tit(x), srt: cmpTxt(x => tit(x)), filt: 'text' },
+    { k: 'inicio', t: 'Início', val: x => x.inicio || '', lab: v => v ? dmy(v) : '—', srt: cmpTxt(x => x.inicio), filt: 'list' },
+    { k: 'ult', t: 'Últ. atualização', val: x => x.ult || '', lab: v => v ? dmy(v) : '—', srt: cmpTxt(x => x.ult), filt: 'list' },
+  ];
+  const COLK = Object.fromEntries(COLS.map(c => [c.k, c]));
+  let CF = {}, LS = { k: null, d: 'asc' }, fpEl = null, fpCol = null, fpBusca = '';
+  const cfAtivo = k => { const f = CF[k]; return f instanceof Set ? f.size > 0 : !!(f && f.trim()); };
+  const cfAlgum = () => COLS.some(c => cfAtivo(c.k));
+  function aplicaColF(arr, exceto) {
+    return arr.filter(x => COLS.every(c => {
+      if (c.k === exceto || !cfAtivo(c.k)) return true;
+      const f = CF[c.k];
+      return f instanceof Set ? f.has(c.val(x)) : norm(c.val(x)).includes(norm(f.trim()));
+    }));
+  }
+  function ordenarColuna(k) {
+    if (LS.k !== k) LS = { k, d: 'asc' };
+    else if (LS.d === 'asc') LS = { k, d: 'desc' };
+    else LS = { k: null, d: 'asc' };
+    lim.lista = 0; render();
+  }
+  function fecharFP() { if (fpEl) fpEl.classList.remove('on'); fpCol = null; }
+  function abrirFiltroCol(btn) {
+    const k = btn.dataset.thf;
+    if (!fpEl) {
+      fpEl = document.createElement('div'); fpEl.className = 'oc-fp'; fpEl.id = 'ocFP'; document.body.appendChild(fpEl);
+      fpEl.addEventListener('click', fpClick); fpEl.addEventListener('input', fpInput);
+      document.addEventListener('mousedown', e => { if (fpEl.classList.contains('on') && !fpEl.contains(e.target) && !e.target.closest('[data-thf]')) fecharFP(); }, true);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && fpEl.classList.contains('on')) { e.stopPropagation(); fecharFP(); } }, true);
+      window.addEventListener('resize', fecharFP);
+    }
+    if (fpEl.classList.contains('on') && fpCol === k) { fecharFP(); return; }
+    fpCol = k; fpBusca = ''; desenharFP();
+    const r = btn.getBoundingClientRect();
+    fpEl.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 286)) + 'px';
+    fpEl.style.top = Math.min(r.bottom + 6, window.innerHeight - 120) + 'px';
+    fpEl.classList.add('on');
+    const i = fpEl.querySelector('input'); if (i) i.focus();
+  }
+  function desenharFP() {
+    const c = COLK[fpCol]; if (!c) return;
+    const keepScroll = (fpEl.querySelector('.lst') || {}).scrollTop || 0;
+    if (c.filt === 'text') {
+      fpEl.innerHTML = `<label class="t" style="display:block;font-size:12px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${esc(c.t)} contém</label><input type="text" id="fpTxt" placeholder="Digite parte do texto…" value="${esc(typeof CF[c.k] === 'string' ? CF[c.k] : '')}" maxlength="80"><div class="rod" style="margin-top:10px"><button type="button" class="oc-link" data-fp="limpar">Limpar filtro</button><button type="button" class="oc-btn sm" data-fp="fechar">Fechar</button></div>`;
+      return;
+    }
+    const base = aplicaColF(lista(), c.k), cont = new Map();
+    base.forEach(x => cont.set(c.val(x), (cont.get(c.val(x)) || 0) + 1));
+    const sel = CF[c.k] instanceof Set ? CF[c.k] : new Set();
+    sel.forEach(v => { if (!cont.has(v)) cont.set(v, 0); });
+    let vals = [...cont.keys()];
+    vals.sort(c.k === 'status' ? (a, b) => ST.findIndex(s => s.k === a) - ST.findIndex(s => s.k === b)
+      : c.k === 'num' ? (a, b) => (parseInt(String(a).replace(/\D/g, ''), 10) || 0) - (parseInt(String(b).replace(/\D/g, ''), 10) || 0)
+      : (c.k === 'inicio' || c.k === 'ult') ? (a, b) => String(b).localeCompare(String(a))
+      : (a, b) => String(a).localeCompare(String(b), 'pt-BR', { numeric: true, sensitivity: 'base' }));
+    const lab = v => c.lab ? c.lab(v) : (v === '' ? '(vazio)' : v);
+    const q = norm(fpBusca.trim());
+    vals = vals.filter(v => !q || norm(lab(v)).includes(q));
+    fpEl.innerHTML = `<input type="search" id="fpBusca" placeholder="Buscar em ${esc(c.t)}…" value="${esc(fpBusca)}" aria-label="Buscar valores">
+      <div class="lst">${vals.length ? vals.map(v => `<label><input type="checkbox" data-v="${esc(v)}"${sel.has(v) ? ' checked' : ''}> ${esc(lab(v))} <span class="n">${cont.get(v)}</span></label>`).join('') : '<p class="oc-vazio" style="padding:8px 10px">Nenhum valor.</p>'}</div>
+      <p class="oc-hint" style="margin:0 0 8px">Marque os valores que quer ver. Sem marcar, mostra todos.</p>
+      <div class="rod"><button type="button" class="oc-link" data-fp="limpar">Limpar filtro</button><button type="button" class="oc-btn sm" data-fp="fechar">Fechar</button></div>`;
+    const l = fpEl.querySelector('.lst'); if (l) l.scrollTop = keepScroll;
+  }
+  function fpClick(e) {
+    const b = e.target.closest('[data-fp]'); if (!b) return;
+    if (b.dataset.fp === 'fechar') fecharFP();
+    else if (b.dataset.fp === 'limpar') { delete CF[fpCol]; lim.lista = 0; render(); desenharFP(); }
+  }
+  function fpInput(e) {
+    const t = e.target;
+    if (t.id === 'fpBusca') { fpBusca = t.value; desenharFP(); const i = fpEl.querySelector('#fpBusca'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+    else if (t.id === 'fpTxt') { CF[fpCol] = t.value; lim.lista = 0; render(); }
+    else if (t.dataset && t.dataset.v !== undefined) {
+      const set = CF[fpCol] instanceof Set ? CF[fpCol] : (CF[fpCol] = new Set());
+      t.checked ? set.add(t.dataset.v) : set.delete(t.dataset.v);
+      lim.lista = 0; render(); desenharFP();
+    }
+  }
+  const thHtml = c => {
+    const ord = LS.k === c.k, on = cfAtivo(c.k);
+    return `<th aria-sort="${ord ? (LS.d === 'asc' ? 'ascending' : 'descending') : 'none'}"><div class="oc-thw"><button type="button" class="oc-th${ord ? ' on' : ''}" data-ths="${c.k}" title="Clique para ordenar">${esc(c.t)}<span class="oc-arr">${ord ? (LS.d === 'asc' ? '▲' : '▼') : '⇅'}</span></button><button type="button" class="oc-fb${on ? ' on' : ''}" data-thf="${c.k}" aria-label="Filtrar ${esc(c.t)}" title="Filtrar ${esc(c.t)}"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></button></div></th>`;
+  };
   function tabela(arr) {
+    const cs = LS.k ? COLK[LS.k] : null;
     const its = arr.slice().sort((a, b) => {
+      if (cs) return ((LS.d === 'desc' ? -1 : 1) * cs.srt(a, b)) || (numOc(a) - numOc(b));
       if (SORT !== 'padrao') return porCodigo(a, b);
       const oa = a.status === 'Finalizado' ? 1 : 0, ob = b.status === 'Finalizado' ? 1 : 0;
       if (oa !== ob) return oa - ob;
       return oa ? (b.ref || '').localeCompare(a.ref || '') : (a.ref || '').localeCompare(b.ref || '');
     });
     const n = lim.lista || 60;
-    return `<div class="oc-zwrap"><table class="oc-z"><thead><tr><th>Nº</th><th>Status</th><th>Usina</th><th>Equipamento</th><th>Ocorrência</th><th>Início</th><th>Últ. atualização</th></tr></thead><tbody>` +
+    return `<div class="oc-zwrap"><table class="oc-z"><thead><tr>${COLS.map(thHtml).join('')}</tr></thead><tbody>` +
       its.slice(0, n).map(x => `<tr data-id="${esc(x.id)}" tabindex="0"><td class="oc-num">${esc(x.id)}</td><td><span class="oc-bd" style="--c:var(${SK[x.status].c})">${esc(x.status)}</span></td><td>${esc(x.usina)}</td><td>${esc(x.equip)}${x.nequip ? ' ' + esc(x.nequip) : ''}</td><td class="desc">${esc(tit(x))}${x.grave ? ' <span class="oc-tag red">Grave</span>' : ''}</td><td class="oc-num">${dmy(x.inicio)}</td><td class="oc-num">${dmy(x.ult)}</td></tr>`).join('') +
       `</tbody></table></div>` + (its.length > n ? `<button class="oc-more" type="button" data-more="lista">Mostrar mais ${Math.min(60, its.length - n)} de ${its.length - n}</button>` : '');
   }
@@ -19687,11 +19794,11 @@ function _pontoCopiarComunicado(id, btn) {
     if (erro) { renderEstado(erro, true); return; }
     if (!carregado) return;
     kpis(); filtros();
-    const arr = lista(), ab = arr.filter(x => x.status !== 'Finalizado').length;
-    $('#ocRes').textContent = arr.length === ITENS.length ? `${plural(arr.length, 'ocorrência', 'ocorrências')} (todas)` : `${plural(arr.length, 'ocorrência', 'ocorrências')} de ${ITENS.length}` + (ab ? ` · ${ab} em aberto` : '');
+    const arr = view === 'lista' ? aplicaColF(lista()) : lista(), ab = arr.filter(x => x.status !== 'Finalizado').length;
+    $('#ocRes').textContent = arr.length === ITENS.length ? `${plural(arr.length, 'ocorrência', 'ocorrências')} (todas)` : `${plural(arr.length, 'ocorrência', 'ocorrências')} de ${ITENS.length}` + (ab ? ` · ${ab} em aberto` : '') + (view === 'lista' && cfAlgum() ? ' · filtro de coluna ativo' : '');
     $('#ocOrd').textContent = ''; const so = $('#ocSort'); if (so && so.value !== SORT) so.value = SORT;
     const sc = document.querySelector('#ocOut .oc-board'), sl = sc ? sc.scrollLeft : 0;
-    $('#ocOut').innerHTML = arr.length ? (view === 'quadro' ? quadro(arr) : tabela(arr)) : '<p class="oc-nada">Nenhuma ocorrência com esses filtros. Use “Limpar filtros” para ver todas.</p>';
+    $('#ocOut').innerHTML = arr.length ? (view === 'quadro' ? quadro(arr) : tabela(arr)) : '<p class="oc-nada">Nenhuma ocorrência com esses filtros. Use “Limpar filtros” para ver todas.' + (view === 'lista' && cfAlgum() ? ' <button type="button" class="oc-link" data-oc="colclear">Limpar filtros de coluna</button>' : '') + '</p>';
     const sc2 = document.querySelector('#ocOut .oc-board'); if (sc2) sc2.scrollLeft = sl;
     const nPl = planoIds().length; $('#ocPlN').textContent = nPl || '';
     const bOc = document.getElementById('sbBadgeOc'); if (bOc) { const na = ITENS.filter(x => x.status !== 'Finalizado').length; bOc.textContent = na; bOc.style.display = na ? '' : 'none'; }
@@ -20030,9 +20137,9 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocFEquip').onclick = e => { const b = e.target.closest('[data-eq]'); if (b) alterna(F.equips, b.dataset.eq); };
     $('#ocUsinaList').onchange = e => { const c = e.target.closest('[data-us]'); if (c) { c.checked ? F.usinas.add(c.dataset.us) : F.usinas.delete(c.dataset.us); lim = {}; const sc = $('#ocUsinaList').scrollTop; render(); $('#ocUsinaList').scrollTop = sc; } };
     $('#ocQ').oninput = e => { F.q = norm(e.target.value.trim()); lim = {}; render(); };
-    $('#ocClear').onclick = () => { F.status.clear(); F.usinas.clear(); F.equips.clear(); F.outros.clear(); F.q = ''; $('#ocQ').value = ''; lim = {}; render(); };
+    $('#ocClear').onclick = () => { F.status.clear(); F.usinas.clear(); F.equips.clear(); F.outros.clear(); F.q = ''; $('#ocQ').value = ''; CF = {}; LS = { k: null, d: 'asc' }; fecharFP(); lim = {}; render(); };
     const setView = v => { view = v; $('#ocVQ').setAttribute('aria-pressed', v === 'quadro'); $('#ocVL').setAttribute('aria-pressed', v === 'lista'); render(); };
-    $('#ocSort').value = SORT; $('#ocSort').onchange = e => { SORT = e.target.value; try { localStorage.setItem('oc_sort', SORT); } catch (x) {} lim = {}; render(); };
+    $('#ocSort').value = SORT; $('#ocSort').onchange = e => { SORT = e.target.value; LS = { k: null, d: 'asc' }; try { localStorage.setItem('oc_sort', SORT); } catch (x) {} lim = {}; render(); };
     $('#ocVQ').onclick = () => setView('quadro'); $('#ocVL').onclick = () => setView('lista');
     $('#ocKpis').onclick = e => {
       const b = e.target.closest('[data-kf]'); if (!b) return; const [t, v] = b.dataset.kf.split(':');
@@ -20040,6 +20147,9 @@ function _pontoCopiarComunicado(id, btn) {
       lim = {}; render();
     };
     $('#ocOut').onclick = e => {
+      const ths = e.target.closest('[data-ths]'); if (ths) { ordenarColuna(ths.dataset.ths); return; }
+      const thf = e.target.closest('[data-thf]'); if (thf) { abrirFiltroCol(thf); return; }
+      if (e.target.closest('[data-oc="colclear"]')) { CF = {}; fecharFP(); lim = {}; render(); return; }
       const m = e.target.closest('[data-more]');
       if (m) { const k = m.dataset.more; lim[k] = (lim[k] || (k === 'lista' ? 60 : 20)) + (k === 'lista' ? 60 : 20); render(); return; }
       if (e.target.closest('[data-oc="recarregar"]')) { carregado = false; carregar(true); return; }
