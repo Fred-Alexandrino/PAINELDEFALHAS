@@ -1781,6 +1781,9 @@ table.oc-z td.desc{min-width:260px;}
 .oc-osx-h .oc-link{margin-left:auto;}
 .oc-cid{display:block;font:600 11.5px/1 'Geist Mono',ui-monospace,monospace;letter-spacing:.04em;color:var(--teal);margin:0 0 5px;}
 .oc-card .oc-cid{margin-bottom:6px;}
+.oc-sortw{display:inline-flex;align-items:center;gap:8px;}
+.oc-sortw select{background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:5px 8px;font:13px 'Geist',sans-serif;}
+.oc-sortw select:focus{outline:none;border-color:var(--teal);}
 #sec-falhas{display:none!important;}
 body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
 #sbBadgeFalhas{display:none!important;}
@@ -2187,7 +2190,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
               <div class="oc-fg"><h4>Equipamento</h4><div class="oc-chips" id="ocFEquip"></div></div>
               <div class="oc-fg"><h4>Outros</h4><div class="oc-chips" id="ocFOutros"></div></div>
             </section>
-            <div class="oc-res"><span id="ocRes"></span><span id="ocOrd"></span></div>
+            <div class="oc-res"><span id="ocRes"></span><span class="oc-sortw"><span id="ocOrd"></span><label for="ocSort">Ordenar por</label><select id="ocSort" aria-label="Ordenar ocorrências"><option value="padrao">Mais paradas primeiro</option><option value="cod-asc">Código (crescente)</option><option value="cod-desc">Código (decrescente)</option></select></span></div>
             <div id="ocOut"></div>
           </div>
 
@@ -19562,7 +19565,12 @@ function _pontoCopiarComunicado(id, btn) {
   }
   const lista = skip => ITENS.filter(x => passa(x, skip));
   function contar(arr, key) { const m = new Map(); arr.forEach(x => m.set(x[key], (m.get(x[key]) || 0) + 1)); return m; }
+  let SORT = 'padrao';
+  try { const sv = localStorage.getItem('oc_sort'); if (sv === 'cod-asc' || sv === 'cod-desc') SORT = sv; } catch (e) {}
+  const numOc = x => parseInt(String(x.id).replace(/\D/g, ''), 10) || 0;
+  const porCodigo = (a, b) => SORT === 'cod-desc' ? numOc(b) - numOc(a) : numOc(a) - numOc(b);
   function ordenar(st, arr) {
+    if (SORT !== 'padrao') return arr.sort(porCodigo);
     return st === 'Finalizado' ? arr.sort((a, b) => (b.ref || '').localeCompare(a.ref || '')) : arr.sort((a, b) => (a.ref || '').localeCompare(b.ref || ''));
   }
   const chip = (label, n, on, attrs, cor) => `<button type="button" class="oc-chip${n ? '' : ' zero'}" aria-pressed="${on}" ${attrs}>${cor ? `<i class="oc-sw" style="--c:var(${cor})"></i>` : ''}${esc(label)} <span class="n">${n}</span></button>`;
@@ -19629,6 +19637,7 @@ function _pontoCopiarComunicado(id, btn) {
   }
   function tabela(arr) {
     const its = arr.slice().sort((a, b) => {
+      if (SORT !== 'padrao') return porCodigo(a, b);
       const oa = a.status === 'Finalizado' ? 1 : 0, ob = b.status === 'Finalizado' ? 1 : 0;
       if (oa !== ob) return oa - ob;
       return oa ? (b.ref || '').localeCompare(a.ref || '') : (a.ref || '').localeCompare(b.ref || '');
@@ -19644,7 +19653,7 @@ function _pontoCopiarComunicado(id, btn) {
     kpis(); filtros();
     const arr = lista(), ab = arr.filter(x => x.status !== 'Finalizado').length;
     $('#ocRes').textContent = arr.length === ITENS.length ? `${plural(arr.length, 'ocorrência', 'ocorrências')} (todas)` : `${plural(arr.length, 'ocorrência', 'ocorrências')} de ${ITENS.length}` + (ab ? ` · ${ab} em aberto` : '');
-    $('#ocOrd').textContent = view === 'quadro' ? 'Em aberto: mais paradas primeiro' : '';
+    $('#ocOrd').textContent = ''; const so = $('#ocSort'); if (so && so.value !== SORT) so.value = SORT;
     const sc = document.querySelector('#ocOut .oc-board'), sl = sc ? sc.scrollLeft : 0;
     $('#ocOut').innerHTML = arr.length ? (view === 'quadro' ? quadro(arr) : tabela(arr)) : '<p class="oc-nada">Nenhuma ocorrência com esses filtros. Use “Limpar filtros” para ver todas.</p>';
     const sc2 = document.querySelector('#ocOut .oc-board'); if (sc2) sc2.scrollLeft = sl;
@@ -19987,6 +19996,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocQ').oninput = e => { F.q = norm(e.target.value.trim()); lim = {}; render(); };
     $('#ocClear').onclick = () => { F.status.clear(); F.usinas.clear(); F.equips.clear(); F.outros.clear(); F.q = ''; $('#ocQ').value = ''; lim = {}; render(); };
     const setView = v => { view = v; $('#ocVQ').setAttribute('aria-pressed', v === 'quadro'); $('#ocVL').setAttribute('aria-pressed', v === 'lista'); render(); };
+    $('#ocSort').value = SORT; $('#ocSort').onchange = e => { SORT = e.target.value; try { localStorage.setItem('oc_sort', SORT); } catch (x) {} lim = {}; render(); };
     $('#ocVQ').onclick = () => setView('quadro'); $('#ocVL').onclick = () => setView('lista');
     $('#ocKpis').onclick = e => {
       const b = e.target.closest('[data-kf]'); if (!b) return; const [t, v] = b.dataset.kf.split(':');
