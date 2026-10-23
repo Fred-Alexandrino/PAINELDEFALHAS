@@ -20407,11 +20407,12 @@ function _pontoCopiarComunicado(id, btn) {
       const r = await fetch(API + '/os-sincronizar/' + encodeURIComponent(n), { method: 'POST' }); const d = await r.json();
       if (!osm || osm.id !== id) return;
       if (d.status === 'criada' || d.status === 'ja_existe') {
-        const rl = await fetch(API + '/atividades'); const dl = await rl.json();
-        if (dl.ok) osm.lista = (dl.atividades || []).map(a => ({ ...a, cliente: typeof normalizeCliente === 'function' ? normalizeCliente(a.cliente) : a.cliente, usina: typeof normalizeUsina === 'function' ? normalizeUsina(a.usina) : a.usina }));
+        let dl = null;
+        for (let t = 0; t < 3 && !(dl && dl.ok); t++) { try { const rl = await fetch(API + '/atividades'); dl = await rl.json(); } catch (e2) { dl = null; } if (!(dl && dl.ok)) await new Promise(r => setTimeout(r, 1500)); }
+        if (dl && dl.ok) osm.lista = (dl.atividades || []).map(a => ({ ...a, cliente: typeof normalizeCliente === 'function' ? normalizeCliente(a.cliente) : a.cliente, usina: typeof normalizeUsina === 'function' ? normalizeUsina(a.usina) : a.usina }));
         const achou = osm.lista.find(a => osNums(a.numeroOS).includes(n));
         if (achou) { osm.sel.add(n); if (!osMesmaUsina(achou.usina, osm.x.usina)) osm.todas = true; osm.info = 'OS ' + n + (d.status === 'criada' ? ' puxada do Fracttal' : ' encontrada') + ' (' + (achou.usina || 'usina não identificada') + ') e já marcada.'; osm.busca = ''; }
-        else osm.info = 'OS ' + n + ' existe, mas está fora do seu mapeamento/filtros atuais.';
+        else { osm.sel.add(n); osm.info = 'OS ' + n + ' existe no Fracttal e foi marcada pelo número' + (dl && dl.ok ? ' (ainda sem dados completos no painel).' : ' (não consegui recarregar a lista agora; os detalhes aparecem depois de salvar).'); }
       } else if (d.status === 'nao_encontrada_na_fracttal') osm.info = 'OS ' + n + ' não existe no Fracttal.';
       else if (d.status === 'fora_do_escopo') osm.info = 'OS ' + n + ' é de outro cliente/supervisor (fora do mapeamento).';
       else if (d.status === 'revisao_manual') osm.info = 'OS ' + n + ' não entrou: ' + (d.motivo || 'revisão manual necessária') + '.';
