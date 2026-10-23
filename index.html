@@ -13442,6 +13442,11 @@ async function carregarAtividades(tentativa = 1) {
     if (!result.ok) throw new Error(result.error || 'Erro ao carregar atividades');
     ATIVIDADES = (result.atividades || []).map(a => ({ ...a, cliente: normalizeCliente(a.cliente), usina: normalizeUsina(a.usina) }));
     ATIVIDADES = ATIVIDADES.filter(a => !_usinaForaDoMapa(a.usina));
+    // Supervisores: usa o MESMO nome de usina do mapeamento deles ("Gravatá 2", "Sol do Norte 1"), senão o
+    // normalizeUsina() vira "Gravatá II"/"Sol do Norte I" e o filtro de usina da sidebar não acha nada.
+    if (typeof _supEscopoAtivo !== 'undefined' && _supEscopoAtivo && typeof _supBuscar === 'function') {
+      ATIVIDADES = ATIVIDADES.map(a => { const e = _supBuscar(a.usina, a.cliente); return (e && e.usina && e.usina !== a.usina) ? { ...a, usina: e.usina } : a; });
+    }
     const clienteRestrito = _forcedCliente || URL_CLIENTE;
     if (clienteRestrito) {
       ATIVIDADES = ATIVIDADES.filter(a => (a.cliente || '').toUpperCase() === clienteRestrito.toUpperCase());
