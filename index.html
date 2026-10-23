@@ -1580,7 +1580,7 @@ body.sidebar-resizing #sidebarResizeHandle{pointer-events:auto;}
 /* Perfil supervisora: sem envio automático por WhatsApp (só copiar) */
 body.role-supervisor #comTabBtnClientes, body.role-supervisor #comTabBtnOs, body.role-supervisor #comunicadoFontePcmBtn, body.role-supervisor #gcFontePcmBtn, body.role-supervisor #chGcFontePcmBtn, body.role-supervisor [id^="dispararBtn_"],body.role-supervisor [id^="dispararZelBtn_"],
 body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="dispararMeuBtn_"],
-body.role-supervisor #comLivreDispararBtn,body.role-supervisor #gcEnviarBtn,
+body.role-supervisor #comLivreDispararBtn,body.role-supervisor #comLivreDiretoCard,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
 body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
 /* Supervisor de Campo (Vitor): Comunicados só aba Técnicos, sem "Seguir Programação PCM"; sem envio por WhatsApp */
@@ -2968,6 +2968,32 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
               Gerando comunicado…
             </div>
             <div id="comLivreError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
+          </div>
+
+          <!-- Comunicado direto: sem IA, o texto vai exatamente como escrito, com imagem opcional -->
+          <div id="comLivreDiretoCard" class="rel-card" style="max-width:640px;margin:20px auto 0;">
+            <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px;">Comunicado direto (sem IA)</div>
+            <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:12px;">O texto vai exatamente como você escrever. Se anexar imagem, ela segue junto (o texto vira a legenda da 1ª imagem).</div>
+            <textarea id="comLivreDiretoText" placeholder="Escreva o comunicado…" rows="6" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
+
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <button type="button" onclick="document.getElementById('comLivreDiretoImgInput').click()"
+                      style="background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text-dim);
+                             border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                🖼️ Anexar imagem
+              </button>
+              <span style="font-size:12px;color:var(--text-faint);">Opcional — até 5 imagens, 8MB cada</span>
+              <input type="file" id="comLivreDiretoImgInput" accept="image/*" multiple style="display:none;" onchange="_comLivreDiretoImagensSelecionadas(this.files)">
+            </div>
+            <div id="comLivreDiretoPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+
+            <div style="font-size:13px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
+            <div id="comLivreDiretoGrupos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+
+            <button id="comLivreDiretoBtn" onclick="_dispararComunicadoDireto()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Enviar comunicado
+            </button>
           </div>
 
           <div id="comLivreResult" style="display:none;" class="com-livre-2col">
@@ -12819,6 +12845,114 @@ async function _dispararComunicadoLivre() {
   }
 }
 
+/* ══ COMUNICADO DIRETO (sem IA) — texto literal + imagens opcionais ══ */
+let _comLivreDiretoImagens = []; // [{base64, mimeType, nome}]
+
+async function _comLivreDiretoCarregarGrupos() {
+  const listaEl = document.getElementById('comLivreDiretoGrupos');
+  if (!listaEl) return;
+  // preserva marcações já feitas (o rascunho não é apagado ao reabrir a aba)
+  const marcados = new Set(Array.from(listaEl.querySelectorAll('.com-livre-direto-chk:checked')).map(el => el.value));
+  if (!_comLivreGruposCache.length) {
+    listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);">Carregando grupos…</div>';
+    try {
+      const resp = await fetch('https://api.168.138.232.237.sslip.io/grupos-configurados');
+      const data = await resp.json();
+      if (data.ok) _comLivreGruposCache = data.itens || [];
+    } catch (e) { /* cai na mensagem abaixo */ }
+  }
+  listaEl.innerHTML = _comLivreGruposCache.map(g => `
+    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:4px 2px;">
+      <input type="checkbox" class="com-livre-direto-chk" value="${esc(g.id)}" ${marcados.has(g.id) ? 'checked' : ''} style="accent-color:var(--teal);width:15px;height:15px;">
+      ${esc(g.nome)}
+    </label>
+  `).join('') || '<div style="font-size:12px;color:var(--text-faint);">Nenhum grupo configurado.</div>';
+}
+
+function _comLivreDiretoImagensSelecionadas(files) {
+  const restante = 5 - _comLivreDiretoImagens.length;
+  if (restante <= 0) { showToast('Máximo de 5 imagens por comunicado.', false); return; }
+  Array.from(files).slice(0, restante).forEach(file => {
+    if (!file.type.startsWith('image/')) { showToast(`"${file.name}" não é uma imagem.`, false); return; }
+    if (file.size > 8 * 1024 * 1024) { showToast(`"${file.name}" é maior que 8MB.`, false); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = String(reader.result).split(',')[1] || '';
+      _comLivreDiretoImagens.push({ base64, mimeType: file.type, nome: file.name });
+      _comLivreDiretoRenderPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('comLivreDiretoImgInput').value = '';
+}
+
+function _comLivreDiretoRemoverImagem(idx) {
+  _comLivreDiretoImagens.splice(idx, 1);
+  _comLivreDiretoRenderPreview();
+}
+
+function _comLivreDiretoRenderPreview() {
+  const wrap = document.getElementById('comLivreDiretoPreview');
+  if (!wrap) return;
+  wrap.innerHTML = _comLivreDiretoImagens.map((img, i) => `
+    <div style="position:relative;width:64px;height:64px;flex:none;">
+      <img src="data:${img.mimeType};base64,${img.base64}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border-strong);">
+      <button type="button" onclick="_comLivreDiretoRemoverImagem(${i})" title="Remover"
+              style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+                     background:var(--red,#EF4444);color:#fff;border:none;font-size:12px;line-height:1;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">×</button>
+    </div>
+  `).join('');
+}
+
+function _comLivreDiretoLimpar() {
+  const t = document.getElementById('comLivreDiretoText');
+  if (t) t.value = '';
+  _comLivreDiretoImagens = [];
+  _comLivreDiretoRenderPreview();
+  document.querySelectorAll('.com-livre-direto-chk:checked').forEach(el => { el.checked = false; });
+}
+
+async function _dispararComunicadoDireto() {
+  const texto = (document.getElementById('comLivreDiretoText')?.value || '').trim();
+  const grupos = Array.from(document.querySelectorAll('.com-livre-direto-chk:checked')).map(el => el.value);
+  if (!texto) { showToast('Escreva o texto do comunicado.', false); return; }
+  if (grupos.length === 0) { showToast('Selecione ao menos um grupo.', false); return; }
+
+  const btn = document.getElementById('comLivreDiretoBtn');
+  btn.disabled = true;
+  const htmlOriginal = btn.innerHTML;
+  btn.innerHTML = _comLivreDiretoImagens.length ? 'Enviando (com imagem)…' : 'Enviando…';
+
+  try {
+    // Mesmo endpoint do comunicado livre: sem IA, o texto segue literal
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-livre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        texto, grupos,
+        imagens: _comLivreDiretoImagens.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao enviar');
+    const qtdEnviados = (data.enviados || []).length;
+    const qtdErros = (data.erros || []).length;
+    if (qtdErros === 0) {
+      showToast(`Comunicado enviado pra ${qtdEnviados} grupo(s)!`, true);
+      _comLivreDiretoLimpar();
+    } else {
+      showToast(`Enviado pra ${qtdEnviados}, mas ${qtdErros} falharam.`, false);
+    }
+  } catch (err) {
+    showToast('Erro ao enviar comunicado: ' + (err.message || ''), false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = htmlOriginal;
+  }
+}
+
 /* ══ GESTÃO CLIENTE — resumo polido de atividades pro cliente final ══ */
 let _gcGruposCache = [];
 let _gcFonte = 'atividades';   // 'atividades' | 'pcm'
@@ -14587,7 +14721,7 @@ function _comSetTab(tab) {
   });
   if (tab === 'tecnicos') _comTecnicosRefresh();
   else if (tab === 'clientes') _gcAbrirAba();
-  else if (tab === 'livre') _comLivreReset();
+  else if (tab === 'livre') { _comLivreReset(); _comLivreDiretoCarregarGrupos(); }
   else if (tab === 'sobreaviso') _sobreavisoRefresh();
   else if (tab === 'os') _osElabRefresh();
 }
