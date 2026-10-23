@@ -2238,7 +2238,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
 
       <!-- ── SEÇÃO: CHAMADOS ───────────────────────────────── -->
       <section class="content-section" id="sec-chamados">
-        <div class="tabs-wrapper" style="width:100%;margin-bottom:16px;">
+        <div class="tabs-wrapper tabs-wrapper-ch" style="width:100%;margin-bottom:16px;">
           <button type="button" class="tab-btn active" id="chTabBtnFab" onclick="_chSetTab('fabricante')">Chamados Fabricante</button>
           <button type="button" class="tab-btn" id="chTabBtnSe" onclick="_chSetTab('solaredge')">CHAMADOS SOLAREDGE <span id="chTabSeCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
           
@@ -2292,14 +2292,14 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
                      style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Geist',sans-serif;min-width:220px;">
               <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
               <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
-              <button class="tb-btn" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
-              <button class="tb-btn" style="color:var(--teal);border-color:rgba(34,211,238,.4);" onclick="_seSyncAgora()" title="Requer a extensão Grid Sync SolarEdge instalada no Chrome">Sincronizar agora</button>
-              <button class="tb-btn" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
+              <button class="tb-btn se-so-grid" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
+              <button class="tb-btn se-so-grid" style="color:var(--teal);border-color:rgba(34,211,238,.4);" onclick="_seSyncAgora()" title="Requer a extensão Grid Sync SolarEdge instalada no Chrome">Sincronizar agora</button>
+              <button class="tb-btn se-so-grid" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
               <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
               <input type="file" id="seArquivo" accept=".xlsx,.xls" style="display:none;" onchange="_seImportar(this)">
             </div>
           </div>
-          <div id="seImportMsg" style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;"></div>
+          <div id="seImportMsg" class="se-so-grid" style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;"></div>
           <div style="display:flex;gap:6px;margin-bottom:12px;">
             <button type="button" class="se-btn pri" id="seSubBtnLista" onclick="_seSubTab('lista')">Chamados</button>
             <button type="button" class="se-btn" id="seSubBtnColeta" onclick="_seSubTab('coleta')">Aguardando coleta SolarEdge <span id="chTabColCount" style="display:none;background:var(--amber);color:#000;border-radius:10px;padding:0 6px;font-size:11px;font-weight:700;margin-left:4px;">0</span></button>
@@ -5100,7 +5100,7 @@ function switchNav(nav) {
   const title = document.getElementById('topbarTitle');
   if (title) title.textContent = NAV_TITLES[nav] || nav;
   closeMobileSidebar();
-  if (nav === 'chamados') { carregarChamadosFabricante(); _seInjetarCss(); _seCarregar(true); }
+  if (nav === 'chamados') { if (_seCli()) { document.body.classList.add('se-cli-mode'); _seInjetarCss(); _chSetTab('solaredge'); } else { carregarChamadosFabricante(); _seInjetarCss(); _seCarregar(true); } }
   if (nav === 'processos') openZeladoriasInline();
   if (nav === 'localizacao') carregarLocalizacoes();
   if (nav === 'historico-log') {/* carregado via botão */}
@@ -6425,7 +6425,7 @@ function initDashboard(session) {
     if (navRondas) navRondas.style.display = 'none';
     if (navProcessos) navProcessos.style.display = 'none';
     if (navHistLog) navHistLog.style.display = 'none';
-    if (navChamados) navChamados.style.display = 'none';
+    if (navChamados) navChamados.style.display = (session.cliente === 'Renogrid') ? '' : 'none';  // só chamados SolarEdge, somente leitura
     if (navRelatorios) navRelatorios.style.display = 'none';
     if (navMttr) navMttr.style.display = 'none';
     if (navEficiencia) navEficiencia.style.display = 'none';
@@ -10705,6 +10705,7 @@ function _seInjetarCss() {
   .se-msg small{display:block;font-size:11.5px;color:var(--text-faint);margin-bottom:3px;font-weight:600;}
   .se-in{width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:'Geist',sans-serif;box-sizing:border-box;}
   .se-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;}
+  body.se-cli-mode .se-so-grid,body.se-cli-mode .tabs-wrapper-ch{display:none !important;}
   .se-btn.pri{background:var(--teal);border-color:var(--teal);color:var(--ink,#042F36);}
   `;
   document.head.appendChild(st);
@@ -10772,10 +10773,21 @@ function _seSolicBox(c, completo) {
   return `<div class="se-acao" style="border-left:3px solid ${s.pendente ? 'var(--amber,#f59e0b)' : 'var(--border)'};"><b>O que a SolarEdge solicitou</b> — ${esc(s.tipo)} · ${esc(_seDataBR(s.m.data))} · ${esc(s.m.autor || 'SolarEdge')}${s.pendente ? ' · <b>sem resposta da Grid</b>' : ' · já respondido pela Grid'}
 ${esc(txt)}</div>`;
 }
-function _seConcluido(c) { return /^Conclu/i.test(c.statusInterno || ''); }
+function _seCli() { return !!(_currentSession && _currentSession.role === 'client'); }
+function _seConcluido(c) { return c.concluido === true || /^Conclu/i.test(c.statusInterno || ''); }
 /* Aguardando coleta: RMA já enviado, falta a SolarEdge coletar/receber o equipamento defeituoso */
-function _seEhColeta(c) { return /waiting for return/i.test(c.status || '') || (c.statusInterno || '') === 'Aguardando coleta SolarEdge'; }
+function _seEhColeta(c) { return /waiting for return/i.test(c.status || '') || (c.statusInterno || '') === 'Aguardando coleta SolarEdge' || c.coletaPendente === true; }
 function _seColetaPend(c) { return (c.situacaoSite || 'Aberto') === 'Aberto' && !_seConcluido(c) && _seEhColeta(c); }
+/* Case que a SolarEdge encerrou: fica 15 dias no painel com o desfecho */
+function _seEncerradoDias(c) { return _seDias((c.fechadoEm || c.atualizadoEm || '').slice(0, 10)); }
+function _seRecente(c) { if ((c.situacaoSite || 'Aberto') === 'Aberto' || _seConcluido(c)) return false; const d = _seEncerradoDias(c); return d == null || d <= 15; }
+function _seDesfecho(c) {
+  const l = (c.comentarios || []).filter(m => (m.texto || '').trim()).slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  const m = l.length ? l[l.length - 1] : null;
+  const t = m ? m.texto : (c.descricao || '');
+  if (!t) return '';
+  return (m ? `${m.quem === 'Grid' ? 'Grid Co.' : (m.autor || 'SolarEdge')} · ${_seDataBR(m.data)}\n` : '') + (t.length > 500 ? t.slice(0, 500).trim() + '…' : t);
+}
 function _seAberto(c) { return (c.situacaoSite || 'Aberto') === 'Aberto' && !_seConcluido(c); }
 function _seStatusPT(s) {
   const x = (s || '').toLowerCase();
@@ -10786,8 +10798,9 @@ function _seStatusPT(s) {
   return s || '—';
 }
 function _seBadgeQuem(c) {
+  if (_seCli()) return _seConcluido(c) ? '<span class="se-badge ok">Concluído</span>' : (!_seAberto(c) ? '<span class="se-badge ok">Encerrado pela SolarEdge</span>' : '<span class="se-badge se">Em andamento</span>');
   if (_seConcluido(c)) return '<span class="se-badge ok">Concluído (confirmado pela Grid)</span>';
-  if (!_seAberto(c)) return '<span class="se-badge">Não consta mais no site</span>';
+  if (!_seAberto(c)) { const d = _seEncerradoDias(c); return _seRecente(c) ? `<span class="se-badge ok">Encerrado pela SolarEdge${d != null ? ' · há ' + d + ' dia' + (d === 1 ? '' : 's') : ''}</span>` : '<span class="se-badge">Não consta mais no site</span>'; }
   return c.quemAge === 'Grid' ? '<span class="se-badge grid">Ação da Grid</span>' : '<span class="se-badge se">Com a SolarEdge</span>';
 }
 
@@ -10797,7 +10810,7 @@ async function _seCarregar(silencioso) {
   const lista = document.getElementById('seLista');
   if (lista && !silencioso && !_SE.carregado) lista.innerHTML = '<div class="ch-empty">Carregando chamados SolarEdge…</div>';
   try {
-    const r = await fetch(_SE_API + '/solaredge-chamados');
+    const r = await fetch(_SE_API + (_seCli() ? '/solaredge-chamados/cliente?cliente=' + encodeURIComponent(_forcedCliente || (_currentSession && _currentSession.cliente) || '') : '/solaredge-chamados'));
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || 'erro');
     _SE.itens = j.itens || []; _SE.opcoes = j.statusInternoOpcoes || []; _SE.ultima = j.ultimaImportacao || ''; _SE.carregado = true;
@@ -10823,6 +10836,7 @@ function _seFiltrados() {
   return _SE.itens.filter(c => {
     const ab = _seAberto(c);
     if (_SE.filtro === 'fechados') { if (ab) return false; }
+    else if (_SE.filtro === 'recentes') { if (!_seRecente(c)) return false; }
     else if (!ab || _seColetaPend(c)) return false;
     if (_SE.filtro === 'grid' && c.quemAge !== 'Grid') return false;
     if (_SE.filtro === 'se' && c.quemAge !== 'SolarEdge') return false;
@@ -10842,44 +10856,50 @@ function _seRender() {
   const ab = _SE.itens.filter(c => _seAberto(c) && !_seColetaPend(c));
   const cont = {
     todos: ab.length, grid: ab.filter(c => c.quemAge === 'Grid').length, se: ab.filter(c => c.quemAge === 'SolarEdge').length,
-    rma: ab.filter(c => /rma/i.test(c.status)).length, fechados: _SE.itens.filter(c => !_seAberto(c)).length,
+    rma: ab.filter(c => /rma/i.test(c.status)).length, recentes: _SE.itens.filter(_seRecente).length, fechados: _SE.itens.filter(c => !_seAberto(c)).length,
   };
   const kp = (k, n, rot, cls) => `<button type="button" class="se-kpi ${cls || ''} ${_SE.filtro === k ? 'active' : ''}" onclick="_seSetFiltro('${k}')"><b>${n}</b><span>${rot}</span></button>`;
   document.getElementById('seKpis').innerHTML =
-    kp('todos', cont.todos, 'Abertos no site') + kp('grid', cont.grid, 'Ação da Grid', 'grid') + kp('se', cont.se, 'Com a SolarEdge') +
-    kp('rma', cont.rma, 'Com RMA') + (cont.fechados ? kp('fechados', cont.fechados, 'Concluídos / fora do site', 'red') : '');
+    kp('todos', cont.todos, 'Abertos no site') + (_seCli() ? '' : kp('grid', cont.grid, 'Ação da Grid', 'grid') + kp('se', cont.se, 'Com a SolarEdge')) +
+    kp('rma', cont.rma, 'Com RMA') + (cont.recentes ? kp('recentes', cont.recentes, 'Encerrados pela SolarEdge (15 dias)', 'red') : '') + (cont.fechados ? kp('fechados', cont.fechados, 'Concluídos / fora do site', 'red') : '');
   const usinas = [...new Set(_SE.itens.map(c => c.usina || '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const sel = document.getElementById('seFiltroUsina');
   if (sel) sel.innerHTML = '<option value="">Todas as usinas</option>' + usinas.map(u => `<option value="${esc(u)}" ${u === _SE.usina ? 'selected' : ''}>${esc(u === '—' ? 'Sem usina identificada' : u)}</option>`).join('');
   document.getElementById('seSync').textContent = _SE.ultima ? 'Atualizado em ' + _seDataBR(_SE.ultima.replace('T', ' ')) : 'Nunca importado';
   const itens = _seFiltrados();
-  if (!itens.length) { root.innerHTML = '<div class="ch-empty">Nenhum chamado neste filtro.</div>'; return; }
+  let extra = '';
+  if (_SE.filtro === 'todos') {
+    const q2 = (_SE.busca || '').toLowerCase().trim();
+    const rec = _SE.itens.filter(c => _seRecente(c) && (!_SE.usina || (c.usina || '—') === _SE.usina) && (!q2 || [c.case, c.assunto, c.usina, c.equipamento, c.serial, c.rma].join(' ').toLowerCase().includes(q2)));
+    if (rec.length) extra = `<div class="se-grp"><div class="se-grp-h">Encerrados pela SolarEdge — últimos 15 dias <small>${rec.length} chamado(s) · desfecho no card</small></div>${rec.sort((a, b) => String(b.fechadoEm || b.atualizadoEm).localeCompare(String(a.fechadoEm || a.atualizadoEm))).map(_seCardHtml).join('')}</div>`;
+  }
+  if (!itens.length && !extra) { root.innerHTML = '<div class="ch-empty">Nenhum chamado neste filtro.</div>'; return; }
   const grupos = {};
   itens.forEach(c => { const u = c.usina || '—'; (grupos[u] = grupos[u] || []).push(c); });
   const ord = Object.keys(grupos).sort((a, b) => {
     const ga = grupos[a].some(c => c.quemAge === 'Grid' && _seAberto(c)), gb = grupos[b].some(c => c.quemAge === 'Grid' && _seAberto(c));
     return (gb - ga) || a.localeCompare(b, 'pt-BR');
   });
-  root.innerHTML = ord.map(u => {
+  root.innerHTML = '' + ord.map(u => {
     const arr = grupos[u].sort((a, b) => ((b.quemAge === 'Grid') - (a.quemAge === 'Grid')) || String(a.criado).localeCompare(String(b.criado)));
     return `<div class="se-grp"><div class="se-grp-h">${esc(u === '—' ? 'Sem usina identificada' : u)} <small>${arr.length} chamado(s)${arr[0].cliente ? ' · ' + esc(arr[0].cliente) : ''}</small></div>${arr.map(_seCardHtml).join('')}</div>`;
-  }).join('');
+  }).join('') + extra;
 }
 
 function _seCardHtml(c) {
   const d = _seDias(c.criado);
-  const acao = c.quemAge === 'Grid' && _seAberto(c)
+  const acao = !_seCli() && c.quemAge === 'Grid' && _seAberto(c)
     ? _seAcaoPadrao(c) : '';
-  return `<div class="se-card ${c.quemAge === 'Grid' && _seAberto(c) ? 'grid' : ''} ${_seAberto(c) ? '' : 'fechado'}" onclick="_seAbrirCase('${esc(c.case)}')">
+  return `<div class="se-card ${!_seCli() && c.quemAge === 'Grid' && _seAberto(c) ? 'grid' : ''} ${_seAberto(c) ? '' : 'fechado'}" onclick="_seAbrirCase('${esc(c.case)}')">
     <div class="se-top"><span class="se-num">#${esc(c.case)}</span>${c.equipamento ? `<span class="se-eq">${esc(c.equipamento)}</span>` : ''}
       ${_seBadgeQuem(c)}<span class="se-badge">${esc(_seStatusPT(c.status))}</span>
-      ${c.statusInterno ? `<span class="se-badge ok">${esc(c.statusInterno)}</span>` : ''}</div>
+      ${!_seCli() && c.statusInterno ? `<span class="se-badge ok">${esc(c.statusInterno)}</span>` : ''}</div>
     <div class="se-ass">${esc(c.assunto)}</div>
-    ${_seSolicBox(c, false)}${acao && !_seSolic(c) ? `<div class="se-acao"><b>O que fazer:</b> ${esc(acao)}</div>` : ''}
+    ${_seRecente(c) ? `<div class="se-acao" style="border-left:3px solid #34d399;white-space:pre-wrap;"><b>Desfecho (último registro do caso)</b> — ${esc(_seDesfecho(c))}</div>` : (_seCli() ? '' : _seSolicBox(c, false))}${acao && !_seSolic(c) ? `<div class="se-acao"><b>O que fazer:</b> ${esc(acao)}</div>` : ''}
     <div class="se-meta"><span>Aberto em ${esc(_seDataBR(c.criado))}${d != null ? ` (${d} dia${d === 1 ? '' : 's'})` : ''}</span>
       ${(c.osVinculadas || []).length ? `<span>OS ${esc(c.osVinculadas.map(v => v.os).join(', '))}</span>` : ''}${c.rma ? `<span>RMA ${esc(c.rma)}</span>` : ''}${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
       ${c.comentarios && c.comentarios.length ? `<span>${c.comentarios.length} comentário(s)</span>` : ''}</div>
-    ${_seAberto(c) ? `<div style="margin-top:8px;" onclick="event.stopPropagation()"><button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}')">Comunicado ao técnico</button></div>` : ''}</div>`;
+    ${_seAberto(c) && !_seCli() ? `<div style="margin-top:8px;" onclick="event.stopPropagation()"><button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}')">Comunicado ao técnico</button></div>` : ''}</div>`;
 }
 
 /* ── Aba AGUARDANDO COLETA SOLAREDGE ── */
@@ -10898,14 +10918,14 @@ function _seColRender() {
     return `<div class="se-card ${feito ? 'fechado' : 'grid'}" onclick="_seAbrirCase('${esc(c.case)}')">
       <div class="se-top"><span class="se-num">#${esc(c.case)}</span>${c.equipamento ? `<span class="se-eq">${esc(c.equipamento)}</span>` : ''}
         <span class="se-badge">${esc(c.usina || 'Sem usina')}</span>${c.rma ? `<span class="se-badge se">RMA ${esc(c.rma)}</span>` : ''}
-        ${feito ? '<span class="se-badge ok">Coleta confirmada pela Grid</span>' : '<span class="se-badge grid">Aguardando coleta</span>'}</div>
+        ${feito ? '<span class="se-badge ok">Coleta confirmada</span>' : '<span class="se-badge grid">Aguardando coleta</span>'}</div>
       <div class="se-ass">${esc(c.assunto)}</div>
       <div class="se-meta">${c.envioEta ? `<span>ETA de envio: ${esc(_seDataBR(String(c.envioEta).split(' | ')[0]))}${de != null ? ` (há ${de} dia${de === 1 ? '' : 's'})` : ''}</span>` : '<span>ETA de envio: —</span>'}
         <span>Rastreio: ${c.rastreio ? esc(c.rastreio) : '—'}</span>${c.serial ? `<span>S/N ${esc(c.serial)}</span>` : ''}
         ${c.ultimoComentarioEm ? `<span>Último comentário: ${esc(_seDataBR(c.ultimoComentarioEm))}</span>` : ''}
         ${(c.osVinculadas || []).length ? `<span>OS ${esc(c.osVinculadas.map(v => v.os).join(', '))}</span>` : ''}</div>
-      ${c.notaGrid ? `<div class="se-acao"><b>Nota:</b> ${esc(c.notaGrid)}</div>` : ''}
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+      ${c.notaGrid && !_seCli() ? `<div class="se-acao"><b>Nota:</b> ${esc(c.notaGrid)}</div>` : ''}
+      <div style="margin-top:8px;display:${_seCli() ? 'none' : 'flex'};gap:8px;flex-wrap:wrap;" onclick="event.stopPropagation()">
         ${feito ? `<button class="se-btn" onclick="_seConcluirRapido('${esc(c.case)}', false)">Reabrir</button>`
                 : `<button class="se-btn" style="border-color:#34d399;color:#34d399;" onclick="_seConcluirRapido('${esc(c.case)}', true)">Coleta confirmada ✓</button>`}
         <button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}','coleta')">Comunicado ao técnico</button>
@@ -11110,17 +11130,17 @@ function _seAbrirCase(num) {
       <button class="se-btn" onclick="document.getElementById('seOverlay').remove()">Fechar</button></div>
     <div class="se-top" style="margin-top:10px;">${_seBadgeQuem(c)}<span class="se-badge">${esc(c.status)} — ${esc(_seStatusPT(c.status))}</span></div>
     <div class="se-ass" style="margin-top:8px;font-size:15px;">${esc(c.assunto)}</div>
-    ${_seSolicBox(c, true)}${c.quemAge === 'Grid' && _seAberto(c) ? `<div class="se-acao" style="font-size:13.5px;"><b>Ação da Grid:</b> ${esc(_seAcaoPadrao(c))}</div>` : ''}
+    ${_seRecente(c) ? `<div class="se-acao" style="border-left:3px solid #34d399;white-space:pre-wrap;font-size:13.5px;"><b>Encerrado pela SolarEdge — desfecho (último registro)</b>\n${esc(_seDesfecho(c))}</div>` : (_seCli() ? '' : _seSolicBox(c, true))}${!_seCli() && c.quemAge === 'Grid' && _seAberto(c) ? `<div class="se-acao" style="font-size:13.5px;"><b>Ação da Grid:</b> ${esc(_seAcaoPadrao(c))}</div>` : ''}
     <div class="se-sec"><h4>Dados do case</h4><div class="se-grade">
       ${campo('Aberto em', _seDataBR(c.criado) + (d != null ? ` (${d} dias)` : ''))}${campo('Tipo', c.tipo)}${campo('Categoria', c.categoria)}${campo('Subcategoria', c.subCategoria)}
       ${campo('S/N do inversor', c.serial)}${campo('Código de erro', c.codigoErro)}${campo('Severidade', c.severidade)}${campo('Site (SolarEdge)', c.site)}${campo('Site ID', c.siteId)}
-      ${campo('RMA', c.rma)}${campo('Previsão de envio (ETA)', c.envioEta)}${campo('Rastreio', c.rastreio)}${campo('Situação no site', c.situacaoSite)}${campo('Último comentário', _seDataBR(c.ultimoComentarioEm))}${campo('Atualizado no painel', _seDataBR((c.atualizadoEm || '').replace('T', ' ')))}
+      ${campo('RMA', c.rma)}${campo('Previsão de envio (ETA)', c.envioEta)}${campo('Rastreio', c.rastreio)}${campo('Situação no site', c.situacaoSite)}${campo('Último comentário', _seDataBR(c.ultimoComentarioEm))}${_seCli() ? '' : campo('Atualizado no painel', _seDataBR((c.atualizadoEm || '').replace('T', ' ')))}
     </div></div>
     <div class="se-sec"><h4>Descrição do case</h4><div class="se-desc">${c.descricao ? esc(c.descricao) : `<span style="color:var(--text-faint);">O campo “Description” deste case está em branco no site da SolarEdge. O conteúdo do chamado está nos comentários abaixo${coms.length ? ' (o primeiro é de ' + esc(coms[0].autor || 'SolarEdge') + ', ' + esc(_seDataBR(coms[0].data)) + ')' : ''}.</span>`}</div></div>
     <div class="se-sec"><h4>Histórico de comentários</h4>${timeline}</div>
     <div class="se-sec"><h4>Anexos / documentos</h4>${docs}</div>
-    <div class="se-sec"><h4>OS vinculadas a este chamado</h4><div id="seOsVincBox">${_seOsVincHtml(c)}</div></div>
-    <div class="se-sec"><h4>Testes de campo (OS da Grid)</h4><div id="seTestesBox">${_seTestesHtml(c)}</div></div>
+    <div class="se-sec"><h4>OS vinculadas a este chamado</h4><div id="seOsVincBox">${_seCli() ? _seOsVincHtmlCli(c) : _seOsVincHtml(c)}</div></div>
+    ${_seCli() ? '' : `<div class="se-sec"><h4>Testes de campo (OS da Grid)</h4><div id="seTestesBox">${_seTestesHtml(c)}</div></div>
     <div class="se-sec"><h4>Controle da Grid</h4>
       <div style="display:grid;grid-template-columns:1fr 160px;gap:8px;margin-bottom:8px;">
         <select id="seIntStatus" class="se-in">${opcoes}</select>
@@ -11132,7 +11152,7 @@ function _seAbrirCase(num) {
         <button class="se-btn" style="border-color:var(--teal);color:var(--teal);" onclick="_seSolicitarOS('${esc(c.case)}')">Solicitar OS</button>
         <button class="se-btn" style="border-color:var(--amber);color:var(--amber);" onclick="_seComunicado('${esc(c.case)}')">Comunicado ao técnico</button>
         <a class="se-btn" style="text-decoration:none;color:var(--text);" href="${_SE_SITE}" target="_blank" rel="noopener">Abrir no site da SolarEdge</a>
-        <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div></div>`;
+        <span id="seIntMsg" style="font-size:12px;color:var(--text-faint);"></span></div></div>`}</div>`;
   document.body.appendChild(ov);
   _seOsVincStatus(c.case);
 }
@@ -11259,6 +11279,10 @@ function _seCopiarResposta(num, id) {
 
 
 /* ── OS vinculadas ao case (rastreabilidade) ── */
+function _seOsVincHtmlCli(c) {
+  return (c.osVinculadas || []).map(v => `<div class="se-msg grid" style="margin-bottom:6px;"><b>OS ${esc(v.os)}</b>${v.finalidade ? ' · ' + esc(v.finalidade) : ''}${v.vinculadoEm ? ' · vinculada em ' + esc(_seDataBR(v.vinculadoEm.replace('T', ' '))) : ''}
+    <div id="seOsSt_${esc(v.os)}" style="font-size:12px;color:var(--text-faint);margin-top:2px;">Situação na Fracttal: consultando…</div></div>`).join('') || '<div style="font-size:13px;color:var(--text-faint);">Nenhuma OS vinculada a este chamado.</div>';
+}
 function _seOsVincHtml(c) {
   const l = (c.osVinculadas || []).map(v => `<div class="se-msg grid" style="margin-bottom:6px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;">
     <div><b>OS ${esc(v.os)}</b>${v.finalidade ? ' · ' + esc(v.finalidade) : ''}${v.vinculadoEm ? ' · vinculada em ' + esc(_seDataBR(v.vinculadoEm.replace('T', ' '))) : ''}
