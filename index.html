@@ -6555,6 +6555,8 @@ const SNAPSHOT = [
 // supervisores): não aparecem mais em nenhum painel (Falhas inclusive).
 const _USINAS_FORA_MAPA = new Set(['abc morada nova','sitio bonfim','guajiru','sol do norte i','sol do norte ii','boa esperanca do sul i','boa esperanca do sul ii','ibate i','ibate ii','matao i','matao ii - topazio']);
 function _usinaForaDoMapa(u) {
+  // Supervisores (Daniel, Camila...) RECEBERAM essas usinas na transição: o filtro vale só pro painel do Fred.
+  if (typeof _supEscopoAtivo !== 'undefined' && _supEscopoAtivo) return false;
   const k = String(u || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   return _USINAS_FORA_MAPA.has(k);
 }
