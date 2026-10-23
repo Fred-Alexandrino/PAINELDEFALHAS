@@ -1622,6 +1622,9 @@ body.role-campo #sbQuickActions, body.role-campo #ativAcoesWrap, body.role-campo
 .oc-frow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 .oc-search{flex:1 1 240px;min-width:0;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 12px;font:14px 'Geist',sans-serif;}
 .oc-search:focus,.oc-in:focus{outline:none;border-color:var(--teal);}
+.oc-drawer input[type=date],.oc-form input[type=date],.oc-plano input[type=date]{color-scheme:dark;min-height:42px;cursor:pointer;}
+[data-theme="light"] .oc-drawer input[type=date],[data-theme="light"] .oc-form input[type=date],[data-theme="light"] .oc-plano input[type=date]{color-scheme:light;}
+.oc-drawer input[type=date]::-webkit-calendar-picker-indicator{opacity:.9;cursor:pointer;padding:6px;}
 .oc-fg h4{margin:0 0 7px;font-size:12px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;display:flex;gap:8px;align-items:baseline;}
 .oc-fg h4 small{text-transform:none;letter-spacing:0;font-weight:400;}
 .oc-chips{display:flex;flex-wrap:wrap;gap:6px;}
@@ -20128,6 +20131,11 @@ function _pontoCopiarComunicado(id, btn) {
     dr = document.createElement('aside'); dr.className = 'oc-drawer'; dr.id = 'ocDrawer'; dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-modal', 'true'); dr.setAttribute('aria-label', 'Detalhes da ocorrência'); dr.tabIndex = -1;
     document.body.appendChild(scrim); document.body.appendChild(dr);
     scrim.onclick = fechar;
+    // datas: toque no campo abre o calendário nativo (no celular o campo segmentado era difícil de editar)
+    document.addEventListener('click', e => {
+      const i = e.target; if (!i || i.tagName !== 'INPUT' || i.type !== 'date' || !i.closest('#ocDrawer,#sec-ocorrencias,.oc-form,.oc-plano')) return;
+      try { if (i.showPicker) i.showPicker(); } catch (x) {}
+    }, true);
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && dr.classList.contains('on')) fechar();
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('#ocOut tr[data-id]')) { e.preventDefault(); abrir(e.target.dataset.id); }
