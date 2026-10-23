@@ -20298,7 +20298,9 @@ function _pontoCopiarComunicado(id, btn) {
   const OS_SITK = Object.fromEntries(OS_SIT.map(z => [z.k, z]));
   const osNums = v => String(v || '').split(/[,;/\s]+/).map(t => t.trim()).filter(Boolean);
   const osUsinaChave = u => norm(typeof normalizeUsina === 'function' ? normalizeUsina(String(u || '')) : String(u || '')).replace(/\s+/g, ' ').trim();
-  function osMesmaUsina(a, b) { const p = osUsinaChave(a), q = osUsinaChave(b); return !!p && !!q && (p === q || p.startsWith(q + ' ') || q.startsWith(p + ' ')); }
+  // mesma usina OU mesmo complexo (Guatambu I/II/III/IV, Coração I/II… só mudam o numeral)
+  const osBaseUsina = k => k.replace(/(\s+(e|,)?\s*(i{1,3}|iv|v|vi{0,3}|ix|x|\d+))+$/i, '').replace(/\s+(i{1,3}|iv|v|\d+)(\s*,\s*|\s+e\s+)(i{1,3}|iv|v|\d+).*$/i, '').trim();
+  function osMesmaUsina(a, b) { const p = osUsinaChave(a), q = osUsinaChave(b); if (!p || !q) return false; if (p === q || p.startsWith(q + ' ') || q.startsWith(p + ' ')) return true; const bp = osBaseUsina(p), bq = osBaseUsina(q); return !!bp && bp.length >= 4 && bp === bq; }
   function osSit(a) {
     const so = norm(a.statusOS), sg = norm(a.statusGeralOS), st = norm(a.status);
     if (so.includes('cancel') || st === 'cancelado') return 'canc';
@@ -20336,7 +20338,7 @@ function _pontoCopiarComunicado(id, btn) {
     const q = norm(osm.q.trim());
     return osLinhas().filter(l => {
       if (osm.sel.has(l.n) && !l.a) return true;
-      if (!osm.todas && !l.usinaOk) return false;
+      if (!osm.todas && !l.usinaOk && !q) return false; // digitou algo na busca: procura em todas as usinas
       if (!osm.sit.has(l.sit)) return false;
       if (!q) return true;
       return norm([l.n, l.a.descricao, l.a.responsavel, l.a.equipamento, l.a.etiquetasOS, l.a.usina].join(' ')).includes(q);
