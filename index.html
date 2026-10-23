@@ -4368,9 +4368,14 @@ const _SUP_ESCOPOS = {
 // Vitor Valadares (Supervisor de Campo): visão TOTAL (mesmos dados do Fred), só leitura/cópia:
 // Programação PCM, Atividades e Comunicados (aba Técnicos, sem "Seguir Programação PCM").
 _SUP_ESCOPOS.vitor = { cargo: 'Supervisor de Campo', campo: true, somenteLeitura: true,
-  navs: ['atividades', 'programacao-pcm', 'comunicados'],
+  navs: ['atividades', 'programacao-pcm', 'comunicados', 'ocorrencias'],
   clustersPcm: ["MT Leste 01", "MT Leste 02", "MT Norte 01", "MT Sul 01", "MT Sul 03", "PA Norte 03", "GO Leste 02", "MS Leste 01", "PA Norte 01", "PA Norte 02", "PA Leste 01"],
   usinas: [{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina I","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 01","cliente": "Renogrid","usina": "Nova Xavantina II","cidade": "MT","responsavel": "Gabriel Oliveira","funcao": "Mantenedor","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana I","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Canarana II","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Leste 02","cliente": "Thopen","usina": "Ribeirão Cascalheira","cidade": "MT","responsavel": "Marcelo Lino","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder I","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Norte 01","cliente": "Renogrid","usina": "Colíder II","cidade": "MT","responsavel": "Deivity Saugo","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MT Sul 01","cliente": "2C Energia","usina": "Araputanga","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 01","cliente": "Thopen","usina": "Poconé","cidade": "MT","responsavel": "Adriano Moraes","funcao": "Técnico","membros": ["Aniel Rocha (Mantenedor)"],"aliases": []},{"cluster": "MT Sul 03","cliente": "Renogrid","usina": "Nobres","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MT Sul 03","cliente": "Thopen","usina": "Diamantino","cidade": "MT","responsavel": "Valmir Júnior","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "PA Norte 03","cliente": "2C Energia","usina": "Ipixuna do Pará I","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia I","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Ceilândia II","cidade": "DF","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "GO Leste 02","cliente": "Thopen","usina": "Sítio dos Nogueiras","cidade": "GO","responsavel": "Janderson Miranda","funcao": "Técnico","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado I","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "MS Leste 01","cliente": "Thopen","usina": "Aparecida do Taboado II","cidade": "MS","responsavel": "Paulo Ribeiro","funcao": "Eletricista","membros": [],"aliases": []},{"cluster": "PA Norte 01","cliente": "Athon","usina": "Santa Maria do Pará 100","cidade": "PA","responsavel": "Gilson Souza","funcao": "Técnico","membros": ["Manuel Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 01","cliente": "Athon","usina": "Capitão Poço 100","cidade": "PA","responsavel": "Gilson Souza","funcao": "Técnico","membros": ["Manuel Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 02","cliente": "Athon","usina": "Mãe do Rio 100","cidade": "PA","responsavel": "Frank Melo","funcao": "Técnico","membros": ["Azinaldo Santos (Mantenedor)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Jacundá 100","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Marabá 100","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Leste 01","cliente": "Athon","usina": "Marabá 200","cidade": "PA","responsavel": "James Chaves","funcao": "Técnico","membros": ["Joilson Silva (Eletricista)"],"aliases": []},{"cluster": "PA Norte 03","cliente": "Thopen","usina": "Ipixuna I","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": ["Ipixuna 1"]},{"cluster": "PA Norte 03","cliente": "Thopen","usina": "Ipixuna II","cidade": "PA","responsavel": "Wesllen","funcao": "Técnico","membros": [],"aliases": ["Ipixuna 2"]}] };
+// Samuel Lucena (Supervisor de Campo, 23/10/2026): mesmo perfil do Vitor (só leitura, sem WhatsApp), usinas Thopen de PR Norte 01 e SC Oeste 01.
+_SUP_ESCOPOS.samuel = { cargo: 'Supervisor de Campo', campo: true, somenteLeitura: true,
+  navs: ['atividades', 'programacao-pcm', 'comunicados', 'ocorrencias'],
+  clustersPcm: ["PR Norte 01", "SC Oeste 01"],
+  usinas: [{"cluster": "PR Norte 01", "cliente": "Thopen", "usina": "Colorado I", "cidade": "Colorado/PR", "responsavel": "Ronaldo Silva", "funcao": "Técnico", "membros": ["Matheus Gois"], "aliases": []}, {"cluster": "PR Norte 01", "cliente": "Thopen", "usina": "Colorado II", "cidade": "Colorado/PR", "responsavel": "Ronaldo Silva", "funcao": "Técnico", "membros": ["Matheus Gois"], "aliases": []}, {"cluster": "PR Norte 01", "cliente": "Thopen", "usina": "Mandaguaçu", "cidade": "Mandaguaçu/PR", "responsavel": "Ronaldo Silva", "funcao": "Técnico", "membros": ["Matheus Gois"], "aliases": []}, {"cluster": "PR Norte 01", "cliente": "Thopen", "usina": "Sarandi", "cidade": "Sarandi/PR", "responsavel": "Ronaldo Silva", "funcao": "Técnico", "membros": ["Matheus Gois"], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Coração I", "cidade": "Vargem Bonita/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Coração II", "cidade": "Vargem Bonita/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Guatambu I", "cidade": "Guatambu/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Guatambu II", "cidade": "Guatambu/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Guatambu III", "cidade": "Guatambu/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}, {"cluster": "SC Oeste 01", "cliente": "Thopen", "usina": "Guatambu IV", "cidade": "Guatambu/SC", "responsavel": "Ademir Necker", "funcao": "Eletricista", "membros": [], "aliases": []}] };
 const _SUP_NAVS_PERMITIDOS = ['atividades', 'ocorrencias', 'chamados', 'comunicados', 'relatorios'];
 let _supEscopoAtivo = null;
 function _supChave(u) {
@@ -4571,6 +4576,7 @@ function _supEhSessao(sessao) { return !!sessao && sessao.role === 'supervisor';
     { user: 'daniel',         pass: 'Daniel#Grid26', role: 'supervisor' },
     { user: 'patrick',        pass: 'Patrick#Grid26', role: 'supervisor' },
     { user: 'vitor',          pass: 'Vitor#Grid26', role: 'supervisor' },
+    { user: 'samuel',         pass: 'Samuel#Grid26', role: 'supervisor' },
   ];
   function tryLogin() {
     var u = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -6438,7 +6444,7 @@ function initDashboard(session) {
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
-  if (session.role === 'manager' || session.role === 'admin' || (session.role === 'supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.campo))) { try { OC.entrar(); } catch (e) {} }
+  if (session.role === 'manager' || session.role === 'admin' || session.role === 'supervisor') { try { OC.entrar(); } catch (e) {} }
   if (session.role !== 'manager' && session.role !== 'admin' && session.role !== 'supervisor') {
     document.querySelectorAll('[data-nav="ocorrencias"]').forEach(el => { el.style.display = 'none'; });
   }
@@ -19575,8 +19581,11 @@ function _pontoCopiarComunicado(id, btn) {
 
   const sessao = () => (typeof _currentSession !== 'undefined' && _currentSession) || {};
   const ehFred = () => sessao().role === 'manager';
+  /* supervisor de campo: só as ocorrências das usinas dele (nomes compostos: 'Guatambu I, II e III') */
+  const _ocCampoPermite = x => { const nomes = [x.usina, ...String(x.usina || '').split(/\s+e\s+|\/|,/).map(t => t.trim()).filter(Boolean)]; return nomes.some(n => (typeof _supPermite === 'function') && _supPermite(n, '') ); };
   /* quem edita ocorrências: Fred (tudo) e supervisoras (só as das usinas delas, sem anotações/plano) */
-  const ehEdit = () => ['manager', 'supervisor'].includes(sessao().role);
+  const ehCampo = () => sessao().role === 'supervisor' && typeof _supEscopoAtivo !== 'undefined' && !!_supEscopoAtivo && !!_supEscopoAtivo.campo;
+  const ehEdit = () => sessao().role === 'manager' || (sessao().role === 'supervisor' && !ehCampo());
   const nomeResp = () => { const r = sessao(); if (r.role !== 'supervisor') return 'Fred'; const e = (typeof _SUP_ESCOPOS !== 'undefined') && _SUP_ESCOPOS[String(r.user || '').toLowerCase()]; return (e && e.nome) || String(r.user || 'Supervisor'); };
   const hojeIso = () => HOJE.getFullYear() + '-' + String(HOJE.getMonth() + 1).padStart(2, '0') + '-' + String(HOJE.getDate()).padStart(2, '0');
   const dias = iso => iso ? Math.round((HOJE - pd(iso)) / 864e5) : null;
@@ -19603,7 +19612,7 @@ function _pontoCopiarComunicado(id, btn) {
     if (!item) return;
     enriquecer(item);
     const i = ITENS.findIndex(y => y.id === item.id);
-    if (item.foraMapa) { if (i >= 0) ITENS.splice(i, 1); } else if (i >= 0) ITENS[i] = item; else ITENS.push(item);
+    if (item.foraMapa && !ehCampo()) { if (i >= 0) ITENS.splice(i, 1); } else if (i >= 0) ITENS[i] = item; else ITENS.push(item);
   }
   async function carregar(forcar) {
     if (carregando) return;
@@ -19615,7 +19624,7 @@ function _pontoCopiarComunicado(id, btn) {
       if (ehFred()) { reqs.push(api('/ocorrencias/anotacoes')); reqs.push(api('/ocorrencias/plano')); }
       const [o, n, p] = await Promise.all(reqs);
       HOJE = o.hoje ? pd(o.hoje) : new Date();
-      ITENS = o.itens.filter(x => !x.foraMapa).map(enriquecer);
+      ITENS = o.itens.filter(x => ehCampo() ? _ocCampoPermite(x) : !x.foraMapa).map(enriquecer);
       NOTAS = {}; (n ? n.itens : []).forEach(a => { (NOTAS[a.ocorrencia] = NOTAS[a.ocorrencia] || []).push(a); });
       PLANO = {}; (p ? p.itens : []).forEach(a => { PLANO[a.ocorrencia] = a; });
       carregado = true;
