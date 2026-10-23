@@ -1582,7 +1582,7 @@ body.role-supervisor #comTabBtnClientes, body.role-supervisor #comTabBtnOs, body
 body.role-supervisor [id^="dispararSobreavisoBtn_"],body.role-supervisor [id^="dispararMeuBtn_"],
 body.role-supervisor #comLivreDispararBtn,body.role-supervisor #comLivreDiretoCard,body.role-supervisor #gcEnviarBtn,
 body.role-supervisor label:has(#chamadosSoMeus),body.role-supervisor #chGcEnviarBtn,body.role-supervisor #resumoClienteEnviarBtn,
-body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto{display:none !important;}
+body.role-supervisor #comunicarAtivEnviarBtn,body.role-supervisor .sup-oculto,body.role-reno .sup-oculto{display:none !important;}
 /* Supervisor de Campo (Vitor): Comunicados só aba Técnicos, sem "Seguir Programação PCM"; sem envio por WhatsApp */
 body.role-campo #comTabBtnClientes, body.role-campo #comTabBtnLivre, body.role-campo #comTabBtnSobreaviso, body.role-campo #comTabBtnOs,
 body.role-campo #sbQuickActions, body.role-campo #ativAcoesWrap, body.role-campo #chatIaBubble, body.role-campo #comunicadoFontePcmBtn, body.role-campo [id^="ppEnvBtn"], body.role-campo #ppEnvioTodosBtn, body.role-campo #ppEnvioMsg, body.role-campo label[for="ppEnvioMsg"]{display:none !important;}
@@ -5578,7 +5578,8 @@ function _sbTopItemsForBottomNav() {
   // devem aparecer como aba da bottom nav no mobile.
   return _sbNavDraggableItems().filter(el => el.id !== 'navFerramentasToggle')
     // supervisora: só os painéis liberados (nada de Gerencial/Reuniões na barra inferior)
-    .filter(el => !document.body.classList.contains('role-supervisor') || _SUP_NAVS_PERMITIDOS.includes(el.dataset.nav));
+    .filter(el => !document.body.classList.contains('role-supervisor') || _SUP_NAVS_PERMITIDOS.includes(el.dataset.nav))
+    .filter(el => !document.body.classList.contains('role-reno') || ['atividades', 'chamados'].includes(el.dataset.nav));
 }
 function _sincronizarBottomNavComSidebar() {
   const bottomNav = document.getElementById('bottomNav');
@@ -6467,6 +6468,24 @@ function initDashboard(session) {
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
+    if (session.cliente === 'Renogrid') {
+      // Renogrid: apenas Atividades e Chamados (SolarEdge, somente leitura)
+      document.body.classList.add('role-reno');
+      document.querySelectorAll('.sb-nav-item[data-nav]').forEach(el => {
+        const ok = ['atividades', 'chamados'].includes(el.dataset.nav);
+        el.style.display = ok ? '' : 'none'; el.classList.toggle('sup-oculto', !ok);
+      });
+      document.querySelectorAll('.sb-section-label-row').forEach(h => {
+        let n = h.nextElementSibling, algum = false;
+        while (n && !n.classList.contains('sb-section-label-row')) {
+          if (n.classList.contains('sb-nav-item') && n.style.display !== 'none') { algum = true; break; }
+          n = n.nextElementSibling;
+        }
+        if (!algum) { h.style.display = 'none'; h.classList.add('sup-oculto'); }
+      });
+      const _gf = document.getElementById('grupoFerramentasSubmenu'); if (_gf) { _gf.style.display = 'none'; _gf.classList.add('sup-oculto'); }
+      try { document.getElementById('bottomNav')?.querySelectorAll('.bn-item[data-nav]').forEach(el => { if (!['atividades', 'chamados'].includes(el.dataset.nav)) el.style.display = 'none'; }); } catch (e) {}
+    }
   }
 
   // Painel de Ocorrências: só Fred (editor) e administrador (somente leitura); clientes e supervisoras não veem.
@@ -6483,7 +6502,7 @@ function initDashboard(session) {
   if (_navDaUrl && document.getElementById('sec-' + _navDaUrl) && (session.role !== 'supervisor' || _SUP_NAVS_PERMITIDOS.includes(_navDaUrl))) {
     switchNav(_navDaUrl);
   }
-  if (session.role === 'supervisor') { try { _sincronizarBottomNavComSidebar(); } catch (e) {} }
+  if (session.role === 'supervisor' || document.body.classList.contains('role-reno')) { try { _sincronizarBottomNavComSidebar(); } catch (e) {} }
   if (session.role === 'supervisor') {
     // descarta qualquer mapeamento carregado antes do login (era o do Fred) e recarrega o dela
     _mapUfvsCache = null; _tecnicosMapaRef = null; _tecnicosMapaCache = null;
