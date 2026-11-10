@@ -9845,6 +9845,15 @@ function _nexusClassificar(titulo, observacao) {
   for (const r of _NEXUS_REGRAS) if (r.re.test(t) && (!r.exigeInv || temInv)) return r;
   return _NEXUS_PADRAO;
 }
+// Acha o equipamento (inversor/cabine/skid + numero) no texto livre: "inversor 02", "inv. 2", "INV-1.3"...
+function _nexusEquipDoTexto(txt) {
+  const t = _nexusNorm(txt);
+  let m = t.match(/\b(?:inversor(?:es)?|inv)\.?\s*[-:]?\s*(?:n[oº°]?\s*)?(\d+(?:\.\d+)?)/);
+  if (m) return 'Inversor ' + m[1];
+  if ((m = t.match(/\bcabine\s*(\d+)/))) return 'Cabine ' + m[1];
+  if ((m = t.match(/\bskid\s*(\d+)/))) return 'Skid ' + m[1];
+  return '';
+}
 // Marca cada OS gerada com de onde ela veio (cliente/usina/equipamento).
 function _nexusTag(lista, d) {
   const ctx = { cliente: (d && d.cliente) || '', usina: (d && d.usina) || '',
@@ -9872,12 +9881,12 @@ async function _enviarAoNexus(json) {
   } catch (e) {}
   const r = _nexusClassificar(p.titulo, p.observacao);
   const pacote = Object.assign({}, p, {
-    cliente, usina, equipamento: ctx.equipamento || '', tecnico,
+    cliente, usina, equipamento: ctx.equipamento || _nexusEquipDoTexto((p.titulo || '') + ' ' + (p.observacao || '')), tecnico,
     tema: r.tema, regra: r.nome, classif: { c1: r.c1, grupo: r.grupo, c2: r.c2 }, ts: Date.now(),
   });
   try { window.postMessage({ gridosNexus: pacote }, location.origin); } catch (e) {}
   const txt = 'GRIDOS_NEXUS::' + JSON.stringify(pacote);
-  const resumo = [usina || 'usina não identificada', ctx.equipamento, tecnico && ('técnico ' + tecnico)].filter(Boolean).join(' · ');
+  const resumo = [usina || 'usina não identificada', pacote.equipamento, tecnico && ('técnico ' + tecnico)].filter(Boolean).join(' · ');
   const ok = () => showToast('Pacote pronto (' + resumo + '). No Nexus, clique em "Preencher do dashboard".', true);
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(ok); else ok();
 }
@@ -12303,8 +12312,7 @@ async function _gerarOSRapida() {
     if (!it && txt) { it = _osRapidaDetectarUsina(txt, mapa); if (it) showToast('Usina detectada: ' + it.usina + ' (' + it.cliente + ')', true); }
     if (it) { pseudo.usina = it.usina; pseudo.cliente = it.cliente; }
     const eqIn = (document.getElementById('osRapidaEquip')?.value || '').trim();
-    const mInv = txt.match(/inversor\s*(\d+(?:\.\d+)?)/i);
-    pseudo._equipNexus = eqIn || (mInv ? 'Inversor ' + mInv[1] : '');
+    pseudo._equipNexus = eqIn || _nexusEquipDoTexto(txt);
   } catch (e) { pseudo._equipNexus = ''; }
 
   const inputStep = document.getElementById('osRapidaInputStep');
