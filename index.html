@@ -15074,6 +15074,13 @@ async function _copiarComunicado(idSeguro) {
 
 let _resumoClienteGruposCache = [];
 
+function _ajudaDaAtividade() {
+  const a = _ativDrawerList[_ativDrawerIndex];
+  if (!a || !window.abrirAjuda) return;
+  const partes = [a.descricao, a.equipamento ? '(' + a.equipamento + ')' : '', a.numeroOS ? 'OS ' + a.numeroOS : ''].filter(Boolean);
+  abrirAjuda({ usina: a.usina, cliente: a.cliente, tema: partes.join(' ') });
+}
+
 async function _abrirResumoClienteAtividade() {
   const a = _ativDrawerList[_ativDrawerIndex];
   if (!a) return;
@@ -17392,6 +17399,11 @@ function _renderAtivDrawer() {
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       Histórico Fracttal
     </button>` : ''}
+
+    <button class="nova-oc-submit" onclick="_ajudaDaAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>
+      Ajuda: o que fazer
+    </button>
 
     <button class="nova-oc-submit" onclick="_abrirResumoClienteAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
@@ -20026,6 +20038,7 @@ function _pontoCopiarComunicado(id, btn) {
     dr.style.setProperty('--c', `var(${col})`);
     const botoes = pode ? `<div class="oc-acoes">
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
+      <button class="oc-btn sm" type="button" data-oc="ajuda">Ajuda: o que fazer</button>
       <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
       <button class="oc-btn sm" type="button" data-oc="os-solicitar"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
       ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
@@ -20383,6 +20396,7 @@ function _pontoCopiarComunicado(id, btn) {
       const a = b.dataset.oc, hid = b.dataset.hid, nid = b.dataset.nid;
       if (a === 'fechar') fechar();
       else if (a === 'editar') { modo = 'editar'; desenharGaveta(); }
+      else if (a === 'ajuda') { const x = ITENS.find(i => i.id === aberto); if (x && window.abrirAjuda) abrirAjuda({ usina: x.usina, cliente: x.cliente, tema: [x.titulo || x.causa, [x.equip, x.nequip].filter(Boolean).join(' '), x.id].filter(Boolean).join(' — ') }); }
       else if (a === 'cancelar-edicao') { modo = 'ver'; desenharGaveta(); }
       else if (a === 'form-salvar') formSalvar();
       else if (a === 'status') mudarStatus(b.dataset.v);
@@ -21017,6 +21031,253 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 
   // Cobre sessão já restaurada (localStorage) antes deste script rodar.
   window._chatIaAtualizarVisibilidade();
+})();
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     BOTÃO AJUDA (10/11/2026) — lê o grupo do cliente + grupo da equipe da usina,
+     cruza com OS/ocorrências/chamados e orienta o Fred. Backend: POST /ajuda-cliente
+     ══════════════════════════════════════════════════════════════════════ -->
+<style>
+#ajudaBubble{position:fixed;bottom:22px;right:86px;z-index:600;width:52px;height:52px;border-radius:50%;
+  background:var(--amber);color:#08090B;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);transition:transform .18s ease;}
+#ajudaBubble:hover{transform:scale(1.06);}
+#ajudaBubble svg{width:25px;height:25px;}
+#ajudaPanel{position:fixed;bottom:86px;right:22px;z-index:602;width:460px;max-width:calc(100vw - 32px);
+  height:640px;max-height:calc(100vh - 110px);background:var(--panel);border:1px solid var(--border-strong);
+  border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;font-family:'Geist',sans-serif;}
+#ajudaPanel.open{display:flex;}
+.ajd-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--panel-alt);flex-shrink:0;}
+.ajd-head .t{display:flex;align-items:center;gap:8px;font:600 13.5px 'Geist',sans-serif;color:var(--text);}
+.ajd-head .d{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;}
+.ajd-x{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px;display:flex;}
+.ajd-body{flex:1;overflow-y:auto;padding:12px 14px 16px;color:var(--text);font-size:13px;line-height:1.5;}
+.ajd-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.ajd-sel,.ajd-in,.ajd-ta{background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:7px 9px;font:13px 'Geist',sans-serif;box-sizing:border-box;}
+.ajd-ta{width:100%;resize:vertical;min-height:64px;}
+.ajd-in{flex:1;min-width:140px;}
+.ajd-btn{border:1px solid var(--border-strong);background:transparent;color:var(--text);border-radius:8px;padding:7px 12px;font:600 12.5px 'Geist',sans-serif;cursor:pointer;}
+.ajd-btn:hover{background:var(--panel-alt);}
+.ajd-btn.pri{background:var(--amber);border-color:var(--amber);color:#08090B;}
+.ajd-btn.sm{padding:4px 9px;font-size:12px;}
+.ajd-btn:disabled{opacity:.5;cursor:not-allowed;}
+.ajd-meta{font-size:11.5px;color:var(--text-dim);margin:2px 0 10px;}
+.ajd-card{border:1px solid var(--border);background:var(--panel-alt);border-radius:10px;padding:10px 11px;margin-bottom:9px;}
+.ajd-card h4{margin:0 0 4px;font:600 13px 'Geist',sans-serif;color:var(--text);}
+.ajd-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.ajd-b{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border-strong);color:var(--text-dim);}
+.ajd-b.alta{border-color:var(--red);color:var(--red);}
+.ajd-b.media{border-color:var(--amber);color:var(--amber);}
+.ajd-b.us{border-color:var(--teal);color:var(--teal);}
+.ajd-card p{margin:3px 0;color:var(--text-dim);font-size:12.5px;}
+.ajd-sec{margin:14px 0 4px;font:600 11.5px 'Geist',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim);}
+.ajd-sec:first-child{margin-top:0;}
+.ajd-ul{margin:0;padding-left:18px;}
+.ajd-ul li{margin:3px 0;}
+.ajd-ul small{color:var(--text-dim);}
+.ajd-alerta{border-left:3px solid var(--amber);background:var(--panel-alt);border-radius:6px;padding:7px 10px;margin:5px 0;font-size:12.5px;}
+.ajd-alerta.SLA,.ajd-alerta.escalonar{border-left-color:var(--red);}
+.ajd-alerta b{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim);display:block;}
+.ajd-load{display:flex;align-items:center;gap:10px;padding:18px 4px;color:var(--text-dim);}
+.ajd-spin{width:16px;height:16px;border:2px solid var(--border-strong);border-top-color:var(--amber);border-radius:50%;animation:ajdgira .8s linear infinite;flex-shrink:0;}
+@keyframes ajdgira{to{transform:rotate(360deg);}}
+.ajd-err{border:1px solid var(--red);color:var(--red);border-radius:8px;padding:9px 11px;margin:8px 0;font-size:12.5px;}
+.ajd-aviso{font-size:12px;color:var(--amber);margin:4px 0;}
+.ajd-foot{font-size:11.5px;color:var(--text-dim);border-top:1px solid var(--border);margin-top:14px;padding-top:8px;}
+@media (max-width:520px){#ajudaPanel{right:10px;left:10px;width:auto;bottom:80px;}#ajudaBubble{right:76px;bottom:14px;}}
+@media(max-width:768px),(max-width:1024px) and (orientation:portrait){#ajudaBubble{bottom:76px;}#ajudaPanel{bottom:140px;}}
+</style>
+
+<button id="ajudaBubble" title="Ajuda: o que fazer agora" aria-label="Abrir ajuda">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.9" y1="4.9" x2="9.2" y2="9.2"/><line x1="14.8" y1="14.8" x2="19.1" y2="19.1"/><line x1="14.8" y1="9.2" x2="19.1" y2="4.9"/><line x1="4.9" y1="19.1" x2="9.2" y2="14.8"/></svg>
+</button>
+
+<div id="ajudaPanel" role="dialog" aria-label="Ajuda">
+  <div class="ajd-head">
+    <div class="t"><span class="d"></span><span id="ajdTitulo">Ajuda — o que fazer agora</span></div>
+    <button class="ajd-x" id="ajdFechar" aria-label="Fechar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="ajd-body" id="ajdCorpo"></div>
+</div>
+
+<script>
+(function(){
+  const URL_AJUDA = 'https://api.168.138.232.237.sslip.io/ajuda-cliente';
+  const elBubble = document.getElementById('ajudaBubble');
+  const elPanel  = document.getElementById('ajudaPanel');
+  const elCorpo  = document.getElementById('ajdCorpo');
+  const elTitulo = document.getElementById('ajdTitulo');
+  let ocupado = false, primeiraVez = true, usinasLista = null;
+  let estado = { cliente: 'Thopen', horas: 48, temas: null, aviso: '' };
+
+  function E(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function permitido(){
+    let role = null; try { role = localStorage.getItem('om_role'); } catch(e){}
+    return !!role && role !== 'client' && role !== 'supervisor';
+  }
+  window._ajudaAtualizarVisibilidade = function(){
+    const ok = permitido();
+    elBubble.style.display = ok ? 'flex' : 'none';
+    if (!ok) elPanel.classList.remove('open');
+  };
+  async function copiar(texto, btn){
+    try {
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(texto);
+      else { const ta = document.createElement('textarea'); ta.value = texto; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+      if (btn){ const o = btn.textContent; btn.textContent = 'Copiado!'; setTimeout(() => btn.textContent = o, 1500); }
+    } catch(e){ console.error('[ajuda] copiar:', e); }
+  }
+  async function chamar(corpo){
+    const r = await fetch(URL_AJUDA, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo), signal: AbortSignal.timeout(120000) });
+    let d = null; try { d = await r.json(); } catch(e){}
+    if (!d) throw new Error('Resposta inválida do servidor (HTTP ' + r.status + ').');
+    if (!d.ok) throw new Error(d.error || 'Falha desconhecida.');
+    return d;
+  }
+  async function carregarUsinas(){
+    if (usinasLista) return usinasLista;
+    try {
+      const r = await fetch('https://api.168.138.232.237.sslip.io/mapeamento-ufvs');
+      const d = await r.json();
+      usinasLista = (d.itens || []).map(i => ({ usina: i.usina, cliente: i.cliente })).filter(i => i.usina);
+    } catch(e){ usinasLista = []; }
+    return usinasLista;
+  }
+  function carregando(txt){ elCorpo.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>' + E(txt) + '</span></div>'; }
+
+  /* ── tela 1: temas do grupo + campo livre ─────────────────────────── */
+  async function telaTemas(buscar, forcar){
+    elTitulo.textContent = 'Ajuda — o que fazer agora';
+    const usinas = await carregarUsinas();
+    const dl = usinas.map(u => '<option value="' + E(u.usina) + '">').join('');
+    const clientes = ['Thopen','Renogrid','2C'];
+    elCorpo.innerHTML =
+      '<div class="ajd-sec">Temas em andamento no grupo</div>' +
+      '<div class="ajd-row">' +
+        '<select class="ajd-sel" id="ajdCli">' + clientes.map(c => '<option' + (c === estado.cliente ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>' +
+        '<select class="ajd-sel" id="ajdHoras">' + [[24,'24 h'],[48,'48 h'],[72,'72 h'],[168,'7 dias']].map(h => '<option value="' + h[0] + '"' + (h[0] === estado.horas ? ' selected' : '') + '>' + h[1] + '</option>').join('') + '</select>' +
+        '<button class="ajd-btn" id="ajdBuscar">Buscar temas</button>' +
+      '</div><div id="ajdLista"></div>' +
+      '<div class="ajd-sec">Não achou? Descreva ou cole o que o cliente pediu</div>' +
+      '<div class="ajd-row"><input class="ajd-in" id="ajdUsina" list="ajdDl" placeholder="Usina (opcional)"><datalist id="ajdDl">' + dl + '</datalist></div>' +
+      '<textarea class="ajd-ta" id="ajdTexto" placeholder="Ex.: o cliente cobrou solução para o INV 2.3 e eu não sei o que responder..."></textarea>' +
+      '<div class="ajd-row" style="margin-top:8px"><button class="ajd-btn pri" id="ajdAnalisar">Me ajudar</button></div>';
+    document.getElementById('ajdCli').onchange = e => { estado.cliente = e.target.value; estado.temas = null; renderLista(); };
+    document.getElementById('ajdHoras').onchange = e => { estado.horas = parseInt(e.target.value, 10); estado.temas = null; renderLista(); };
+    document.getElementById('ajdBuscar').onclick = () => buscarTemas(true);
+    document.getElementById('ajdAnalisar').onclick = () => {
+      const usina = document.getElementById('ajdUsina').value.trim();
+      const texto = document.getElementById('ajdTexto').value.trim();
+      if (!usina && !texto) { (window.showToast ? showToast('Informe a usina ou descreva/cole o que o cliente pediu.', false) : null); return; }
+      analisar({ usina: usina, cliente: estado.cliente, pergunta: texto, mensagem_cliente: texto, horas: Math.max(estado.horas, 72) });
+    };
+    renderLista();
+    if (buscar && !estado.temas) buscarTemas(!!forcar);
+  }
+  function renderLista(){
+    const el = document.getElementById('ajdLista'); if (!el) return;
+    if (!estado.temas) { el.innerHTML = '<div class="ajd-meta">Clique em "Buscar temas" para ler o grupo (últimas ' + estado.horas + ' h).</div>'; return; }
+    const d = estado.temas;
+    let html = '<div class="ajd-meta">' + E(d.mensagens) + ' mensagens lidas' + (d.midias ? ' · ' + E(d.midias) + ' áudios/imagens/documentos NÃO lidos' : '') +
+      (d.descartados ? ' · ' + E(d.descartados) + ' assuntos de usinas fora do seu mapeamento ignorados' : '') +
+      ((d.grupos || []).length ? '<br>Grupos: ' + E((d.grupos || []).map(g => g.nome).join(' | ')) : '') + (d.cache ? ' · (resultado recente em cache)' : '') + '</div>';
+    if (d.aviso) html += '<div class="ajd-aviso">' + E(d.aviso) + '</div>';
+    if (!(d.temas || []).length) html += '<div class="ajd-meta">Nenhum tema em andamento encontrado.</div>';
+    (d.temas || []).forEach((t, i) => {
+      html += '<div class="ajd-card"><h4>' + E(t.titulo) + '</h4><div class="ajd-badges">' +
+        (t.usina ? '<span class="ajd-b us">' + E((t.usinas && t.usinas.length > 1) ? t.usinas.join(' + ') : t.usina) + '</span>' : '<span class="ajd-b">usina não identificada</span>') +
+        '<span class="ajd-b ' + E(t.prioridade) + '">prioridade ' + E(t.prioridade || '—') + '</span><span class="ajd-b">' + E(t.status || '—') + '</span></div>' +
+        '<p>' + E(t.resumo) + '</p>' + (t.o_cliente_pede && !/^n\/a/i.test(t.o_cliente_pede) ? '<p><b>Cliente pede:</b> ' + E(t.o_cliente_pede) + '</p>' : '') +
+        (t.ultima_mensagem ? '<p><small>Última mensagem: ' + E(t.ultima_mensagem) + '</small></p>' : '') +
+        '<button class="ajd-btn pri sm" data-i="' + i + '">Me ajudar com este</button></div>';
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
+      const t = d.temas[parseInt(b.dataset.i, 10)];
+      analisar({ usina: t.usina || '', cliente: estado.cliente, tema: t.titulo + ' — ' + (t.resumo || ''), pergunta: 'Tema: ' + t.titulo + '. ' + (t.o_cliente_pede || ''), horas: Math.max(estado.horas, 72) });
+    });
+  }
+  async function buscarTemas(forcar){
+    if (ocupado) return; ocupado = true;
+    const el = document.getElementById('ajdLista');
+    if (el) el.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>Lendo o grupo e identificando os temas…</span></div>';
+    try { estado.temas = await chamar({ modo:'temas', cliente: estado.cliente, horas: estado.horas, forcar: !!forcar }); }
+    catch(e){ estado.temas = null; if (el) el.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div>'; ocupado = false; return; }
+    ocupado = false; renderLista();
+  }
+
+  /* ── tela 2: análise ──────────────────────────────────────────────── */
+  async function analisar(corpo){
+    if (ocupado) return; ocupado = true;
+    elTitulo.textContent = 'Ajuda — ' + (corpo.usina || 'análise');
+    carregando('Lendo conversas e cruzando com OS, ocorrências e chamados (até 1 min)…');
+    try {
+      const d = await chamar(Object.assign({ modo: 'analisar' }, corpo));
+      ocupado = false; telaResultado(d, corpo);
+    } catch(e){
+      ocupado = false;
+      elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Voltar</button>';
+      document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
+    }
+  }
+  function lista(titulo, arr){
+    if (!arr || !arr.length) return '';
+    return '<div class="ajd-sec">' + titulo + '</div><ul class="ajd-ul">' + arr.map(x => '<li>' + E(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>').join('') + '</ul>';
+  }
+  function telaResultado(d, corpo){
+    const r = d.resultado || {}, f = d.fontes || {};
+    const acoes = (r.acoes_tecnico || []);
+    let h = '<div class="ajd-row"><button class="ajd-btn sm" id="ajdVoltar">← Voltar</button><button class="ajd-btn sm" id="ajdRefazer">Refazer</button></div>';
+    (d.avisos || []).forEach(a => { h += '<div class="ajd-aviso">⚠ ' + E(a) + '</div>'; });
+    h += '<div class="ajd-sec">Situação</div><div>' + E(r.resumo_situacao || '—') + '</div>';
+    h += lista('O que o cliente pede', r.cliente_pede) + lista('Já foi feito', r.ja_feito) + lista('Pendente', r.pendente);
+    if (acoes.length) h += '<div class="ajd-sec">Pedir ao técnico' + (f.usina ? ' (' + E(f.usina) + ')' : '') + '</div><ul class="ajd-ul">' +
+      acoes.map(a => '<li><b>' + E(a.acao) + '</b>' + (a.equipamento ? ' <small>[' + E(a.equipamento) + ']</small>' : '') + (a.porque ? '<br><small>' + E(a.porque) + '</small>' : '') + '</li>').join('') +
+      '</ul><div class="ajd-row" style="margin-top:6px"><button class="ajd-btn sm" id="ajdCopAcoes">Copiar ações p/ técnico</button></div>';
+    h += lista('Conferir no projeto / documentação', r.conferir_no_projeto);
+    if (r.resposta_cliente) h += '<div class="ajd-sec">Sugestão de resposta ao cliente</div><textarea class="ajd-ta" id="ajdResp" rows="7">' + E(r.resposta_cliente) + '</textarea>' +
+      '<div class="ajd-row" style="margin-top:6px"><button class="ajd-btn pri sm" id="ajdCopResp">Copiar resposta</button><span class="ajd-meta" style="margin:0">Revise antes de enviar — trechos [preencher: ...] precisam de dado seu.</span></div>';
+    if ((r.alertas || []).length) h += '<div class="ajd-sec">Alertas</div>' + r.alertas.map(a => '<div class="ajd-alerta ' + E(a.tipo) + '"><b>' + E(a.tipo) + '</b>' + E(a.texto) + '</div>').join('');
+    h += lista('O que eu não consegui saber', r.lacunas);
+    const partes = [];
+    if (f.mensagens_cliente != null) partes.push(f.mensagens_cliente + ' msgs do grupo do cliente');
+    if (f.mensagens_equipe != null) partes.push(f.mensagens_equipe + ' msgs do grupo da equipe' + (f.grupo_equipe ? ' (' + f.grupo_equipe + ')' : ''));
+    partes.push((f.atividades || 0) + ' OS/atividades abertas', (f.ocorrencias || 0) + ' ocorrências abertas', (f.chamados || 0) + ' chamados abertos');
+    const mid = (f.midias_cliente || 0) + (f.midias_equipe || 0);
+    h += '<div class="ajd-foot">Base: ' + E(partes.join(' · ')) + ' · janela de ' + E(f.horas) + ' h' + (mid ? ' · ' + mid + ' áudios/imagens/documentos não lidos' : '') +
+      '<br>Confiança da IA: ' + E(r.confianca || '—') + ' · gerado em ' + E(d.geradoEm || '') + '. É uma orientação: confirme os fatos antes de agir ou responder ao cliente.</div>';
+    elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
+    document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
+    document.getElementById('ajdRefazer').onclick = () => analisar(corpo);
+    const ba = document.getElementById('ajdCopAcoes');
+    if (ba) ba.onclick = () => copiar('Favor realizar' + (f.usina ? ' em ' + f.usina : '') + ':\n' + acoes.map((a, i) => (i + 1) + ') ' + a.acao + (a.equipamento ? ' [' + a.equipamento + ']' : '') + (a.porque ? ' — ' + a.porque : '')).join('\n') + '\nEnvie fotos e valores medidos no grupo.', ba);
+    const br = document.getElementById('ajdCopResp');
+    if (br) br.onclick = () => copiar(document.getElementById('ajdResp').value, br);
+  }
+
+  /* ── abertura ─────────────────────────────────────────────────────── */
+  window.abrirAjuda = function(opts){
+    if (!permitido()) return;
+    elPanel.classList.add('open');
+    if (opts && (opts.usina || opts.tema || opts.pergunta)) {
+      if (opts.cliente) estado.cliente = opts.cliente;
+      analisar({ usina: opts.usina || '', cliente: opts.cliente || estado.cliente, tema: opts.tema || '', pergunta: opts.pergunta || opts.tema || '', horas: 72 });
+      return;
+    }
+    if (primeiraVez || !elCorpo.innerHTML) { primeiraVez = false; telaTemas(true); }
+  };
+  elBubble.addEventListener('click', function(){
+    if (elPanel.classList.contains('open')) elPanel.classList.remove('open'); else window.abrirAjuda();
+  });
+  document.getElementById('ajdFechar').addEventListener('click', function(){ elPanel.classList.remove('open'); });
+
+  if (typeof window.initDashboard === 'function') {
+    const orig = window.initDashboard;
+    window.initDashboard = function(){ const r = orig.apply(this, arguments); window._ajudaAtualizarVisibilidade(); return r; };
+  }
+  window._ajudaAtualizarVisibilidade();
 })();
 </script>
 
