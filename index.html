@@ -12274,6 +12274,7 @@ function _osRapidaDetectarUsina(txt, mapa) {
   const sig = {};
   const re = /\b([a-z]{3,4})\s*-?\s*0*(\d{1,2})\b/g; let m;
   while ((m = re.exec(tt))) {
+    if (/^(inv|ufv|usi|inve|usin|tcu|nbr|os|pcm|cos|dc|ac)$/.test(m[1])) continue; // palavras comuns, nao sao sigla de usina
     (mapa || []).forEach(i => {
       const kk = _nexusChaveUsina(i.usina); const mm = kk.match(/^(.*?)\s+(\d+)$/);
       if (!mm || mm[2] !== String(Number(m[2]))) return;
@@ -21353,4 +21354,3 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
-
