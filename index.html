@@ -20949,7 +20949,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     document.getElementById('ajdInputRow').style.display = sim ? 'block' : 'none';
     if (!sim) conv = null;
   }
-  function addMsg(tipo, texto, textoCopia, fontes){
+  function addMsg(tipo, texto, textoCopia, fontes, extra){
     const box = document.getElementById('ajdConv'); if (!box) return null;
     const d = document.createElement('div'); d.className = 'ajd-msg ' + tipo;
     d.innerHTML = E(texto).replace(/\n/g, '<br>');
@@ -20963,6 +20963,17 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       f.innerHTML = '<b>Fontes:</b> ' + fontes.map(x => /^https?:\/\//.test(x.url) ? '<a href="' + E(x.url) + '" target="_blank" rel="noopener noreferrer">' + E(x.titulo || x.url) + '</a>' : '').filter(Boolean).join(' · ');
       d.appendChild(f);
     }
+    if (extra && extra.biblioteca && extra.biblioteca.length) {
+      const b = document.createElement('div'); b.style.cssText = 'margin-top:6px;font-size:11.5px;opacity:.8';
+      b.textContent = '📚 Fichas da biblioteca usadas: ' + extra.biblioteca.join(', '); d.appendChild(b);
+    }
+    if (extra && extra.salvar) {
+      const sv = document.createElement('button'); sv.className = 'ajd-btn sm'; sv.type = 'button'; sv.textContent = '💾 Salvar na biblioteca'; sv.style.marginTop = '8px';
+      const area = document.createElement('div');
+      sv.onclick = () => { sv.style.display = 'none'; formFicha(area, { titulo: String(extra.salvar.pergunta || '').slice(0, 80), conteudo: (extra.salvar.pergunta ? 'Pergunta: ' + extra.salvar.pergunta + '\n\n' : '') + texto,
+        palavras: palavrasDe(extra.salvar.pergunta), fontes: extra.salvar.fontes || [], origem: 'resposta' }, () => { area.innerHTML = '<div class="ajd-meta">✔ Salva na biblioteca. Ela será usada nas próximas consultas que citarem esses termos.</div>'; }, () => { sv.style.display = ''; area.innerHTML = ''; }); };
+      d.appendChild(sv); d.appendChild(area);
+    }
     box.appendChild(d); elCorpo.scrollTop = elCorpo.scrollHeight; return d;
   }
   async function enviarMsg(textoPronto, web){
@@ -20975,11 +20986,76 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     try {
       const d = await chamar(Object.assign({}, sessao.corpo, { modo: 'conversar', buscar_web: !!web, mensagem: msg, historico: sessao.historico, analise_anterior: sessao.analise }));
       if (conv !== sessao) { ocupado = false; return; }   // o Fred voltou/refez a análise enquanto esperava
-      ld.remove(); addMsg('model', d.resposta || '(sem resposta)', d.texto_para_copiar || '', d.fontes_web);
+      ld.remove(); addMsg('model', d.resposta || '(sem resposta)', d.texto_para_copiar || '', d.fontes_web, { biblioteca: d.biblioteca, salvar: { pergunta: msg, fontes: d.fontes_web } });
       sessao.historico.push({ role: 'user', texto: msg }, { role: 'model', texto: (d.resposta || '') + (d.texto_para_copiar ? '\n[Texto sugerido]: ' + d.texto_para_copiar : '') });
       if (sessao.historico.length > 20) sessao.historico = sessao.historico.slice(-20);
     } catch (e) { if (conv === sessao) { ld.remove(); addMsg('erro', e.message); } }
     ocupado = false;
+  }
+
+  /* ── biblioteca de equipamentos ───────────────────────────────────── */
+  const CATS = { rele:'Relés', inversor:'Inversores', tracker:'Trackers', modulo:'Módulos', medidor:'ETM / medidores', outro:'Outros' };
+  function palavrasDe(t){
+    const out = [], v = new Set();
+    (String(t || '').match(/[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\-]{2,}/g) || []).forEach(w => { const n = w.toLowerCase(); if (!v.has(n) && (/\d/.test(w) || /^[A-ZÀ-Ý]/.test(w))) { v.add(n); out.push(w); } });
+    return out.slice(0, 8).join(', ');
+  }
+  function formFicha(el, pre, aoSalvar, aoCancelar){
+    pre = pre || {};
+    el.innerHTML = '<div class="ajd-card" style="margin-top:8px"><div class="ajd-sec" style="margin-top:0">Nova ficha</div>' +
+      '<input class="ajd-in" data-f="titulo" placeholder="Título (ex.: Relé Pextron URP6000 — ajustes)" maxlength="120" style="width:100%;margin-bottom:6px">' +
+      '<div class="ajd-row"><select class="ajd-sel" data-f="categoria">' + Object.keys(CATS).map(k => '<option value="' + k + '">' + CATS[k] + '</option>').join('') + '</select>' +
+      '<input class="ajd-in" data-f="palavras" placeholder="Palavras-chave (marca, modelo…), separadas por vírgula"></div>' +
+      '<textarea class="ajd-ta" data-f="conteudo" rows="7" placeholder="Conteúdo da ficha"></textarea>' +
+      '<div class="ajd-meta">Só vale como fonte se estiver correto: revise antes de salvar. Fichas salvas aparecem como "não verificadas" para a IA.</div>' +
+      '<div class="ajd-row"><button class="ajd-btn pri sm" data-a="ok">Salvar</button><button class="ajd-btn sm" data-a="no">Cancelar</button></div><div class="ajd-err" data-e style="display:none"></div></div>';
+    const q = k => el.querySelector('[data-f="' + k + '"]');
+    q('titulo').value = pre.titulo || ''; q('palavras').value = pre.palavras || ''; q('conteudo').value = pre.conteudo || ''; q('categoria').value = pre.categoria || 'outro';
+    el.querySelector('[data-a="no"]').onclick = () => aoCancelar && aoCancelar();
+    el.querySelector('[data-a="ok"]').onclick = async () => {
+      const er = el.querySelector('[data-e]'); er.style.display = 'none';
+      try {
+        await chamar({ modo: 'biblioteca_salvar', titulo: q('titulo').value, categoria: q('categoria').value, palavras: q('palavras').value, conteudo: q('conteudo').value,
+          fontes: pre.fontes || [], origem: pre.origem || 'manual', id: pre.id || '' });
+        aoSalvar && aoSalvar();
+      } catch(e){ er.textContent = e.message; er.style.display = 'block'; }
+    };
+  }
+  async function telaBiblioteca(idAberta){
+    mostrarEntrada(false);
+    elTitulo.textContent = 'Biblioteca de equipamentos';
+    carregando('Carregando as fichas…');
+    let d;
+    try { d = await chamar({ modo: 'biblioteca' }); }
+    catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Voltar</button>'; document.getElementById('ajdVoltar').onclick = () => telaTemas(false); return; }
+    const fichas = d.fichas || [];
+    let h = '<div class="ajd-row"><button class="ajd-btn sm" id="ajdVoltar">← Voltar</button><button class="ajd-btn pri sm" id="ajdNova">+ Nova ficha</button></div>' +
+      '<div class="ajd-meta">O Ajuda consulta estas fichas automaticamente quando a conversa cita a marca/modelo. "Verificada" = conferida em manual/datasheet com fonte; as demais são orientação geral ou respostas salvas.</div><div id="ajdFormF"></div>';
+    Object.keys(CATS).forEach(k => {
+      const L = fichas.filter(f => f.categoria === k); if (!L.length) return;
+      h += '<div class="ajd-sec">' + CATS[k] + '</div>' + L.map(f => '<div class="ajd-card" style="cursor:pointer" data-id="' + E(f.id) + '"><h4>' + E(f.titulo) + '</h4><div class="ajd-badges">' +
+        '<span class="ajd-b ' + (f.verificado ? 'us' : '') + '">' + (f.verificado ? 'verificada' : 'não verificada') + '</span><span class="ajd-b">' + (f.origem === 'curada' ? 'curada' : 'salva por você') + '</span></div></div>').join('');
+    });
+    elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
+    document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
+    document.getElementById('ajdNova').onclick = () => formFicha(document.getElementById('ajdFormF'), {}, () => telaBiblioteca(), () => { document.getElementById('ajdFormF').innerHTML = ''; });
+    elCorpo.querySelectorAll('[data-id]').forEach(c => c.onclick = () => telaFicha(c.dataset.id));
+  }
+  async function telaFicha(id){
+    carregando('Abrindo a ficha…');
+    try {
+      const f = (await chamar({ modo: 'biblioteca', id: id })).ficha;
+      let h = '<div class="ajd-row"><button class="ajd-btn sm" id="ajdVoltar">← Biblioteca</button>' + (f.origem !== 'curada' ? '<button class="ajd-btn sm" id="ajdExcluir">Excluir</button>' : '') + '</div>' +
+        '<h4 style="margin:8px 0 4px">' + E(f.titulo) + '</h4><div class="ajd-badges"><span class="ajd-b ' + (f.verificado ? 'us' : '') + '">' + (f.verificado ? 'verificada' : 'não verificada') + '</span>' +
+        '<span class="ajd-b">' + E(CATS[f.categoria] || 'Outros') + '</span></div>' +
+        '<div class="ajd-meta">Palavras-chave: ' + E((f.palavras || []).join(', ')) + '</div>' +
+        '<div style="white-space:pre-wrap;margin-top:8px">' + E(f.conteudo) + '</div>';
+      if ((f.fontes || []).length) h += '<div class="ajd-sec">Fontes</div><ul class="ajd-ul">' + f.fontes.map(s => /^https?:\/\//.test(s.url) ? '<li><a href="' + E(s.url) + '" target="_blank" rel="noopener noreferrer">' + E(s.titulo || s.url) + '</a></li>' : '').join('') + '</ul>';
+      elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
+      document.getElementById('ajdVoltar').onclick = () => telaBiblioteca();
+      const ex = document.getElementById('ajdExcluir');
+      if (ex) ex.onclick = async () => { if (!confirm('Excluir esta ficha salva?')) return; try { await chamar({ modo: 'biblioteca_excluir', id: id }); telaBiblioteca(); } catch(e){ alert(e.message); } };
+    } catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Biblioteca</button>'; document.getElementById('ajdVoltar').onclick = () => telaBiblioteca(); }
   }
 
   /* ── tela 1: temas do grupo + campo livre ─────────────────────────── */
@@ -20999,7 +21075,8 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       '<div class="ajd-sec">Não achou? Descreva ou cole o que o cliente pediu</div>' +
       '<div class="ajd-row"><input class="ajd-in" id="ajdUsina" list="ajdDl" placeholder="Usina (opcional)"><datalist id="ajdDl">' + dl + '</datalist></div>' +
       '<textarea class="ajd-ta" id="ajdTexto" placeholder="Ex.: o cliente cobrou solução para o INV 2.3 e eu não sei o que responder..."></textarea>' +
-      '<div class="ajd-row" style="margin-top:8px"><button class="ajd-btn pri" id="ajdAnalisar">Me ajudar</button></div>';
+      '<div class="ajd-row" style="margin-top:8px"><button class="ajd-btn pri" id="ajdAnalisar">Me ajudar</button><button class="ajd-btn" id="ajdBiblio" type="button">📚 Biblioteca de equipamentos</button></div>';
+    document.getElementById('ajdBiblio').onclick = () => telaBiblioteca();
     document.getElementById('ajdCli').onchange = e => { estado.cliente = e.target.value; estado.temas = null; renderLista(); };
     document.getElementById('ajdHoras').onchange = e => { estado.horas = parseInt(e.target.value, 10); estado.temas = null; renderLista(); };
     document.getElementById('ajdBuscar').onclick = () => buscarTemas(true);
@@ -21083,6 +21160,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     if (f.mensagens_equipe != null) partes.push(f.mensagens_equipe + ' msgs do grupo da equipe' + (f.grupo_equipe ? ' (' + f.grupo_equipe + ')' : ''));
     partes.push((f.atividades || 0) + ' OS/atividades abertas', (f.ocorrencias || 0) + ' ocorrências abertas', (f.chamados || 0) + ' chamados abertos');
     const mid = (f.midias_cliente || 0) + (f.midias_equipe || 0);
+    if ((f.biblioteca || []).length) partes.push('fichas da biblioteca: ' + f.biblioteca.join(', '));
     h += '<div class="ajd-foot">Base: ' + E(partes.join(' · ')) + ' · janela de ' + E(f.horas) + ' h' + (mid ? ' · ' + mid + ' áudios/imagens/documentos não lidos' : '') +
       '<br>Confiança da IA: ' + E(r.confianca || '—') + ' · gerado em ' + E(d.geradoEm || '') + '. É uma orientação: confirme os fatos antes de agir ou responder ao cliente.</div>';
     h += '<div id="ajdConv"></div>';
