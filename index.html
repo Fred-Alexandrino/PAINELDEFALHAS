@@ -12258,7 +12258,24 @@ function _osRapidaDetectarUsina(txt, mapa) {
     });
   });
   const k = Object.keys(achados);
-  return k.length === 1 ? achados[k[0]] : null;
+  if (k.length === 1) return achados[k[0]];
+  if (k.length > 1) return null;
+  // Sigla: "NVL 01" -> Nova Londrina 1. Letras da sigla em ordem dentro do nome, mesma 1a letra, mesmo numero; so vale se houver UMA correspondencia.
+  const tt = _nexusNorm(txt);
+  const sig = {};
+  const re = /\b([a-z]{3,4})\s*-?\s*0*(\d{1,2})\b/g; let m;
+  while ((m = re.exec(tt))) {
+    (mapa || []).forEach(i => {
+      const kk = _nexusChaveUsina(i.usina); const mm = kk.match(/^(.*?)\s+(\d+)$/);
+      if (!mm || mm[2] !== String(Number(m[2]))) return;
+      const nome = mm[1].replace(/[^a-z]/g, ''); const s = m[1];
+      if (nome[0] !== s[0] || nome.length <= s.length) return;
+      let pos = 0; for (const c of s) { pos = nome.indexOf(c, pos); if (pos < 0) return; pos++; }
+      sig[i.cliente + '|' + i.usina] = i;
+    });
+  }
+  const ks = Object.keys(sig);
+  return ks.length === 1 ? sig[ks[0]] : null;
 }
 
 async function _gerarOSRapida() {
@@ -21328,4 +21345,3 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
-
