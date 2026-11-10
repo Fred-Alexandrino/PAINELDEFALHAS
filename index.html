@@ -20865,6 +20865,18 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 @keyframes ajdgira{to{transform:rotate(360deg);}}
 .ajd-err{border:1px solid var(--red);color:var(--red);border-radius:8px;padding:9px 11px;margin:8px 0;font-size:12.5px;}
 .ajd-aviso{font-size:12px;color:var(--amber);margin:4px 0;}
+.ajd-input{border-top:1px solid var(--border);background:var(--panel-alt);padding:8px 10px;flex-shrink:0;}
+.ajd-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.ajd-chip{border:1px solid var(--border-strong);background:transparent;color:var(--text-dim);border-radius:20px;padding:3px 10px;font:12px 'Geist',sans-serif;cursor:pointer;}
+.ajd-chip:hover{color:var(--text);border-color:var(--amber);}
+.ajd-inrow{display:flex;gap:8px;align-items:flex-end;}
+.ajd-inrow textarea{flex:1;resize:none;max-height:110px;background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font:13px 'Geist',sans-serif;box-sizing:border-box;}
+.ajd-msg{margin:10px 0 0;padding:8px 10px;border-radius:10px;font-size:13px;line-height:1.5;}
+.ajd-msg.user{background:var(--panel-alt);border:1px solid var(--border-strong);margin-left:28px;}
+.ajd-msg.model{border:1px solid var(--border);margin-right:12px;}
+.ajd-msg.load{color:var(--text-dim);font-style:italic;}
+.ajd-msg.erro{border:1px solid var(--red);color:var(--red);}
+.ajd-msg .ajd-ta{margin-top:8px;}
 .ajd-foot{font-size:11.5px;color:var(--text-dim);border-top:1px solid var(--border);margin-top:14px;padding-top:8px;}
 @media (max-width:520px){#ajudaPanel{right:10px;left:10px;width:auto;bottom:80px;}#ajudaBubble{right:14px;bottom:14px;}}
 @media(max-width:768px),(max-width:1024px) and (orientation:portrait){#ajudaBubble{bottom:76px;}#ajudaPanel{bottom:140px;}}
@@ -20880,6 +20892,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     <button class="ajd-x" id="ajdFechar" aria-label="Fechar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <div class="ajd-body" id="ajdCorpo"></div>
+  <div class="ajd-input" id="ajdInputRow" style="display:none">
+    <div class="ajd-chips" id="ajdChips"></div>
+    <div class="ajd-inrow"><textarea id="ajdMsg" rows="1" placeholder="Acrescente informações ou peça orientação…" maxlength="3000"></textarea><button class="ajd-btn pri" id="ajdEnviar">Enviar</button></div>
+  </div>
 </div>
 
 <script>
@@ -20889,7 +20905,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   const elPanel  = document.getElementById('ajudaPanel');
   const elCorpo  = document.getElementById('ajdCorpo');
   const elTitulo = document.getElementById('ajdTitulo');
-  let ocupado = false, primeiraVez = true, usinasLista = null;
+  let ocupado = false, primeiraVez = true, usinasLista = null, conv = null;
   let estado = { cliente: 'Thopen', horas: 48, temas: null, aviso: '' };
 
   function E(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -20927,8 +20943,43 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   }
   function carregando(txt){ elCorpo.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>' + E(txt) + '</span></div>'; }
 
+  /* ── conversa de acompanhamento (depois da análise) ───────────────── */
+  const CHIPS = ['Monte uma mensagem curta para o técnico com o que ele deve fazer agora.', 'Redija a resposta ao cliente considerando o que conversamos.', 'O que mais devo verificar ou cobrar antes de responder?'];
+  function mostrarEntrada(sim){
+    document.getElementById('ajdInputRow').style.display = sim ? 'block' : 'none';
+    if (!sim) conv = null;
+  }
+  function addMsg(tipo, texto, textoCopia){
+    const box = document.getElementById('ajdConv'); if (!box) return null;
+    const d = document.createElement('div'); d.className = 'ajd-msg ' + tipo;
+    d.innerHTML = E(texto).replace(/\n/g, '<br>');
+    if (textoCopia) {
+      const t = document.createElement('textarea'); t.className = 'ajd-ta'; t.rows = 6; t.value = textoCopia; d.appendChild(t);
+      const b = document.createElement('button'); b.className = 'ajd-btn pri sm'; b.type = 'button'; b.textContent = 'Copiar texto'; b.style.marginTop = '6px';
+      b.onclick = () => copiar(t.value, b); d.appendChild(b);
+    }
+    box.appendChild(d); elCorpo.scrollTop = elCorpo.scrollHeight; return d;
+  }
+  async function enviarMsg(textoPronto){
+    const el = document.getElementById('ajdMsg');
+    const msg = (textoPronto || el.value).trim();
+    if (!msg || !conv || ocupado) return;
+    ocupado = true; el.value = ''; el.style.height = 'auto';
+    const sessao = conv;
+    addMsg('user', msg); const ld = addMsg('load', 'Pensando…');
+    try {
+      const d = await chamar(Object.assign({}, sessao.corpo, { modo: 'conversar', mensagem: msg, historico: sessao.historico, analise_anterior: sessao.analise }));
+      if (conv !== sessao) { ocupado = false; return; }   // o Fred voltou/refez a análise enquanto esperava
+      ld.remove(); addMsg('model', d.resposta || '(sem resposta)', d.texto_para_copiar || '');
+      sessao.historico.push({ role: 'user', texto: msg }, { role: 'model', texto: (d.resposta || '') + (d.texto_para_copiar ? '\n[Texto sugerido]: ' + d.texto_para_copiar : '') });
+      if (sessao.historico.length > 20) sessao.historico = sessao.historico.slice(-20);
+    } catch (e) { if (conv === sessao) { ld.remove(); addMsg('erro', e.message); } }
+    ocupado = false;
+  }
+
   /* ── tela 1: temas do grupo + campo livre ─────────────────────────── */
   async function telaTemas(buscar, forcar){
+    mostrarEntrada(false);
     elTitulo.textContent = 'Ajuda — o que fazer agora';
     const usinas = await carregarUsinas();
     const dl = usinas.map(u => '<option value="' + E(u.usina) + '">').join('');
@@ -20992,6 +21043,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   async function analisar(corpo){
     if (ocupado) return; ocupado = true;
     elTitulo.textContent = 'Ajuda — ' + (corpo.usina || 'análise');
+    mostrarEntrada(false);
     carregando('Lendo conversas e cruzando com OS, ocorrências e chamados (até 1 min)…');
     try {
       const d = await chamar(Object.assign({ modo: 'analisar' }, corpo));
@@ -21028,7 +21080,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     const mid = (f.midias_cliente || 0) + (f.midias_equipe || 0);
     h += '<div class="ajd-foot">Base: ' + E(partes.join(' · ')) + ' · janela de ' + E(f.horas) + ' h' + (mid ? ' · ' + mid + ' áudios/imagens/documentos não lidos' : '') +
       '<br>Confiança da IA: ' + E(r.confianca || '—') + ' · gerado em ' + E(d.geradoEm || '') + '. É uma orientação: confirme os fatos antes de agir ou responder ao cliente.</div>';
+    h += '<div id="ajdConv"></div>';
     elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
+    conv = { corpo: corpo, analise: JSON.stringify(r).slice(0, 7000), historico: [] };
+    mostrarEntrada(true);
     document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
     document.getElementById('ajdRefazer').onclick = () => analisar(corpo);
     const ba = document.getElementById('ajdCopAcoes');
@@ -21036,6 +21091,13 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     const br = document.getElementById('ajdCopResp');
     if (br) br.onclick = () => copiar(document.getElementById('ajdResp').value, br);
   }
+
+  document.getElementById('ajdChips').innerHTML = CHIPS.map((c, i) => '<button type="button" class="ajd-chip" data-c="' + i + '">' + E(c.length > 38 ? c.slice(0, 36) + '…' : c) + '</button>').join('');
+  document.getElementById('ajdChips').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) enviarMsg(CHIPS[parseInt(b.dataset.c, 10)]); });
+  document.getElementById('ajdEnviar').addEventListener('click', () => enviarMsg());
+  const elMsg = document.getElementById('ajdMsg');
+  elMsg.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMsg(); } });
+  elMsg.addEventListener('input', () => { elMsg.style.height = 'auto'; elMsg.style.height = Math.min(elMsg.scrollHeight, 110) + 'px'; });
 
   /* ── abertura ─────────────────────────────────────────────────────── */
   window.abrirAjuda = function(opts){
