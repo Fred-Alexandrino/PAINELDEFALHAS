@@ -9869,9 +9869,13 @@ async function _enviarAoNexus(json) {
   try { p = JSON.parse(json); } catch (e) { showToast('Não consegui montar o pacote.', false); return; }
   const ctx = p.ctx || {}; delete p.ctx;
   let cliente = ctx.cliente || '', tecnico = '';
-  const usina = ctx.usina || '';
+  let usina = ctx.usina || '';
   try {
     const mapa = await _mapUfvsCarregar();
+    if (mapa && !usina) {
+      const it0 = _osRapidaDetectarUsina(p.titulo || '', mapa) || _osRapidaDetectarUsina((p.titulo || '') + ' ' + (p.observacao || ''), mapa);
+      if (it0) { usina = it0.usina; if (!cliente) cliente = it0.cliente; }
+    }
     if (mapa && usina) {
       const k = _nexusChaveUsina(usina);
       const cands = mapa.filter(i => _nexusChaveUsina(i.usina) === k);
@@ -12271,7 +12275,7 @@ function _osRapidaDetectarUsina(txt, mapa) {
   if (k.length > 1) return null;
   // Sigla: "NVL 01" -> Nova Londrina 1. Letras da sigla em ordem dentro do nome, mesma 1a letra, mesmo numero; so vale se houver UMA correspondencia.
   const tt = _nexusNorm(txt);
-  const sig = {};
+  const sig = {}, sigPri = {};
   const re = /\b([a-z]{3,4})\s*-?\s*0*(\d{1,2})\b/g; let m;
   while ((m = re.exec(tt))) {
     if (/^(inv|ufv|usi|inve|usin|tcu|nbr|os|pcm|cos|dc|ac)$/.test(m[1])) continue; // palavras comuns, nao sao sigla de usina
@@ -12282,8 +12286,11 @@ function _osRapidaDetectarUsina(txt, mapa) {
       if (nome[0] !== s[0] || nome.length <= s.length) return;
       let pos = 0; for (const c of s) { pos = nome.indexOf(c, pos); if (pos < 0) return; pos++; }
       sig[i.cliente + '|' + i.usina] = i;
+      if (/(?:ufv|usina|planta)\s*$/.test(tt.slice(Math.max(0, m.index - 8), m.index))) sigPri[i.cliente + '|' + i.usina] = i;
     });
   }
+  const kp = Object.keys(sigPri);
+  if (kp.length === 1) return sigPri[kp[0]];
   const ks = Object.keys(sig);
   return ks.length === 1 ? sig[ks[0]] : null;
 }
