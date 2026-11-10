@@ -4002,6 +4002,10 @@ Manutenção preventiva e corretiva.</textarea>
     </div>
     <div class="ch-body">
       <div id="osRapidaInputStep">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <select id="osRapidaUsina" title="Usina da OS (se vazio, tento achar pelo texto)" style="flex:2;min-width:190px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;"><option value="">Usina (se vazio, detecto pelo texto)</option></select>
+          <input type="text" id="osRapidaEquip" placeholder="Equipamento (ex.: Inversor 1.2)" style="flex:1;min-width:150px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text);font-size:12.5px;font-family:'Geist',sans-serif;">
+        </div>
         <textarea id="osRapidaInput" placeholder="Descreva o problema, cole anotações de campo, etc… (pode colar prints aqui com Ctrl+V)" rows="5" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:13px;line-height:1.6;font-family:'Geist',sans-serif;resize:vertical;"></textarea>
         <div id="osRapidaDrop" style="margin-top:8px;border:1px dashed var(--border);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel-alt);">
           <label for="osRapidaArquivos" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--text);font-family:'Geist',sans-serif;">
@@ -8848,6 +8852,7 @@ function _limparEquipOS(txt) {
 }
 
 function _gerarTextoOS(d) {
+  window._nexusCtxPend = d;
   const equipLimpo = _limparEquipOS(d.equipamento);
   const texto = _gerarTextoOSCore({ ...d, equipamento: equipLimpo });
   // Sem equipamento curto aproveitável, tira o sufixo " — equipamento"
@@ -9712,11 +9717,13 @@ function _dividirTextoOSAntigo(texto) {
   }
   subtarefas.push('Registro fotográfico da atividade');
   subtarefas.push('Ficou alguma pendência? Se sim, descreva');
-  return {
+  const _osLocal = {
     titulo: titulo || 'Ordem de Serviço',
     observacao: observacaoPartes.join(' '),
     subtarefas,
   };
+  if (window._nexusCtxPend) { _nexusTag([_osLocal], window._nexusCtxPend); window._nexusCtxPend = null; }
+  return _osLocal;
 }
 
 // Devolve a lista completa de OS (cada uma já separada em
@@ -9741,10 +9748,10 @@ async function _gerarTextosOSComIA(d, tentativa = 1) {
     });
     const result = await resp.json();
     if (!result.ok) throw new Error(result.error || 'Falha na geração via IA');
-    if (result.os && result.os.length) return result.os;
+    if (result.os && result.os.length) return _nexusTag(result.os, d);
     // compat: servidor antigo sem campo "os" ainda no ar
     const textos = result.textos && result.textos.length ? result.textos : [result.texto];
-    return textos.map(_dividirTextoOSAntigo);
+    return _nexusTag(textos.map(_dividirTextoOSAntigo), d);
   } catch (e) {
     // Timeout não repete: o backend já faz as próprias tentativas, e uma
     // 2ª chamada só dobraria a espera e a cota gasta.
@@ -9802,9 +9809,77 @@ function _htmlCamposOS(osList) {
           <button class="os-campo-copiar-todas" data-copy="${esc(subtarefasTextoCompleto)}" style="background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.3);color:var(--teal);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">Copiar todas</button>
         </div>
         <ul style="list-style:none;margin:0;padding:0;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:2px 10px;">${subtarefasHtml}</ul>
+        <button class="os-campo-nexus" data-nexus="${esc(JSON.stringify({ titulo, observacao, subtarefas, ctx: osItem._ctx || null }))}" title="Guarda este pacote para o script preencher a Solicitação no Nexus" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.35);color:var(--teal);border-radius:7px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;">Enviar ao Nexus</button>
       </div>
     `;
   }).join('');
+}
+
+// ── Nexus: classificações por tema (EDITE AQUI) ───────────────────────────────
+// A primeira regra que casar (no título + observação) define o tema e as 3
+// classificações da Solicitação do Nexus. Os textos de c1/grupo/c2 têm que ser
+// IGUAIS aos das listas do Nexus. Sem regra → padrão (c1 em branco: você escolhe).
+const _NEXUS_REGRAS = [
+  { nome: 'Substituição de inversor', re: /substitu|troca de inversor|trocar o inversor/, exigeInv: true,
+    tema: 'inversor_substituicao', c1: 'Leve (Não Parou o Ativo, mas Afetou a Eficiência)', grupo: 'Corretiva', c2: 'Redução na produção' },
+  { nome: 'Garantia de inversor', re: /garantia|\brma\b|fabricante/, exigeInv: true,
+    tema: 'inversor_garantia', c1: 'Moderado (Impacto Parcial no Ativo)', grupo: 'Corretiva', c2: 'Problema detectado' },
+  { nome: 'Inspeção/medição de inversor', re: /inspec|medic|megger|termograf|isolac/, exigeInv: true,
+    tema: 'inversor_inspecao', c1: 'Não Para o Ativo', grupo: 'Elétrica', c2: 'Problema detectado' },
+  { nome: 'Religamento', re: /religamento|religar/,
+    tema: '', c1: 'Para o Ativo', grupo: 'Religamento', c2: 'Necessidade urgente de intervenção' },
+];
+const _NEXUS_PADRAO = { nome: 'Padrão', tema: '', c1: '', grupo: 'Corretiva', c2: 'Problema detectado' };
+
+function _nexusNorm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+// "Nova Londrina I" / "Thopen - Nova Londrina 1 - PR" / "Linhares 1 (Axis)" → "nova londrina 1"
+function _nexusChaveUsina(s) {
+  let t = _nexusNorm(s).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  const m = t.match(/^.+? - (.+) - [a-z]{2}$/); if (m) t = m[1];
+  const R = { i: '1', ii: '2', iii: '3', iv: '4', v: '5', vi: '6', vii: '7', viii: '8', ix: '9', x: '10' };
+  return t.split(' ').map(w => R[w] || w).join(' ').trim();
+}
+function _nexusClassificar(titulo, observacao) {
+  const t = _nexusNorm((titulo || '') + ' ' + (observacao || ''));
+  const temInv = /inversor/.test(t);
+  for (const r of _NEXUS_REGRAS) if (r.re.test(t) && (!r.exigeInv || temInv)) return r;
+  return _NEXUS_PADRAO;
+}
+// Marca cada OS gerada com de onde ela veio (cliente/usina/equipamento).
+function _nexusTag(lista, d) {
+  const ctx = { cliente: (d && d.cliente) || '', usina: (d && d.usina) || '',
+    equipamento: (d && d._equipNexus != null) ? d._equipNexus : ((d && d.equipamento) || '') };
+  (lista || []).forEach(o => { if (o && typeof o === 'object') o._ctx = ctx; });
+  return lista;
+}
+
+// Monta o pacote completo e entrega ao script "Grid OS → Nexus".
+// Caminho 1: postMessage (o script guarda). Caminho 2 (reserva): área de transferência.
+async function _enviarAoNexus(json) {
+  let p;
+  try { p = JSON.parse(json); } catch (e) { showToast('Não consegui montar o pacote.', false); return; }
+  const ctx = p.ctx || {}; delete p.ctx;
+  let cliente = ctx.cliente || '', tecnico = '';
+  const usina = ctx.usina || '';
+  try {
+    const mapa = await _mapUfvsCarregar();
+    if (mapa && usina) {
+      const k = _nexusChaveUsina(usina);
+      const cands = mapa.filter(i => _nexusChaveUsina(i.usina) === k);
+      const it = cands.find(i => _nexusNorm(i.cliente) === _nexusNorm(cliente)) || cands[0];
+      if (it) { tecnico = it.responsavel || ''; if (!cliente) cliente = it.cliente || ''; }
+    }
+  } catch (e) {}
+  const r = _nexusClassificar(p.titulo, p.observacao);
+  const pacote = Object.assign({}, p, {
+    cliente, usina, equipamento: ctx.equipamento || '', tecnico,
+    tema: r.tema, regra: r.nome, classif: { c1: r.c1, grupo: r.grupo, c2: r.c2 }, ts: Date.now(),
+  });
+  try { window.postMessage({ gridosNexus: pacote }, location.origin); } catch (e) {}
+  const txt = 'GRIDOS_NEXUS::' + JSON.stringify(pacote);
+  const resumo = [usina || 'usina não identificada', ctx.equipamento, tecnico && ('técnico ' + tecnico)].filter(Boolean).join(' · ');
+  const ok = () => showToast('Pacote pronto (' + resumo + '). No Nexus, clique em "Preencher do dashboard".', true);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(ok); else ok();
 }
 
 // Delegação de clique única pros botões "copiar" dentro de qualquer
@@ -9814,6 +9889,8 @@ function _wireCopiaCamposOS(container) {
   if (!container || container._osCopyWired) return;
   container._osCopyWired = true;
   container.addEventListener('click', (e) => {
+    const nx = e.target.closest('[data-nexus]');
+    if (nx) { _enviarAoNexus(nx.dataset.nexus); return; }
     const btn = e.target.closest('[data-copy]');
     if (!btn) return;
     const txt = btn.dataset.copy || '';
@@ -12154,8 +12231,34 @@ function _openElaborarOS() {
   document.getElementById('osRapidaError').style.display = 'none';
   const input = document.getElementById('osRapidaInput');
   if (input) input.value = '';
+  const _eq = document.getElementById('osRapidaEquip'); if (_eq) _eq.value = '';
+  _osRapidaPopularUsinas();
   _osRapidaImagens = [];
   _osRapidaRenderThumbs();
+}
+
+// Lista de usinas do mapeamento oficial no seletor do modal.
+async function _osRapidaPopularUsinas() {
+  const sel = document.getElementById('osRapidaUsina'); if (!sel) return;
+  const mapa = await _mapUfvsCarregar().catch(() => null);
+  sel.length = 1; sel.value = '';
+  (mapa || []).slice().sort((a, b) => String(a.usina).localeCompare(String(b.usina), 'pt'))
+    .forEach(i => { const o = document.createElement('option'); o.value = i.cliente + '|' + i.usina; o.textContent = i.usina + ' · ' + i.cliente; sel.appendChild(o); });
+}
+// Acha a usina do mapeamento citada no texto (só se for uma só, sem ambiguidade).
+function _osRapidaDetectarUsina(txt, mapa) {
+  const t = ' ' + _nexusNorm(txt).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  let melhor = 0, achados = {};
+  (mapa || []).forEach(i => {
+    [_nexusChaveUsina(i.usina), _nexusNorm(i.usina).replace(/\([^)]*\)/g, '').trim()].forEach(v => {
+      const n = v.replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (n.length < 4 || t.indexOf(' ' + n + ' ') < 0) return;
+      if (n.length > melhor) { melhor = n.length; achados = {}; }
+      if (n.length === melhor) achados[i.cliente + '|' + i.usina] = i;
+    });
+  });
+  const k = Object.keys(achados);
+  return k.length === 1 ? achados[k[0]] : null;
 }
 
 async function _gerarOSRapida() {
@@ -12174,6 +12277,18 @@ async function _gerarOSRapida() {
     usina: '',
     imagens,
   };
+  // Contexto para o Nexus (usina escolhida, ou detectada no texto; equipamento digitado ou achado no texto)
+  try {
+    const selU = document.getElementById('osRapidaUsina');
+    const mapa = await _mapUfvsCarregar().catch(() => null);
+    let it = null;
+    if (selU && selU.value) { const [c, u] = selU.value.split('|'); it = (mapa || []).find(i => i.cliente === c && i.usina === u) || null; }
+    if (!it && txt) { it = _osRapidaDetectarUsina(txt, mapa); if (it) showToast('Usina detectada: ' + it.usina + ' (' + it.cliente + ')', true); }
+    if (it) { pseudo.usina = it.usina; pseudo.cliente = it.cliente; }
+    const eqIn = (document.getElementById('osRapidaEquip')?.value || '').trim();
+    const mInv = txt.match(/inversor\s*(\d+(?:\.\d+)?)/i);
+    pseudo._equipNexus = eqIn || (mInv ? 'Inversor ' + mInv[1] : '');
+  } catch (e) { pseudo._equipNexus = ''; }
 
   const inputStep = document.getElementById('osRapidaInputStep');
   const loading = document.getElementById('osRapidaLoading');
