@@ -7983,6 +7983,7 @@ function applyFilters() {
   if (_activeNav === 'processos' && typeof zelRender === 'function') zelRender();
   if (_activeNav === 'localizacao' && typeof _locRender === 'function') _locRender();
   if (_activeNav === 'anotacoes') renderAnotacoesLista();
+  if (_activeNav === 'ocorrencias' && window.OC && OC.filtrosLaterais) OC.filtrosLaterais();
   if (_activeNav === 'comunicados' && _comTabAtual === 'sobreaviso' && typeof _sobreavisoBlocoAtual === 'number') {
     if (typeof _sobreavisoCarregarGrupos === 'function') _sobreavisoCarregarGrupos();
     const confResult = document.getElementById('sobreavisoConferenciaResult');
@@ -20435,8 +20436,27 @@ function _pontoCopiarComunicado(id, btn) {
   const rcLer = id => { try { return JSON.parse(localStorage.getItem('ocRc:' + id) || 'null'); } catch (e) { return null; } };
   const rcSalvar = (id, v) => { try { localStorage.setItem('ocRc:' + id, JSON.stringify(v)); } catch (e) {} };
   const rcCli = x => x.cliente || 'Sem cliente';
-  function rcClientes() { const m = {}; ITENS.forEach(x => { if (x.status !== 'Finalizado') m[rcCli(x)] = (m[rcCli(x)] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a]).map(k => [k, m[k]]); }
-  function rcLista() { return ITENS.filter(x => x.status !== 'Finalizado' && rcCli(x) === RC.cli).sort((a, b) => (b.parado || 0) - (a.parado || 0)); }
+  const rcN = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  function rcLateral() {
+    const cl = typeof selCliente !== 'undefined' ? selCliente : new Set(), us = typeof selUsinaValues !== 'undefined' ? selUsinaValues : new Set();
+    const cluster = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro) ? _ativClusterFiltro : '';
+    return { cl, us, cluster, ativo: cl.size > 0 || us.size > 0 || !!cluster,
+      clN: new Set([...cl].map(rcN)), usN: new Set([...us].map(rcN)),
+      map: cluster && typeof _usinaClusterMap === 'function' ? _usinaClusterMap() : null };
+  }
+  function rcPassaLateral(x, f) {
+    if (f.clN.size && !f.clN.has(rcN(x.cliente))) return false;
+    if (f.usN.size && !f.usN.has(rcN(x.usina))) return false;
+    if (f.map) {
+      let c = f.map[x.usina];
+      if (c === undefined) { const k = Object.keys(f.map).find(u => rcN(u) === rcN(x.usina)); c = k ? f.map[k] : undefined; }
+      if (c !== f.cluster) return false;
+    }
+    return true;
+  }
+  const rcAbertas = () => { const f = rcLateral(); return ITENS.filter(x => x.status !== 'Finalizado' && rcPassaLateral(x, f)); };
+  function rcClientes() { const m = {}; rcAbertas().forEach(x => { m[rcCli(x)] = (m[rcCli(x)] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a]).map(k => [k, m[k]]); }
+  function rcLista() { return rcAbertas().filter(x => RC.cli === '*' || rcCli(x) === RC.cli).sort((a, b) => (b.parado || 0) - (a.parado || 0)); }
   function rcSec(tit, arr, fn) { return arr && arr.length ? `<h4 style="margin:12px 0 4px;font-size:13px">${tit}</h4><ul style="margin:0;padding-left:18px">${arr.map(fn).join('')}</ul>` : ''; }
   const rcBase = b => `<span class="oc-hint" style="display:block;font-size:12px"> Base: ${esc(b)}</span>`;
   function rcTexto(x, r) {
@@ -20483,20 +20503,22 @@ function _pontoCopiarComunicado(id, btn) {
     const n = (x.hist || []).length;
     return `<div data-open="${esc(x.id)}" tabindex="0" role="button" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin:0 0 6px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer">
       <b style="min-width:70px">${esc(x.id)}</b><span style="flex:1;min-width:220px"><b>${esc(x.usina)}</b> · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}<span class="oc-hint" style="display:block;font-size:12.5px">${esc(x.titulo || x.causa || '')}</span></span>
-      <span class="oc-chip">${esc(x.status)}</span><span class="oc-hint" style="min-width:110px">${x.parado != null ? 'parada há ' + x.parado + ' d' : ''} · ${n} reg.</span>${marca}
+      ${RC.cli === '*' ? `<span class="oc-hint">${esc(rcCli(x))}</span>` : ''}<span class="oc-chip">${esc(x.status)}</span><span class="oc-hint" style="min-width:110px">${x.parado != null ? 'parada há ' + x.parado + ' d' : ''} · ${n} reg.</span>${marca}
       <button class="oc-btn sm${r ? '' : ' pri'}" type="button" data-rc="gerar" data-id="${esc(x.id)}"${RC.gerando ? ' disabled' : ''}>${r ? 'Gerar de novo' : 'Gerar'}</button></div>`;
   }
   function renderRc() {
     const el = $('#ocVRc'); if (!el) return;
-    const cls = rcClientes(); if (!RC.cli || !cls.some(c => c[0] === RC.cli)) RC.cli = (cls.find(c => c[0] === 'Thopen') || cls[0] || [''])[0];
+    const cls = rcClientes(), lat = rcLateral(), totalAb = cls.reduce((t, c) => t + c[1], 0);
+    if (!RC.cli || (RC.cli !== '*' && !cls.some(c => c[0] === RC.cli))) RC.cli = (lat.ativo || cls.length === 1) ? '*' : (cls.find(c => c[0] === 'Thopen') || cls[0] || ['*'])[0];
     const L = rcLista(), feitas = L.filter(x => rcLer(x.id)).length;
     el.innerHTML = `<section class="oc-filtros"><div class="oc-frow"><label for="rcCli" class="oc-hint">Cliente</label>
-      <select id="rcCli" aria-label="Cliente">${cls.map(c => `<option value="${esc(c[0])}"${c[0] === RC.cli ? ' selected' : ''}>${esc(c[0])} (${c[1]})</option>`).join('')}</select>
+      <select id="rcCli" aria-label="Cliente"><option value="*"${RC.cli === '*' ? ' selected' : ''}>Todos (${totalAb})</option>${cls.map(c => `<option value="${esc(c[0])}"${c[0] === RC.cli ? ' selected' : ''}>${esc(c[0])} (${c[1]})</option>`).join('')}</select>
       <button class="oc-btn pri" type="button" data-rc="${RC.gerando ? 'parar' : 'todas'}">${RC.gerando ? 'Parar' : 'Gerar de todas as abertas'}</button>
       <button class="oc-btn" type="button" data-rc="copiar-todas"${feitas ? '' : ' disabled'}>Copiar roteiro completo</button>
       <span class="oc-hint">${feitas} de ${L.length} geradas${RC.msg ? ' · ' + esc(RC.msg) : ''}</span></div>
+      ${lat.ativo ? `<p class="oc-hint" style="margin:8px 0 0;color:var(--cyan,var(--text-dim))">Filtros da barra lateral ativos:${lat.cl.size ? ' cliente ' + esc([...lat.cl].join(', ')) + ';' : ''}${lat.us.size ? ' usina ' + esc([...lat.us].join(', ')) + ';' : ''}${lat.cluster ? ' cluster ' + esc(lat.cluster) + ';' : ''} mostrando ${L.length} ocorrência(s) aberta(s).</p>` : ''}
       <p class="oc-hint" style="margin:8px 0 0">Clique em uma ocorrência para abrir tudo sobre ela (histórico, OS, plano, suas anotações) e ver os argumentos. Cada ponto vem com a evidência (data, OS ou campo da ocorrência). A IA só recebe o registro da ocorrência, o histórico, as OS vinculadas, o plano de ação e as suas notas internas; o que não consta vira "confirmar antes da reunião". A base enviada fica disponível em cada cartão.</p></section>
-      <div id="rcOut">${L.map(rcLinha).join('') || '<p class="oc-hint">Nenhuma ocorrência aberta para este cliente.</p>'}</div>`;
+      <div id="rcOut">${L.map(rcLinha).join('') || '<p class="oc-hint">Nenhuma ocorrência aberta para os filtros atuais.</p>'}</div>`;
   }
   function rcRedesenha() { if (aba === 'rc') renderRc(); if (aberto && modo === 'ver' && $('#rcGav')) { const st = dr.querySelector('.oc-dbody').scrollTop; desenharGaveta(); dr.querySelector('.oc-dbody').scrollTop = st; } }
   async function rcGerar(id) {
@@ -21040,6 +21062,7 @@ function _pontoCopiarComunicado(id, btn) {
     novo() { iniciar(); if (!carregado) carregar(false).then(novo); else novo(); },
     abrir(id) { iniciar(); const go = () => { if (ITENS.find(x => x.id === id)) { abrir(id); } }; carregado ? go() : carregar(false).then(go); },
     itens: () => ITENS,
+    filtrosLaterais() { if (carregado && aba === 'rc') renderRc(); },
     abertas: () => ITENS.filter(x => x.status !== 'Finalizado').length,
   };
 })();
