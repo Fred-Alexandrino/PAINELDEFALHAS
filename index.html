@@ -20193,7 +20193,7 @@ function _pontoCopiarComunicado(id, btn) {
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
       <button class="oc-btn sm" type="button" data-oc="ajuda">Ajuda: o que fazer</button>
       <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
-      <button class="oc-btn sm" type="button" data-oc="singrid"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Texto p/ Singrid (chamado)</button>
+      <button class="oc-btn sm" type="button" data-oc="singrid"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Texto p/ time de chamados</button>
       <button class="oc-btn sm" type="button" data-oc="os-solicitar"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
       ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
       ${x.status === 'Em andamento' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Pausado">Pausar</button>' : ''}${x.status === 'Pausado' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Retomar</button>' : ''}
@@ -20434,7 +20434,7 @@ function _pontoCopiarComunicado(id, btn) {
   }
 
 
-  /* ── Texto para o time da Singrid: inspeções feitas, chamado a abrir, OS de abertura já feita via Nexus ── */
+  /* ── Texto para o time de chamados: inspeções feitas, chamado a abrir, OS de abertura já feita via Nexus ── */
   let sgEl = null, sg = null;
   function sgTexto(x, extra) {
     const nums = String(x.os || '').split(/[,;/\s]+/).filter(Boolean);
@@ -20447,7 +20447,7 @@ function _pontoCopiarComunicado(id, btn) {
     });
     const h = new Date().getHours(), sd = h < 12 ? 'Bom dia' : (h < 18 ? 'Boa tarde' : 'Boa noite');
     const eq = `${x.equip || 'equipamento'}${x.nequip ? ' ' + x.nequip : ''}`;
-    const L = [`${sd}, time da Singrid.`, '',
+    const L = [`${sd}, time de chamados.`, '',
       `Realizamos as inspeções referentes a ${eq} da UFV ${x.usina}${x.cliente ? ' (' + x.cliente + ')' : ''} e será necessário abrir chamado${x.fab ? ' junto à ' + x.fab : ' junto ao fabricante'}.`, '',
       `Ocorrência: ${x.id} — ${x.titulo || x.causa || ''}`];
     if (x.causa && x.titulo && x.causa !== x.titulo) L.push(`Descrição: ${x.causa}`);
@@ -20465,8 +20465,8 @@ function _pontoCopiarComunicado(id, btn) {
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && sgEl.classList.contains('on')) { e.stopPropagation(); sgEl.classList.remove('on'); } }, true);
     }
     sg = { id, x, editado: false };
-    sgEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Texto para a Singrid">
-      <header><strong>Texto para o time da Singrid — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-s="fechar">Fechar</button></header>
+    sgEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Texto para o time de chamados">
+      <header><strong>Texto para o time de chamados — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-s="fechar">Fechar</button></header>
       <div class="oc-mbody"><div class="oc-mcol" style="grid-column:1/-1">
         <label class="t" for="sgRes"><span>Resultado das inspeções (opcional, entra no texto)</span></label>
         <input type="text" id="sgRes" maxlength="500" placeholder="Ex.: TCU sem comunicação, fusível trocado e sem retorno">
@@ -20483,7 +20483,7 @@ function _pontoCopiarComunicado(id, btn) {
       try { await navigator.clipboard.writeText(t); } catch (err) { const ta = $('#sgTxt'); ta.select(); try { document.execCommand('copy'); } catch (e2) { toast('Não consegui copiar automaticamente.', false); return; } }
       toast('Texto copiado — cole no WhatsApp.');
       if ($('#sgReg').checked) {
-        try { const r = await api('/ocorrencias/historico/salvar', { ocorrencia: sg.id, data: hojeIso(), texto: 'Texto de abertura de chamado enviado ao time da Singrid (OS de abertura de chamado já feita via Nexus).' }); aplicarItem(r.item); render(); if (aberto === sg.id && modo === 'ver') desenharGaveta(); }
+        try { const r = await api('/ocorrencias/historico/salvar', { ocorrencia: sg.id, data: hojeIso(), texto: 'Texto de abertura de chamado enviado ao time de chamados (OS de abertura de chamado já feita via Nexus).' }); aplicarItem(r.item); render(); if (aberto === sg.id && modo === 'ver') desenharGaveta(); }
         catch (err) { toast('Copiado, mas não consegui registrar no histórico: ' + err.message, false); }
       }
     }
