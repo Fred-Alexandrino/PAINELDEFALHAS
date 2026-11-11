@@ -20445,13 +20445,18 @@ function _pontoCopiarComunicado(id, btn) {
       clN: new Set([...cl].map(rcN)), usN: new Set([...us].map(rcN)),
       map: cluster && typeof _usinaClusterMap === 'function' ? _usinaClusterMap() : null };
   }
+  /* usina composta ("Aparecida do Taboado I e II") vale para cada uma das usinas citadas */
+  function rcUsinas(u) {
+    const t = String(u || '').trim(), m = t.match(/^(.*?)\s+([IVX]+|\d+)\s+e\s+([IVX]+|\d+)$/i);
+    return m ? [t, m[1] + ' ' + m[2], m[1] + ' ' + m[3]] : [t];
+  }
   function rcPassaLateral(x, f) {
     if (f.clN.size && !f.clN.has(rcN(x.cliente))) return false;
-    if (f.usN.size && !f.usN.has(rcN(x.usina))) return false;
+    const vs = rcUsinas(x.usina);
+    if (f.usN.size && !vs.some(v => f.usN.has(rcN(v)))) return false;
     if (f.map) {
-      let c = f.map[x.usina];
-      if (c === undefined) { const k = Object.keys(f.map).find(u => rcN(u) === rcN(x.usina)); c = k ? f.map[k] : undefined; }
-      if (c !== f.cluster) return false;
+      const ok = vs.some(v => { let c = f.map[v]; if (c === undefined) { const k = Object.keys(f.map).find(u => rcN(u) === rcN(v)); c = k ? f.map[k] : undefined; } return c === f.cluster; });
+      if (!ok) return false;
     }
     return true;
   }
