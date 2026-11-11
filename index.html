@@ -11559,14 +11559,20 @@ async function _seImportar(input) {
 // Chrome do Fred (onde ele já está logado) e guarda o snapshot; este botão pede o snapshot
 // ao script (postMessage) e envia ao servidor (POST /chamados-nexus/importar).
 function _nexusPedirChamados() {
+  // O script do Tampermonkey deixa a leitura num <script type="application/json" id="gridos-chamados">
+  // dentro desta página (o DOM é compartilhado; postMessage entre o script e a página falhava).
   return new Promise(res => {
-    const t = setTimeout(() => { window.removeEventListener('message', h); res(null); }, 2500);
-    function h(ev) {
-      if (ev.source !== window || !ev.data || !('gridosChamados' in ev.data)) return;
-      clearTimeout(t); window.removeEventListener('message', h); res(ev.data.gridosChamados || { vazio: true });
-    }
-    window.addEventListener('message', h);
-    window.postMessage({ gridosPedido: 'chamados' }, location.origin);
+    const fim = Date.now() + 3000;
+    (function olhar() {
+      const el = document.getElementById('gridos-chamados');
+      if (el && el.getAttribute('data-pronto') === '1') {
+        let snap = null;
+        try { snap = JSON.parse(el.textContent || 'null'); } catch (e) {}
+        return res(snap || { vazio: true });
+      }
+      if (Date.now() > fim) return res(null);
+      setTimeout(olhar, 200);
+    })();
   });
 }
 async function _nexusAtualizarChamados() {
