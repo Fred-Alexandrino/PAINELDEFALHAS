@@ -20201,6 +20201,7 @@ function _pontoCopiarComunicado(id, btn) {
     dr.innerHTML = `<header><div class="oc-kicker">${cabecalhoStatus(x, col)}<button class="oc-btn sm x" type="button" data-oc="fechar">Fechar</button></div><h2><span class="oc-cid">${esc(x.id)}</span>${esc(tit(x))}</h2>${botoes}</header>
     <div class="oc-dbody"><dl class="oc-kv">${(x.titulo && x.titulo.trim() && x.titulo.trim() !== x.causa) ? kv('Descrição', x.causa) : ''}${kv('Usina', x.usina)}${kv('Cliente', x.cliente)}${kv('Equipamento', x.equip)}${kv('Identificação', x.nequip)}${kv('Fabricante', x.fab)}${kv('OS (Fracttal)', x.os)}${kv('Nº do chamado', x.chamado)}${kv('SN / MAC', x.sn)}${kv('Impacto', x.impacto)}${kv('Início', dmy(x.inicio))}${x.fim ? kv('Fim', dmy(x.fim)) : ''}${kv('Duração', tempo)}${kv('Última atualização', x.ult ? dmy(x.ult) : '')}${kv('Responsável', x.resp)}</dl>
     ${osAnexos(x)}
+    ${rcGaveta(x)}
     ${notasHtml}
     <h3>Histórico <span class="sub">${plural((x.hist || []).length, 'registro', 'registros')}</span>${(x.hist || []).length > 1 ? `<button type="button" class="oc-btn sm" data-oc="ordem">${ordemHist === 'novo' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}</button>` : ''}</h3>${addHist}${tl}</div>`;
     abrirVisual();
@@ -20449,7 +20450,7 @@ function _pontoCopiarComunicado(id, btn) {
     sec('CONFIRMAR ANTES DA REUNIÃO', p.lacunas, i => i);
     return L.join('\n').trim();
   }
-  function rcCard(x) {
+  function rcCorpo(x) {
     const r = rcLer(x.id), car = RC.carga[x.id];
     const velha = r && (r.ultimoRegistro || '') !== (x.ult || '');
     let corpo = '';
@@ -20466,11 +20467,24 @@ function _pontoCopiarComunicado(id, btn) {
         ${rcSec('Perguntas prováveis do cliente', p.perguntas_provaveis, i => `<li><b>${esc(i.pergunta)}</b><br>${esc(i.resposta)}${rcBase(i.base)}</li>`)}
         ${rcSec('Confirmar antes da reunião (falta no registro)', p.lacunas, i => `<li>${esc(i)}</li>`)}
         <details style="margin-top:10px"><summary class="oc-hint" style="cursor:pointer">Base enviada à IA (para conferir) · gerado em ${esc((r.geradoEm || '').replace('T', ' ').slice(0, 16))}${p._removidos ? ' · ' + p._removidos + ' item(ns) sem evidência removido(s)' : ''}</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${esc(r.base)}</pre></details>`;
-    }
-    return `<article class="oc-card" style="margin:0 0 12px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel)">
-      <header style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</b><span class="oc-chip">${esc(x.status)}</span><span class="oc-hint">${x.parado != null ? 'sem atualização há ' + x.parado + ' d' : ''}</span><span class="grow" style="flex:1"></span>
-        ${r ? `<button class="oc-btn sm" type="button" data-rc="copiar" data-id="${esc(x.id)}">Copiar</button>` : ''}<button class="oc-btn sm${r ? '' : ' pri'}" type="button" data-rc="gerar" data-id="${esc(x.id)}"${RC.gerando ? ' disabled' : ''}>${r ? 'Gerar de novo' : 'Gerar argumentos'}</button></header>
-      <p style="margin:6px 0 0;color:var(--text-dim)">${esc(x.titulo || x.causa || '')}</p>${corpo}</article>`;
+    } else if (!r && !car) corpo = '<p class="oc-hint">Ainda não gerado. Use "Gerar argumentos".</p>';
+    return corpo;
+  }
+  /* seção dentro da gaveta da ocorrência */
+  function rcGaveta(x) {
+    if (!ehFred() || x.status === 'Finalizado') return '';
+    const r = rcLer(x.id);
+    return `<h3>Preparo para reunião com o cliente</h3><div class="oc-box" id="rcGav">
+      <div class="oc-nrow" style="margin:0 0 8px">${r ? '<button class="oc-btn sm" type="button" data-oc="rc-copiar">Copiar</button>' : ''}<button class="oc-btn sm${r ? '' : ' pri'}" type="button" data-oc="rc-gerar"${RC.carga[x.id] === 'gerando' ? ' disabled' : ''}>${r ? 'Gerar de novo' : 'Gerar argumentos'}</button></div>${rcCorpo(x)}</div>`;
+  }
+  function rcLinha(x) {
+    const r = rcLer(x.id), car = RC.carga[x.id], velha = r && (r.ultimoRegistro || '') !== (x.ult || '');
+    const marca = car === 'gerando' ? '<span class="oc-chip">gerando…</span>' : (r ? `<span class="oc-chip" style="${velha ? 'color:var(--amber)' : 'color:var(--green)'}">${velha ? 'argumentos desatualizados' : 'argumentos prontos'}</span>` : '');
+    const n = (x.hist || []).length;
+    return `<div data-open="${esc(x.id)}" tabindex="0" role="button" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin:0 0 6px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer">
+      <b style="min-width:70px">${esc(x.id)}</b><span style="flex:1;min-width:220px"><b>${esc(x.usina)}</b> · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}<span class="oc-hint" style="display:block;font-size:12.5px">${esc(x.titulo || x.causa || '')}</span></span>
+      <span class="oc-chip">${esc(x.status)}</span><span class="oc-hint" style="min-width:110px">${x.parado != null ? 'parada há ' + x.parado + ' d' : ''} · ${n} reg.</span>${marca}
+      <button class="oc-btn sm${r ? '' : ' pri'}" type="button" data-rc="gerar" data-id="${esc(x.id)}"${RC.gerando ? ' disabled' : ''}>${r ? 'Gerar de novo' : 'Gerar'}</button></div>`;
   }
   function renderRc() {
     const el = $('#ocVRc'); if (!el) return;
@@ -20481,14 +20495,15 @@ function _pontoCopiarComunicado(id, btn) {
       <button class="oc-btn pri" type="button" data-rc="${RC.gerando ? 'parar' : 'todas'}">${RC.gerando ? 'Parar' : 'Gerar de todas as abertas'}</button>
       <button class="oc-btn" type="button" data-rc="copiar-todas"${feitas ? '' : ' disabled'}>Copiar roteiro completo</button>
       <span class="oc-hint">${feitas} de ${L.length} geradas${RC.msg ? ' · ' + esc(RC.msg) : ''}</span></div>
-      <p class="oc-hint" style="margin:8px 0 0">Cada ponto vem com a evidência (data, OS ou campo da ocorrência). A IA só recebe o registro da ocorrência, o histórico, as OS vinculadas, o plano de ação e as suas notas internas; o que não consta vira "confirmar antes da reunião". A base enviada fica disponível em cada cartão.</p></section>
-      <div id="rcOut">${L.map(rcCard).join('') || '<p class="oc-hint">Nenhuma ocorrência aberta para este cliente.</p>'}</div>`;
+      <p class="oc-hint" style="margin:8px 0 0">Clique em uma ocorrência para abrir tudo sobre ela (histórico, OS, plano, suas anotações) e ver os argumentos. Cada ponto vem com a evidência (data, OS ou campo da ocorrência). A IA só recebe o registro da ocorrência, o histórico, as OS vinculadas, o plano de ação e as suas notas internas; o que não consta vira "confirmar antes da reunião". A base enviada fica disponível em cada cartão.</p></section>
+      <div id="rcOut">${L.map(rcLinha).join('') || '<p class="oc-hint">Nenhuma ocorrência aberta para este cliente.</p>'}</div>`;
   }
+  function rcRedesenha() { if (aba === 'rc') renderRc(); if (aberto && modo === 'ver' && $('#rcGav')) { const st = dr.querySelector('.oc-dbody').scrollTop; desenharGaveta(); dr.querySelector('.oc-dbody').scrollTop = st; } }
   async function rcGerar(id) {
-    RC.carga[id] = 'gerando'; const antes = $('#ocVRc').scrollTop; renderRc();
+    RC.carga[id] = 'gerando'; rcRedesenha();
     try { const r = await api('/ocorrencias/reuniao/gerar', { id }); rcSalvar(id, r); delete RC.carga[id]; }
     catch (e) { RC.carga[id] = 'Não foi possível gerar: ' + e.message; }
-    renderRc();
+    rcRedesenha();
   }
   async function rcTodas() {
     RC.gerando = true; RC.parar = false; renderRc();
@@ -20500,7 +20515,7 @@ function _pontoCopiarComunicado(id, btn) {
     RC.gerando = false; RC.msg = RC.parar ? 'interrompido' : 'concluído'; renderRc();
   }
   function rcClick(e) {
-    const b = e.target.closest('[data-rc]'); if (!b) return; const a = b.dataset.rc, id = b.dataset.id;
+    const b = e.target.closest('[data-rc]'); if (!b) { const o = e.target.closest('[data-open]'); if (o) abrir(o.dataset.open); return; } const a = b.dataset.rc, id = b.dataset.id;
     if (a === 'gerar') rcGerar(id);
     else if (a === 'todas') rcTodas();
     else if (a === 'parar') { RC.parar = true; }
@@ -20509,6 +20524,10 @@ function _pontoCopiarComunicado(id, btn) {
       const t = ids.map(i => { const x = ITENS.find(y => y.id === i), r = rcLer(i); return x && r ? rcTexto(x, r) : ''; }).filter(Boolean).join('\n\n----------------------------------------\n\n');
       (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado.'), () => toast('Não foi possível copiar.', false));
     }
+  }
+  function rcCopiar(ids) {
+    const t = ids.map(i => { const x = ITENS.find(y => y.id === i), r = rcLer(i); return x && r ? rcTexto(x, r) : ''; }).filter(Boolean).join('\n\n----------------------------------------\n\n');
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado.'), () => toast('Não foi possível copiar.', false));
   }
   function rcChange(e) { if (e.target.id === 'rcCli') { RC.cli = e.target.value; renderRc(); } }
 
@@ -20615,7 +20634,7 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocOut').addEventListener('drop', e => { const col = e.target.closest && e.target.closest('[data-col]'); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); document.querySelectorAll('.oc-dropover').forEach(n => n.classList.remove('oc-dropover')); if (id) moverStatus(id, col.dataset.col); });
     document.addEventListener('click', e => { const d = $('#ocDdUsina'); if (d && d.open && !d.contains(e.target)) d.open = false; });
     $('#ocTabOc').onclick = () => setAba('oc'); $('#ocTabPl').onclick = () => setAba('pl'); $('#ocTabRc').onclick = () => setAba('rc');
-    $('#ocVRc').addEventListener('click', rcClick); $('#ocVRc').addEventListener('change', rcChange);
+    $('#ocVRc').addEventListener('click', rcClick); $('#ocVRc').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.open) { e.preventDefault(); abrir(e.target.dataset.open); } }); $('#ocVRc').addEventListener('change', rcChange);
     $('#ocExp').onclick = exportar;
     $('#ocNovo').onclick = novo;
     $('#ocPq').oninput = () => renderPlano();
@@ -20646,6 +20665,8 @@ function _pontoCopiarComunicado(id, btn) {
       else if (a === 'plano-add') { const x = aberto; salvarPlanoLinha(x, { acao: '', resp: '', prazo: '', sit: 'A fazer' }).then(render); }
       else if (a === 'plano-rem') planoRemover(aberto);
       else if (a === 'comunicado') abrirComunicado(aberto);
+      else if (a === 'rc-gerar') rcGerar(aberto);
+      else if (a === 'rc-copiar') rcCopiar([aberto]);
       else if (a === 'os-vincular') abrirVincularOS(aberto);
       else if (a === 'os-solicitar') abrirSolicitarOS(aberto);
       else if (a === 'os-desvincular') desvincularOS(aberto, b.dataset.n);
