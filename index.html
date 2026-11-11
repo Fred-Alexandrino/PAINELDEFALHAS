@@ -19932,6 +19932,7 @@ function _pontoCopiarComunicado(id, btn) {
     enriquecer(item);
     const i = ITENS.findIndex(y => y.id === item.id);
     if (item.foraMapa && !ehCampo()) { if (i >= 0) ITENS.splice(i, 1); } else if (i >= 0) ITENS[i] = item; else ITENS.push(item);
+    if (aba === 'rc') renderRc();
   }
   async function carregar(forcar) {
     if (carregando) return;
@@ -20155,7 +20156,7 @@ function _pontoCopiarComunicado(id, btn) {
   function render() {
     if (erro) { renderEstado(erro, true); return; }
     if (!carregado) return;
-    kpis(); filtros();
+    kpis(); filtros(); if (aba === 'rc') renderRc();
     const arr = view === 'lista' ? aplicaColF(lista()) : lista(), ab = arr.filter(x => x.status !== 'Finalizado').length;
     $('#ocRes').textContent = arr.length === ITENS.length ? `${plural(arr.length, 'ocorrência', 'ocorrências')} (todas)` : `${plural(arr.length, 'ocorrência', 'ocorrências')} de ${ITENS.length}` + (ab ? ` · ${ab} em aberto` : '') + (view === 'lista' && cfAlgum() ? ' · filtro de coluna ativo' : '');
     $('#ocOrd').textContent = ''; const so = $('#ocSort'); if (so && so.value !== SORT) so.value = SORT;
@@ -20205,7 +20206,7 @@ function _pontoCopiarComunicado(id, btn) {
     ${rcGaveta(x)}
     ${notasHtml}
     <h3>Histórico <span class="sub">${plural((x.hist || []).length, 'registro', 'registros')}</span>${(x.hist || []).length > 1 ? `<button type="button" class="oc-btn sm" data-oc="ordem">${ordemHist === 'novo' ? 'Mais recentes primeiro' : 'Mais antigas primeiro'}</button>` : ''}</h3>${addHist}${tl}</div>`;
-    abrirVisual();
+    abrirVisual(); if (aba === 'rc') renderRc();
     if (pode) {
       const ta = $('#ntxt'); if (ta) { ta.value = rascunho['n' + x.id] || ''; ta.oninput = () => { rascunho['n' + x.id] = ta.value; }; ta.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); notaAcao('add'); } }; }
       const th = $('#nhTxt'); if (th) { th.value = rascunho['h' + x.id] || ''; th.oninput = () => { rascunho['h' + x.id] = th.value; }; th.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); histAcao('add'); } }; }
