@@ -2189,6 +2189,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             <div class="oc-seg" role="group" aria-label="Seções">
               <button type="button" id="ocTabOc" aria-pressed="true">Ocorrências</button>
               <button type="button" id="ocTabPl" aria-pressed="false" hidden>Plano de Ação <span class="n" id="ocPlN"></span></button>
+              <button type="button" id="ocTabRc" aria-pressed="false" hidden>Reunião com cliente</button>
             </div>
             <span class="grow"></span>
             <span class="oc-hint" id="ocMsg" aria-live="polite"></span>
@@ -2220,6 +2221,8 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
             <div class="oc-res"><span id="ocPRes"></span><span>Ordenado por prazo; sem prazo ao final</span></div>
             <div id="ocPOut"></div>
           </div>
+
+          <div id="ocVRc" hidden></div>
         </div>
       </section>
 
@@ -20425,11 +20428,96 @@ function _pontoCopiarComunicado(id, btn) {
     catch (e) { toast(e.message, false); }
     const x = ITENS.find(y => y.id === oid); if (x) planoBox(x); render();
   }
+
+  /* ── Reunião com cliente: argumentos por ocorrência, gerados pela IA só com os fatos do registro ── */
+  const RC = { cli: '', gerando: false, parar: false, msg: '', carga: {} };
+  const rcLer = id => { try { return JSON.parse(localStorage.getItem('ocRc:' + id) || 'null'); } catch (e) { return null; } };
+  const rcSalvar = (id, v) => { try { localStorage.setItem('ocRc:' + id, JSON.stringify(v)); } catch (e) {} };
+  const rcCli = x => x.cliente || 'Sem cliente';
+  function rcClientes() { const m = {}; ITENS.forEach(x => { if (x.status !== 'Finalizado') m[rcCli(x)] = (m[rcCli(x)] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a]).map(k => [k, m[k]]); }
+  function rcLista() { return ITENS.filter(x => x.status !== 'Finalizado' && rcCli(x) === RC.cli).sort((a, b) => (b.parado || 0) - (a.parado || 0)); }
+  function rcSec(tit, arr, fn) { return arr && arr.length ? `<h4 style="margin:12px 0 4px;font-size:13px">${tit}</h4><ul style="margin:0;padding-left:18px">${arr.map(fn).join('')}</ul>` : ''; }
+  const rcBase = b => `<span class="oc-hint" style="display:block;font-size:12px"> Base: ${esc(b)}</span>`;
+  function rcTexto(x, r) {
+    const p = r.preparo, L = [`${x.id} · ${x.usina} · ${x.equip}${x.nequip ? ' ' + x.nequip : ''}`, p.situacao, ''];
+    const sec = (t, a, f) => { if (a && a.length) { L.push(t); a.forEach(i => L.push('- ' + f(i))); L.push(''); } };
+    sec('O QUE FOI FEITO', p.o_que_foi_feito, i => `${i.data ? i.data + ': ' : ''}${i.fato} (${i.base})`);
+    sec('ARGUMENTOS', p.argumentos, i => `${i.ponto} (${i.base})`);
+    sec('PENDÊNCIAS', p.pendencias, i => `${i.item} — ${i.quem} (${i.base})`);
+    sec('DECISÕES A ALINHAR', p.decisoes_a_alinhar, i => `${i.decisao} (${i.base})`);
+    sec('PERGUNTAS PROVÁVEIS', p.perguntas_provaveis, i => `${i.pergunta} → ${i.resposta} (${i.base})`);
+    sec('CONFIRMAR ANTES DA REUNIÃO', p.lacunas, i => i);
+    return L.join('\n').trim();
+  }
+  function rcCard(x) {
+    const r = rcLer(x.id), car = RC.carga[x.id];
+    const velha = r && (r.ultimoRegistro || '') !== (x.ult || '');
+    let corpo = '';
+    if (car === 'gerando') corpo = '<p class="oc-hint">Gerando argumentos…</p>';
+    else if (car) corpo = `<p style="color:var(--red)">${esc(car)}</p>`;
+    if (r && car !== 'gerando') {
+      const p = r.preparo;
+      corpo += `${velha ? '<p class="oc-hint" style="color:var(--amber)">A ocorrência foi atualizada depois desta análise. Gere de novo.</p>' : ''}
+        <p style="margin:8px 0"><b>Situação:</b> ${esc(p.situacao || 'não consta no registro')}</p>
+        ${rcSec('O que foi feito', p.o_que_foi_feito, i => `<li>${i.data ? '<b>' + esc(i.data) + '</b> · ' : ''}${esc(i.fato)}${rcBase(i.base)}</li>`)}
+        ${rcSec('O que argumentar', p.argumentos, i => `<li><b>${esc(i.ponto)}</b>${rcBase(i.base)}</li>`)}
+        ${rcSec('Pendências e de quem dependem', p.pendencias, i => `<li>${esc(i.item)} <span class="oc-chip" style="font-size:11px">${esc(i.quem)}</span>${rcBase(i.base)}</li>`)}
+        ${rcSec('Decisões a alinhar na reunião', p.decisoes_a_alinhar, i => `<li>${esc(i.decisao)}${rcBase(i.base)}</li>`)}
+        ${rcSec('Perguntas prováveis do cliente', p.perguntas_provaveis, i => `<li><b>${esc(i.pergunta)}</b><br>${esc(i.resposta)}${rcBase(i.base)}</li>`)}
+        ${rcSec('Confirmar antes da reunião (falta no registro)', p.lacunas, i => `<li>${esc(i)}</li>`)}
+        <details style="margin-top:10px"><summary class="oc-hint" style="cursor:pointer">Base enviada à IA (para conferir) · gerado em ${esc((r.geradoEm || '').replace('T', ' ').slice(0, 16))}${p._removidos ? ' · ' + p._removidos + ' item(ns) sem evidência removido(s)' : ''}</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${esc(r.base)}</pre></details>`;
+    }
+    return `<article class="oc-card" style="margin:0 0 12px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel)">
+      <header style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</b><span class="oc-chip">${esc(x.status)}</span><span class="oc-hint">${x.parado != null ? 'sem atualização há ' + x.parado + ' d' : ''}</span><span class="grow" style="flex:1"></span>
+        ${r ? `<button class="oc-btn sm" type="button" data-rc="copiar" data-id="${esc(x.id)}">Copiar</button>` : ''}<button class="oc-btn sm${r ? '' : ' pri'}" type="button" data-rc="gerar" data-id="${esc(x.id)}"${RC.gerando ? ' disabled' : ''}>${r ? 'Gerar de novo' : 'Gerar argumentos'}</button></header>
+      <p style="margin:6px 0 0;color:var(--text-dim)">${esc(x.titulo || x.causa || '')}</p>${corpo}</article>`;
+  }
+  function renderRc() {
+    const el = $('#ocVRc'); if (!el) return;
+    const cls = rcClientes(); if (!RC.cli || !cls.some(c => c[0] === RC.cli)) RC.cli = (cls.find(c => c[0] === 'Thopen') || cls[0] || [''])[0];
+    const L = rcLista(), feitas = L.filter(x => rcLer(x.id)).length;
+    el.innerHTML = `<section class="oc-filtros"><div class="oc-frow"><label for="rcCli" class="oc-hint">Cliente</label>
+      <select id="rcCli" aria-label="Cliente">${cls.map(c => `<option value="${esc(c[0])}"${c[0] === RC.cli ? ' selected' : ''}>${esc(c[0])} (${c[1]})</option>`).join('')}</select>
+      <button class="oc-btn pri" type="button" data-rc="${RC.gerando ? 'parar' : 'todas'}">${RC.gerando ? 'Parar' : 'Gerar de todas as abertas'}</button>
+      <button class="oc-btn" type="button" data-rc="copiar-todas"${feitas ? '' : ' disabled'}>Copiar roteiro completo</button>
+      <span class="oc-hint">${feitas} de ${L.length} geradas${RC.msg ? ' · ' + esc(RC.msg) : ''}</span></div>
+      <p class="oc-hint" style="margin:8px 0 0">Cada ponto vem com a evidência (data, OS ou campo da ocorrência). A IA só recebe o registro da ocorrência, o histórico, as OS vinculadas, o plano de ação e as suas notas internas; o que não consta vira "confirmar antes da reunião". A base enviada fica disponível em cada cartão.</p></section>
+      <div id="rcOut">${L.map(rcCard).join('') || '<p class="oc-hint">Nenhuma ocorrência aberta para este cliente.</p>'}</div>`;
+  }
+  async function rcGerar(id) {
+    RC.carga[id] = 'gerando'; const antes = $('#ocVRc').scrollTop; renderRc();
+    try { const r = await api('/ocorrencias/reuniao/gerar', { id }); rcSalvar(id, r); delete RC.carga[id]; }
+    catch (e) { RC.carga[id] = 'Não foi possível gerar: ' + e.message; }
+    renderRc();
+  }
+  async function rcTodas() {
+    RC.gerando = true; RC.parar = false; renderRc();
+    for (const x of rcLista()) {
+      if (RC.parar) break;
+      const r = rcLer(x.id); if (r && (r.ultimoRegistro || '') === (x.ult || '')) continue;
+      RC.msg = 'gerando ' + x.id; await rcGerar(x.id); await new Promise(ok => setTimeout(ok, 1500));
+    }
+    RC.gerando = false; RC.msg = RC.parar ? 'interrompido' : 'concluído'; renderRc();
+  }
+  function rcClick(e) {
+    const b = e.target.closest('[data-rc]'); if (!b) return; const a = b.dataset.rc, id = b.dataset.id;
+    if (a === 'gerar') rcGerar(id);
+    else if (a === 'todas') rcTodas();
+    else if (a === 'parar') { RC.parar = true; }
+    else if (a === 'copiar' || a === 'copiar-todas') {
+      const ids = a === 'copiar' ? [id] : rcLista().map(x => x.id);
+      const t = ids.map(i => { const x = ITENS.find(y => y.id === i), r = rcLer(i); return x && r ? rcTexto(x, r) : ''; }).filter(Boolean).join('\n\n----------------------------------------\n\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copiado.'), () => toast('Não foi possível copiar.', false));
+    }
+  }
+  function rcChange(e) { if (e.target.id === 'rcCli') { RC.cli = e.target.value; renderRc(); } }
+
   function setAba(a) {
-    if (a === 'pl' && !ehFred()) a = 'oc';
-    aba = a; $('#ocVOc').hidden = a !== 'oc'; $('#ocVPl').hidden = a !== 'pl';
-    $('#ocTabOc').setAttribute('aria-pressed', a === 'oc'); $('#ocTabPl').setAttribute('aria-pressed', a === 'pl');
+    if ((a === 'pl' || a === 'rc') && !ehFred()) a = 'oc';
+    aba = a; $('#ocVOc').hidden = a !== 'oc'; $('#ocVPl').hidden = a !== 'pl'; $('#ocVRc').hidden = a !== 'rc';
+    $('#ocTabOc').setAttribute('aria-pressed', a === 'oc'); $('#ocTabPl').setAttribute('aria-pressed', a === 'pl'); $('#ocTabRc').setAttribute('aria-pressed', a === 'rc');
     if (a === 'pl') renderPlano();
+    if (a === 'rc') renderRc();
   }
 
   /* exportação */
@@ -20526,7 +20614,8 @@ function _pontoCopiarComunicado(id, btn) {
     $('#ocOut').addEventListener('dragover', e => { const col = e.target.closest && e.target.closest('[data-col]'); if (!col) return; e.preventDefault(); document.querySelectorAll('.oc-dropover').forEach(n => n !== col && n.classList.remove('oc-dropover')); col.classList.add('oc-dropover'); });
     $('#ocOut').addEventListener('drop', e => { const col = e.target.closest && e.target.closest('[data-col]'); if (!col) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); document.querySelectorAll('.oc-dropover').forEach(n => n.classList.remove('oc-dropover')); if (id) moverStatus(id, col.dataset.col); });
     document.addEventListener('click', e => { const d = $('#ocDdUsina'); if (d && d.open && !d.contains(e.target)) d.open = false; });
-    $('#ocTabOc').onclick = () => setAba('oc'); $('#ocTabPl').onclick = () => setAba('pl');
+    $('#ocTabOc').onclick = () => setAba('oc'); $('#ocTabPl').onclick = () => setAba('pl'); $('#ocTabRc').onclick = () => setAba('rc');
+    $('#ocVRc').addEventListener('click', rcClick); $('#ocVRc').addEventListener('change', rcChange);
     $('#ocExp').onclick = exportar;
     $('#ocNovo').onclick = novo;
     $('#ocPq').oninput = () => renderPlano();
@@ -20564,7 +20653,7 @@ function _pontoCopiarComunicado(id, btn) {
     });
     // perfis
     const fred = ehFred();
-    $('#ocNovo').hidden = !ehEdit(); $('#ocTabPl').hidden = !fred;
+    $('#ocNovo').hidden = !ehEdit(); $('#ocTabPl').hidden = !fred; $('#ocTabRc').hidden = !fred;
   }
   function novo() { if (!ehEdit()) return; iniciar(); aberto = null; modo = 'novo'; desenharGaveta(); }
 
