@@ -2277,9 +2277,16 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               Gestão Cliente
             </button>
+            <button id="chamadosNexusBtn" onclick="_nexusAtualizarChamados()" title="Envia ao painel os chamados lidos da tela Chamados › Garantias do Nexus (pelo script do Tampermonkey)" style="display:flex;align-items:center;gap:6px;background:rgba(34,211,238,.08);
+                    border:1px solid rgba(34,211,238,.3);color:var(--teal);border-radius:8px;padding:7px 12px;
+                    font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;">
+              <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+              Atualizar do Nexus
+            </button>
             <span style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--text-faint);" id="chamadosSubtitle"></span>
           </div>
         </div>
+        <div id="chamadosNexusMsg" style="display:none;margin-bottom:8px;font-size:12.5px;line-height:1.5;"></div>
         <div id="chamadosSyncIndicator" style="margin-bottom:12px;"></div>
         <div id="chamadosStatusFiltro" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
         <div id="chamadosBody"></div>
@@ -11548,6 +11555,43 @@ async function _seImportar(input) {
   } catch (e) { msg.textContent = 'Erro: ' + (e.message || 'falha na importação'); }
 }
 
+// Chamados vêm do Nexus (tela Chamados › Garantias). O script do Tampermonkey lê a tela no
+// Chrome do Fred (onde ele já está logado) e guarda o snapshot; este botão pede o snapshot
+// ao script (postMessage) e envia ao servidor (POST /chamados-nexus/importar).
+function _nexusPedirChamados() {
+  return new Promise(res => {
+    const t = setTimeout(() => { window.removeEventListener('message', h); res(null); }, 2500);
+    function h(ev) {
+      if (ev.source !== window || !ev.data || !('gridosChamados' in ev.data)) return;
+      clearTimeout(t); window.removeEventListener('message', h); res(ev.data.gridosChamados || { vazio: true });
+    }
+    window.addEventListener('message', h);
+    window.postMessage({ gridosPedido: 'chamados' }, location.origin);
+  });
+}
+async function _nexusAtualizarChamados() {
+  const msg = document.getElementById('chamadosNexusMsg'), btn = document.getElementById('chamadosNexusBtn');
+  const say = (t, erro) => { if (!msg) return; msg.textContent = t || ''; msg.style.color = erro ? 'var(--red,#EF4444)' : 'var(--text-faint)'; msg.style.display = t ? 'block' : 'none'; };
+  if (window._supFetchInstalado) { say('A atualização pelo Nexus é feita só pelo acesso principal.', true); return; }
+  if (btn) btn.disabled = true;
+  say('Procurando a leitura do Nexus…');
+  try {
+    const snap = await _nexusPedirChamados();
+    if (!snap) { say('O script do Tampermonkey não respondeu. Instale a versão 1.3 do script "Grid OS → Nexus" e recarregue o painel (Ctrl+Shift+R).', true); return; }
+    if (snap.vazio || !Array.isArray(snap.rows) || !snap.rows.length) { say('Ainda não há leitura do Nexus. Abra Chamados › Garantias no Nexus (logado), espere a tabela carregar e clique de novo aqui.', true); return; }
+    const idade = Math.max(0, Math.round((Date.now() - (snap.ts || 0)) / 60000));
+    if (idade > 240 && !confirm('A última leitura do Nexus foi há ' + idade + ' min. Enviar mesmo assim?\n(Para uma leitura nova, abra Chamados › Garantias no Nexus.)')) { say(''); return; }
+    say('Enviando ' + snap.rows.length + ' chamados (lidos há ' + idade + ' min' + (snap.lidoEm ? '; Nexus: ' + snap.lidoEm : '') + ')…');
+    const r = await fetch(_MAP_API + '/chamados-nexus/importar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: snap.rows, snapshotCompleto: true }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'erro ao importar');
+    say('Nexus: ' + j.total + ' chamados (' + j.criadas + ' novos, ' + j.atualizadas + ' atualizados' + (j.removidas ? ', ' + j.removidas + ' que saíram' : '') + ').' + (j.removidasBloqueadas ? ' Atenção: ' + j.removidasBloqueadas + ' remoções foram bloqueadas por segurança (leitura parece incompleta).' : ''), !!j.removidasBloqueadas);
+    await carregarChamadosFabricante();
+  } catch (e) {
+    say('Falhou: ' + (e.message || e), true);
+  } finally { if (btn) btn.disabled = false; }
+}
+
 async function carregarChamadosFabricante() {
   const body = document.getElementById('chamadosBody');
   const sub = document.getElementById('chamadosSubtitle');
@@ -20193,7 +20237,7 @@ function _pontoCopiarComunicado(id, btn) {
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
       <button class="oc-btn sm" type="button" data-oc="ajuda">Ajuda: o que fazer</button>
       <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
-      <button class="oc-btn sm" type="button" data-oc="singrid"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Texto p/ time de chamados</button>
+      <button class="oc-btn sm" type="button" data-oc="singrid"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Texto p/ Singrid (chamado)</button>
       <button class="oc-btn sm" type="button" data-oc="os-solicitar"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
       ${x.status !== 'Finalizado' ? '<button class="oc-btn sm pri" type="button" data-oc="status" data-v="Finalizado">Finalizar</button>' : '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Reabrir</button>'}
       ${x.status === 'Em andamento' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Pausado">Pausar</button>' : ''}${x.status === 'Pausado' ? '<button class="oc-btn sm" type="button" data-oc="status" data-v="Em andamento">Retomar</button>' : ''}
@@ -20434,7 +20478,7 @@ function _pontoCopiarComunicado(id, btn) {
   }
 
 
-  /* ── Texto para o time de chamados: inspeções feitas, chamado a abrir, OS de abertura já feita via Nexus ── */
+  /* ── Texto para o time da Singrid: inspeções feitas, chamado a abrir, OS de abertura já feita via Nexus ── */
   let sgEl = null, sg = null;
   function sgTexto(x, extra) {
     const nums = String(x.os || '').split(/[,;/\s]+/).filter(Boolean);
@@ -20447,7 +20491,7 @@ function _pontoCopiarComunicado(id, btn) {
     });
     const h = new Date().getHours(), sd = h < 12 ? 'Bom dia' : (h < 18 ? 'Boa tarde' : 'Boa noite');
     const eq = `${x.equip || 'equipamento'}${x.nequip ? ' ' + x.nequip : ''}`;
-    const L = [`${sd}, time de chamados.`, '',
+    const L = [`${sd}, time da Singrid.`, '',
       `Realizamos as inspeções referentes a ${eq} da UFV ${x.usina}${x.cliente ? ' (' + x.cliente + ')' : ''} e será necessário abrir chamado${x.fab ? ' junto à ' + x.fab : ' junto ao fabricante'}.`, '',
       `Ocorrência: ${x.id} — ${x.titulo || x.causa || ''}`];
     if (x.causa && x.titulo && x.causa !== x.titulo) L.push(`Descrição: ${x.causa}`);
@@ -20465,8 +20509,8 @@ function _pontoCopiarComunicado(id, btn) {
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && sgEl.classList.contains('on')) { e.stopPropagation(); sgEl.classList.remove('on'); } }, true);
     }
     sg = { id, x, editado: false };
-    sgEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Texto para o time de chamados">
-      <header><strong>Texto para o time de chamados — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-s="fechar">Fechar</button></header>
+    sgEl.innerHTML = `<div class="oc-mbox" role="dialog" aria-modal="true" aria-label="Texto para a Singrid">
+      <header><strong>Texto para o time da Singrid — ${esc(x.id)} · ${esc(x.usina)} · ${esc(x.equip || '')}${x.nequip ? ' ' + esc(x.nequip) : ''}</strong><button class="oc-btn sm" type="button" data-s="fechar">Fechar</button></header>
       <div class="oc-mbody"><div class="oc-mcol" style="grid-column:1/-1">
         <label class="t" for="sgRes"><span>Resultado das inspeções (opcional, entra no texto)</span></label>
         <input type="text" id="sgRes" maxlength="500" placeholder="Ex.: TCU sem comunicação, fusível trocado e sem retorno">
@@ -20483,7 +20527,7 @@ function _pontoCopiarComunicado(id, btn) {
       try { await navigator.clipboard.writeText(t); } catch (err) { const ta = $('#sgTxt'); ta.select(); try { document.execCommand('copy'); } catch (e2) { toast('Não consegui copiar automaticamente.', false); return; } }
       toast('Texto copiado — cole no WhatsApp.');
       if ($('#sgReg').checked) {
-        try { const r = await api('/ocorrencias/historico/salvar', { ocorrencia: sg.id, data: hojeIso(), texto: 'Texto de abertura de chamado enviado ao time de chamados (OS de abertura de chamado já feita via Nexus).' }); aplicarItem(r.item); render(); if (aberto === sg.id && modo === 'ver') desenharGaveta(); }
+        try { const r = await api('/ocorrencias/historico/salvar', { ocorrencia: sg.id, data: hojeIso(), texto: 'Texto de abertura de chamado enviado ao time da Singrid (OS de abertura de chamado já feita via Nexus).' }); aplicarItem(r.item); render(); if (aberto === sg.id && modo === 'ver') desenharGaveta(); }
         catch (err) { toast('Copiado, mas não consegui registrar no histórico: ' + err.message, false); }
       }
     }
