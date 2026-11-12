@@ -22849,6 +22849,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v18: relatório mostra OS de outro cliente */
 /* ══ LAYOUT v16 (12/11/2026): Auditoria Fracttal x Central O&M (campo a campo) ══ */
 const _AU_API = 'https://api.168.138.232.237.sslip.io';
 let _auJob = null, _auTimer = null, _auFiltro = '', _auBusca = '';
@@ -22904,6 +22905,7 @@ function _auRender() {
       <div><b>${(R.divergencias || []).length}</b><span>campos divergentes ${R.aplicado ? '(corrigidos)' : ''}</span></div>
       <div><b class="${(R.naoEncontradas || []).length ? 'pf-aten' : ''}">${(R.naoEncontradas || []).length}</b><span>OS que não existem na Fracttal</span></div>
       <div><b class="${(R.revisaoManual || []).length ? 'pf-aten' : ''}">${(R.revisaoManual || []).length}</b><span>OS com usina que a Fracttal não identifica</span></div>
+      <div><b class="${(R.foraMapeamento || []).length ? 'pf-aten' : ''}">${(R.foraMapeamento || []).length}</b><span>OS de outro cliente retiradas do painel</span></div>
       <div><b>${(R.duplicadas || []).length}</b><span>OS duplicadas na Central</span></div>
     </div>
     ${campos.length ? `<div class="au-ch"><button type="button" class="${_auFiltro ? '' : 'on'}" onclick="_auFiltro='';_auRender()">Todos (${(R.divergencias || []).length})</button>${campos.map(([c, n]) => `<button type="button" class="${_auFiltro === c ? 'on' : ''}" onclick="_auFiltro=${JSON.stringify(c).replace(/"/g, '&quot;')};_auRender()">${esc(c)} (${n})</button>`).join('')}</div>
@@ -22911,6 +22913,7 @@ function _auRender() {
     <div class="au-tw"><table class="au-t"><thead><tr><th>OS</th><th>Usina</th><th>Campo</th><th>Estava na Central O&M</th><th>Na Fracttal</th></tr></thead><tbody>
       ${L.slice(0, 1500).map(d => `<tr><td class="os">${esc(d.numeroOS)}</td><td>${esc(d.usina || '')}</td><td>${esc(d.rotulo)}</td><td class="c">${esc(d.central || '(vazio)')}</td><td class="f">${esc(d.fracttal || '(vazio)')}</td></tr>`).join('') || '<tr><td colspan="5">Nada com esse filtro.</td></tr>'}
     </tbody></table></div>` : '<div class="au-sub" style="color:var(--sla-ok)">Nenhuma divergência: a Central O&M está igual à Fracttal em todas as OS conferidas.</div>'}
+    ${(R.foraMapeamento || []).length ? `<div class="au-sec">OS de outro cliente/supervisor (o cliente informado na Fracttal não é o da usina do seu mapeamento) — ${R.aplicado ? 'retiradas do painel' : 'seriam retiradas do painel'}</div><div class="au-li">${R.foraMapeamento.map(x => `OS ${esc(x.numeroOS)}: estava como ${esc(x.usinaCentral || '—')}; na Fracttal é <b>${esc(x.grupoFracttal || x.clienteFracttal)}</b>`).join('<br>')}</div>` : ''}
     ${(R.naoEncontradas || []).length ? `<div class="au-sec">OS que estão na Central mas não existem na Fracttal</div><div class="au-li">${R.naoEncontradas.map(esc).join(', ')}</div>` : ''}
     ${(R.revisaoManual || []).length ? `<div class="au-sec">OS cuja usina a Fracttal não permite identificar (usina mantida como está)</div><div class="au-li">${R.revisaoManual.slice(0, 80).map(x => `OS ${esc(x.numeroOS)} (${esc(x.usinaCentral || '—')}): ${esc(x.motivo || '')}`).join('<br>')}</div>` : ''}
     ${(R.duplicadas || []).length ? `<div class="au-sec">OS repetidas na Central (mais de uma linha)</div><div class="au-li">${R.duplicadas.map(x => 'OS ' + esc(x.numeroOS) + ' (linhas ' + x.linhas.join(', ') + ')').join(' · ')}</div>` : ''}
@@ -22922,7 +22925,7 @@ async function _rodarAuditoriaAgora() {
   ov.onclick = e => { if (e.target === ov) _auFechar(); };
   ov.innerHTML = `<div class="au-box" role="dialog" aria-label="Auditoria Fracttal x Central O&M">
     <div class="au-top"><div><h2>Auditoria Fracttal × Central O&M</h2>
-      <div class="au-sub">Confere cada OS em aberto (em processo ou em verificação) das usinas do seu mapeamento direto na Fracttal, que é o banco de dados, e compara campo a campo: estado da OS, status das tarefas, situação geral, % concluído, status interno, nome da OS, ativos/equipamentos, usina, cliente, responsável, prazo, etiquetas e observações. Antes, busca OS novas das últimas 24 h.</div></div>
+      <div class="au-sub">Confere cada OS em aberto (em processo ou em verificação) das usinas do seu mapeamento direto na Fracttal, que é o banco de dados, e compara campo a campo: estado da OS, status das tarefas, situação geral, % concluído, status interno, nome da OS, ativos/equipamentos, usina, cliente, responsável, prazo, etiquetas e observações. O cliente informado na Fracttal é decisivo: OS de outro cliente (ex.: Thopen Ipixuna 1 e 2, mesmo técnico de Ipixuna do Pará I) saem do painel. Antes, busca OS novas das últimas 24 h.</div></div>
       <button class="au-btn" type="button" onclick="_auFechar()">Fechar ✕</button></div>
     <div class="au-row"><label class="au-sub" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="auAplicar" checked> Corrigir automaticamente a Central com o que está na Fracttal</label>
       <button class="au-btn pri" type="button" id="auIni" onclick="_auIniciar()">Rodar auditoria</button></div>
