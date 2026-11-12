@@ -1947,6 +1947,60 @@ body.role-campo #tbNovoWrap{display:none !important;}
   .tb-novo-menu .sb-action-btn{padding:13px 12px;}
 }
 </style>
+<style id="lv7css">
+/* LAYOUT v7 (12/11/2026) — apresentações em Reuniões e relatórios */
+#sec-relatorios .rp-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
+.rp-title{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--text);}
+.rp-sub{margin:4px 0 0;font-size:13.5px;color:var(--text-dim);max-width:62ch;line-height:1.5;}
+.rp-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start;}
+.rp-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;box-sizing:border-box;min-width:0;}
+.rp-step{display:flex;gap:14px;}
+.rp-step + .rp-step{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);}
+.rp-step-n{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;
+  color:var(--teal);border:1px solid var(--teal);font-variant-numeric:tabular-nums;margin-top:1px;}
+.rp-step-body{flex:1;min-width:0;}
+.rp-label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;}
+.rp-input{height:40px;display:flex;align-items:center;padding:0 12px;font-size:14px;}
+select.rp-input{display:block;}
+.rp-seg{display:flex;gap:4px;padding:3px;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;}
+.rp-seg-btn{flex:1;min-width:0;border:0;background:transparent;color:var(--text-dim);font:inherit;font-size:12.5px;font-weight:500;
+  padding:8px 6px;border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rp-seg-btn:hover{color:var(--text);}
+.rp-seg-btn.on{background:var(--teal);color:var(--ink,#042F36);font-weight:600;}
+.rp-dates{display:flex;align-items:flex-end;gap:10px;position:relative;}
+.rp-date{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.rp-date-l{font-size:12px;color:var(--text-faint);}
+.rp-date-sep{color:var(--text-faint);height:40px;display:flex;align-items:center;}
+.rp-dates .rel-cal-popup{top:calc(100% + 8px);left:0;transform:none;}
+.rp-resumo{display:flex;flex-direction:column;gap:18px;position:sticky;top:12px;}
+.rp-file{display:flex;gap:12px;align-items:center;min-width:0;}
+.rp-file-ico{flex:none;width:44px;height:44px;border-radius:10px;background:var(--panel-alt);border:1px solid var(--border);display:grid;place-items:center;}
+.rp-file-ico svg{width:22px;height:22px;stroke:var(--teal);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.rp-file-txt{min-width:0;}
+.rp-file-tipo{font-size:12px;color:var(--text-faint);}
+.rp-file-nome{font-size:14px;font-weight:500;color:var(--text);overflow-wrap:anywhere;line-height:1.35;}
+.rp-dl{margin:0;display:flex;flex-direction:column;}
+.rp-dl > div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid var(--border);font-size:13.5px;}
+.rp-dl dt{color:var(--text-dim);}
+.rp-dl dd{margin:0;color:var(--text);font-weight:500;text-align:right;font-variant-numeric:tabular-nums;}
+.rp-dl dd.vazio{color:var(--text-faint);font-weight:400;}
+.rp-gerar{width:100%;height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;}
+.rp-gerar svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.rp-gerar:disabled{opacity:.6;cursor:progress;}
+.rp-status{font-size:13px;color:var(--text-dim);min-height:0;}
+.rp-status:empty{display:none;}
+#sec-relatorios .rel-cal-titulo{text-transform:none;}
+#sec-relatorios .rel-cal-titulo::first-letter{text-transform:uppercase;}
+@media(max-width:760px){
+  .rp-grid{grid-template-columns:1fr;}
+  .rp-resumo{position:static;}
+  .rp-card{padding:18px;}
+  .rp-seg{flex-direction:column;}
+  .rp-dates{flex-wrap:wrap;}
+  .rp-date-sep{display:none;}
+  .rp-date{flex:1 1 130px;}
+}
+</style>
 </head>
 <body>
 
@@ -2638,51 +2692,77 @@ body.role-campo #tbNovoWrap{display:none !important;}
 
       <!-- ── SEÇÃO: REUNIÕES - CLIENTES (Apresentações) ──────────────────────── -->
       <section class="content-section" id="sec-relatorios">
-        <div class="rel-2col">
-          <div class="rel-card">
-            <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;
-                        text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px;">
-              Apresentações
-            </div>
-
-            <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Cliente</label>
-            <select id="relCliente" class="rel-input"></select>
-
-            <div style="display:flex;gap:12px;margin-top:12px;position:relative;">
-              <div style="flex:1;">
-                <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">De</label>
-                <div id="relDataInicio" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('inicio')">dd/mm/aaaa</div>
-              </div>
-              <div style="flex:1;">
-                <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;">Até</label>
-                <div id="relDataFim" class="rel-input rel-date-trigger" onclick="relAbrirCalendario('fim')">dd/mm/aaaa</div>
-              </div>
-
-              <div id="relCalendarPopup" class="rel-cal-popup" style="display:none;">
-                <div class="rel-cal-header">
-                  <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(-1)">&lsaquo;</button>
-                  <div class="rel-cal-titulo" id="relCalTitulo"></div>
-                  <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(1)">&rsaquo;</button>
+        <div class="rp-wrap">
+          <header class="rp-head">
+            <h2 class="rp-title">Apresentação semanal</h2>
+            <p class="rp-sub">Gera o .pptx da reunião com o cliente a partir das atividades e ocorrências do período.</p>
+          </header>
+          <div class="rp-grid">
+            <div class="rp-card">
+              <div class="rp-step">
+                <div class="rp-step-n">1</div>
+                <div class="rp-step-body">
+                  <label class="rp-label" for="relCliente">Cliente</label>
+                  <select id="relCliente" class="rel-input rp-input"></select>
                 </div>
-                <div class="rel-cal-semana">
-                  <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+              </div>
+              <div class="rp-step">
+                <div class="rp-step-n">2</div>
+                <div class="rp-step-body">
+                  <div class="rp-label">Período</div>
+                  <div class="rp-seg" role="group" aria-label="Atalhos de período">
+                    <button type="button" class="rp-seg-btn" data-preset="atual" onclick="relDefinirSemana('atual')">Semana atual</button>
+                    <button type="button" class="rp-seg-btn" data-preset="passada" onclick="relDefinirSemana('passada')">Semana passada</button>
+                    <button type="button" class="rp-seg-btn" data-preset="7d" onclick="relDefinirUltimos7Dias()">Últimos 7 dias</button>
+                  </div>
+                  <div class="rp-dates">
+                    <div class="rp-date">
+                      <span class="rp-date-l">De</span>
+                      <div id="relDataInicio" class="rel-input rel-date-trigger rp-input" onclick="relAbrirCalendario('inicio')">dd/mm/aaaa</div>
+                    </div>
+                    <span class="rp-date-sep" aria-hidden="true">→</span>
+                    <div class="rp-date">
+                      <span class="rp-date-l">Até</span>
+                      <div id="relDataFim" class="rel-input rel-date-trigger rp-input" onclick="relAbrirCalendario('fim')">dd/mm/aaaa</div>
+                    </div>
+                    <div id="relCalendarPopup" class="rel-cal-popup" style="display:none;">
+                      <div class="rel-cal-header">
+                        <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(-1)">&lsaquo;</button>
+                        <div class="rel-cal-titulo" id="relCalTitulo"></div>
+                        <button type="button" class="rel-cal-nav" onclick="relCalMudarMes(1)">&rsaquo;</button>
+                      </div>
+                      <div class="rel-cal-semana">
+                        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                      </div>
+                      <div class="rel-cal-grid" id="relCalGrid"></div>
+                      <div class="rel-cal-hint" id="relCalHint">Selecione a data de início</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="rel-cal-grid" id="relCalGrid"></div>
-                <div class="rel-cal-hint" id="relCalHint">Selecione a data de início</div>
               </div>
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-              <button class="rel-btn-secundario" onclick="relDefinirSemana('atual')">Semana atual</button>
-              <button class="rel-btn-secundario" onclick="relDefinirSemana('passada')">Semana passada</button>
-              <button class="rel-btn-secundario" onclick="relDefinirUltimos7Dias()">Últimos 7 dias</button>
-            </div>
-
-            <button id="relGerarBtn" class="rel-btn-primario" onclick="relGerarRelatorio()" style="margin-top:20px;width:100%;">
-              Gerar relatório (.pptx)
-            </button>
-
-            <div id="relStatus" style="margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+            <aside class="rp-card rp-resumo" aria-label="Resumo da apresentação">
+              <div class="rp-file">
+                <div class="rp-file-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                </div>
+                <div class="rp-file-txt">
+                  <div class="rp-file-tipo">Apresentação · .pptx</div>
+                  <div class="rp-file-nome" id="rpNome">Escolha cliente e período</div>
+                </div>
+              </div>
+              <dl class="rp-dl">
+                <div><dt>Cliente</dt><dd id="rpCli">—</dd></div>
+                <div><dt>Semana</dt><dd id="rpSem">—</dd></div>
+                <div><dt>Período</dt><dd id="rpPer">—</dd></div>
+              </dl>
+              <button id="relGerarBtn" class="rel-btn-primario rp-gerar" onclick="relGerarRelatorio()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Gerar e baixar
+              </button>
+              <div id="relStatus" class="rp-status" role="status" aria-live="polite"></div>
+            </aside>
           </div>
         </div>
       </section>
@@ -5195,7 +5275,7 @@ const NAV_TITLES = {
   'historico-log': 'Log Histórico',
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
-  'relatorios': 'Reuniões - Clientes',
+  'relatorios': 'Reuniões e relatórios',
   'atividades': 'Painel de Atividades',
   'programacao-pcm': 'Programação PCM',
   'boletins': 'Gerencial',
@@ -18647,6 +18727,37 @@ initDashboard = function (session) {
   } catch (e) { console.warn('[layout v5] init', e); }
   return r;
 };
+
+/* ══ LAYOUT v7 (12/11/2026): resumo da apresentação semanal ══ */
+function _rpAtualizar() {
+  try {
+    const sel = document.getElementById('relCliente');
+    const cli = sel && sel.value ? sel.value : '';
+    const i = relPeriodo.inicio, f = relPeriodo.fim;
+    const set = (id, txt, vazio) => { const e = document.getElementById(id); if (e) { e.textContent = txt; e.classList.toggle('vazio', !!vazio); } };
+    set('rpCli', cli || 'Escolha o cliente', !cli);
+    set('rpSem', f ? 'Semana ' + relSemanaISO(f) : '—', !f);
+    set('rpPer', i && f ? relBR(i) + ' a ' + relBR(f) : 'Escolha o período', !(i && f));
+    const nome = document.getElementById('rpNome');
+    if (nome) nome.textContent = cli && f ? 'Apresentação ' + cli + ' x Grid Co - O&M - Semana ' + relSemanaISO(f) + '.pptx' : 'Escolha cliente e período';
+    const hoje = new Date();
+    const seg = new Date(hoje); seg.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7));
+    const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const faixas = { atual: [seg, addD(seg, 6)], passada: [addD(seg, -7), addD(seg, -1)], '7d': [addD(hoje, -6), hoje] };
+    document.querySelectorAll('#sec-relatorios .rp-seg-btn').forEach(b => {
+      const r = faixas[b.dataset.preset];
+      b.classList.toggle('on', !!(r && i && f && relMesmoDia(i, r[0]) && relMesmoDia(f, r[1])));
+    });
+  } catch (e) { console.warn('[layout v7]', e); }
+}
+const _rpAtualizarCamposBase = relAtualizarCampos;
+relAtualizarCampos = function () { const r = _rpAtualizarCamposBase.apply(this, arguments); _rpAtualizar(); return r; };
+(function () {
+  const sel = document.getElementById('relCliente');
+  if (!sel) return;
+  sel.addEventListener('change', _rpAtualizar);
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(_rpAtualizar).observe(sel, { childList: true });
+})();
 
 /* ══ INICIALIZAÇÃO FINAL ══ */
 if (window._pendingSession) {
