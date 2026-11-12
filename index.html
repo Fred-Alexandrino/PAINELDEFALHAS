@@ -1828,7 +1828,9 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
 .sb-nav-item.active{padding:7px 10px;border-radius:8px;font-weight:600;}
 .sb-nav-item svg{width:16px;height:16px;}
 .sb-section-label-row{font-size:12px;letter-spacing:0;text-transform:none;font-weight:500;margin:14px 6px 4px;}
-.sb-section-label-row[data-section-key="ferramentas"],#navFerramentasToggle,#grupoFerramentasSubmenu{display:none !important;}
+.sb-section-label-row[data-section-key="ferramentas"]{display:none !important;}
+.sb-nav-item[data-nav="comunicados"]{display:none !important;}
+#sec-comunicados > .tabs-wrapper{display:none !important;}
 .sidebar > div:has(> #sbSketchbookBtn){border-top-color:var(--lv-line) !important;padding:8px 6px 6px !important;}
 #sbSketchbookBtn{background:transparent !important;border-color:transparent !important;color:var(--text-dim) !important;font-size:13.5px;padding:7px 10px;gap:10px;border-radius:8px;}
 #sbSketchbookBtn:hover{background:var(--panel-alt) !important;color:var(--text) !important;}
@@ -2006,12 +2008,24 @@ body.role-campo #tbNovoWrap{display:none !important;}
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </a>
-        <a href="#rondas" class="sb-nav-item" data-nav="rondas" data-label="Rondas" draggable="true">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Rondas
-        </a>
       <div class="sb-section-label-row" data-section-key="comunicacao" draggable="true">Comunicação</div>
-      <a href="#comunicados" class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
+      <a href="#com-tecnicos" class="sb-nav-item" data-nav="com-tecnicos" data-label="Comunicados · Técnicos" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Técnicos
+      </a>
+      <a href="#com-clientes" class="sb-nav-item" data-nav="com-clientes" data-label="Comunicados · Clientes" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clientes
+      </a>
+      <a href="#com-livre" class="sb-nav-item" data-nav="com-livre" data-label="Comunicado livre" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        Comunicado livre
+      </a>
+      <a href="#com-sobreaviso" class="sb-nav-item" data-nav="com-sobreaviso" data-label="Sobreavisos" draggable="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Sobreavisos
+      </a>
+      <a href="#comunicados" class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" tabindex="-1" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados &amp; OSs
       </a>
@@ -2041,10 +2055,6 @@ body.role-campo #tbNovoWrap{display:none !important;}
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Controle de ponto
       </a>
-        <a href="#mttr" class="sb-nav-item" data-nav="mttr" data-label="Indicadores" draggable="true">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Indicadores
-        </a>
       <div class="sb-section-label-row" data-section-key="ferramentas" draggable="true">Ferramentas</div>
       <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -2392,18 +2402,6 @@ body.role-campo #tbNovoWrap{display:none !important;}
       </section>
 
       <!-- ── SEÇÃO: RONDAS (placeholder inline) ────────────── -->
-      <section class="content-section" id="sec-rondas">
-        <div class="placeholder-section">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <h2>Verificar Rondas</h2>
-          <p>Clique em "Buscar rondas" para carregar as mensagens das últimas 24h dos grupos monitorados.</p>
-          <button class="tb-btn tb-btn-refresh" id="rondasInlineBtn" style="margin-top:8px;">
-            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Verificar rondas agora
-          </button>
-        </div>
-      </section>
-
       <!-- ── SEÇÃO: CHAMADOS ───────────────────────────────── -->
       <section class="content-section" id="sec-chamados">
         <div class="tabs-wrapper tabs-wrapper-ch" style="width:100%;margin-bottom:16px;">
@@ -2594,55 +2592,6 @@ body.role-campo #tbNovoWrap{display:none !important;}
       </section>
 
       <!-- ── SEÇÃO: MTTR (Tempo Ativo O&M) ─────────────────── -->
-      <section class="content-section" id="sec-mttr">
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">Decomposição do tempo de resolução</div>
-          <h2 style="font-size:16px;font-weight:700;">MTTR — Tempo Ativo O&amp;M</h2>
-          <p style="font-size:12.5px;color:var(--text-dim);margin-top:5px;">Mede só o tempo controlável pela equipe (T1+T2+T4), excluindo a espera por fabricante/cliente (T3).</p>
-        </div>
-
-        <!-- Filtros próprios do MTTR -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;">
-          <span style="font-size:13px;color:var(--text-faint);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.08em;">Filtros:</span>
-          <select class="sb-select" id="mttrCliente" style="max-width:160px;">
-            <option value="">Todos os clientes</option>
-          </select>
-          <select class="sb-select" id="mttrUsina" style="max-width:180px;">
-            <option value="">Todas as usinas</option>
-          </select>
-          <select class="sb-select" id="mttrPeriodo" style="max-width:160px;">
-            <option value="90">Últimos 90 dias</option>
-            <option value="180">Últimos 180 dias</option>
-            <option value="365">Último ano</option>
-            <option value="0">Todo o período</option>
-          </select>
-          <button class="tb-btn" id="mttrClearBtn" style="margin-left:auto;">Limpar filtros</button>
-        </div>
-
-        <!-- KPIs T1-T4 -->
-        <div class="kpis" id="mttrKpis" style="margin-bottom:20px;"></div>
-
-        <!-- Gráfico de evolução mensal -->
-        <div class="panel" style="margin-bottom:20px;">
-          <div class="panel-head">
-            <h3>Evolução mensal</h3>
-            <div style="display:flex;gap:4px;">
-              <button class="sort-btn active" id="mttrChartModeAgg" data-mode="agg">Tempo Ativo O&amp;M</button>
-              <button class="sort-btn" id="mttrChartModeSplit" data-mode="split">T1 / T2 / T3 / T4</button>
-            </div>
-          </div>
-          <div id="mttrChart" style="height:220px;"></div>
-        </div>
-
-        <!-- Lista filtrável com timeline T1-T4 -->
-        <div class="panel-head" style="margin-bottom:10px;">
-          <h3>Falhas — linha do tempo individual</h3>
-          <span class="panel-total" id="mttrListTotal"></span>
-        </div>
-        <div id="mttrList"></div>
-        <div id="mttrPagination" style="display:flex;justify-content:center;gap:6px;margin-top:14px;"></div>
-      </section>
-
       <!-- ── SEÇÃO: EFICIÊNCIA O&M (placeholder) ───────────── -->
       <section class="content-section" id="sec-eficiencia">
         <div class="kpis" style="margin-bottom:24px;" id="efKpis"></div>
@@ -2981,10 +2930,6 @@ body.role-campo #tbNovoWrap{display:none !important;}
             <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Sobreavisos
           </button>
-          <button type="button" class="tab-btn" id="comTabBtnOs" onclick="_comSetTab('os')">
-            <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-            OS Elaboradas
-          </button>
         </div>
 
         <!-- ── ABA: TÉCNICOS ── -->
@@ -3316,19 +3261,6 @@ body.role-campo #tbNovoWrap{display:none !important;}
           <div id="sobreavisoModalResult" style="display:none;"></div>
         </div>
 
-        <!-- ── ABA: OS ELABORADAS ── -->
-        <div id="comTabPainelOs" style="display:none;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span>Histórico de todas as OSs elaboradas via IA pelo botão "Elaborar OS" — reaproveite um texto já gerado sem precisar recriar do zero.</span>
-            <input type="text" id="osElabBusca" placeholder="Buscar por termo…" class="sb-search" style="max-width:200px;" oninput="_osElabFiltrar(this.value)">
-          </div>
-          <div style="display:flex;gap:20px;align-items:flex-start;">
-            <div id="osElabLista" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto;"></div>
-            <div id="osElabConteudo" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:20px;min-height:200px;">
-              <div style="color:var(--text-faint);font-size:13.5px;">Selecione uma OS na lista ao lado.</div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
@@ -5423,7 +5355,7 @@ function _toggleGrupoGestao(ev, forcarAberto) {
 // ordem salva fosse reaplicada, só os itens seriam movidos (via
 // appendChild) e os cabeçalhos, nunca tocados, ficariam empurrados pro
 // topo da lista, juntos, à frente de todos os itens.
-const SB_NAV_ORDER_KEY = 'sbNavOrder_v3';
+const SB_NAV_ORDER_KEY = 'sbNavOrder_v4';
 
 function _sbNavTopItems() {
   const nav = document.getElementById('sbNav');
@@ -12823,94 +12755,6 @@ function _fmtDataBr(dataISO) {
   return `${dia}/${mes}/${ano}`;
 }
 
-// ── OS Elaboradas (histórico das OSs geradas via IA) ─────────────────
-let _osElabCache = [];
-let _osElabBuscaAtual = '';
-
-function _osElabRefresh() {
-  _osElabBuscaAtual = '';
-  const buscaInput = document.getElementById('osElabBusca');
-  if (buscaInput) buscaInput.value = '';
-  carregarOsElaboradas();
-}
-
-async function carregarOsElaboradas(q) {
-  const listaEl = document.getElementById('osElabLista');
-  const conteudoEl = document.getElementById('osElabConteudo');
-  if (!listaEl) return;
-  listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Carregando…</div>';
-  try {
-    const url = q
-      ? `https://api.168.138.232.237.sslip.io/os-elaboradas?q=${encodeURIComponent(q)}&limit=60`
-      : `https://api.168.138.232.237.sslip.io/os-elaboradas?limit=60`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao carregar');
-    _osElabCache = data.itens || [];
-    if (!_osElabCache.length) {
-      listaEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);padding:8px;">Nenhuma OS elaborada ainda.</div>';
-      conteudoEl.innerHTML = '<div style="color:var(--text-faint);font-size:13.5px;">Nenhuma OS elaborada ainda.</div>';
-      return;
-    }
-    listaEl.innerHTML = _osElabCache.map((r, i) => {
-      let osLista = [];
-      try { osLista = JSON.parse(r.os_json) || []; } catch (e) { osLista = []; }
-      const tituloPreview = (osLista[0]?.titulo || r.entrada_usuario || 'OS sem título').slice(0, 60);
-      const qtd = osLista.length > 1 ? ` · ${osLista.length} OSs` : '';
-      return `<div class="resumo-item${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="_osElabAbrir(${i})">
-        <div class="resumo-item-data">${esc(tituloPreview)}</div>
-        <div class="resumo-item-meta">${esc(r.criado_em || '')}${qtd}</div>
-      </div>`;
-    }).join('');
-    _osElabAbrir(0);
-  } catch (e) {
-    listaEl.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px;">Erro ao carregar OS elaboradas.</div>';
-  }
-}
-
-function _osElabAbrir(idx) {
-  const r = _osElabCache[idx];
-  if (!r) return;
-  document.querySelectorAll('#osElabLista .resumo-item').forEach(el => el.classList.toggle('active', Number(el.dataset.idx) === idx));
-  const conteudoEl = document.getElementById('osElabConteudo');
-  let osLista = [];
-  try { osLista = JSON.parse(r.os_json) || []; } catch (e) { osLista = []; }
-  if (!osLista.length) {
-    conteudoEl.innerHTML = '<div style="color:var(--text-faint);font-size:13.5px;">Não foi possível ler esta OS.</div>';
-    return;
-  }
-  conteudoEl.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
-      <span style="font-size:12px;color:var(--text-faint);">Gerada em ${esc(r.criado_em || '')}</span>
-      <button onclick="_osElabExcluir(${r.id})" style="background:transparent;border:1px solid var(--border-strong);color:var(--red);border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;">Excluir</button>
-    </div>
-    ${_htmlCamposOS(osLista)}
-  `;
-  _wireCopiaCamposOS(conteudoEl);
-}
-
-let _osElabFiltrarTimeout = null;
-function _osElabFiltrar(valor) {
-  clearTimeout(_osElabFiltrarTimeout);
-  _osElabFiltrarTimeout = setTimeout(() => {
-    _osElabBuscaAtual = (valor || '').trim();
-    carregarOsElaboradas(_osElabBuscaAtual);
-  }, 350);
-}
-
-async function _osElabExcluir(id) {
-  if (!confirm('Excluir esta OS do histórico? Essa ação não pode ser desfeita.')) return;
-  try {
-    const resp = await fetch(`https://api.168.138.232.237.sslip.io/os-elaboradas/${id}`, { method: 'DELETE' });
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Erro ao excluir');
-    showToast('OS excluída do histórico.', true);
-    carregarOsElaboradas(_osElabBuscaAtual);
-  } catch (e) {
-    showToast('Erro ao excluir: ' + (e.message || ''), false);
-  }
-}
-
 // ── Preparação Diária/Semanal (Ronda) ────────────────────────────────
 let _rondasCache = [];
 
@@ -15101,7 +14945,7 @@ let _comTabAtual = 'tecnicos';
 
 function _comSetTab(tab) {
   _comTabAtual = tab;
-  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', livre: 'Livre', sobreaviso: 'Sobreaviso', os: 'Os' };
+  const abas = { tecnicos: 'Tecnicos', clientes: 'Clientes', livre: 'Livre', sobreaviso: 'Sobreaviso' };
   Object.keys(abas).forEach(t => {
     document.getElementById('comTabBtn' + abas[t])?.classList.toggle('active', t === tab);
     const painel = document.getElementById('comTabPainel' + abas[t]);
@@ -15111,7 +14955,6 @@ function _comSetTab(tab) {
   else if (tab === 'clientes') _gcAbrirAba();
   else if (tab === 'livre') { _comLivreReset(); _comLivreDiretoCarregarGrupos(); }
   else if (tab === 'sobreaviso') _sobreavisoRefresh();
-  else if (tab === 'os') _osElabRefresh();
 }
 
 // Ponto de entrada: usado pelo botão "Comunicados" no menu Ações do
@@ -18645,12 +18488,15 @@ function renderEficiencia() {
 }
 
 
+/* LAYOUT v6 (12/11/2026): abas de Comunicados viram painéis; sem OS Elaboradas, Rondas e Indicadores */
 /* ══ LAYOUT v5 (11/11/2026) — menu em grupos, sub-abas, botão Novo, filtros no topo ══
    Não altera nenhuma função existente: só as envolve. LV_GRUPOS diz quais
    telas (seções e abas do antigo Gerencial) ficam atrás de cada item do menu. */
 const LV_GRUPOS = {
-  'rondas':          [{ label: 'Verificar rondas', nav: 'rondas' }, { label: 'Histórico de mensagens', nav: 'historico-log' }],
-  'mttr':            [{ label: 'MTTR', nav: 'mttr' }, { label: 'Eficiência O&M', nav: 'eficiencia' }],
+  'com-tecnicos':    [{ label: 'Técnicos', nav: 'comunicados', com: 'tecnicos' }],
+  'com-clientes':    [{ label: 'Clientes', nav: 'comunicados', com: 'clientes' }],
+  'com-livre':       [{ label: 'Livre', nav: 'comunicados', com: 'livre' }],
+  'com-sobreaviso':  [{ label: 'Sobreavisos', nav: 'comunicados', com: 'sobreaviso' }],
   'localizacao':     [{ label: 'Mapa', nav: 'localizacao' }, { label: 'Mapeamento', nav: 'boletins', ger: 'mapeamento' }, { label: 'Supervisão temporária', nav: 'boletins', ger: 'supervisao' }],
   'boletins':        [{ label: 'Boletins de medição', nav: 'boletins', ger: 'boletins' }],
   'ger-entregaveis': [{ label: 'Entregáveis', nav: 'boletins', ger: 'entregaveis' }, { label: 'Cobrança', nav: 'boletins', ger: 'cobranca' }],
@@ -18664,7 +18510,7 @@ function _lvVistaDisponivel(v) { return _lvVisivel(_lvItem(v.nav)); }
 function _lvGrupoAtual() {
   const ger = _activeNav === 'boletins' ? _lvGerTabAtual() : null;
   for (const key of Object.keys(LV_GRUPOS)) {
-    if (LV_GRUPOS[key].some(v => v.nav === _activeNav && (v.nav !== 'boletins' || v.ger === ger))) return key;
+    if (LV_GRUPOS[key].some(v => v.nav === _activeNav && (v.nav === 'boletins' ? v.ger === ger : v.nav === 'comunicados' ? v.com === _comTabAtual : true))) return key;
   }
   return null;
 }
@@ -18689,15 +18535,19 @@ function _lvSync() {
     const vistas = LV_GRUPOS[key].map((v, i) => ({ v, i })).filter(o => _lvVistaDisponivel(o.v));
     box.hidden = vistas.length < 2;
     box.innerHTML = vistas.map(o => {
-      const on = o.v.nav === _activeNav && (o.v.nav !== 'boletins' || o.v.ger === ger);
+      const on = o.v.nav === _activeNav && (o.v.nav === 'boletins' ? o.v.ger === ger : o.v.nav === 'comunicados' ? o.v.com === _comTabAtual : true);
       return `<button type="button" role="tab" aria-selected="${on}" class="lv-subtab${on ? ' active' : ''}" onclick="_lvIrVista('${key}',${o.i})">${esc(o.v.label)}</button>`;
     }).join('');
   } catch (e) { console.warn('[layout v5] sync', e); }
 }
 const _lvSwitchNavBase = switchNav;
 switchNav = function (nav) {
+  if (nav === 'rondas' || nav === 'mttr') nav = 'atividades';  // painéis excluídos (12/11/2026)
   const g = LV_GRUPOS[nav];
-  if (g && g[0].ger && !_lvVisivel(_lvItem(nav))) {
+  if (g && g[0].com) {
+    if (!_lvVisivel(_lvItem(nav))) _lvSwitchNavBase('atividades');
+    else { _comTabAtual = g[0].com; _lvSwitchNavBase('comunicados'); }
+  } else if (g && g[0].ger && !_lvVisivel(_lvItem(nav))) {
     _lvSwitchNavBase('atividades');  // item escondido pro perfil: não abre por atalho
   } else if (g && g[0].ger) {
     _lvSwitchNavBase('boletins');
@@ -18706,6 +18556,12 @@ switchNav = function (nav) {
     _lvSwitchNavBase(nav);
   }
   _lvSync();
+};
+const _lvComSetTabBase = _comSetTab;
+_comSetTab = function () {
+  const r = _lvComSetTabBase.apply(this, arguments);
+  _lvSync();
+  return r;
 };
 const _lvGerMudarTabBase = _gerMudarTab;
 _gerMudarTab = function () {
@@ -18758,6 +18614,15 @@ function _lvAplicarPerfil() {
     el.style.display = base.style.display;
     el.classList.toggle('sup-oculto', base.classList.contains('sup-oculto'));
   });
+  // painéis do antigo "Comunicados & OSs": seguem o item-base + os botões de aba que cada perfil já escondia por CSS
+  const comBase = _lvItem('comunicados');
+  [['tecnicos', 'Tecnicos'], ['clientes', 'Clientes'], ['livre', 'Livre'], ['sobreaviso', 'Sobreaviso']].forEach(([t, N]) => {
+    const el = _lvItem('com-' + t), btn = document.getElementById('comTabBtn' + N);
+    if (!el) return;
+    const ok = _lvVisivel(comBase) && (!btn || getComputedStyle(btn).display !== 'none');
+    el.style.display = ok ? '' : 'none';
+    el.classList.toggle('sup-oculto', !ok);
+  });
   document.querySelectorAll('#sbNav .sb-section-label-row').forEach(h => {
     let n = h.nextElementSibling, algum = false;
     while (n && !n.classList.contains('sb-section-label-row')) {
@@ -18777,7 +18642,7 @@ initDashboard = function (session) {
   try {
     _lvAplicarPerfil();
     const hsh = (location.hash || '').slice(1);
-    if (LV_GRUPOS[hsh] && LV_GRUPOS[hsh][0].ger && _lvVisivel(_lvItem(hsh))) switchNav(hsh);
+    if (LV_GRUPOS[hsh] && (LV_GRUPOS[hsh][0].ger || LV_GRUPOS[hsh][0].com) && _lvVisivel(_lvItem(hsh))) switchNav(hsh);
     else _lvSync();
   } catch (e) { console.warn('[layout v5] init', e); }
   return r;
