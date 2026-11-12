@@ -21889,6 +21889,16 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 .vt-ed .oc-form{margin-top:4px;}
 .vt-ed .vt-sug{font-size:12px;color:var(--text-faint);margin:0 0 6px;}
 .vt-ed .vt-acts{margin-top:10px;}
+.vt-prog{margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel-alt);}
+.vt-prog-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;}
+.vt-steps{list-style:none;margin:8px 0 4px;padding:0;display:flex;flex-direction:column;gap:5px;font-size:13px;}
+.vt-steps li{display:flex;align-items:baseline;gap:8px;color:var(--text-faint);}
+.vt-steps li .i{display:inline-flex;justify-content:center;width:18px;font-weight:700;}
+.vt-steps li.ok{color:var(--text-dim);} .vt-steps li.ok .i{color:var(--teal);}
+.vt-steps li.run{color:var(--text);font-weight:600;} .vt-steps li.run .i{color:var(--amber);animation:vtgira 1.2s linear infinite;}
+.vt-steps li.err{color:var(--red);}
+@keyframes vtgira{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.vt-steps li.run .i{animation:none;}}
 .vt-erro{color:var(--red);font-size:12.5px;margin-top:6px;}
 </style>
 <script>
@@ -21907,6 +21917,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   const toast = (m, ok = true) => { try { showToast(m, ok); } catch (x) {} };
   const hoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const CRITS = ['', 'Baixa', 'Média', 'Alta', 'Muito Alta'];
+  let iniT = 0, tick = null;
   let PROPS = [], EST = null, timer = null, abertoPid = null, modoEd = null, erroPid = {}, ocupado = false, montado = false;
 
   async function api(path, corpo) {
@@ -21939,10 +21950,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 
   async function iniciar() {
     if (ocupado) return;
-    ocupado = true; desenhar();
+    ocupado = true; iniT = Date.now(); desenhar(); relogio();
     try {
       const r = await api('/verificar-thopen/iniciar', { horas: 48 });
-      EST = r.estado;
+      EST = r.estado; EST._recebido = Date.now();
       toast(r.jaRodando ? 'Já há uma verificação em andamento.' : 'Verificação enviada ao Claude. Leva alguns minutos.');
       acompanhar();
     } catch (x) { toast('Não consegui iniciar: ' + x.message, false); }
@@ -21956,14 +21967,53 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       try {
         const r = await api('/verificar-thopen/status');
         const antes = EST && EST.status;
-        EST = r.estado;
+        EST = r.estado; EST._recebido = Date.now();
         if (antes === 'rodando' && EST.status === 'concluido') {
           await carregarProps();
           toast(EST.importadas ? `Claude terminou: ${EST.importadas} proposta(s) para aprovar.` : 'Claude terminou: nenhum pedido novo.');
         } else if (antes === 'rodando' && EST.status === 'erro') toast('Verificação falhou: ' + (EST.erro || ''), false);
       } catch (x) {}
       desenhar(); acompanhar();
-    }, 20000);
+    }, 10000);
+  }
+
+  /* relógio: atualiza só o bloco de progresso (não mexe nos formulários abertos) */
+  function relogio() {
+    clearInterval(tick);
+    tick = setInterval(() => {
+      const el = document.getElementById('vtProg');
+      if (!(ocupado || (EST && EST.status === 'rodando'))) { clearInterval(tick); tick = null; return; }
+      if (el) el.innerHTML = htmlProg();
+    }, 1000);
+  }
+  const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+  function htmlProg() {
+    const rodando = EST && EST.status === 'rodando';
+    if (!ocupado && !rodando) return '';
+    const dec = ocupado ? (Date.now() - iniT) / 1000 : (EST.decorrido_s || 0) + (Date.now() - (EST._recebido || Date.now())) / 1000;
+    const a = (EST && EST.acao) || null;
+    const passos = [];
+    const P = (nome, st, extra) => passos.push({ nome, st, extra });
+    P('Reunindo mensagens (Thopen, equipes), ocorrências e OS', ocupado ? 'run' : 'ok', ocupado ? 'leva até ~1 min' : '');
+    const fila = !a ? 'run' : (a.status === 'queued' ? 'run' : 'ok');
+    if (!ocupado) {
+      P('Na fila do GitHub', fila, !a ? 'aguardando o GitHub iniciar' : '');
+      const nomes = ['Preparando o Claude', 'Claude analisando os pedidos', 'Publicando o resultado'];
+      nomes.forEach(n => {
+        const p = a && (a.passos || []).find(x => x.nome === n);
+        let st = 'wait';
+        if (p) st = p.status === 'completed' ? (p.conclusao === 'success' ? 'ok' : 'err') : (p.status === 'in_progress' ? 'run' : 'wait');
+        P(n, st, n === 'Claude analisando os pedidos' && st === 'run' ? 'costuma levar 2 a 5 min' : '');
+      });
+      P('Importando as propostas para o painel', a && a.status === 'completed' ? 'run' : 'wait', '');
+    } else ['Na fila do GitHub', 'Preparando o Claude', 'Claude analisando os pedidos', 'Publicando o resultado', 'Importando as propostas para o painel'].forEach(n => P(n, 'wait', ''));
+    const ic = { ok: '✓', run: '◌', wait: '·', err: '✕' };
+    const c = (EST && EST.contagem) || {};
+    const dados = !ocupado && c.mensagens_thopen !== undefined
+      ? `<div class="vt-st">Dados enviados: ${c.mensagens_thopen || 0} mensagens no período${c.mensagens_contexto ? ` + ${c.mensagens_contexto} de contexto` : ''} · ${c.grupos_equipe || 0} grupos de equipe · ${c.ocorrencias || 0} ocorrências · ${c.os_abertas || 0} OS abertas</div>` : '';
+    return `<div class="vt-prog-h"><b>Verificação em andamento</b><span class="vt-st">${mmss(dec)} · pode continuar usando o painel</span>${a && a.url ? `<a class="oc-link" href="${e(a.url)}" target="_blank" rel="noopener">ver no GitHub ↗</a>` : ''}</div>
+      <ol class="vt-steps">${passos.map(p => `<li class="${p.st}"><span class="i">${ic[p.st]}</span>${e(p.nome)}${p.extra ? ` <span class="vt-st">— ${e(p.extra)}</span>` : ''}</li>`).join('')}</ol>${dados}`;
   }
 
   async function carregarProps() {
@@ -21971,9 +22021,8 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   }
 
   function txtEstado() {
-    if (ocupado) return { t: 'Reunindo dados e enviando ao Claude…', err: false };
+    if (ocupado || (EST && EST.status === 'rodando')) return { t: '', err: false, rodando: true };
     if (!EST || !EST.status) return { t: '', err: false };
-    if (EST.status === 'rodando') { const m = Math.floor((EST.decorrido_s || 0) / 60); return { t: `Claude analisando… (${m} min). Pode continuar usando o painel.`, err: false }; }
     if (EST.status === 'erro') return { t: 'Última verificação falhou: ' + (EST.erro || ''), err: true };
     const c = EST.contagem || {};
     const quando = EST.fim ? new Date(EST.fim * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
@@ -21988,7 +22037,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     btn.hidden = !fred; btn.disabled = ocupado || (EST && EST.status === 'rodando');
     if (!fred) { box.hidden = true; return; }
     const st = txtEstado();
-    const mostrar = PROPS.length || st.t;
+    const mostrar = PROPS.length || st.t || st.rodando;
     box.hidden = !mostrar;
     if (!mostrar) return;
     const nv = (EST && EST.status === 'concluido' && (EST.nao_verificado || []).length)
@@ -21996,6 +22045,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     box.innerHTML = `
       <div class="vt-head"><h3>Pedidos da Thopen · aguardando aprovação${PROPS.length ? ` (${PROPS.length})` : ''}</h3><span class="grow"></span>
         <span class="vt-st${st.err ? ' err' : ''}">${e(st.t)}</span></div>
+      <div id="vtProg" class="vt-prog"${st.rodando ? '' : ' hidden'}>${htmlProg()}</div>
       ${EST && EST.status === 'concluido' && EST.resumo ? `<p class="vt-resumo">${e(EST.resumo)}</p>` : ''}${nv}
       <div class="vt-list">${PROPS.map(cartao).join('') || '<p class="oc-vazio">Nenhuma proposta pendente.</p>'}</div>`;
   }
@@ -22117,15 +22167,16 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   async function entrar() {
     montar();
     if (!ehFred()) { desenhar(); return; }
-    try { const r = await api('/verificar-thopen/status'); EST = r.estado; } catch (x) {}
+    try { const r = await api('/verificar-thopen/status'); EST = r.estado; EST._recebido = Date.now(); } catch (x) {}
     await carregarProps();
     desenhar(); acompanhar();
+    if (EST && EST.status === 'rodando') relogio();
   }
 
   window.VT = { entrar, recarregar: async () => { await carregarProps(); desenhar(); } };
   if (window.OC && typeof OC.entrar === 'function' && !OC._vtLigado) {
     const orig = OC.entrar;
-    OC.entrar = function () { const r = orig.apply(this, arguments); try { entrar(); } catch (x) {} return r; };
+    OC.entrar = function () { const r = orig.apply(this, arguments); setTimeout(() => { try { entrar(); } catch (x) {} }, 1200); return r; };  /* depois das ocorrências, para não disputar a planilha */
     OC._vtLigado = true;
   }
 })();
