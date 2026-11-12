@@ -21899,6 +21899,8 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 .vt-steps li.err{color:var(--red);}
 @keyframes vtgira{to{transform:rotate(360deg);}}
 @media (prefers-reduced-motion:reduce){.vt-steps li.run .i{animation:none;}}
+.vt-ok{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--panel-alt);color:var(--text-dim);}
+.vt-ok .i{color:var(--teal);font-weight:700;}
 .vt-erro{color:var(--red);font-size:12.5px;margin-top:6px;}
 </style>
 <script>
@@ -21918,7 +21920,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   const hoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const CRITS = ['', 'Baixa', 'Média', 'Alta', 'Muito Alta'];
   let iniT = 0, tick = null;
-  let PROPS = [], EST = null, timer = null, abertoPid = null, modoEd = null, erroPid = {}, ocupado = false, montado = false;
+  let PROPS = [], EST = null, timer = null, erroPid = {}, ocupado = false, montado = false;
+  /* cada proposta tem seu próprio formulário aberto e rascunho; decididas viram uma linha ✓ */
+  const ABERTOS = {}, RASC = {}, OCUP = {}; let FEITOS = [];
+  const rv = (id, def) => (Object.prototype.hasOwnProperty.call(RASC, id) ? RASC[id] : def);
 
   async function api(path, corpo) {
     const opt = corpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) };
@@ -21945,6 +21950,8 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     box.setAttribute('aria-label', 'Pedidos da Thopen aguardando aprovação');
     vOc.parentNode.insertBefore(box, vOc);
     box.addEventListener('click', clique);
+    const guarda = ev => { const t = ev.target; if (t && t.id && t.id.startsWith('vt')) RASC[t.id] = t.value; };
+    box.addEventListener('input', guarda); box.addEventListener('change', guarda);
     montado = true;
   }
 
@@ -22037,7 +22044,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     btn.hidden = !fred; btn.disabled = ocupado || (EST && EST.status === 'rodando');
     if (!fred) { box.hidden = true; return; }
     const st = txtEstado();
-    const mostrar = PROPS.length || st.t || st.rodando;
+    const mostrar = PROPS.length || FEITOS.length || st.t || st.rodando;
     box.hidden = !mostrar;
     if (!mostrar) return;
     const nv = (EST && EST.status === 'concluido' && (EST.nao_verificado || []).length)
@@ -22047,7 +22054,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
         <span class="vt-st${st.err ? ' err' : ''}">${e(st.t)}</span></div>
       <div id="vtProg" class="vt-prog"${st.rodando ? '' : ' hidden'}>${htmlProg()}</div>
       ${EST && EST.status === 'concluido' && EST.resumo ? `<p class="vt-resumo">${e(EST.resumo)}</p>` : ''}${nv}
-      <div class="vt-list">${PROPS.map(cartao).join('') || '<p class="oc-vazio">Nenhuma proposta pendente.</p>'}</div>`;
+      <div class="vt-list">${FEITOS.map(f => `<div class="vt-ok"><span class="i">✓</span>${f.usina ? `<b>${e(f.usina)}</b> · ` : ''}${e(f.msg)}${f.oc ? ` <button type="button" class="oc-link" data-vt="ver" data-oc="${e(f.oc)}">abrir</button>` : ''}</div>`).join('')}${PROPS.map(cartao).join('') || (FEITOS.length ? '' : '<p class="oc-vazio">Nenhuma proposta pendente.</p>')}</div>`;
   }
 
   function rotuloTipo(p) {
@@ -22059,9 +22066,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   function cartao(p) {
     const oc = itensOc().find(x => x.id === p.ocorrencia);
     const conf = (p.confianca || '').toLowerCase();
+    const modo = ABERTOS[p.pid];
     let ed = '';
-    if (abertoPid === p.pid && modoEd === 'agregar') ed = formAgregar(p);
-    if (abertoPid === p.pid && modoEd === 'nova') ed = formNova(p);
+    if (modo === 'agregar') ed = formAgregar(p);
+    if (modo === 'nova') ed = formNova(p);
     return `<article class="vt-p" data-pid="${e(p.pid)}">
       <div class="vt-p-h">${p.usina ? `<b>${e(p.usina)}</b>` : '<span class="vt-tag baixa">Usina a confirmar</span>'}<span class="vt-tag">${rotuloTipo(p)}</span>${conf ? `<span class="vt-tag ${conf === 'alta' ? 'alta' : conf === 'baixa' ? 'baixa' : ''}">confiança ${e(conf)}</span>` : ''}
         <span class="vt-st">${e(p.quem || '')}${p.quando ? ' · ' + e(p.quando) : ''}</span></div>
@@ -22069,7 +22077,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       ${p.trecho ? `<div class="vt-trecho">“${e(p.trecho)}”</div>` : ''}
       ${oc ? `<div class="vt-just">Ocorrência sugerida: <b>${e(oc.id)}</b> · ${e(oc.status)} · ${e(oc.equip || '')} ${e(oc.nequip || '')} — ${e((oc.titulo || oc.causa || '').slice(0, 120))} <button type="button" class="oc-link" data-vt="ver" data-oc="${e(oc.id)}">abrir</button></div>` : ''}
       ${p.justificativa ? `<div class="vt-just">${e(p.justificativa)}</div>` : ''}
-      ${abertoPid === p.pid ? '' : `<div class="vt-acts">
+      ${modo ? '' : `<div class="vt-acts">
         <button type="button" class="oc-btn sm${p.tipo === 'agregar' ? ' pri' : ''}" data-vt="abrir-agregar">Agregar a ocorrência existente</button>
         <button type="button" class="oc-btn sm${p.tipo === 'nova' ? ' pri' : ''}" data-vt="abrir-nova">Criar nova ocorrência</button>
         <button type="button" class="oc-btn sm" data-vt="descartar">Descartar</button></div>`}
@@ -22084,7 +22092,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       const ma = norm(a.usina).includes(base.split(' ')[0]) ? 0 : 1, mb = norm(b.usina).includes(base.split(' ')[0]) ? 0 : 1;
       return ma - mb || (a.status === 'Finalizado') - (b.status === 'Finalizado') || String(b.id).localeCompare(String(a.id));
     });
-    const sel = p.ocorrencia || '';
+    const sel = rv('vtOc-' + p.pid, p.ocorrencia || '');
     return '<option value="">— escolha a ocorrência —</option>' + lista.map(x =>
       `<option value="${e(x.id)}"${x.id === sel ? ' selected' : ''}>${e(x.id)} · ${e(x.usina)} · ${e(x.equip || '')} ${e(x.nequip || '')} · ${e(x.status)} — ${e((x.titulo || x.causa || '').slice(0, 70))}</option>`).join('');
   }
@@ -22095,21 +22103,21 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     return `<div class="vt-ed"><p class="vt-sug">Só o histórico da ocorrência escolhida será atualizado.</p>
       <div class="oc-form">
         <div class="full"><label for="vtOc-${e(p.pid)}">Ocorrência</label><select id="vtOc-${e(p.pid)}">${opcoesOcorrencias(p)}</select></div>
-        <div><label for="vtDt-${e(p.pid)}">Data do registro</label><input type="date" id="vtDt-${e(p.pid)}" value="${hoje()}"></div>
-        <div class="full"><label for="vtTx-${e(p.pid)}">Registro no histórico</label><textarea id="vtTx-${e(p.pid)}">${e(texto)}</textarea></div>
+        <div><label for="vtDt-${e(p.pid)}">Data do registro</label><input type="date" id="vtDt-${e(p.pid)}" value="${e(rv('vtDt-' + p.pid, hoje()))}"></div>
+        <div class="full"><label for="vtTx-${e(p.pid)}">Registro no histórico</label><textarea id="vtTx-${e(p.pid)}">${e(rv('vtTx-' + p.pid, texto))}</textarea></div>
       </div>
-      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-agregar">Agregar ao histórico</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
+      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-agregar"${OCUP[p.pid] ? ' disabled' : ''}>${OCUP[p.pid] ? 'Salvando…' : 'Agregar ao histórico'}</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
   }
 
   function formNova(p) {
     const n = p.nova || {};
     const usinas = [...new Set([p.usina, ...itensOc().map(x => x.usina)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const id = k => `vtN-${k}-${e(p.pid)}`;
-    const campo = (k, rot, v, cls = '') => `<div class="${cls}"><label for="${id(k)}">${rot}</label><input id="${id(k)}" value="${e(v || '')}"></div>`;
+    const campo = (k, rot, v, cls = '') => `<div class="${cls}"><label for="${id(k)}">${rot}</label><input id="${id(k)}" value="${e(rv(`vtN-${k}-${p.pid}`, v || ''))}"></div>`;
     const registro = p.texto || `${p.quando ? p.quando.split(' ')[0] + ' — ' : ''}Thopen (${p.quem || 'cliente'}): ${p.pedido}`;
     return `<div class="vt-ed"><p class="vt-sug">Confira e corrija os campos antes de criar.</p>
       <div class="oc-form">
-        <div><label for="${id('usina')}">Usina</label><input id="${id('usina')}" list="vtUsinas-${e(p.pid)}" value="${e(p.usina)}"><datalist id="vtUsinas-${e(p.pid)}">${usinas.map(u => `<option value="${e(u)}">`).join('')}</datalist></div>
+        <div><label for="${id('usina')}">Usina</label><input id="${id('usina')}" list="vtUsinas-${e(p.pid)}" value="${e(rv('vtN-usina-' + p.pid, p.usina))}"><datalist id="vtUsinas-${e(p.pid)}">${usinas.map(u => `<option value="${e(u)}">`).join('')}</datalist></div>
         ${campo('cliente', 'Cliente', 'Thopen')}
         ${campo('equip', 'Equipamento', n.equip)}
         ${campo('nequip', 'Ativo (identificação)', n.nequip)}
@@ -22117,27 +22125,31 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
         ${campo('chamado', 'Chamado', n.chamado)}
         ${campo('sn', 'S/N', n.sn)}
         ${campo('os', 'OS vinculada (separe por vírgula)', n.os)}
-        <div><label for="${id('crit')}">Criticidade</label><select id="${id('crit')}">${CRITS.map(c => `<option value="${e(c)}"${c === (n.crit || '') ? ' selected' : ''}>${c || '—'}</option>`).join('')}</select></div>
+        <div><label for="${id('crit')}">Criticidade</label><select id="${id('crit')}">${CRITS.map(c => `<option value="${e(c)}"${c === rv('vtN-crit-' + p.pid, n.crit || '') ? ' selected' : ''}>${c || '—'}</option>`).join('')}</select></div>
         ${campo('resp', 'Responsável', n.resp || 'Fred')}
-        <div><label for="${id('inicio')}">Início</label><input type="date" id="${id('inicio')}" value="${hoje()}"></div>
+        <div><label for="${id('inicio')}">Início</label><input type="date" id="${id('inicio')}" value="${e(rv('vtN-inicio-' + p.pid, hoje()))}"></div>
         ${campo('titulo', 'Título', n.titulo || p.pedido.slice(0, 120), 'full')}
-        <div class="full"><label for="${id('causa')}">Descrição</label><textarea id="${id('causa')}">${e(n.causa || p.pedido)}</textarea></div>
+        <div class="full"><label for="${id('causa')}">Descrição</label><textarea id="${id('causa')}">${e(rv('vtN-causa-' + p.pid, n.causa || p.pedido))}</textarea></div>
         ${campo('impacto', 'Impacto', n.impacto, 'full')}
-        <div class="full"><label for="${id('registro')}">Primeiro registro do histórico</label><textarea id="${id('registro')}">${e(registro)}</textarea></div>
+        <div class="full"><label for="${id('registro')}">Primeiro registro do histórico</label><textarea id="${id('registro')}">${e(rv('vtN-registro-' + p.pid, registro))}</textarea></div>
       </div>
-      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-nova">Criar ocorrência</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
+      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-nova"${OCUP[p.pid] ? ' disabled' : ''}>${OCUP[p.pid] ? 'Salvando…' : 'Criar ocorrência'}</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
   }
 
-  async function decidir(p, corpo, msg) {
-    if (ocupado) return;
-    ocupado = true; erroPid[p.pid] = '';
+  async function decidir(p, corpo) {
+    if (OCUP[p.pid]) return;
+    OCUP[p.pid] = true; erroPid[p.pid] = ''; desenhar();
     try {
       const r = await api('/ocorrencias/propostas/decidir', Object.assign({ pid: p.pid }, corpo));
-      PROPS = PROPS.filter(x => x.pid !== p.pid); abertoPid = null; modoEd = null;
-      toast(msg + (r.resultado && r.resultado.startsWith('criada') ? ' (' + r.resultado.replace('criada ', '') + ')' : ''));
-      if (corpo.acao !== 'descartar' && window.OC) { try { await OC.recarregar(); } catch (x) {} }
+      const novaId = r.resultado && r.resultado.startsWith('criada') ? r.resultado.replace('criada ', '') : '';
+      const msg = corpo.acao === 'agregar' ? `Histórico da ${corpo.ocorrencia} atualizado`
+        : corpo.acao === 'nova' ? `Ocorrência ${novaId} criada` : 'Proposta descartada';
+      PROPS = PROPS.filter(x => x.pid !== p.pid); delete ABERTOS[p.pid];
+      Object.keys(RASC).forEach(k => { if (k.endsWith('-' + p.pid)) delete RASC[k]; });
+      FEITOS.push({ usina: (corpo.campos && corpo.campos.usina) || p.usina, msg, oc: corpo.ocorrencia || novaId });
+      if (corpo.acao !== 'descartar' && window.OC) { try { OC.recarregar(); } catch (x) {} }
     } catch (x) { erroPid[p.pid] = x.message; }
-    ocupado = false; desenhar();
+    delete OCUP[p.pid]; desenhar();
   }
 
   function clique(ev) {
@@ -22147,20 +22159,20 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     if (a === 'ver') { if (window.OC) OC.abrir(b.dataset.oc); return; }
     if (!p) return;
     const v = k => { const el = document.getElementById(`vtN-${k}-${p.pid}`); return el ? el.value.trim() : ''; };
-    if (a === 'abrir-agregar' || a === 'abrir-nova') { abertoPid = p.pid; modoEd = a.slice(6); erroPid[p.pid] = ''; desenhar(); return; }
-    if (a === 'cancelar') { abertoPid = null; modoEd = null; desenhar(); return; }
-    if (a === 'descartar') { decidir(p, { acao: 'descartar' }, 'Proposta descartada.'); return; }
+    if (a === 'abrir-agregar' || a === 'abrir-nova') { ABERTOS[p.pid] = a.slice(6); erroPid[p.pid] = ''; desenhar(); return; }
+    if (a === 'cancelar') { delete ABERTOS[p.pid]; desenhar(); return; }
+    if (a === 'descartar') { decidir(p, { acao: 'descartar' }); return; }
     if (a === 'ok-agregar') {
       const oc = document.getElementById('vtOc-' + p.pid).value;
       const texto = document.getElementById('vtTx-' + p.pid).value.trim();
       if (!oc) { erroPid[p.pid] = 'Escolha a ocorrência.'; desenhar(); return; }
-      decidir(p, { acao: 'agregar', ocorrencia: oc, texto, data: document.getElementById('vtDt-' + p.pid).value }, `Histórico da ${oc} atualizado.`);
+      decidir(p, { acao: 'agregar', ocorrencia: oc, texto, data: document.getElementById('vtDt-' + p.pid).value });
       return;
     }
     if (a === 'ok-nova') {
       const campos = {};
       ['usina', 'cliente', 'equip', 'nequip', 'fab', 'chamado', 'sn', 'os', 'crit', 'resp', 'inicio', 'titulo', 'causa', 'impacto'].forEach(k => { const x = v(k); if (x) campos[k] = x; });
-      decidir(p, { acao: 'nova', campos, registro: v('registro') }, 'Ocorrência criada.');
+      decidir(p, { acao: 'nova', campos, registro: v('registro') });
     }
   }
 
