@@ -15,7 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 <style>
 /* ── FONTES ─────────────────────────────────────────────── */
-@font-face{font-family:'Geist';font-weight:100 900;font-display:swap;src:url('https://cdn.jsdelivr.net/fontsource/fonts/inter:vf@5.2.8/latin-wght-normal.woff2') format('woff2-variations');}
+@font-face{font-family:'Geist';font-weight:100 900;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2-variations');}
 @font-face{font-family:'Geist Mono';font-weight:400;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/GeistMono-Regular.woff2') format('woff2');}
 @font-face{font-family:'Geist Mono';font-weight:500;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/GeistMono-Medium.woff2') format('woff2');}
 @font-face{font-family:'Geist Mono';font-weight:600;font-display:swap;src:url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/GeistMono-SemiBold.woff2') format('woff2');}
@@ -1806,6 +1806,144 @@ table.oc-z td.desc{min-width:260px;}
 body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os-search{display:none!important;}
 #sbBadgeFalhas{display:none!important;}
 
+
+/* ══════════════════════════════════════════════════════════
+   LAYOUT v5 (11/11/2026) — casca reorganizada a pedido do Fred:
+   menu em 4 grupos, filtros numa barra abaixo do topo, botão "Novo",
+   topo em uma linha. Só apresentação: #sbFilters e #sbQuickActions são
+   os MESMOS elementos de antes (mesmos ids), apenas em outro lugar.
+   Bloco único no fim do <style> pra vencer por ordem de fonte.
+══════════════════════════════════════════════════════════ */
+:root{--lv-line:rgba(255,255,255,.09);--lv-line-strong:rgba(255,255,255,.16);}
+[data-theme="light"]{--lv-line:rgba(4,47,54,.11);--lv-line-strong:rgba(4,47,54,.2);}
+
+/* Sidebar: só navegação */
+.sidebar{border-right-color:var(--lv-line);}
+.sb-logo{padding:14px 16px 6px;display:flex;flex-direction:column-reverse;gap:1px;}
+.sb-logo-eyebrow{font-family:'Geist',sans-serif;font-size:12px;letter-spacing:0;text-transform:none;font-weight:400;margin:0;}
+.sb-nav{flex:1 1 auto;min-height:0;overflow-y:auto;padding:0 0 10px;border-bottom:0;}
+.sb-nav::-webkit-scrollbar{width:3px;}
+.sb-nav::-webkit-scrollbar-thumb{background:var(--lv-line);border-radius:99px;}
+.sb-nav-item{font-size:13.5px;padding:7px 10px;gap:10px;color:var(--text-dim);border-radius:8px;}
+.sb-nav-item.active{padding:7px 10px;border-radius:8px;font-weight:600;}
+.sb-nav-item svg{width:16px;height:16px;}
+.sb-section-label-row{font-size:12px;letter-spacing:0;text-transform:none;font-weight:500;margin:14px 6px 4px;}
+.sb-section-label-row[data-section-key="ferramentas"],#navFerramentasToggle,#grupoFerramentasSubmenu{display:none !important;}
+.sidebar > div:has(> #sbSketchbookBtn){border-top-color:var(--lv-line) !important;padding:8px 6px 6px !important;}
+#sbSketchbookBtn{background:transparent !important;border-color:transparent !important;color:var(--text-dim) !important;font-size:13.5px;padding:7px 10px;gap:10px;border-radius:8px;}
+#sbSketchbookBtn:hover{background:var(--panel-alt) !important;color:var(--text) !important;}
+#sbSketchbookBtn.active{background:var(--teal) !important;color:var(--ink) !important;font-weight:600;}
+#sbSketchbookBtn svg{width:16px;height:16px;}
+.sb-footer{border-top-color:var(--lv-line);}
+.sb-avatar{background:var(--panel-alt);border-color:var(--lv-line);color:var(--text);border-radius:50%;font-family:'Geist',sans-serif;font-size:12px;font-weight:600;}
+.sb-user-name{font-size:13px;}
+.sb-user-role{font-family:'Geist',sans-serif;font-size:12px;}
+
+/* Topo em uma linha: título · relógio · status | busca · botões · Novo */
+.topbar{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 20px;border-bottom-color:var(--lv-line);}
+#appShell .topbar-row1,#appShell .topbar-row2{display:contents !important;}
+.topbar-left{order:1;flex:0 1 auto;}
+.topbar-section-title{font-size:18px;font-weight:600;}
+.topbar-clock{display:none;}
+.topbar-live{order:3;margin-right:auto;font-family:'Geist',sans-serif;font-size:12px;}
+.topbar-count{order:4;font-size:12px;}
+.topbar-os-search{order:5;}
+.topbar-os-search .sb-search{height:34px;margin:0;}
+.topbar-right{order:6;margin-left:0;gap:6px;}
+.topbar .tb-btn{height:34px;border-radius:8px;padding:0 10px;}
+.topbar .tb-btn svg{width:15px;height:15px;}
+.topbar .tb-btn-notif,.topbar .tb-btn-refresh,.topbar .tb-btn.tb-theme,#lvFiltrosBtn,#topbarOsSearchBtn{background:var(--panel-alt);border-color:var(--lv-line);color:var(--text-dim);}
+.topbar .tb-btn-notif:hover,.topbar .tb-btn-refresh:hover:not(:disabled),#lvFiltrosBtn:hover{background:var(--panel-alt);border-color:var(--lv-line-strong);color:var(--text);}
+.topbar .tb-btn-notif.enabled{background:var(--panel-alt);border-color:rgba(34,211,238,.45);color:var(--teal);}
+#notifBtnLabel{display:none;}
+#centralNotifBtn,#notifBtn,.topbar .tb-btn.tb-theme,#lvFiltrosBtn{width:34px;padding:0;justify-content:center;}
+#lvFiltrosBtn{display:none;}
+#lvFiltrosBtn[hidden]{display:none !important;}
+.tb-novo{position:relative;order:9;}
+.tb-novo[hidden]{display:none;}
+body.role-campo #tbNovoWrap{display:none !important;}
+.topbar #tbNovoBtn{background:var(--teal);border-color:var(--teal);color:var(--ink);font-weight:600;padding:0 14px 0 11px;}
+#tbNovoBtn:hover{filter:brightness(1.08);}
+#tbNovoBtn svg{stroke-width:2.6;}
+.tb-novo-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:600;min-width:236px;padding:6px;border:1px solid var(--lv-line-strong);border-radius:12px;background:var(--panel);box-shadow:0 16px 40px rgba(0,0,0,.5);flex-direction:column;gap:1px;}
+.tb-novo.open .tb-novo-menu{display:flex;}
+.tb-novo-menu .sb-section-label{display:none;}
+.tb-novo-menu .sb-action-btn{background:transparent;border-color:transparent;color:var(--text);font-size:13.5px;font-weight:400;padding:9px 10px;margin:0 !important;border-radius:8px;gap:10px;}
+.tb-novo-menu .sb-action-btn:hover{background:var(--panel-alt);border-color:transparent;}
+.tb-novo-menu .sb-action-btn svg{width:16px;height:16px;color:var(--text-dim);}
+.tb-novo-menu a[href="fv-energias.html"]{background:transparent !important;border:0 !important;border-top:1px solid var(--lv-line) !important;border-radius:0 0 8px 8px !important;color:var(--text-dim) !important;font-size:13.5px !important;padding:11px 10px 8px !important;margin:5px 0 0 !important;gap:10px !important;}
+.tb-novo-menu a[href="fv-energias.html"]:hover{color:var(--text) !important;}
+.tb-novo-menu a[href="fv-energias.html"]::after{content:"outra aba";margin-left:auto;font-size:12px;color:var(--text-faint);white-space:nowrap;}
+.tb-novo-menu .sb-action-btn,.tb-novo-menu a{white-space:nowrap;}
+
+/* Sub-abas do item do menu (ex.: Entregáveis · Cobrança) */
+.lv-subtabs{flex:none;display:flex;gap:2px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--lv-line);overflow-x:auto;}
+.lv-subtabs[hidden]{display:none;}
+.lv-subtab{background:none;border:0;border-bottom:2px solid transparent;color:var(--text-dim);font:500 13.5px 'Geist',sans-serif;padding:11px 12px 9px;cursor:pointer;white-space:nowrap;}
+.lv-subtab:hover{color:var(--text);}
+.lv-subtab.active{color:var(--text);border-bottom-color:var(--teal);font-weight:600;}
+#gerTabsWrapper,#gerTabsWrapper + div{display:none !important;}
+
+/* Barra de filtros */
+.filterbar{flex:none;display:flex;align-items:flex-start;padding:8px 20px;background:var(--panel);border-bottom:1px solid var(--lv-line);position:relative;z-index:5;}
+.filterbar[hidden]{display:none;}
+.filterbar .sb-filters{flex:1;min-width:0;overflow:visible;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;}
+.fb-field{display:flex;align-items:center;gap:8px;min-width:0;}
+.fb-clientes{flex-wrap:wrap;}
+.filterbar .sb-filter-label{font-family:'Geist',sans-serif;font-size:12.5px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-faint);margin:0;white-space:nowrap;}
+.filterbar .sb-chips{margin:0;gap:4px;}
+.filterbar .sb-chip{font-family:'Geist',sans-serif;font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;line-height:1.3;}
+.filterbar .cb-dropdown{margin:0;min-width:150px;max-width:220px;}
+.filterbar .cb-trigger{height:30px;padding:0 9px;font-size:12.5px;gap:6px;}
+.filterbar .cb-trigger.open{border-radius:7px;}
+.filterbar .cb-list{right:auto;min-width:250px;top:calc(100% + 4px);border-top:1px solid var(--border-strong);border-radius:8px;max-height:320px;box-shadow:0 12px 30px rgba(0,0,0,.45);}
+.filterbar .sb-select{width:auto;min-width:130px;height:30px;padding-top:0;padding-bottom:0;margin:0;font-size:12.5px;}
+.filterbar .sb-clear-btn{width:auto;height:30px;margin:0 0 0 auto;padding:0 10px;font-family:'Geist',sans-serif;font-size:12.5px;white-space:nowrap;}
+.fb-pop{position:relative;}
+.fb-pop-btn{width:auto;}
+.fb-pop-btn b{font-weight:600;color:var(--teal);}
+.fb-pop-panel{display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:200;width:min(360px,80vw);padding:10px;border:1px solid var(--border-strong);border-radius:10px;background:var(--panel);box-shadow:0 12px 30px rgba(0,0,0,.45);}
+.fb-pop.open .fb-pop-panel{display:block;}
+
+/* Tipografia: rótulos em caixa normal, sem mono espaçado */
+.panel-head h3{font-family:'Geist',sans-serif;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:600;color:var(--text-dim);}
+.kpi .label{text-transform:lowercase;letter-spacing:0;font-weight:500;}
+.kpi .label::first-letter{text-transform:uppercase;}
+.kpi .num{font-family:'Geist Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums;}
+
+/* Vidro: mantido nos cartões; desligado só na 2ª camada (card dentro da coluna do
+   quadro), onde o desfoque duplo não aparece e pesa no celular. */
+.kanban-col .card{-webkit-backdrop-filter:none;backdrop-filter:none;}
+
+@media(max-width:768px),(max-width:1024px) and (orientation:portrait){
+  .topbar{padding:8px 12px;gap:8px;}
+  .topbar-left{flex:1 1 55%;}
+  .topbar-live{margin-right:0;}
+  .topbar-os-search{flex:1 1 40px !important;min-width:0;gap:4px !important;}
+  .topbar-os-search #topbarOsSearchBtn{width:32px;padding:0 !important;justify-content:center;flex:none;}
+  .topbar-os-search .sb-search{max-width:none !important;width:100%;min-width:0;}
+  .topbar-right{margin-left:auto;gap:4px;flex:none;}
+  .topbar .tb-btn{height:32px;}
+  #centralNotifBtn,#notifBtn,.topbar .tb-btn.tb-theme,#lvFiltrosBtn{width:32px;}
+  .topbar #tbNovoBtn{padding:0 11px 0 8px;}
+  body[data-nav="ocorrencias"] .topbar-left{flex:1 1 auto;}
+  .topbar .tb-btn-refresh{width:32px;padding:0;justify-content:center;font-size:0;}
+  #lvFiltrosBtn{display:inline-flex;}
+  body.lv-filtros-abertos #lvFiltrosBtn{border-color:var(--teal);color:var(--teal);}
+  .lv-subtabs{padding:0 6px;}
+  .filterbar{display:none;padding:10px 12px;max-height:55vh;overflow-y:auto;}
+  body.lv-filtros-abertos .filterbar:not([hidden]){display:flex;}
+  .filterbar .sb-filters{flex-direction:column;align-items:stretch;gap:10px;}
+  .fb-field{flex-wrap:wrap;}
+  .fb-field > .sb-filter-label{flex:0 0 100%;}
+  .filterbar .cb-dropdown,.filterbar .sb-select,.fb-pop-btn{flex:1 1 100%;max-width:none;width:100%;height:38px;}
+  .filterbar .cb-trigger{height:38px;}
+  .filterbar .cb-list,.fb-pop-panel{position:static;width:100%;min-width:0;box-shadow:none;margin-top:4px;}
+  .filterbar .sb-chip{padding:7px 11px;font-size:13px;}
+  .filterbar .sb-clear-btn{margin:0;height:38px;}
+  .tb-novo-menu{position:fixed;left:12px;right:12px;top:auto;bottom:72px;min-width:0;}
+  .tb-novo-menu .sb-action-btn{padding:13px 12px;}
+}
 </style>
 </head>
 <body>
@@ -1837,13 +1975,13 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
 
     <!-- Zona 1: Logo -->
     <div class="sb-logo">
-      <div class="sb-logo-eyebrow">O&amp;M · Painel de Controle</div>
+      <div class="sb-logo-eyebrow">Grid Co</div>
       <div class="sb-logo-title">Central O&amp;M</div>
     </div>
 
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
-      <div class="sb-section-label-row" data-section-key="paineis" draggable="true">Painéis</div>
+      <div class="sb-section-label-row" data-section-key="paineis" draggable="true">Operação</div>
       <a href="#atividades" class="sb-nav-item active" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
@@ -1860,7 +1998,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         Chamados
         <span class="sb-nav-badge" id="sbChamadosBadge">0</span>
       </a>
-      <a href="#programacao-pcm" class="sb-nav-item" data-nav="programacao-pcm" data-label="Programação PCM" draggable="true">
+      <a href="#programacao-pcm" class="sb-nav-item" data-nav="programacao-pcm" data-label="PCM" draggable="true">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Programação PCM
       </a>
@@ -1868,23 +2006,45 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         Zeladoria
       </a>
-      <div class="sb-section-label-row" data-section-key="gestao" draggable="true">Gestão</div>
-      <a href="#localizacao" class="sb-nav-item" data-nav="localizacao" data-label="Localização" draggable="true">
-        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        Localização
-      </a>
-      <a href="#boletins" class="sb-nav-item" data-nav="boletins" data-label="Gerencial" draggable="true">
-        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-        Gerencial
-      </a>
-      <a href="#relatorios" class="sb-nav-item" data-nav="relatorios" data-label="Reuniões - Clientes" draggable="true">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Reuniões - Clientes
-      </a>
+        <a href="#rondas" class="sb-nav-item" data-nav="rondas" data-label="Rondas" draggable="true">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Rondas
+        </a>
+      <div class="sb-section-label-row" data-section-key="comunicacao" draggable="true">Comunicação</div>
       <a href="#comunicados" class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Comunicados &amp; OSs
       </a>
+      <a href="#ger-resumos" class="sb-nav-item" data-nav="ger-resumos" data-label="Resumos e preparação" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        Resumos e preparação
+      </a>
+      <div class="sb-section-label-row" data-section-key="clientes" draggable="true">Clientes e contratos</div>
+      <a href="#boletins" class="sb-nav-item" data-nav="boletins" data-label="Boletins de medição" draggable="true">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Boletins de medição
+      </a>
+      <a href="#ger-entregaveis" class="sb-nav-item" data-nav="ger-entregaveis" data-label="Entregáveis" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Entregáveis
+      </a>
+      <a href="#relatorios" class="sb-nav-item" data-nav="relatorios" data-label="Reuniões e relatórios" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Reuniões e relatórios
+      </a>
+      <div class="sb-section-label-row" data-section-key="gestao" draggable="true">Gestão</div>
+      <a href="#localizacao" class="sb-nav-item" data-nav="localizacao" data-label="Usinas e equipes" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Usinas e equipes
+      </a>
+      <a href="#ger-ponto" class="sb-nav-item" data-nav="ger-ponto" data-label="Controle de ponto" draggable="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Controle de ponto
+      </a>
+        <a href="#mttr" class="sb-nav-item" data-nav="mttr" data-label="Indicadores" draggable="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Indicadores
+        </a>
       <div class="sb-section-label-row" data-section-key="ferramentas" draggable="true">Ferramentas</div>
       <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
@@ -1892,18 +2052,10 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <svg id="navFerramentasChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div id="grupoFerramentasSubmenu" style="display:none;">
-        <a href="#rondas" class="sb-nav-item sb-nav-sub" data-nav="rondas">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Verificar Rondas
-        </a>
         <a href="#historico-log" class="sb-nav-item sb-nav-sub" data-nav="historico-log">
           <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
           Log Histórico
           <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
-        </a>
-        <a href="#mttr" class="sb-nav-item sb-nav-sub" data-nav="mttr">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          MTTR
         </a>
         <a href="#eficiencia" class="sb-nav-item sb-nav-sub" data-nav="eficiencia">
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -1912,69 +2064,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
       </div>
     </nav>
 
-    <!-- Zona 3: Filtros -->
-    <div class="sb-filters" id="sbFilters">
-
-      <span class="sb-filter-label">Clientes</span>
-      <div class="sb-chips" id="sbChipsCliente"></div>
-      <!-- seleção múltipla via chips, sem botão "Marcar todos" -->
-
-      <span class="sb-filter-label">Usina</span>
-      <div class="cb-dropdown" id="cbDropdownUsina">
-        <button class="cb-trigger" id="cbTriggerUsina" onclick="_toggleCbDropdown('Usina')">
-          <span id="cbLabelUsina">Todas</span>
-          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="cb-list" id="cbListUsina" style="display:none;"></div>
-      </div>
-
-      <span class="sb-filter-label">Cluster</span>
-      <select class="sb-select" id="ativClusterSelect" onchange="_ativFiltrarPorCluster(this.value)">
-        <option value="">Todos</option>
-      </select>
-
-      <span class="sb-filter-label">Tipo de Equipamento</span>
-      <div class="sb-chips" id="sbChipsTipoEquip"></div>
-      <!-- filtra Atividades e Chamados pelo tipo de equipamento (Inversor, Tracker, etc.)
-           extraído do texto — permite comparar os dois painéis pela mesma lente
-           (pedido do Fred em 10/08/2026) -->
-
-      <span class="sb-filter-label">Técnico</span>
-      <div class="cb-dropdown" id="cbDropdownTecnico">
-        <button class="cb-trigger" id="cbTriggerTecnico" onclick="_toggleCbDropdown('Tecnico')">
-          <span id="cbLabelTecnico">Todos</span>
-          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="cb-list" id="cbListTecnico" style="display:none;"></div>
-      </div>
-      <!-- filtra Atividades pelo responsável (técnico) da OS — pedido do Fred, 07/10/2026 -->
-
-      <div style="display:none;">
-        <span class="sb-filter-label">Status</span>
-        <div class="cb-dropdown" id="cbDropdownStatus">
-          <button class="cb-trigger" id="cbTriggerStatus" onclick="_toggleCbDropdown('Status')">
-            <span id="cbLabelStatus">Todos</span>
-            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="cb-list" id="cbListStatus" style="display:none;"></div>
-        </div>
-
-        <span class="sb-filter-label">Sem ação há</span>
-        <select class="sb-select" id="sbSelStale">
-          <option value="">Qualquer</option>
-          <option value="7">+7 dias</option>
-          <option value="15">+15 dias</option>
-          <option value="30">+30 dias</option>
-          <option value="60">+60 dias</option>
-        </select>
-
-        <span class="sb-filter-label">Buscar</span>
-        <input class="sb-search" type="text" id="sbSearch" placeholder="equip., OS, tracker…">
-      </div>
-
-      <button class="sb-clear-btn" id="sbClearBtn">✕ Limpar filtros</button>
-    </div>
-
     <!-- Zona 3.5: Sketchbook — atalho direto, acima de Ações Rápidas -->
     <div style="padding:8px 10px 4px;border-top:1px solid var(--border);flex:none;">
       <button class="sb-action-btn" id="sbSketchbookBtn" onclick="switchNav('anotacoes')"
@@ -1982,47 +2071,6 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
         <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
         Sketchbook
       </button>
-    </div>
-
-    <!-- Zona 4: Ações rápidas -->
-    <div class="sb-quick-actions" id="sbQuickActions">
-      <div class="sb-section-label">AÇÕES RÁPIDAS</div>
-
-      <!-- Elaborar OS -->
-      <button class="sb-action-btn" onclick="_openElaborarOS()" style="margin-bottom:4px;">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-        Elaborar OS
-      </button>
-
-      <!-- Elaborar Comunicado -->
-      <button class="sb-action-btn" onclick="_openElaborarComunicado()" style="margin-bottom:4px;">
-        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        Elaborar Comunicado
-      </button>
-
-      <!-- Nova Atividade -->
-      <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:4px;">
-        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Nova Atividade
-      </button>
-
-      <!-- Nova ocorrência -->
-      <button class="sb-action-btn" onclick="_openNovaOcorrencia()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        Nova Ocorrência
-      </button>
-
-      <!-- FV Energias — painel isolado (usina particular), só um link
-           de navegação pra fora; sem nenhuma integração de dados/lógica
-           com o restante do dashboard. Verde e separado visualmente do
-           grupo de Ações Rápidas (é uma categoria à parte). -->
-      <a href="fv-energias.html" target="_blank" rel="noopener"
-         style="width:100%;display:flex;align-items:center;gap:7px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25);color:#2ECC71;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;text-decoration:none;box-sizing:border-box;margin-top:14px;"
-         onmouseover="this.style.background='rgba(46,204,113,.14)';this.style.borderColor='rgba(46,204,113,.4)';"
-         onmouseout="this.style.background='rgba(46,204,113,.08)';this.style.borderColor='rgba(46,204,113,.25)';">
-        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        FV Energias
-      </a>
     </div>
 
     <!-- Zona 5: Footer -->
@@ -2070,12 +2118,61 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
           </button>
         </div>
         <div class="topbar-right">
+          <button class="tb-btn" id="lvFiltrosBtn" title="Filtros" aria-label="Filtros" onclick="_lvToggleFiltros()">
+            <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+          </button>
+          <div class="tb-novo" id="tbNovoWrap">
+            <button class="tb-btn" id="tbNovoBtn" aria-haspopup="menu" aria-expanded="false" onclick="_lvToggleNovo(event)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo
+            </button>
+    <div class="sb-quick-actions tb-novo-menu" id="sbQuickActions" role="menu">
+      <div class="sb-section-label">AÇÕES RÁPIDAS</div>
+
+      <!-- Elaborar OS -->
+      <button class="sb-action-btn" onclick="_openElaborarOS()" style="margin-bottom:4px;">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        Elaborar OS
+      </button>
+
+      <!-- Elaborar Comunicado -->
+      <button class="sb-action-btn" onclick="_openElaborarComunicado()" style="margin-bottom:4px;">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Elaborar Comunicado
+      </button>
+
+      <!-- Nova Atividade -->
+      <button class="sb-action-btn" onclick="_openNovaAtividade()" style="margin-bottom:4px;">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Nova Atividade
+      </button>
+
+      <!-- Nova ocorrência -->
+      <button class="sb-action-btn" onclick="_openNovaOcorrencia()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Nova Ocorrência
+      </button>
+
+      <!-- FV Energias — painel isolado (usina particular), só um link
+           de navegação pra fora; sem nenhuma integração de dados/lógica
+           com o restante do dashboard. Verde e separado visualmente do
+           grupo de Ações Rápidas (é uma categoria à parte). -->
+      <a href="fv-energias.html" target="_blank" rel="noopener"
+         style="width:100%;display:flex;align-items:center;gap:7px;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25);color:#2ECC71;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:.15s;text-decoration:none;box-sizing:border-box;margin-top:14px;"
+         onmouseover="this.style.background='rgba(46,204,113,.14)';this.style.borderColor='rgba(46,204,113,.4)';"
+         onmouseout="this.style.background='rgba(46,204,113,.08)';this.style.borderColor='rgba(46,204,113,.25)';">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        FV Energias
+      </a>
+    </div>
+
+          </div>
           <button class="tb-btn tb-btn-notif" id="centralNotifBtn" title="Notificações não vistas" style="position:relative;">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="centralNotifBadge" class="sb-nav-badge-unread" style="position:absolute;top:-4px;right:-4px;margin-left:0;display:none;"></span>
           </button>
-          <button class="tb-btn tb-btn-notif" id="notifBtn" title="Notificações">
-            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <button class="tb-btn tb-btn-notif" id="notifBtn" title="Avisos neste aparelho (push)">
+            <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/><path d="M9.5 7.5a3.5 3.5 0 0 1 5 0"/></svg>
             <span id="notifBtnLabel">Notif.</span>
           </button>
           <button class="tb-btn tb-btn-refresh" id="updateBtn">
@@ -2087,6 +2184,74 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Sub-abas do item do menu (Layout v5) -->
+    <div class="lv-subtabs" id="lvSubTabs" role="tablist" hidden></div>
+    <!-- Barra de filtros (Layout v5) — o #sbFilters é o mesmo elemento de antes, só mudou de lugar -->
+    <div class="filterbar" id="filterBar">
+    <div class="sb-filters" id="sbFilters">
+
+      <div class="fb-field fb-clientes"><span class="sb-filter-label">Clientes</span>
+      <div class="sb-chips" id="sbChipsCliente"></div></div>
+      <!-- seleção múltipla via chips, sem botão "Marcar todos" -->
+
+      <div class="fb-field"><span class="sb-filter-label">Usina</span>
+      <div class="cb-dropdown" id="cbDropdownUsina">
+        <button class="cb-trigger" id="cbTriggerUsina" onclick="_toggleCbDropdown('Usina')">
+          <span id="cbLabelUsina">Todas</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListUsina" style="display:none;"></div>
+      </div></div>
+
+      <div class="fb-field"><span class="sb-filter-label">Cluster</span>
+      <select class="sb-select" id="ativClusterSelect" onchange="_ativFiltrarPorCluster(this.value)">
+        <option value="">Todos</option>
+      </select></div>
+
+      <div class="fb-field fb-pop" id="fbEquipPop"><button type="button" class="cb-trigger fb-pop-btn" id="fbEquipBtn" aria-expanded="false" onclick="_lvTogglePop('fbEquipPop',event)"><span>Equipamento<b id="fbEquipCount"></b></span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button><div class="fb-pop-panel">
+      <div class="sb-chips" id="sbChipsTipoEquip"></div></div></div>
+      <!-- filtra Atividades e Chamados pelo tipo de equipamento (Inversor, Tracker, etc.)
+           extraído do texto — permite comparar os dois painéis pela mesma lente
+           (pedido do Fred em 10/08/2026) -->
+
+      <div class="fb-field"><span class="sb-filter-label">Técnico</span>
+      <div class="cb-dropdown" id="cbDropdownTecnico">
+        <button class="cb-trigger" id="cbTriggerTecnico" onclick="_toggleCbDropdown('Tecnico')">
+          <span id="cbLabelTecnico">Todos</span>
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cb-list" id="cbListTecnico" style="display:none;"></div>
+      </div></div>
+      <!-- filtra Atividades pelo responsável (técnico) da OS — pedido do Fred, 07/10/2026 -->
+
+      <div style="display:none;">
+        <span class="sb-filter-label">Status</span>
+        <div class="cb-dropdown" id="cbDropdownStatus">
+          <button class="cb-trigger" id="cbTriggerStatus" onclick="_toggleCbDropdown('Status')">
+            <span id="cbLabelStatus">Todos</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="cb-list" id="cbListStatus" style="display:none;"></div>
+        </div>
+
+        <span class="sb-filter-label">Sem ação há</span>
+        <select class="sb-select" id="sbSelStale">
+          <option value="">Qualquer</option>
+          <option value="7">+7 dias</option>
+          <option value="15">+15 dias</option>
+          <option value="30">+30 dias</option>
+          <option value="60">+60 dias</option>
+        </select>
+
+        <span class="sb-filter-label">Buscar</span>
+        <input class="sb-search" type="text" id="sbSearch" placeholder="equip., OS, tracker…">
+      </div>
+
+      <button class="sb-clear-btn" id="sbClearBtn">Limpar filtros</button>
+    </div>
+
     </div>
 
     <!-- Central de Notificações (pop-up central, estilo WhatsApp) -->
@@ -2687,7 +2852,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
                 <option value="transicao">Em transição</option>
                 <option value="normal">Sem marcação</option>
               </select>
-              <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--text-dim);"><input type="checkbox" id="mapUsarSidebar" checked onchange="mapRender()"> Aplicar filtros da sidebar</label>
+              <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--text-dim);"><input type="checkbox" id="mapUsarSidebar" checked onchange="mapRender()"> Aplicar filtros do topo</label>
               <button class="modal-close-btn" style="width:auto;padding:0 14px;height:34px;font-size:13px;" onclick="mapCarregar(true)">↻ Atualizar</button>
               <span id="mapStatus" style="font-size:12px;color:var(--text-faint);"></span>
             </div>
@@ -3085,7 +3250,7 @@ body[data-nav="ocorrencias"] #totalBadge,body[data-nav="ocorrencias"] .topbar-os
                 <span id="sobreavisoTabelaChevron">▾</span>
               </button>
               <div id="sobreavisoTabelaBox" style="display:none;padding:14px 4px 4px;">
-                <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Escolha o período e, se quiser, filtre por usina, equipe, cluster ou colaborador (pode marcar mais de um em cada). Os filtros laterais e "Só minhas usinas" também valem aqui.</div>
+                <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Escolha o período e, se quiser, filtre por usina, equipe, cluster ou colaborador (pode marcar mais de um em cada). Os filtros do topo e "Só minhas usinas" também valem aqui.</div>
                 <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
                   <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbTabPeriodo" value="fds" checked onchange="_sbTabOnPeriodo()" style="accent-color:var(--teal);"> Próximo FDS / feriado</label>
                   <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="radio" name="sbTabPeriodo" value="mes" onchange="_sbTabOnPeriodo()" style="accent-color:var(--teal);"> Mês completo</label>
@@ -5258,7 +5423,7 @@ function _toggleGrupoGestao(ev, forcarAberto) {
 // ordem salva fosse reaplicada, só os itens seriam movidos (via
 // appendChild) e os cabeçalhos, nunca tocados, ficariam empurrados pro
 // topo da lista, juntos, à frente de todos os itens.
-const SB_NAV_ORDER_KEY = 'sbNavOrder_v2';
+const SB_NAV_ORDER_KEY = 'sbNavOrder_v3';
 
 function _sbNavTopItems() {
   const nav = document.getElementById('sbNav');
@@ -13937,7 +14102,7 @@ function _ppFiltroBarHtml() {
   const p = _ppResumoSidebar();
   return p.length
     ? `<div style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span>🔎 Filtros da sidebar → ${esc(p.join(' · '))}</span><button class="pps-btn" onclick="document.getElementById('sbClearBtn')?.click()">Limpar filtros</button></div>`
-    : `<div style="font-size:12.5px;color:var(--text-faint);margin-bottom:10px;">🔎 Use os filtros da sidebar (Clientes, Usina, Cluster, Técnico) para filtrar este painel.</div>`;
+    : `<div style="font-size:12.5px;color:var(--text-faint);margin-bottom:10px;">🔎 Use os filtros do topo (Clientes, Usina, Cluster, Técnico) para filtrar este painel.</div>`;
 }
 // chamado por applyFilters() sempre que a sidebar muda
 function _ppReaplicarSidebar() {
@@ -18478,6 +18643,145 @@ function renderEficiencia() {
       <div class="panel-bars">${catBarsHtml}</div>
     </div>`;
 }
+
+
+/* ══ LAYOUT v5 (11/11/2026) — menu em grupos, sub-abas, botão Novo, filtros no topo ══
+   Não altera nenhuma função existente: só as envolve. LV_GRUPOS diz quais
+   telas (seções e abas do antigo Gerencial) ficam atrás de cada item do menu. */
+const LV_GRUPOS = {
+  'rondas':          [{ label: 'Verificar rondas', nav: 'rondas' }, { label: 'Histórico de mensagens', nav: 'historico-log' }],
+  'mttr':            [{ label: 'MTTR', nav: 'mttr' }, { label: 'Eficiência O&M', nav: 'eficiencia' }],
+  'localizacao':     [{ label: 'Mapa', nav: 'localizacao' }, { label: 'Mapeamento', nav: 'boletins', ger: 'mapeamento' }, { label: 'Supervisão temporária', nav: 'boletins', ger: 'supervisao' }],
+  'boletins':        [{ label: 'Boletins de medição', nav: 'boletins', ger: 'boletins' }],
+  'ger-entregaveis': [{ label: 'Entregáveis', nav: 'boletins', ger: 'entregaveis' }, { label: 'Cobrança', nav: 'boletins', ger: 'cobranca' }],
+  'ger-resumos':     [{ label: 'Resumos', nav: 'boletins', ger: 'resumos' }, { label: 'Preparação', nav: 'boletins', ger: 'preparacao' }],
+  'ger-ponto':       [{ label: 'Controle de ponto', nav: 'boletins', ger: 'ponto' }],
+};
+function _lvItem(key) { return document.querySelector('#sbNav .sb-nav-item[data-nav="' + key + '"]'); }
+function _lvVisivel(el) { return !!el && el.style.display !== 'none' && !el.classList.contains('sup-oculto'); }
+function _lvGerTabAtual() { return document.querySelector('#gerTabsWrapper .tab-btn.active')?.dataset.tabname || 'boletins'; }
+function _lvVistaDisponivel(v) { return _lvVisivel(_lvItem(v.nav)); }
+function _lvGrupoAtual() {
+  const ger = _activeNav === 'boletins' ? _lvGerTabAtual() : null;
+  for (const key of Object.keys(LV_GRUPOS)) {
+    if (LV_GRUPOS[key].some(v => v.nav === _activeNav && (v.nav !== 'boletins' || v.ger === ger))) return key;
+  }
+  return null;
+}
+function _lvIrVista(key, idx) {
+  const v = (LV_GRUPOS[key] || [])[idx];
+  if (!v) return;
+  if (v.ger) { if (_activeNav !== 'boletins') _lvSwitchNavBase('boletins'); if (_activeNav === 'boletins') _gerMudarTab(v.ger); _lvSync(); }
+  else switchNav(v.nav);
+}
+function _lvSync() {
+  try {
+    const key = _lvGrupoAtual();
+    const box = document.getElementById('lvSubTabs');
+    if (!key) { if (box) box.hidden = true; return; }
+    document.querySelectorAll('#sbNav .sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === key));
+    document.querySelectorAll('#bottomNav .bn-item[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === key));
+    const item = _lvItem(key);
+    const title = document.getElementById('topbarTitle');
+    if (title && item && item.dataset.label) title.textContent = item.dataset.label;
+    if (!box) return;
+    const ger = _activeNav === 'boletins' ? _lvGerTabAtual() : null;
+    const vistas = LV_GRUPOS[key].map((v, i) => ({ v, i })).filter(o => _lvVistaDisponivel(o.v));
+    box.hidden = vistas.length < 2;
+    box.innerHTML = vistas.map(o => {
+      const on = o.v.nav === _activeNav && (o.v.nav !== 'boletins' || o.v.ger === ger);
+      return `<button type="button" role="tab" aria-selected="${on}" class="lv-subtab${on ? ' active' : ''}" onclick="_lvIrVista('${key}',${o.i})">${esc(o.v.label)}</button>`;
+    }).join('');
+  } catch (e) { console.warn('[layout v5] sync', e); }
+}
+const _lvSwitchNavBase = switchNav;
+switchNav = function (nav) {
+  const g = LV_GRUPOS[nav];
+  if (g && g[0].ger && !_lvVisivel(_lvItem(nav))) {
+    _lvSwitchNavBase('atividades');  // item escondido pro perfil: não abre por atalho
+  } else if (g && g[0].ger) {
+    _lvSwitchNavBase('boletins');
+    if (_activeNav === 'boletins') _gerMudarTab(g[0].ger);
+  } else {
+    _lvSwitchNavBase(nav);
+  }
+  _lvSync();
+};
+const _lvGerMudarTabBase = _gerMudarTab;
+_gerMudarTab = function () {
+  const r = _lvGerMudarTabBase.apply(this, arguments);
+  _lvSync();
+  return r;
+};
+function _lvToggleNovo(ev) {
+  if (ev) ev.stopPropagation();
+  const w = document.getElementById('tbNovoWrap');
+  if (!w) return;
+  const abrir = !w.classList.contains('open');
+  w.classList.toggle('open', abrir);
+  document.getElementById('tbNovoBtn')?.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+function _lvTogglePop(id, ev) {
+  if (ev) ev.stopPropagation();
+  const p = document.getElementById(id);
+  if (!p) return;
+  const abrir = !p.classList.contains('open');
+  p.classList.toggle('open', abrir);
+  p.querySelector('.fb-pop-btn')?.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+function _lvToggleFiltros() { document.body.classList.toggle('lv-filtros-abertos'); }
+document.addEventListener('click', (e) => {
+  const w = document.getElementById('tbNovoWrap');
+  if (w && w.classList.contains('open') && (!w.contains(e.target) || e.target.closest('.tb-novo-menu .sb-action-btn, .tb-novo-menu a'))) {
+    w.classList.remove('open'); document.getElementById('tbNovoBtn')?.setAttribute('aria-expanded', 'false');
+  }
+  document.querySelectorAll('.fb-pop.open').forEach(p => { if (!p.contains(e.target)) { p.classList.remove('open'); p.querySelector('.fb-pop-btn')?.setAttribute('aria-expanded', 'false'); } });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.getElementById('tbNovoWrap')?.classList.remove('open');
+  document.querySelectorAll('.fb-pop.open').forEach(p => p.classList.remove('open'));
+});
+(function () {
+  const chips = document.getElementById('sbChipsTipoEquip');
+  const cont = document.getElementById('fbEquipCount');
+  if (!chips || !cont || typeof MutationObserver === 'undefined') return;
+  new MutationObserver(() => { try { cont.textContent = selTipoEquip.size ? ' · ' + selTipoEquip.size : ''; } catch (e) {} }).observe(chips, { childList: true });
+})();
+// Depois das regras de perfil do initDashboard: os itens novos do menu (abas do
+// antigo Gerencial) seguem a visibilidade do item "boletins"; cabeçalhos sem
+// nenhum item visível somem; "Novo" e a barra de filtros seguem #sbQuickActions/#sbFilters.
+function _lvAplicarPerfil() {
+  const base = _lvItem('boletins');
+  document.querySelectorAll('#sbNav .sb-nav-item[data-nav^="ger-"]').forEach(el => {
+    if (!base) return;
+    el.style.display = base.style.display;
+    el.classList.toggle('sup-oculto', base.classList.contains('sup-oculto'));
+  });
+  document.querySelectorAll('#sbNav .sb-section-label-row').forEach(h => {
+    let n = h.nextElementSibling, algum = false;
+    while (n && !n.classList.contains('sb-section-label-row')) {
+      if (n.classList.contains('sb-nav-item') && n.id !== 'navFerramentasToggle' && n.style.display !== 'none') { algum = true; break; }
+      n = n.nextElementSibling;
+    }
+    if (!algum) h.style.display = 'none';
+  });
+  const qa = document.getElementById('sbQuickActions'), nw = document.getElementById('tbNovoWrap');
+  if (qa && nw) nw.hidden = qa.style.display === 'none';
+  const sf = document.getElementById('sbFilters'), fb = document.getElementById('filterBar'), fbtn = document.getElementById('lvFiltrosBtn');
+  if (sf && fb) { fb.hidden = sf.style.display === 'none'; if (fbtn) fbtn.hidden = fb.hidden; }
+}
+const _lvInitDashboardBase = initDashboard;
+initDashboard = function (session) {
+  const r = _lvInitDashboardBase.apply(this, arguments);
+  try {
+    _lvAplicarPerfil();
+    const hsh = (location.hash || '').slice(1);
+    if (LV_GRUPOS[hsh] && LV_GRUPOS[hsh][0].ger && _lvVisivel(_lvItem(hsh))) switchNav(hsh);
+    else _lvSync();
+  } catch (e) { console.warn('[layout v5] init', e); }
+  return r;
+};
 
 /* ══ INICIALIZAÇÃO FINAL ══ */
 if (window._pendingSession) {
