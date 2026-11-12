@@ -14137,6 +14137,13 @@ async function carregarAtividades(tentativa = 1) {
       if (!a.detalhesEquipamentosOS) return a;
       let it = []; try { it = JSON.parse(a.detalhesEquipamentosOS); } catch (e) { return a; }
       if (!Array.isArray(it) || it.length < 2) return a;
+      // LAYOUT v19: preventivas (MPM/MPS/MPA), handover e OS com muitos ativos não listam os ativos no cartão
+      const txt = ((a.descricao || '') + ' ' + (a.equipamento || '') + ' ' + (a.etiquetasOS || '')).toUpperCase();
+      const ehPrev = /\b(MPM|MPS|MPA|MPT|MPQ|MPB|MPD)\b|PREVENTIV|HANDOVER|HAND OVER|COMISSIONAMENTO|RONDA|INSPE[CÇ][AÃ]O GERAL/.test(txt);
+      if (ehPrev || it.length > 4) {
+        const usinaCompleta = it.length >= 8;
+        return { ...a, equipamento: (usinaCompleta ? 'Usina completa' : 'Múltiplos ativos') + ' (' + it.length + ' ativos)', _equipamentoOriginal: a.equipamento, _nAtivosOS: it.length };
+      }
       const lista = it.map(x => (x.equipamento || '?') + (x.status ? ' (' + String(x.status).toLowerCase() + ')' : '')).join(' · ');
       return { ...a, equipamento: lista, _equipamentoOriginal: a.equipamento, _nAtivosOS: it.length };
     });
@@ -22849,6 +22856,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v19: preventivas mostram 'Múltiplos ativos/Usina completa' */
 /* LAYOUT v18: relatório mostra OS de outro cliente */
 /* ══ LAYOUT v16 (12/11/2026): Auditoria Fracttal x Central O&M (campo a campo) ══ */
 const _AU_API = 'https://api.168.138.232.237.sslip.io';
