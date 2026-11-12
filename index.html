@@ -1909,8 +1909,7 @@ body.role-campo #tbNovoWrap{display:none !important;}
 
 /* Tipografia: rótulos em caixa normal, sem mono espaçado */
 .panel-head h3{font-family:'Geist',sans-serif;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:600;color:var(--text-dim);}
-.kpi .label{text-transform:lowercase;letter-spacing:0;font-weight:500;}
-.kpi .label::first-letter{text-transform:uppercase;}
+.kpi .label{text-transform:none;letter-spacing:0;font-weight:500;}
 .kpi .num{font-family:'Geist Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums;}
 
 /* Vidro: mantido nos cartões; desligado só na 2ª camada (card dentro da coluna do
@@ -2020,6 +2019,11 @@ select.rp-input{display:block;}
 .cp-prev-img img{width:100%;display:block;}
 #cpLista .pps-row{margin-bottom:6px;}
 @media(max-width:700px){#cpLista .pps-row{grid-template-columns:1fr;}}
+</style>
+<style id="lv10css">
+/* LAYOUT v10 */
+#locViewMapa,#locViewLista{width:auto;padding:0 10px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+#coFiltroInfo{margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -11997,7 +12001,8 @@ function openChamadosInline(){
   const totalAbertos = dataFiltrada.filter(_chamadoEstaAberto).length;
   if (sub) sub.textContent=`${dataFiltrada.length} chamado(s) · ${totalAbertos} em aberto${(ocultarSemTicket && semTicketCount > 0) ? ` · ${semTicketCount} sem nº de chamado (ocultos)` : ''}`;
   if(dataFiltrada.length===0){body.innerHTML=`<div class="ch-empty">Nenhum chamado de fabricante encontrado.</div>`;return;}
-  const porData = dataFiltrada.slice().sort((a,b) => (b['Data da abertura do chamado']||'').localeCompare(a['Data da abertura do chamado']||''));
+  const porData = dataFiltrada.slice().sort((a,b) => ((_chamadoEstaAberto(a)?0:1) - (_chamadoEstaAberto(b)?0:1)) || (b['Data da abertura do chamado']||'').localeCompare(a['Data da abertura do chamado']||''));
+  const _idxPrimeiroFechado = porData.findIndex(c => !_chamadoEstaAberto(c));
   window._chamadosListaAtual = porData;
   body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;">`+porData.map((c,i)=>{
     const sc=statusColor(c['Status']||'');
@@ -12005,7 +12010,8 @@ function openChamadosInline(){
     const statusOS = c['Status OS'] || '';
     const dias = c['Dias corridos'] || '';
     const equip = c['Identificação do Equipamento'] || c['Ativo'] || '';
-    return `<div class="ch-item" data-idx="${i}" style="cursor:pointer;">
+    const _divFechados = (i === _idxPrimeiroFechado && i > 0) ? `<div style="font-size:12px;font-weight:700;color:var(--text-faint);letter-spacing:.04em;text-transform:uppercase;margin:10px 0 2px;">Encerrados</div>` : '';
+    return _divFechados + `<div class="ch-item" data-idx="${i}" style="cursor:pointer;">
       <div class="ch-ticket">${esc(c['Ticket/RMA']||'—')}</div>
       <div class="ch-info">
         <div class="ch-equip">${esc(equip)}</div>
@@ -16923,19 +16929,19 @@ function _ativRenderKpis() {
     return d ? d.getTime() >= seteDiasAtras.getTime() : false;
   });
   const kpisData = [
-    {num:ATIVIDADES.length, label:'ATIVIDADES TOTAIS', color:'var(--text-dim)', glow:'transparent',
+    {num:ATIVIDADES.length, label:'Atividades totais', color:'var(--text-dim)', glow:'transparent',
      icon:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
      cls:'kpi-clickable', id:'kpiAtivTotal', title:'Clique para limpar os filtros'},
-    {num:ativas.length, label:'ATIVIDADES EM ABERTO', color:'var(--text-dim)', glow:'transparent',
+    {num:ativas.length, label:'Atividades em aberto', color:'var(--text-dim)', glow:'transparent',
      icon:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
      cls:'kpi-clickable', id:'kpiAtivAberto', title:'Clique para ver as atividades em aberto'},
-    {num:atrasadas.length, label:'ATRASADAS', color:'#EF4444', glow:'rgba(239,68,68,.1)',
+    {num:atrasadas.length, label:'Atrasadas', color:'#EF4444', glow:'rgba(239,68,68,.1)',
      icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
      cls:'kpi-clickable kpi-alert'+(_ativFiltroAtrasada?' active-filter':''), id:'kpiAtivAtrasadas', title:'Clique para filtrar só as atrasadas'},
-    {num:altas.length, label:'PRIORIDADE ALTA (ABERTAS)', color:'var(--amber)', glow:'rgba(245,166,35,.1)',
+    {num:altas.length, label:'Prioridade alta (abertas)', color:'var(--amber)', glow:'rgba(245,166,35,.1)',
      icon:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
      cls:'kpi-clickable kpi-alert'+(_ativFiltroPrioridadeAlta?' active-filter':''), id:'kpiAtivPrioridade', title:'Clique para filtrar só prioridade alta (em aberto)'},
-    {num:concluidas7d.length, label:'CONCLUÍDAS (7D)', color:'#22C55E', glow:'rgba(34,197,94,.1)',
+    {num:concluidas7d.length, label:'Concluídas (7d)', color:'#22C55E', glow:'rgba(34,197,94,.1)',
      icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 17.01"/>',
      cls:'kpi-clickable'+(_ativFiltroConcluidas7d?' active-filter':''), id:'kpiAtivConcluidas7d', title:'Clique para ver as concluídas nos últimos 7 dias'},
   ];
@@ -22148,6 +22154,195 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   }
   window._ajudaAtualizarVisibilidade();
 })();
+
+/* ══ LAYOUT v10 (12/11/2026): filtros em Comunicados·Técnicos, imagem das atividades em aberto, barra de filtros contextual ══ */
+function _coPassaFiltro(a) {
+  try {
+    if (selCliente.size > 0 && !selCliente.has(a.cliente)) return false;
+    if (selUsinaValues.size > 0 && !selUsinaValues.has(a.usina)) return false;
+    if (_ativClusterFiltro && a.cluster !== _ativClusterFiltro) return false;
+    if (selTecnico.size > 0 && !selTecnico.has(_ativTecnicoKey(a))) return false;
+  } catch (e) { /* filtros indisponíveis: não filtra */ }
+  return true;
+}
+const _coAplicarBase = _comunicadoAplicarFiltroCliente;
+_comunicadoAplicarFiltroCliente = function () {
+  _coAplicarBase.apply(this, arguments);
+  if (_comunicadoFonte !== 'atividades') return;
+  const f = {};
+  Object.keys(_comunicadoPorEquipeCache).forEach(eq => {
+    const it = _comunicadoPorEquipeCache[eq].filter(_coPassaFiltro);
+    if (it.length) f[eq] = it;
+  });
+  _comunicadoPorEquipeCache = f;
+  _comunicadoRenderListaEquipes(f, _comunicadoRotuloAtual);
+  const lista = document.getElementById('comunicadoListaEquipes');
+  if (!document.getElementById('coFiltroInfo') && lista && lista.parentElement) {
+    const d = document.createElement('div'); d.id = 'coFiltroInfo';
+    lista.parentElement.insertBefore(d, lista);
+  }
+  const b2 = document.getElementById('coFiltroInfo');
+  if (b2) b2.innerHTML = _ppFiltroBarHtml();
+};
+const _coReaplicarBase = _ppReaplicarSidebar;
+_ppReaplicarSidebar = function () {
+  const r = _coReaplicarBase.apply(this, arguments);
+  try {
+    if (_activeNav === 'comunicados' && _comTabAtual === 'tecnicos' && _comunicadoFonte === 'atividades') {
+      _comunicadoAplicarFiltroCliente();
+      const res = document.getElementById('comunicadoModalResult'), intro = document.getElementById('comunicadoModalIntro');
+      if (res && res.style.display === 'block') { res.style.display = 'none'; if (intro) intro.style.display = 'flex'; }
+    }
+  } catch (e) { console.warn('[v10] filtro comunicados', e); }
+  return r;
+};
+
+/* imagem (PNG) das atividades em aberto de um cluster — estilo cards */
+function _coGerarImagem(equipe, lista, escala) {
+  escala = escala || 2;
+  lista = lista.slice().sort((a, b) => (_itemDiasAtraso(b) ?? -999) - (_itemDiasAtraso(a) ?? -999));
+  const W = 1200, pad = 28, cols = 3, gap = 14, cw = (W - pad * 2 - gap * (cols - 1)) / cols, chh = 138, headH = 112, footH = 46;
+  const rows = Math.max(1, Math.ceil(lista.length / cols));
+  const H = headH + rows * (chh + gap) + footH;
+  const cv = document.createElement('canvas'); cv.width = W * escala; cv.height = H * escala;
+  const g = cv.getContext('2d'); g.scale(escala, escala);
+  const C = { bg: '#0B1220', card: '#131C2E', line: '#243049', tx: '#E6ECF5', dim: '#9AA8BF', teal: '#2DD4BF', red: '#F87171', amber: '#F5A623' };
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  const wrap = (txt, x, y, maxW, lh, maxL) => {
+    const ws = String(txt || '').split(/\s+/), ls = []; let cur = '';
+    ws.forEach(w => { const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur) { ls.push(cur); cur = w; } else cur = t; });
+    if (cur) ls.push(cur);
+    ls.slice(0, maxL).forEach((l, i) => { if (i === maxL - 1 && ls.length > maxL) l = l.replace(/.{0,3}$/, '…'); g.fillText(l, x, y + i * lh); });
+  };
+  const atras = lista.filter(a => (_itemDiasAtraso(a) ?? -999) > 0).length;
+  g.fillStyle = C.teal; g.font = '600 13px Geist, Arial, sans-serif'; g.fillText('ATIVIDADES EM ABERTO', pad, 36);
+  g.fillStyle = C.tx; g.font = '700 30px Geist, Arial, sans-serif'; g.fillText(equipe, pad, 72);
+  g.fillStyle = C.dim; g.font = '500 14px Geist, Arial, sans-serif';
+  g.fillText(new Date().toLocaleDateString('pt-BR') + '  ·  ' + lista.length + ' atividade' + (lista.length !== 1 ? 's' : '') + (atras ? '  ·  ' + atras + ' atrasada' + (atras !== 1 ? 's' : '') : ''), pad, 98);
+  lista.forEach((a, i) => {
+    const x = pad + (i % cols) * (cw + gap), y = headH + Math.floor(i / cols) * (chh + gap);
+    const dias = _itemDiasAtraso(a), atr = dias !== null && dias > 0;
+    const cor = atr ? C.red : (String(a.prioridade || '').toLowerCase().startsWith('alta') ? C.amber : C.teal);
+    g.fillStyle = C.card; rr(x, y, cw, chh, 10); g.fill(); g.strokeStyle = C.line; g.lineWidth = 1; g.stroke();
+    g.fillStyle = cor; rr(x, y, 5, chh, 3); g.fill();
+    g.fillStyle = C.teal; g.font = '600 13px "Geist Mono", monospace, Arial'; g.fillText(a.numeroOS ? 'OS ' + a.numeroOS : (a.usina || ''), x + 16, y + 24);
+    g.fillStyle = C.tx; g.font = '600 15px Geist, Arial, sans-serif'; wrap(a.descricao || '', x + 16, y + 48, cw - 32, 19, 2);
+    g.fillStyle = C.dim; g.font = '500 13px Geist, Arial, sans-serif';
+    let u = (a.usina || '') + (a.cliente ? ' · ' + a.cliente : ''); while (g.measureText(u).width > cw - 32 && u.length > 4) u = u.slice(0, -2); g.fillText(u, x + 16, y + 98);
+    g.fillStyle = atr ? C.red : C.dim; g.font = '600 13px Geist, Arial, sans-serif';
+    g.fillText(a.prazo ? 'Prazo ' + a.prazo + (atr ? ' · ' + dias + 'd atraso' : '') : 'Sem prazo', x + 16, y + 123);
+    const st = String(a.statusGeralOS || a.status || ''); if (st) {
+      g.font = '700 12px Geist, Arial, sans-serif'; const tw = Math.min(g.measureText(st).width + 18, cw * 0.5);
+      g.fillStyle = 'rgba(245,166,35,.16)'; rr(x + cw - tw - 12, y + 108, tw, 22, 11); g.fill();
+      g.fillStyle = C.amber; let s2 = st; while (g.measureText(s2).width > tw - 14 && s2.length > 3) s2 = s2.slice(0, -2); g.fillText(s2, x + cw - tw - 3, y + 123);
+    }
+  });
+  g.fillStyle = C.dim; g.font = '500 12px Geist, Arial, sans-serif'; g.fillText('Central O&M · Grid Co', pad, H - 18);
+  return cv.toDataURL('image/png');
+}
+function _coSelecionadas(idSeguro) {
+  const eq = _comunicadoEquipeMap[idSeguro]; if (!eq) return null;
+  const set = _comunicadoSelecaoAtiva[idSeguro] || new Set();
+  return { equipe: eq, lista: (_comunicadoPorEquipeCache[eq] || []).filter(a => set.has(String(a.id))) };
+}
+function _coVerImagem(idSeguro) {
+  const s = _coSelecionadas(idSeguro); if (!s || !s.lista.length) { showToast('Selecione ao menos uma atividade.', false); return; }
+  const id = 'coPrev_' + idSeguro; let el = document.getElementById(id);
+  if (el) { el.remove(); return; }
+  const anchor = document.getElementById('copiarBtn_' + idSeguro); if (!anchor) return;
+  const bloco = anchor.parentElement.parentElement.parentElement;
+  el = document.createElement('img'); el.id = id; el.src = _coGerarImagem(s.equipe, s.lista, 1);
+  el.style.cssText = 'width:100%;max-width:900px;border-radius:10px;border:1px solid var(--border-strong);margin:0 0 12px;display:block;';
+  bloco.insertBefore(el, bloco.children[1]);
+}
+async function _coCopiarImagem(idSeguro, btn) {
+  const s = _coSelecionadas(idSeguro); if (!s || !s.lista.length) { showToast('Selecione ao menos uma atividade.', false); return; }
+  const t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Gerando HD…';
+  try {
+    const blob = await (await fetch(_coGerarImagem(s.equipe, s.lista, 3))).blob();
+    if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('sem suporte');
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    showToast('Imagem copiada — cole (Ctrl+V) no WhatsApp.', true);
+  } catch (e) {
+    const a = document.createElement('a'); a.href = _coGerarImagem(s.equipe, s.lista, 3); a.download = 'atividades-em-aberto-' + s.equipe.replace(/[^a-z0-9]+/gi, '-') + '.png'; a.click();
+    showToast('Não deu pra copiar — baixei a imagem.', true);
+  } finally { btn.textContent = t0; btn.disabled = false; }
+}
+async function _coEnviarImagem(idSeguro, btn) {
+  const s = _coSelecionadas(idSeguro); if (!s || !s.lista.length) { showToast('Selecione ao menos uma atividade.', false); return; }
+  if (!confirm(`Enviar a IMAGEM com ${s.lista.length} atividade(s) em aberto pro grupo do cluster "${s.equipe}"?`)) return;
+  const t0 = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Enviando…';
+  const n = s.lista.length;
+  const legenda = `📋 *Atividades em aberto — ${s.equipe}*\n📅 ${new Date().toLocaleDateString('pt-BR')}\n\nSegue a imagem com as *${n} atividade${n !== 1 ? 's' : ''}* em aberto. Atualizem o andamento o quanto antes e, qualquer dificuldade, falem comigo.`;
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-programacao-pcm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(90000),
+      body: JSON.stringify({ cluster: s.equipe, grupoId: '', imagemBase64: _coGerarImagem(s.equipe, s.lista, 2), legenda }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (!resp.ok || !j.ok) throw new Error(j.error || ('HTTP ' + resp.status));
+    btn.innerHTML = '✓ Enviada!'; showToast('Imagem enviada pro ' + (j.grupo || 'grupo do cluster') + '.', true);
+    setTimeout(() => { btn.innerHTML = t0; btn.disabled = false; }, 2500);
+  } catch (e) { btn.innerHTML = t0; btn.disabled = false; showToast('Erro ao enviar imagem: ' + e.message, false); }
+}
+const _coGerarBase = _gerarComunicados;
+_gerarComunicados = function () {
+  const r = _coGerarBase.apply(this, arguments);
+  try {
+    Object.keys(_comunicadoEquipeMap || {}).forEach(id => {
+      if (_comunicadoTipoPorEquipe[_comunicadoEquipeMap[id]] === 'chamado') return;
+      const cb = document.getElementById('copiarBtn_' + id); if (!cb || !cb.parentElement) return;
+      const mk = (txt, fn, destaque) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.onclick = function () { fn(id, this); };
+        b.style.cssText = 'border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;' + (destaque ? 'background:var(--amber);border:none;color:#2b1a02;' : 'background:transparent;border:1px solid var(--border-strong);color:var(--text);');
+        return b;
+      };
+      const w = cb.parentElement;
+      w.appendChild(mk('🖼 Ver imagem', _coVerImagem, false));
+      w.appendChild(mk('Copiar imagem HD', _coCopiarImagem, false));
+      w.appendChild(mk('Enviar imagem', _coEnviarImagem, true));
+    });
+  } catch (e) { console.warn('[v10] botões imagem', e); }
+  return r;
+};
+
+/* Zeladoria: programação de fornecedores da semana 10–14/11/2026 (só usinas do mapeamento oficial) */
+const ZEL_PROG_SEMANA = [
+  { usina: 'Alto Paraná I', tipo: 'supressao', forn: 'Terra Forte', ini: '26/10/2026', fim: '11/11/2026', st: 'Em Andamento' },
+  { usina: 'União I', tipo: 'supressao', forn: 'M2E Serviços', ini: '27/10/2026', fim: '11/11/2026', st: 'Em Andamento' },
+  { usina: 'União II', tipo: 'supressao', forn: 'M2E Serviços', ini: '27/10/2026', fim: '11/11/2026', st: 'Em Andamento' },
+  { usina: 'Elias Fausto', tipo: 'supressao', forn: 'VS Engenharia', ini: '09/11/2026', fim: '14/11/2026', st: 'Em Andamento' },
+  { usina: 'Poconé', tipo: 'supressao', forn: 'New Solutions', ini: '09/11/2026', fim: '12/11/2026', st: 'Em Andamento' },
+  { usina: 'Ipixuna do Pará I', tipo: 'limpeza', forn: 'Frank', ini: '10/11/2026', fim: '13/11/2026', st: 'Agendado' },
+  { usina: 'Nova Londrina II', tipo: 'supressao', forn: 'Terra Forte', ini: '12/11/2026', fim: '15/11/2026', st: 'Agendado' },
+  { usina: 'Poconé', tipo: 'limpeza', forn: 'New Solutions', ini: '13/11/2026', fim: '15/11/2026', st: 'Agendado' },
+];
+function _zelAplicarProgSemana() {
+  try {
+    ZEL_PROG_SEMANA.forEach(p => {
+      const r = (zelData[p.tipo] || []).find(x => x.usina === p.usina);
+      if (!r || r._pg) return;
+      r._pg = true; r.status = p.st; r.prox = p.fim; r.qtd = p.forn;
+      r.obs = (p.tipo === 'limpeza' ? 'Limpeza' : 'Roçagem') + ' ' + p.ini.slice(0, 5) + ' a ' + p.fim.slice(0, 5);
+    });
+  } catch (e) { console.warn('[v10] prog zeladoria', e); }
+}
+const _zelRenderFullBase = zelRenderFull;
+zelRenderFull = function () { _zelAplicarProgSemana(); return _zelRenderFullBase.apply(this, arguments); };
+
+/* barra de filtros do topo só nas telas em que ela realmente filtra */
+const _coSyncBase = _lvSync;
+_lvSync = function () {
+  const r = _coSyncBase.apply(this, arguments);
+  try {
+    const mostra = ['atividades', 'chamados', 'ocorrencias', 'programacao-pcm'].includes(_activeNav) || (_activeNav === 'comunicados' && _comTabAtual === 'tecnicos');
+    const fb = document.getElementById('filterBar'), fbtn = document.getElementById('lvFiltrosBtn');
+    if (!mostra) { if (fb) fb.hidden = true; if (fbtn) fbtn.hidden = true; }
+  } catch (e) { console.warn('[v10] sync filtros', e); }
+  return r;
+};
+
 </script>
 
 </body>
