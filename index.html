@@ -20932,7 +20932,7 @@ function _pontoCopiarComunicado(id, btn) {
   const rcBase0 = () => { const f = rcLateral(); return ITENS.filter(x => rcPassaLateral(x, f)); };
   const rcAbertas = () => rcBase0().filter(x => RC.st.has(x.status));
   function rcClientes() { const m = {}; rcAbertas().forEach(x => { m[rcCli(x)] = (m[rcCli(x)] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a]).map(k => [k, m[k]]); }
-  function rcLista() { return rcAbertas().filter(x => RC.cli === '*' || rcCli(x) === RC.cli).sort((a, b) => (b.parado || 0) - (a.parado || 0)); }
+  function rcLista() { return rcAbertas().filter(x => RC.cli === '*' || rcCli(x) === RC.cli).sort((a, b) => String(a.usina || '').localeCompare(String(b.usina || ''), 'pt-BR', { sensitivity: 'base', numeric: true }) || String(a.equip || '').localeCompare(String(b.equip || ''), 'pt-BR', { sensitivity: 'base', numeric: true }) || (b.parado || 0) - (a.parado || 0)); }  /* 12/11/2026: ordem alfabética das usinas (como o cliente confere na reunião) */
   function rcSec(tit, arr, fn) { return arr && arr.length ? `<h4 style="margin:12px 0 4px;font-size:13px">${tit}</h4><ul style="margin:0;padding-left:18px">${arr.map(fn).join('')}</ul>` : ''; }
   const rcBase = b => `<span class="oc-hint" style="display:block;font-size:12px"> Base: ${esc(b)}</span>`;
   function rcTexto(x, r) {
