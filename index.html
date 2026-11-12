@@ -2025,6 +2025,9 @@ select.rp-input{display:block;}
 #locViewMapa,#locViewLista{width:auto;padding:0 10px;font-size:12.5px;font-weight:600;white-space:nowrap;}
 #coFiltroInfo{margin-bottom:10px;}
 </style>
+<style id="lv11css">/* LAYOUT v11 */
+#ocDdUsina{display:none !important;}
+</style>
 </head>
 <body>
 
@@ -20472,6 +20475,7 @@ function _pontoCopiarComunicado(id, btn) {
 
   /* ── filtros ───────────────────────────────────────────── */
   function passa(x, skip) {
+    if (!rcPassaLateral(x, rcLateral())) return false;  /* filtros do topo (v11) */
     if (skip !== 'status' && F.status.size && !F.status.has(x.status)) return false;
     if (skip !== 'usina' && F.usinas.size && !F.usinas.has(x.usina)) return false;
     if (skip !== 'equip' && F.equips.size && !F.equips.has(x.equip)) return false;
@@ -20500,12 +20504,13 @@ function _pontoCopiarComunicado(id, btn) {
   const chip = (label, n, on, attrs, cor) => `<button type="button" class="oc-chip${n ? '' : ' zero'}" aria-pressed="${on}" ${attrs}>${cor ? `<i class="oc-sw" style="--c:var(${cor})"></i>` : ''}${esc(label)} <span class="n">${n}</span></button>`;
 
   function kpis() {
-    const ab = ITENS.filter(x => x.status !== 'Finalizado');
-    const n = s => ITENS.filter(x => x.status === s).length;
+    const BASE = ITENS.filter(x => rcPassaLateral(x, rcLateral()));
+    const ab = BASE.filter(x => x.status !== 'Finalizado');
+    const n = s => BASE.filter(x => x.status === s).length;
     const parada = ab.filter(x => x.parado > 30).length, graves = ab.filter(x => x.grave).length;
     const k = (num, rot, cor, kf, alerta) => `<${kf ? 'button type="button"' : 'div'} class="oc-kpi${alerta ? ' alerta' : ''}" style="--c:var(${cor})"${kf ? ` data-kf="${kf}"` : ''}><div class="n">${num}</div><div class="l">${rot}</div></${kf ? 'button' : 'div'}>`;
     $('#ocKpis').innerHTML =
-      k(ITENS.length, 'Ocorrências no total', '--teal', '') +
+      k(BASE.length, 'Ocorrências no total', '--teal', '') +
       k(n('Em andamento'), 'Em andamento', '--oc-and', 'st:Em andamento') +
       k(n('Pausado'), n('Pausado') === 1 ? 'Pausada' : 'Pausadas', '--oc-pausa', 'st:Pausado') +
       k(n('Finalizado'), n('Finalizado') === 1 ? 'Finalizada' : 'Finalizadas', '--oc-feito', 'st:Finalizado') +
@@ -21727,7 +21732,7 @@ function _pontoCopiarComunicado(id, btn) {
     novo() { iniciar(); if (!carregado) carregar(false).then(novo); else novo(); },
     abrir(id) { iniciar(); const go = () => { if (ITENS.find(x => x.id === id)) { abrir(id); } }; carregado ? go() : carregar(false).then(go); },
     itens: () => ITENS,
-    filtrosLaterais() { if (carregado && aba === 'rc') renderRc(); },
+    filtrosLaterais() { if (!carregado) return; if (aba === 'rc') renderRc(); else render(); },
     abertas: () => ITENS.filter(x => x.status !== 'Finalizado').length,
   };
 })();
