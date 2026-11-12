@@ -22013,7 +22013,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     if (abertoPid === p.pid && modoEd === 'agregar') ed = formAgregar(p);
     if (abertoPid === p.pid && modoEd === 'nova') ed = formNova(p);
     return `<article class="vt-p" data-pid="${e(p.pid)}">
-      <div class="vt-p-h"><b>${e(p.usina)}</b><span class="vt-tag">${rotuloTipo(p)}</span>${conf ? `<span class="vt-tag ${conf === 'alta' ? 'alta' : conf === 'baixa' ? 'baixa' : ''}">confiança ${e(conf)}</span>` : ''}
+      <div class="vt-p-h">${p.usina ? `<b>${e(p.usina)}</b>` : '<span class="vt-tag baixa">Usina a confirmar</span>'}<span class="vt-tag">${rotuloTipo(p)}</span>${conf ? `<span class="vt-tag ${conf === 'alta' ? 'alta' : conf === 'baixa' ? 'baixa' : ''}">confiança ${e(conf)}</span>` : ''}
         <span class="vt-st">${e(p.quem || '')}${p.quando ? ' · ' + e(p.quando) : ''}</span></div>
       <div class="vt-pedido">${e(p.pedido)}</div>
       ${p.trecho ? `<div class="vt-trecho">“${e(p.trecho)}”</div>` : ''}
