@@ -2028,6 +2028,42 @@ select.rp-input{display:block;}
 <style id="lv11css">/* LAYOUT v11 */
 #ocDdUsina{display:none !important;}
 </style>
+<style id="lv12css">
+/* LAYOUT v12 — Performance por contrato */
+.pf-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pf-eyebrow{font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:3px}
+.pf-h2{font-size:18px;font-weight:700;margin:0}
+.pf-sub{font-size:12.5px;color:var(--text-faint);margin-top:4px}
+.pf-ctrl{display:flex;gap:8px;align-items:center}
+.pf-ctrl .sb-select{width:auto;min-width:140px;height:32px;margin:0}
+.pf-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.pf-tab{background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.pf-tab.active{background:var(--teal);border-color:var(--teal);color:#042F36}
+.pf-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:14px}
+.pf-cli{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--panel)}
+.pf-cli h3{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pf-cli h3 span{font-size:12px;color:var(--text-faint);font-weight:500}
+.pf-cli .g{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.pf-cli .n{font-size:20px;font-weight:700;font-family:'Geist Mono',monospace}
+.pf-cli .l{font-size:11.5px;color:var(--text-faint)}
+.pf-ok{color:var(--sla-ok,#22C55E)} .pf-mal{color:var(--red,#EF4444)} .pf-aten{color:var(--amber,#F5A623)}
+.pf-tw{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.pf-t{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}
+.pf-t th{text-align:left;font-size:11.5px;font-weight:600;color:var(--text-faint);padding:9px 10px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;cursor:pointer;white-space:nowrap}
+.pf-t td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.pf-t tr.pf-row{cursor:pointer} .pf-t tr.pf-row:hover td{background:rgba(255,255,255,.03)}
+.pf-t .num{font-family:'Geist Mono',monospace;white-space:nowrap}
+.pf-t .sm{font-size:11.5px;color:var(--text-faint)}
+.pf-tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;margin:0 4px 3px 0;border:1px solid}
+.pf-tag.s{color:var(--amber,#F5A623);border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.08)}
+.pf-tag.r{color:var(--red,#EF4444);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)}
+.pf-tag.i{color:var(--text-dim);border-color:var(--border-strong)}
+.pf-det td{background:rgba(0,0,0,.12)}
+.pf-det .bx{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.pf-det h4{margin:0 0 6px;font-size:12.5px;color:var(--teal)}
+.pf-det ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--text-dim)} .pf-det li{margin-bottom:3px}
+.pf-vazio{padding:24px;text-align:center;color:var(--text-faint);font-size:13px;border:1px dashed var(--border-strong);border-radius:12px}
+</style>
 </head>
 <body>
 
@@ -2122,6 +2158,10 @@ select.rp-input{display:block;}
       <a href="#ger-entregaveis" class="sb-nav-item" data-nav="ger-entregaveis" data-label="Entregáveis" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         Entregáveis
+      </a>
+      <a href="#performance" class="sb-nav-item" data-nav="performance" data-label="Performance" draggable="true">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Performance
       </a>
       <a href="#relatorios" class="sb-nav-item" data-nav="relatorios" data-label="Reuniões e relatórios" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -2718,6 +2758,27 @@ select.rp-input{display:block;}
       </section>
 
       <!-- ── SEÇÃO: REUNIÕES - CLIENTES (Apresentações) ──────────────────────── -->
+      <section class="content-section" id="sec-performance">
+        <div class="pf-head">
+          <div>
+            <div class="pf-eyebrow">Clientes e contratos · fonte: Nexus › Performance</div>
+            <h2 class="pf-h2">Performance por contrato</h2>
+            <div class="pf-sub" id="pfSub">Carregando…</div>
+          </div>
+          <div class="pf-ctrl">
+            <select id="pfMes" class="sb-select" onchange="_pfCarregar(this.value)"></select>
+            <button class="tb-btn" type="button" onclick="_pfCarregar(document.getElementById('pfMes').value, true)">Atualizar</button>
+          </div>
+        </div>
+        <div class="pf-tabs" id="pfTabs">
+          <button type="button" class="pf-tab active" data-pft="usinas" onclick="_pfTab('usinas')">Usinas</button>
+          <button type="button" class="pf-tab" data-pft="relig" onclick="_pfTab('relig')">Religamento remoto</button>
+        </div>
+        <div id="pfFiltroInfo"></div>
+        <div class="pf-kpis" id="pfKpis"></div>
+        <div id="pfCorpo"></div>
+      </section>
+
       <section class="content-section" id="sec-relatorios">
         <div class="rp-wrap">
           <header class="rp-head">
@@ -5335,6 +5396,7 @@ const NAV_TITLES = {
   'mttr': 'MTTR — Tempo Ativo O&M',
   'eficiencia': 'Eficiência O&M',
   'relatorios': 'Reuniões e relatórios',
+  'performance': 'Performance por contrato',
   'atividades': 'Painel de Atividades',
   'programacao-pcm': 'Programação PCM',
   'boletins': 'Gerencial',
@@ -22345,6 +22407,158 @@ _lvSync = function () {
     const fb = document.getElementById('filterBar'), fbtn = document.getElementById('lvFiltrosBtn');
     if (!mostra) { if (fb) fb.hidden = true; if (fbtn) fbtn.hidden = true; }
   } catch (e) { console.warn('[v10] sync filtros', e); }
+  return r;
+};
+
+
+/* ══ LAYOUT v12 (12/11/2026): Performance por contrato (Nexus › Performance) ══ */
+const _PF_API = 'https://api.168.138.232.237.sslip.io';
+let _pfDados = null, _pfAba = 'usinas', _pfAberta = null, _pfOrd = { k: 'cliente', d: 1 };
+const _pfFmt = (v, d = 1) => (v === null || v === undefined || v === '' || isNaN(v)) ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const _pfMesRot = m => { const [a, b] = String(m || '').split('-'); const n = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']; return b ? n[+b - 1] + '/' + a : m; };
+function _pfPermitido() { try { return !_currentSession || ['manager', 'admin'].includes(_currentSession.role); } catch (e) { return true; } }
+async function _pfCarregar(mes, forcar) {
+  const sub = document.getElementById('pfSub');
+  if (sub) sub.textContent = 'Carregando…';
+  try {
+    const r = await fetch(_PF_API + '/nexus-performance' + (mes ? '?mes=' + encodeURIComponent(mes) : ''), { signal: AbortSignal.timeout(60000) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'erro');
+    _pfDados = j;
+    const sel = document.getElementById('pfMes');
+    if (sel) sel.innerHTML = (j.meses || []).slice().reverse().map(m => `<option value="${m}"${m === j.mes ? ' selected' : ''}>${_pfMesRot(m)}${m === (j.meses || []).slice(-1)[0] ? ' (parcial)' : ''}</option>`).join('');
+    _pfRender();
+  } catch (e) {
+    if (sub) sub.textContent = 'Erro ao carregar: ' + (e.message || e);
+  }
+}
+function _pfTab(t) { _pfAba = t; document.querySelectorAll('#pfTabs .pf-tab').forEach(b => b.classList.toggle('active', b.dataset.pft === t)); _pfRender(); }
+function _pfPassa(u) {
+  try {
+    if (selCliente.size > 0 && !selCliente.has(u.cliente)) return false;
+    if (selUsinaValues.size > 0 && !selUsinaValues.has(u.usina)) return false;
+    if (_ativClusterFiltro) { const m = _usinaClusterMap(); if (m[u.usina] !== _ativClusterFiltro) return false; }
+  } catch (e) {}
+  return true;
+}
+function _pfAlertas(u) {
+  const a = [];
+  if (u.agregadoNexus) a.push(['i', 'Nexus soma o conjunto "' + u.agregadoNexus + '"']);
+  if (u.pr != null && (u.pr > 120 || u.pr < 0)) a.push(['s', 'PR impossível no Nexus (' + _pfFmt(u.pr) + '%)']);
+  else if (u.pr != null && u.pr < 40 && (u.disp == null || u.disp > 90)) a.push(['s', 'PR muito baixo com usina disponível: conferir medição']);
+  if (u.atingimento != null && u.atingimento < 40 && (u.disp == null || u.disp > 90)) a.push(['s', 'Geração muito abaixo do P50 com usina disponível']);
+  if (u.pr == null && u.prMotivo) a.push(['i', 'Sem PR: ' + u.prMotivo]);
+  if (u.pr == null && !u.prMotivo && u.prMeta == null && u.atingimento == null) a.push(['i', 'Sem dados de geração no Nexus']);
+  if (u.disp != null && u.disp < 90) a.push(['r', 'Disponibilidade ' + _pfFmt(u.disp) + '%' + (u.dispQueda != null && u.dispQueda < u.dispEquip ? ' (rede)' : ' (equipamento)')]);
+  if (u.pr != null && u.prMeta != null && u.pr <= 120 && u.pr < u.prMeta - 5) a.push(['r', 'PR ' + _pfFmt(u.pr - u.prMeta) + ' p.p. abaixo da meta']);
+  return a;
+}
+function _pfSuspeito(u) { return u.pr != null && (u.pr > 120 || u.pr < 0); }
+function _pfAgrega(lista) {
+  let pw = 0, pp = 0, pm = 0, prod = 0, p50 = 0, dw = 0, dd = 0, de = 0, kwh = 0, abaixo = 0;
+  lista.forEach(u => {
+    const w = u.potMwp || (u.potKwp ? u.potKwp / 1000 : 0);
+    if (u.pr != null && !_pfSuspeito(u) && w) { pw += w; pp += u.pr * w; if (u.prMeta != null) pm += u.prMeta * w; }
+    if (u.prodMwh != null && u.p50Mwh != null && !u.agregadoNexus) { prod += u.prodMwh; p50 += u.p50Mwh; }
+    if (u.disp != null) { const k = u.potKwp || w * 1000 || 1; dw += k; dd += u.disp * k; de += (u.dispEquip ?? u.disp) * k; }
+    if (u.kwhPerdido) kwh += u.kwhPerdido;
+    if (u.pr != null && u.prMeta != null && !_pfSuspeito(u) && u.pr < u.prMeta) abaixo++;
+  });
+  return { pr: pw ? pp / pw : null, prMeta: pw ? pm / pw : null, ating: p50 ? prod / p50 * 100 : null, prod, p50,
+    disp: dw ? dd / dw : null, dispEquip: dw ? de / dw : null, kwh, abaixo, n: lista.length };
+}
+function _pfCor(v, meta, tol) { if (v == null || meta == null) return ''; return v >= meta ? 'pf-ok' : v >= meta - (tol || 3) ? 'pf-aten' : 'pf-mal'; }
+function _pfRender() {
+  const sub = document.getElementById('pfSub'), K = document.getElementById('pfKpis'), C = document.getElementById('pfCorpo');
+  if (!C || !_pfDados) return;
+  const fi = document.getElementById('pfFiltroInfo'); if (fi && typeof _ppFiltroBarHtml === 'function') fi.innerHTML = _ppFiltroBarHtml();
+  if (_pfDados.vazio) { K.innerHTML = ''; C.innerHTML = '<div class="pf-vazio">Ainda não chegou nenhuma leitura do Nexus. Abra o Nexus no Chrome (com o script "Grid Performance → Painel" do Tampermonkey) e use "Enviar performance ao painel agora".</div>'; if (sub) sub.textContent = ''; return; }
+  const us = (_pfDados.usinas || []).filter(_pfPassa);
+  if (sub) sub.textContent = `${_pfMesRot(_pfDados.mes)} · ${us.length} usinas · Nexus lido em ${_pfDados.lidoEm || '—'}` + (_pfDados.mes === (_pfDados.meses || []).slice(-1)[0] ? ' · mês em andamento' : '');
+  const porCli = {}; us.forEach(u => (porCli[u.cliente || 'Sem cliente'] = porCli[u.cliente || 'Sem cliente'] || []).push(u));
+  K.innerHTML = Object.keys(porCli).sort().map(c => {
+    const a = _pfAgrega(porCli[c]);
+    return `<div class="pf-cli"><h3>${esc(c)} <span>${a.n} usina${a.n !== 1 ? 's' : ''}</span></h3><div class="g">
+      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR ponderado · meta ${_pfFmt(a.prMeta)}%</div></div>
+      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating)}%</div><div class="l">Geração x P50 (${_pfFmt(a.prod, 0)} / ${_pfFmt(a.p50, 0)} MWh)</div></div>
+      <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">Disponibilidade · equip. ${_pfFmt(a.dispEquip)}%</div></div>
+      <div><div class="n">${_pfFmt(a.kwh / 1000, 0)}</div><div class="l">MWh perdidos · ${a.abaixo} abaixo da meta de PR</div></div>
+    </div></div>`;
+  }).join('') || '';
+  if (_pfAba === 'relig') { C.innerHTML = _pfRelig(us); return; }
+  const val = (u, k) => { const v = u[k]; return v == null ? -1e9 : v; };
+  const ord = us.slice().sort((a, b) => {
+    const k = _pfOrd.k;
+    if (k === 'cliente' || k === 'usina') return _pfOrd.d * (String(a[k] || '').localeCompare(String(b[k] || ''), 'pt-BR') || String(a.usina).localeCompare(String(b.usina), 'pt-BR'));
+    if (k === 'gap') return _pfOrd.d * (((a.pr ?? 1e9) - (a.prMeta ?? 0)) - ((b.pr ?? 1e9) - (b.prMeta ?? 0)));
+    return _pfOrd.d * (val(a, k) - val(b, k));
+  });
+  const th = (k, t) => `<th onclick="_pfOrdenar('${k}')">${t}${_pfOrd.k === k ? (_pfOrd.d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  C.innerHTML = `<div class="pf-tw"><table class="pf-t"><thead><tr>${th('usina', 'Usina')}${th('cliente', 'Cliente')}${th('gap', 'PR / meta')}${th('atingimento', 'Geração x P50')}${th('disp', 'Disponibilidade')}${th('kwhPerdido', 'Perda (MWh)')}${th('religSoLocal', 'Religamentos')}<th>Pontos de atenção</th></tr></thead><tbody>` +
+    ord.map(u => {
+      const al = _pfAlertas(u), id = u.usina.replace(/[^a-z0-9]/gi, '_');
+      const prTxt = u.pr == null ? '—' : _pfSuspeito(u) ? `<span class="pf-aten">${_pfFmt(u.pr)}%?</span>` : `<span class="${_pfCor(u.pr, u.prMeta)}">${_pfFmt(u.pr)}%</span>`;
+      const linha = `<tr class="pf-row" onclick="_pfAbrir('${id}')"><td><b>${esc(u.usina)}</b>${u.potMwp ? `<div class="sm">${_pfFmt(u.potMwp, 2)} MWp</div>` : ''}</td><td>${esc(u.cliente || '')}</td>
+        <td class="num">${prTxt} <span class="sm">/ ${_pfFmt(u.prMeta)}%</span></td>
+        <td class="num"><span class="${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento)}%</span><div class="sm">${_pfFmt(u.prodMwh)} / ${_pfFmt(u.p50Mwh)} MWh</div></td>
+        <td class="num"><span class="${_pfCor(u.disp, 98, 3)}">${_pfFmt(u.disp)}%</span><div class="sm">equip. ${_pfFmt(u.dispEquip)}% · rede ${_pfFmt(u.dispQueda)}%</div></td>
+        <td class="num">${_pfFmt((u.kwhPerdido || 0) / 1000)}<div class="sm">${_pfFmt(u.hPerdidas, 0)} h · ${u.nOs || 0} OS</div></td>
+        <td class="num">${u.religRemotos == null && u.religSoLocal == null ? '<span class="sm">sem registro</span>' : `${u.religRemotos || 0} remoto · ${u.religSoLocal || 0} local`}</td>
+        <td>${al.map(x => `<span class="pf-tag ${x[0]}">${esc(x[1])}</span>`).join('') || '<span class="sm">—</span>'}</td></tr>`;
+      return linha + (_pfAberta === id ? _pfDetalhe(u) : '');
+    }).join('') + '</tbody></table></div>';
+}
+function _pfOrdenar(k) { _pfOrd = { k, d: _pfOrd.k === k ? -_pfOrd.d : 1 }; _pfRender(); }
+function _pfAbrir(id) { _pfAberta = _pfAberta === id ? null : id; _pfRender(); }
+function _pfDetalhe(u) {
+  const oss = (u.oss || []).slice(0, 12).map(o => `<li><b>OS ${esc(o.folio)}</b> · ${esc((o.desc || '').replace(/^\[[^\]]*\]\s*-?\s*/, '').slice(0, 90))} — ${_pfFmt(o.h_solar)} h · ${_pfFmt((o.kwh || 0) / 1000)} MWh${o.aberta ? ' · <span class="pf-mal">aberta</span>' : ''}${o.excl ? ` <span class="sm">(${esc(o.excl)})</span>` : ''}</li>`).join('') || '<li>Sem OS com perda no mês.</li>';
+  const inv = (u.inversoresAfetados || []).slice(0, 15).map(i => `<li>${esc(i.inversor)}${i.cabine ? ' (cab. ' + i.cabine + ')' : ''}: ${_pfFmt(i.disp)}% · ${_pfFmt(i.h_perdidas)} h perdidas</li>`).join('') || '<li>Nenhum inversor abaixo de 100%.</li>';
+  const tr = (_pfDados.tempoReal || []).filter(t => t.usina === u.usina);
+  const trTxt = tr.map(t => `<li>${esc(t.fonte || '')}: ${t.status === 'sem_comm' ? '<span class="pf-mal">sem comunicação</span>' : esc(t.status || 'ok')}${t.causa ? ' (' + esc(t.causa) + ')' : ''} · strings faltando ${t.stringsFaltando ?? '—'}/${t.stringsEsp ?? '—'} · trackers parados ${t.trkParados ?? '—'} (${t.trkComOs ?? 0} com OS)</li>`).join('') || '<li>Sem leitura em tempo real.</li>';
+  const rl = (_pfDados.religamentos || []).filter(r => r.usinaCanon === u.usina).map(r => `<li>${esc(r.escopo || r.usina)}: ${r.total} eventos · ${r.remotoResolveu} remoto resolveu · ${r.soLocal} só local${r.tipos ? ' <span class="sm">(' + esc(r.tipos) + ')</span>' : ''}</li>`).join('') || '<li>Nenhum religamento registrado na Ronda COS em ' + (_pfDados.religDias || 30) + ' dias.</li>';
+  const extra = [u.anomalia ? 'Anomalia: ' + u.anomalia : '', u.prMotivo ? 'PR: ' + u.prMotivo : '', u.ipoa != null ? `Irradiação POA ${_pfFmt(u.ipoa)} kWh/m² (prevista ${_pfFmt(u.ipoaPrev)})` : '', u.diasCob != null ? `Dias com leitura: ${u.diasCob}/${u.diasMes}` : '', u.nomesNexus && u.nomesNexus.length ? 'No Nexus: ' + u.nomesNexus.join(', ') : ''].filter(Boolean).map(t => `<li>${esc(t)}</li>`).join('');
+  return `<tr class="pf-det"><td colspan="8"><div class="bx">
+    <div><h4>OS que causaram perda</h4><ul>${oss}</ul></div>
+    <div><h4>Inversores afetados</h4><ul>${inv}</ul></div>
+    <div><h4>Agora (tempo real)</h4><ul>${trTxt}</ul><h4 style="margin-top:10px">Religamentos (${_pfDados.religDias || 30} dias)</h4><ul>${rl}</ul></div>
+    <div><h4>Dados da leitura</h4><ul>${extra}</ul></div></div></td></tr>`;
+}
+function _pfRelig(us) {
+  const nomes = new Set(us.map(u => u.usina));
+  const rows = (_pfDados.religamentos || []).filter(r => nomes.has(r.usinaCanon));
+  const por = {}; rows.forEach(r => { const p = por[r.usinaCanon] = por[r.usinaCanon] || { usina: r.usinaCanon, cliente: r.cliente, total: 0, rem: 0, loc: 0, depois: 0, eq: [] }; p.total += r.total; p.rem += r.remotoResolveu; p.loc += r.soLocal; p.depois += r.remotoDepoisCampo; p.eq.push(r); });
+  const lista = Object.values(por).sort((a, b) => (b.loc - b.rem) - (a.loc - a.rem));
+  const sem = us.filter(u => !por[u.usina]).map(u => u.usina);
+  const semRemoto = lista.filter(p => p.rem === 0);
+  return `<div class="pf-vazio" style="text-align:left;margin-bottom:12px">
+      <b>Como ler:</b> "remoto resolveu" = o COS religou à distância e não precisou ir a campo; "só local" = o religamento foi feito só na usina. Usina com muitos "só local" e nenhum remoto indica que não há religamento remoto funcionando (equipamento, comunicação ou autorização).
+      <br><br><b>${semRemoto.length}</b> usina(s) com religamentos só no local nos últimos ${_pfDados.religDias || 30} dias: ${semRemoto.map(p => esc(p.usina)).join(', ') || '—'}.
+      <br><b>${sem.length}</b> usina(s) sem nenhum religamento registrado na Ronda COS (não dá para avaliar pelo Nexus): ${sem.map(esc).join(', ') || '—'}.
+    </div>
+    <div class="pf-tw"><table class="pf-t"><thead><tr><th>Usina</th><th>Cliente</th><th>Eventos</th><th>Remoto resolveu</th><th>Remoto e depois campo</th><th>Só local</th><th>% remoto</th><th>Equipamentos</th></tr></thead><tbody>` +
+    lista.map(p => { const pct = p.total ? p.rem / p.total * 100 : null; return `<tr><td><b>${esc(p.usina)}</b></td><td>${esc(p.cliente || '')}</td><td class="num">${p.total}</td><td class="num pf-ok">${p.rem}</td><td class="num">${p.depois}</td><td class="num ${p.loc > p.rem ? 'pf-mal' : ''}">${p.loc}</td><td class="num">${_pfFmt(pct, 0)}%</td>
+      <td class="sm">${p.eq.slice(0, 6).map(r => esc(r.escopo || '') + ': ' + r.remotoResolveu + '/' + r.total + ' remoto').join(' · ')}</td></tr>`; }).join('') + '</tbody></table></div>';
+}
+const _pfSwitchBase = switchNav;
+switchNav = function (nav) {
+  if (nav === 'performance' && !_pfPermitido()) nav = 'atividades';
+  const r = _pfSwitchBase.apply(this, arguments.length ? [nav] : arguments);
+  if (nav === 'performance') { if (!_pfDados) _pfCarregar(); else _pfRender(); }
+  return r;
+};
+const _pfReaplicarBase = _ppReaplicarSidebar;
+_ppReaplicarSidebar = function () { const r = _pfReaplicarBase.apply(this, arguments); try { if (_activeNav === 'performance') _pfRender(); } catch (e) {} return r; };
+const _pfSyncBase = _lvSync;
+_lvSync = function () {
+  const r = _pfSyncBase.apply(this, arguments);
+  try {
+    const it = document.querySelector('#sbNav .sb-nav-item[data-nav="performance"]');
+    if (it && !_pfPermitido()) { it.style.display = 'none'; it.classList.add('sup-oculto'); }
+    if (_activeNav === 'performance' && _pfPermitido()) {
+      const fb = document.getElementById('filterBar'), fbtn = document.getElementById('lvFiltrosBtn'), sf = document.getElementById('sbFilters');
+      if (fb && sf && sf.style.display !== 'none') { fb.hidden = false; if (fbtn) fbtn.hidden = false; }
+    }
+  } catch (e) {}
   return r;
 };
 
