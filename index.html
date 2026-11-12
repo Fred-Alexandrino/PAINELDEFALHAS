@@ -2067,6 +2067,53 @@ select.rp-input{display:block;}
 <style id="lv13css">/* LAYOUT v13: grupo "Mais" (Log Histórico, Eficiência O&M) removido do menu */
 #navFerramentasToggle,#grupoFerramentasSubmenu,.sb-nav-item[data-nav="historico-log"],.sb-nav-item[data-nav="eficiencia"],.bn-item[data-nav="historico-log"],.bn-item[data-nav="eficiencia"]{display:none !important;}
 </style>
+<style id="lv14css">
+/* LAYOUT v14 — diagnóstico de performance */
+.pf-cli{cursor:pointer;transition:border-color .15s,transform .15s}
+.pf-cli:hover{border-color:var(--teal)}
+.pf-cli.sel{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset}
+.pf-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.pf-bar label{display:flex;align-items:center;gap:8px}
+.pf-bar .sb-select{width:auto;height:32px;margin:0;min-width:230px}
+.pf-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--text-dim);align-items:center}
+.pf-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:-6px}
+.pf-list{display:flex;flex-direction:column;gap:8px}
+.pf-card{display:grid;grid-template-columns:minmax(180px,1.1fr) minmax(260px,2fr) minmax(200px,1.4fr) auto;gap:14px;align-items:center;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--panel);cursor:pointer;text-align:left;width:100%;color:inherit;font:inherit}
+.pf-card:hover{border-color:var(--teal)}
+.pf-card .nm{font-size:14.5px;font-weight:700}
+.pf-card .cl{font-size:12px;color:var(--text-faint)}
+.pf-card .big{font-family:'Geist Mono',monospace;font-size:13px}
+.pf-stack{display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(148,163,184,.15);margin:6px 0 4px}
+.pf-stack span{display:block;height:100%}
+.pf-card .why{font-size:12.5px;color:var(--text-dim);line-height:1.35}
+.pf-card .why b{color:var(--text)}
+.pf-card .go{font-size:12.5px;font-weight:700;color:var(--teal);white-space:nowrap}
+.pf-chips{display:flex;flex-wrap:wrap;gap:4px}
+@media (max-width:900px){.pf-card{grid-template-columns:1fr}.pf-card .go{justify-self:start}}
+.pf-ov{position:fixed;inset:0;background:rgba(2,6,23,.55);z-index:900;display:flex;justify-content:flex-end}
+.pf-dr{width:min(880px,100%);height:100%;overflow-y:auto;background:var(--bg,#0B1220);border-left:1px solid var(--border-strong);padding:20px 22px 40px;box-sizing:border-box}
+.pf-dr h2{margin:0;font-size:20px}
+.pf-dr .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.pf-x{white-space:nowrap;flex:none;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+.pf-dr section{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--panel)}
+.pf-dr h3{margin:0 0 10px;font-size:13.5px;color:var(--teal)}
+.pf-kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pf-kg .n{font-family:'Geist Mono',monospace;font-size:19px;font-weight:700}
+.pf-kg .l{font-size:11.5px;color:var(--text-faint)}
+.pf-wf{display:flex;flex-direction:column;gap:6px}
+.pf-wr{display:grid;grid-template-columns:170px 1fr 92px;gap:10px;align-items:center;font-size:12.5px}
+.pf-wr .tr{height:16px;background:rgba(148,163,184,.12);border-radius:4px;position:relative;overflow:hidden}
+.pf-wr .tr span{position:absolute;top:0;bottom:0;border-radius:4px}
+.pf-wr .v{font-family:'Geist Mono',monospace;text-align:right}
+.pf-wr .d{grid-column:1/-1;font-size:12px;color:var(--text-faint);margin:-2px 0 4px}
+.pf-cz{display:flex;flex-direction:column;gap:8px}
+.pf-cz div{border-left:3px solid var(--c);padding:6px 10px;background:rgba(148,163,184,.06);border-radius:0 8px 8px 0;font-size:13px;line-height:1.4}
+.pf-mini{width:100%;border-collapse:collapse;font-size:12.5px}
+.pf-mini th{text-align:left;color:var(--text-faint);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--border)}
+.pf-mini td{padding:5px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.pf-mini .num{font-family:'Geist Mono',monospace;white-space:nowrap}
+.pf-todo li{margin-bottom:5px;font-size:13px}
+</style>
 </head>
 <body>
 
@@ -2778,6 +2825,17 @@ select.rp-input{display:block;}
           <button type="button" class="pf-tab" data-pft="relig" onclick="_pfTab('relig')">Religamento remoto</button>
         </div>
         <div id="pfFiltroInfo"></div>
+        <div class="pf-bar" id="pfBar">
+          <label class="sm">Ordenar por
+            <select id="pfOrdSel" class="sb-select" onchange="_pfOrdV=this.value;_pfRender()">
+              <option value="gap">Maior perda de geração (MWh)</option>
+              <option value="ating">Pior geração x P50 (%)</option>
+              <option value="pr">Maior PR abaixo da meta</option>
+              <option value="disp">Pior disponibilidade</option>
+              <option value="az">Usina (A–Z)</option>
+            </select></label>
+          <span class="pf-leg"><i style="--c:#64748B"></i>Clima<i style="--c:#EF4444"></i>Rede<i style="--c:#F97316"></i>Equipamento<i style="--c:#EAB308"></i>Strings<i style="--c:#A855F7"></i>Trackers<i style="--c:#94A3B8"></i>Outras perdas</span>
+        </div>
         <div class="pf-kpis" id="pfKpis"></div>
         <div id="pfCorpo"></div>
       </section>
@@ -22569,6 +22627,189 @@ _lvSync = function () {
 /* LAYOUT v13 */
 const _v13Switch = switchNav;
 switchNav = function (nav) { if (nav === 'historico-log' || nav === 'eficiencia') nav = 'atividades'; return _v13Switch.call(this, nav); };
+
+/* ══ LAYOUT v14 (12/11/2026): Performance — diagnóstico por usina ══ */
+let _pfOrdV = 'gap';
+const _PF_COR = { clima: '#64748B', rede: '#EF4444', equip: '#F97316', strings: '#EAB308', trackers: '#A855F7', outras: '#94A3B8' };
+const _PF_NOME = { clima: 'Clima (irradiação abaixo do previsto)', rede: 'Indisponibilidade de rede', equip: 'Indisponibilidade de equipamento', strings: 'Strings fora', trackers: 'Trackers parados', outras: 'Outras perdas (não identificadas)' };
+function _pfMesAtual() { return _pfDados && _pfDados.mes === (_pfDados.meses || []).slice(-1)[0]; }
+/* Cascata: esperado (P50 do período) -> perdas por causa -> gerado. Disponibilidade vem em % e é
+   convertida em MWh sobre o esperado (o kWh do Nexus é nominal: kWp x horas). Strings e trackers vêm
+   em kWh estimado pelo Nexus (só existem no mês corrente). Clima só entra quando a irradiação do mês
+   é comparável à prevista (razão entre 0,6 e 1,4); senão fica em "outras". */
+function _pfDiag(u) {
+  const E = u.p50Mwh, R = u.prodMwh;
+  if (E == null || R == null || !(E > 0)) return null;
+  const c = { clima: 0, rede: 0, equip: 0, strings: 0, trackers: 0, outras: 0 };
+  const avisos = [];
+  const k = (u.ipoa && u.ipoaPrev) ? u.ipoa / u.ipoaPrev : null;
+  let climaOk = k != null && k >= 0.6 && k <= 1.4;
+  if (climaOk) c.clima = E * (1 - k);
+  else if (k != null) avisos.push('Irradiação do Nexus não comparável com a prevista (' + _pfFmt(u.ipoa) + ' x ' + _pfFmt(u.ipoaPrev) + ' kWh/m²): clima não separado.');
+  let redeDesc = false;
+  if (u.dispQueda != null) c.rede = E * Math.max(0, 100 - u.dispQueda) / 100;
+  if (u.dispQueda != null && u.dispQueda < 60 && R > 0.4 * E) {
+    redeDesc = true; c.rede = 0;
+    avisos.push('Indisponibilidade de rede desconsiderada: o Nexus registra ' + _pfFmt(u.dispQueda) + '% de disponibilidade de rede (' + _pfFmt(u.hQueda, 0) + ' h), mas a usina gerou ' + _pfFmt(R) + ' MWh. Provável OS de queda aberta sem data de fim: corrigir no Fracttal.');
+  }
+  if (u.dispEquip != null) c.equip = E * Math.max(0, 100 - u.dispEquip) / 100;
+  if (u.perdaStringsKwh) c.strings = u.perdaStringsKwh / 1000;
+  if (u.perdaTrackersKwh) c.trackers = u.perdaTrackersKwh / 1000;
+  const gap = E - R;
+  const soma = c.clima + c.rede + c.equip + c.strings + c.trackers;
+  c.outras = gap - soma;
+  let incoerente = false;
+  if (c.outras < -0.1 * E) {
+    incoerente = true;
+    avisos.unshift('As perdas registradas (' + _pfFmt(soma) + ' MWh) somam mais que a diferença real (' + _pfFmt(gap) + ' MWh): há perda contada em dobro (ex.: OS sobrepostas) ou erro de dado.');
+  }
+  if (redeDesc) { const i = avisos.findIndex(a => a.startsWith('Indisponibilidade de rede desconsiderada')); if (i > 0) avisos.unshift(avisos.splice(i, 1)[0]); }
+  if (u.pr != null && (u.pr > 120 || u.pr < 0)) avisos.push('PR do Nexus impossível (' + _pfFmt(u.pr) + '%): problema no sensor de irradiação (POA) ou no cálculo.');
+  if (u.atingimento != null && u.atingimento < 40 && (u.disp == null || u.disp > 90)) avisos.push('Gerou ' + _pfFmt(u.atingimento) + '% do esperado com a usina disponível: conferir medidor/telemetria antes de concluir.');
+  if (u.agregadoNexus) avisos.push('O Nexus informa "' + u.agregadoNexus + '" como um conjunto: os números são das duas usinas juntas.');
+  if (!_pfMesAtual() && !u.perdaStringsKwh && !u.perdaTrackersKwh) avisos.push('Perdas de strings e trackers só existem para o mês corrente (a coleta começou em 12/11/2026); neste mês elas estão dentro de "outras".');
+  const pos = Object.entries(c).filter(([k2, v]) => v > 0.005);
+  const principal = pos.sort((a, b) => b[1] - a[1])[0];
+  return { E, R, gap, c, soma, incoerente, avisos, principal: principal ? principal[0] : null, climaOk, redeDesc };
+}
+function _pfFrase(u, d) {
+  if (!d) return 'Sem dados de geração e P50 no Nexus para este mês.';
+  if (d.gap <= 0) return `<b>Gerou acima do esperado</b> (${_pfFmt(d.R)} de ${_pfFmt(d.E)} MWh).`;
+  if (d.incoerente) return `<b>Dado incoerente:</b> ${esc(d.avisos[0] || '')}`;
+  const p = d.principal, v = d.c[p] || 0, pct = d.gap ? v / d.gap * 100 : 0;
+  const ex = {
+    rede: `${_pfFmt(u.hQueda, 0)} h sem rede`,
+    equip: `${_pfFmt(u.hEquip, 0)} h de equipamento parado` + ((u.inversoresAfetados || []).length ? ` (${u.inversoresAfetados.length} inversores)` : ''),
+    strings: `${(u.strings || []).length} inversores com strings fora`,
+    trackers: `${(u.trackers || []).length} trackers parados` + ((u.trackers || []).filter(t => t.cronico).length ? `, ${(u.trackers || []).filter(t => t.cronico).length} crônicos` : ''),
+    clima: `irradiação ${_pfFmt((1 - u.ipoa / u.ipoaPrev) * 100, 0)}% abaixo da prevista`,
+    outras: 'sujeira, sombreamento, clipping, degradação ou medição — não há registro que explique',
+  }[p] || '';
+  return `<b>${_PF_NOME[p]}</b> explica ${_pfFmt(v)} MWh (${_pfFmt(pct, 0)}% da perda): ${esc(ex)}.`;
+}
+function _pfStackHtml(d) {
+  if (!d || d.gap <= 0) return '<div class="pf-stack"></div>';
+  const tot = Math.max(d.gap, d.soma, 0.001);
+  return '<div class="pf-stack">' + ['clima', 'rede', 'equip', 'strings', 'trackers', 'outras'].map(k => {
+    const v = Math.max(0, d.c[k]); return v > 0 ? `<span style="width:${v / tot * 100}%;background:${_PF_COR[k]}" title="${_PF_NOME[k]}: ${_pfFmt(v)} MWh"></span>` : '';
+  }).join('') + '</div>';
+}
+function _pfCliToggle(c) {
+  try { if (selCliente.has(c) && selCliente.size === 1) selCliente.clear(); else { selCliente.clear(); selCliente.add(c); } applyFilters(); } catch (e) {}
+}
+function _pfRender() {
+  const sub = document.getElementById('pfSub'), K = document.getElementById('pfKpis'), C = document.getElementById('pfCorpo');
+  if (!C || !_pfDados) return;
+  const fi = document.getElementById('pfFiltroInfo'); if (fi && typeof _ppFiltroBarHtml === 'function') fi.innerHTML = _ppFiltroBarHtml();
+  const bar = document.getElementById('pfBar'); if (bar) bar.style.display = _pfAba === 'usinas' ? '' : 'none';
+  if (_pfDados.vazio) { K.innerHTML = ''; C.innerHTML = '<div class="pf-vazio">Ainda não chegou nenhuma leitura do Nexus. Abra o Nexus no Chrome (script "Grid Performance → Painel") e use "Enviar performance ao painel agora".</div>'; if (sub) sub.textContent = ''; return; }
+  const us = (_pfDados.usinas || []).filter(_pfPassa);
+  if (sub) sub.textContent = `${_pfMesRot(_pfDados.mes)}${_pfMesAtual() ? ' (até hoje)' : ''} · ${us.length} usinas · Nexus lido em ${_pfDados.lidoEm || '—'}`;
+  const porCli = {}; us.forEach(u => (porCli[u.cliente || 'Sem cliente'] = porCli[u.cliente || 'Sem cliente'] || []).push(u));
+  let selC = null; try { selC = selCliente.size === 1 ? [...selCliente][0] : null; } catch (e) {}
+  K.innerHTML = Object.keys(porCli).sort().map(c => {
+    const a = _pfAgrega(porCli[c]);
+    const gapCli = porCli[c].reduce((t, u) => { const d = _pfDiag(u); return t + (d && d.gap > 0 && !u.agregadoNexus ? d.gap : 0); }, 0);
+    return `<div class="pf-cli${selC === c ? ' sel' : ''}" onclick="_pfCliToggle('${esc(c).replace(/'/g, "\\'")}')" title="Clique para ver só ${esc(c)}"><h3>${esc(c)} <span>${a.n} usina${a.n !== 1 ? 's' : ''}</span></h3><div class="g">
+      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh)</div></div>
+      <div><div class="n ${gapCli > 0 ? 'pf-mal' : 'pf-ok'}">${_pfFmt(gapCli, 0)}</div><div class="l">MWh abaixo do esperado</div></div>
+      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR · meta ${_pfFmt(a.prMeta)}%</div></div>
+      <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">disponibilidade (equip. ${_pfFmt(a.dispEquip)}%)</div></div>
+    </div></div>`;
+  }).join('');
+  if (_pfAba === 'relig') { C.innerHTML = _pfRelig(us); return; }
+  const L = us.map(u => ({ u, d: _pfDiag(u) }));
+  const f = {
+    gap: x => -(x.d ? x.d.gap : -1e9), ating: x => (x.u.atingimento ?? 1e9), disp: x => (x.u.disp ?? 1e9), az: null,
+    pr: x => (x.u.pr != null && x.u.prMeta != null && x.u.pr <= 120) ? x.u.pr - x.u.prMeta : 1e9,
+  }[_pfOrdV];
+  L.sort((a, b) => f ? (f(a) - f(b)) : String(a.u.usina).localeCompare(String(b.u.usina), 'pt-BR'));
+  C.innerHTML = '<div class="pf-list">' + L.map(({ u, d }) => {
+    const id = u.usina.replace(/'/g, "\\'");
+    const chips = (d ? d.avisos.filter(t => !t.startsWith('Irradiação do Nexus') && !t.startsWith('Perdas de strings')).slice(0, 1) : []).map(t => `<span class="pf-tag s">${esc(t.length > 70 ? t.slice(0, 68) + '…' : t)}</span>`).join('');
+    return `<button type="button" class="pf-card" onclick="_pfDrawer('${esc(id)}')">
+      <div><div class="nm">${esc(u.usina)}</div><div class="cl">${esc(u.cliente || '')}${u.potMwp ? ' · ' + _pfFmt(u.potMwp, 2) + ' MWp' : ''}</div></div>
+      <div><div class="big">${d ? `<span class="${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento, 0)}%</span> do esperado · ${_pfFmt(d.R)} de ${_pfFmt(d.E)} MWh${d.gap > 0 ? ` · <b class="pf-mal">−${_pfFmt(d.gap)} MWh</b>` : ''}` : '—'}</div>${_pfStackHtml(d)}
+        <div class="cl">PR ${u.pr == null ? '—' : _pfFmt(u.pr) + '%'} (meta ${_pfFmt(u.prMeta)}%) · disponib. ${_pfFmt(u.disp)}%</div></div>
+      <div class="why">${_pfFrase(u, d)}${chips ? '<div class="pf-chips" style="margin-top:4px">' + chips + '</div>' : ''}</div>
+      <div class="go">Ver diagnóstico ›</div></button>`;
+  }).join('') + '</div>';
+}
+function _pfFechar() { const o = document.getElementById('pfOv'); if (o) o.remove(); document.removeEventListener('keydown', _pfEsc); }
+function _pfEsc(e) { if (e.key === 'Escape') _pfFechar(); }
+function _pfDrawer(nome) {
+  const u = (_pfDados.usinas || []).find(x => x.usina === nome); if (!u) return;
+  const d = _pfDiag(u);
+  _pfFechar();
+  const ov = document.createElement('div'); ov.id = 'pfOv'; ov.className = 'pf-ov';
+  ov.onclick = e => { if (e.target === ov) _pfFechar(); };
+  document.addEventListener('keydown', _pfEsc);
+  const mwh = v => _pfFmt(v) + ' MWh';
+  // cascata
+  let wf = '';
+  if (d) {
+    const max = Math.max(d.E, d.R, d.soma, 0.001);
+    const linha = (rot, v, cor, base, desc) => `<div class="pf-wr"><div>${rot}</div><div class="tr"><span style="left:${Math.max(0, base) / max * 100}%;width:${Math.abs(v) / max * 100}%;background:${cor}"></span></div><div class="v">${v < 0 ? '−' : ''}${_pfFmt(Math.abs(v))}</div>${desc ? `<div class="d">${desc}</div>` : ''}</div>`;
+    let nivel = d.E;
+    wf += linha('<b>Esperado (P50)</b>', d.E, 'var(--teal)', 0, `Geração esperada para ${_pfMesAtual() ? 'o período até hoje' : 'o mês'} pela base do Nexus (${esc(u.fontePerf || '')}).`);
+    const desc = {
+      clima: d.climaOk ? `Irradiação POA ${_pfFmt(u.ipoa)} kWh/m² contra ${_pfFmt(u.ipoaPrev)} previstos. Não é responsabilidade da O&M.` : '',
+      rede: `Disponibilidade de rede ${_pfFmt(u.dispQueda)}% · ${_pfFmt(u.hQueda, 0)} h. Normalmente excludente contratual (concessionária) — confirmar no contrato.`,
+      equip: `Disponibilidade de equipamento ${_pfFmt(u.dispEquip)}% · ${_pfFmt(u.hEquip, 0)} h · ${(u.inversoresAfetados || []).length} inversores abaixo de 100%. Responsabilidade da O&M.`,
+      strings: `${(u.strings || []).length} inversores com strings fora no período (estimativa do Nexus).`,
+      trackers: `${(u.trackers || []).length} trackers com perda; ${(u.trackers || []).filter(t => t.cronico).length} crônicos.`,
+      outras: d.c.outras >= 0 ? 'Diferença que nenhum registro explica: sujeira, sombreamento, degradação, clipping, ou medição. Comparar PR com a meta.' : 'Negativo: as perdas registradas passam da diferença real — ver qualidade do dado.',
+    };
+    ['clima', 'rede', 'equip', 'strings', 'trackers', 'outras'].forEach(k => {
+      const v = d.c[k]; if (Math.abs(v) < 0.05) return;
+      nivel -= v;
+      wf += linha('− ' + _PF_NOME[k], -v, _PF_COR[k], v > 0 ? nivel : nivel + v, desc[k]);
+    });
+    wf += linha('<b>Gerado</b>', d.R, 'var(--sla-ok,#22C55E)', 0, '');
+  }
+  // causas em texto
+  const causas = d ? Object.entries(d.c).filter(([k, v]) => v > 0.05).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div style="--c:${_PF_COR[k]}"><b>${_PF_NOME[k]}: ${mwh(v)}</b> (${_pfFmt(d.gap > 0 ? v / d.gap * 100 : 0, 0)}% da perda)</div>`).join('') : '';
+  // evidências
+  const oss = (u.oss || []).slice(0, 15).map(o => `<tr><td class="num">${esc(o.folio)}</td><td>${esc((o.desc || '').replace(/^\[[^\]]*\]\s*-?\s*/, '').slice(0, 80))}${o.excl ? `<div class="sm">${esc(o.excl)}</div>` : ''}</td><td class="num">${_pfFmt(o.h_solar)} h</td><td>${o.aberta ? '<span class="pf-mal">aberta</span>' : 'fechada'}</td></tr>`).join('');
+  const strs = (u.strings || []).slice(0, 15).map(s => `<tr><td>${esc(s.inversor)}</td><td>${esc((s.strings || []).join(', '))}</td><td class="num">${s.dias} d</td><td class="num">${_pfFmt(s.perda_kwh / 1000, 2)} MWh</td></tr>`).join('');
+  const trks = (u.trackers || []).slice(0, 15).map(t => `<tr><td>${esc(t.tracker)}${t.cronico ? ' <span class="pf-tag r">crônico</span>' : ''}</td><td>${esc(t.inversor || '')}</td><td class="num">${t.episodios} ep.</td><td class="num">${_pfFmt((t.perda_kwh || 0) / 1000, 2)} MWh</td><td class="sm">${t.sem_com_desde ? 'sem comunicação desde ' + esc(String(t.sem_com_desde).slice(0, 10)) : ''}</td></tr>`).join('');
+  const sos = (u.stringsOs || []).map(o => `<li>OS ${esc(o.os)} (${esc(o.status || '')}) · ${esc(o.inversor || '')} ${esc(o.strings || '')}</li>`).join('');
+  const dn = u.diagNexus;
+  const agora = (_pfDados.tempoReal || []).filter(t => t.usina === u.usina).map(t => `<li>${esc(t.fonte || '')}: ${t.status === 'sem_comm' ? '<span class="pf-mal">sem comunicação</span>' : esc(t.status || 'ok')} · strings faltando ${t.stringsFaltando ?? '—'}/${t.stringsEsp ?? '—'} · trackers parados ${t.trkParados ?? '—'} (${t.trkComOs ?? 0} com OS)</li>`).join('');
+  const rl = (_pfDados.religamentos || []).filter(r => r.usinaCanon === u.usina).map(r => `<li>${esc(r.escopo || r.usina)}: ${r.total} eventos · ${r.remotoResolveu} remoto · ${r.soLocal} só local</li>`).join('');
+  // o que cobrar
+  const todo = [];
+  if (d && d.c.equip > 0.5) todo.push(`Cobrar da equipe o retorno dos equipamentos parados (${_pfFmt(u.hEquip, 0)} h): conferir se as OS abaixo têm prazo e peça.`);
+  if (d && d.c.strings > 0.2) todo.push(`Abrir/cobrar OS para as strings fora em ${(u.strings || []).slice(0, 3).map(s => s.inversor).join(', ')}${(u.strings || []).length > 3 ? ' e outros' : ''}${(u.stringsOs || []).length ? '' : ' (nenhuma OS de string vinculada no Nexus)'}.`);
+  if (d && d.c.trackers > 0.2) { const sem = (u.trackers || []).filter(t => t.sem_com_desde).length; todo.push(`Cobrar correção dos trackers parados${(u.trackers || []).filter(t => t.cronico).length ? ' (há crônicos: avaliar garantia do fabricante)' : ''}${sem ? `; ${sem} sem comunicação` : ''}.`); }
+  if (d && d.c.rede > 0.5) todo.push('Registrar a indisponibilidade de rede como excludente (evidência: OS e protocolo da concessionária) e conferir se a OS de queda foi encerrada.');
+  if (d && d.c.outras > 0.15 * d.E) todo.push('Perda sem causa registrada acima de 15% do esperado: pedir inspeção (limpeza, sombreamento, medição) ou checar o sensor de irradiação.');
+  if (d && d.redeDesc) todo.push('Pedir ao COS/PCM para encerrar no Fracttal a OS de queda de rede que ficou aberta (ela zera a disponibilidade de rede no Nexus).');
+  if (d && d.incoerente) todo.push('Corrigir o dado no Nexus/Fracttal antes de levar ao cliente (ver Qualidade do dado).');
+  if (u.religSoLocal && !u.religRemotos) todo.push('Religamentos só no local: verificar por que o religamento remoto não funciona nesta usina.');
+  const html = `<div class="pf-dr" role="dialog" aria-label="Diagnóstico ${esc(u.usina)}">
+    <div class="top"><div><div class="pf-eyebrow">${esc(u.cliente || '')} · ${_pfMesRot(_pfDados.mes)}${_pfMesAtual() ? ' (até hoje)' : ''}</div><h2>${esc(u.usina)}</h2><div class="pf-sub">${_pfFrase(u, d)}</div></div><button class="pf-x" type="button" onclick="_pfFechar()">Fechar ✕</button></div>
+    <section><div class="pf-kg">
+      <div><div class="n ${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento, 0)}%</div><div class="l">gerou do esperado</div></div>
+      <div><div class="n">${d ? _pfFmt(d.gap) : '—'}</div><div class="l">MWh abaixo do esperado</div></div>
+      <div><div class="n ${_pfSuspeito(u) ? 'pf-aten' : _pfCor(u.pr, u.prMeta)}">${_pfFmt(u.pr)}%</div><div class="l">PR · meta ${_pfFmt(u.prMeta)}%</div></div>
+      <div><div class="n ${_pfCor(u.disp, 98, 3)}">${_pfFmt(u.disp)}%</div><div class="l">disponib. · equip. ${_pfFmt(u.dispEquip)}% · rede ${_pfFmt(u.dispQueda)}%</div></div>
+      <div><div class="n">${_pfFmt(u.ipoa)}</div><div class="l">irradiação kWh/m² (prev. ${_pfFmt(u.ipoaPrev)})</div></div>
+    </div></section>
+    <section><h3>Por que gerou menos (MWh)</h3>${d ? `<div class="pf-wf">${wf}</div>` : '<div class="sm">Sem P50 ou geração no Nexus.</div>'}</section>
+    ${causas ? `<section><h3>Causas, da maior para a menor</h3><div class="pf-cz">${causas}</div></section>` : ''}
+    ${todo.length ? `<section><h3>O que cobrar / fazer</h3><ul class="pf-todo">${todo.map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>` : ''}
+    ${d && d.avisos.length ? `<section><h3>Qualidade do dado</h3><ul class="pf-todo">${d.avisos.map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>` : ''}
+    <section><h3>OS de indisponibilidade no mês</h3>${oss ? `<table class="pf-mini"><thead><tr><th>OS</th><th>Descrição</th><th>Horas</th><th></th></tr></thead><tbody>${oss}</tbody></table>` : '<div class="sm">Nenhuma OS com perda no mês.</div>'}</section>
+    <section><h3>Strings fora (mês corrente)</h3>${strs ? `<table class="pf-mini"><thead><tr><th>Inversor</th><th>Strings</th><th>Dias</th><th>Perda</th></tr></thead><tbody>${strs}</tbody></table>` : '<div class="sm">Sem strings fora registradas.</div>'}${sos ? `<div class="sm" style="margin-top:8px">OS de strings no Nexus:</div><ul class="pf-todo">${sos}</ul>` : ''}</section>
+    <section><h3>Trackers (mês corrente)</h3>${trks ? `<table class="pf-mini"><thead><tr><th>Tracker</th><th>Inversor</th><th>Episódios</th><th>Perda</th><th></th></tr></thead><tbody>${trks}</tbody></table>` : '<div class="sm">Sem trackers parados registrados.</div>'}</section>
+    <section><h3>Agora</h3><ul class="pf-todo">${dn ? `<li>Diagnóstico do Nexus: ${esc(dn.causa || dn.status || '')}${dn.strings_faltando ? ` · ${dn.strings_faltando} de ${dn.str_esp} strings faltando` : ''}</li>` : ''}${agora || ''}${rl ? rl : '<li>Nenhum religamento na Ronda COS em ' + (_pfDados.religDias || 30) + ' dias.</li>'}</ul></section>
+    <div class="sm">Fonte: Nexus › Performance (Visão gerencial, Disponibilidade, Strings e trackers, Diagnóstico). Nomes no Nexus: ${esc((u.nomesNexus || []).join(', '))}.</div>
+  </div>`;
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+}
+
 </script>
 
 </body>
