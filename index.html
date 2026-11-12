@@ -2064,6 +2064,9 @@ select.rp-input{display:block;}
 .pf-det ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--text-dim)} .pf-det li{margin-bottom:3px}
 .pf-vazio{padding:24px;text-align:center;color:var(--text-faint);font-size:13px;border:1px dashed var(--border-strong);border-radius:12px}
 </style>
+<style id="lv13css">/* LAYOUT v13: grupo "Mais" (Log Histórico, Eficiência O&M) removido do menu */
+#navFerramentasToggle,#grupoFerramentasSubmenu,.sb-nav-item[data-nav="historico-log"],.sb-nav-item[data-nav="eficiencia"],.bn-item[data-nav="historico-log"],.bn-item[data-nav="eficiencia"]{display:none !important;}
+</style>
 </head>
 <body>
 
@@ -22562,6 +22565,10 @@ _lvSync = function () {
   return r;
 };
 
+
+/* LAYOUT v13 */
+const _v13Switch = switchNav;
+switchNav = function (nav) { if (nav === 'historico-log' || nav === 'eficiencia') nav = 'atividades'; return _v13Switch.call(this, nav); };
 </script>
 
 </body>
