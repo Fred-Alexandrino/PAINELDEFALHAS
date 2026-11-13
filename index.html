@@ -2166,6 +2166,59 @@ select.rp-input{display:block;}
   #ativDrawerBody .adl-acts{position:static}
 }
 </style>
+<style id="lv21css">
+/* LAYOUT v21 — cartões grandes centrais + preparação de reunião + tratativas Thopen */
+/* Ocorrências (gaveta e formulário de nova ocorrência) */
+.oc-drawer{top:3vh !important;bottom:3vh !important;left:50% !important;right:auto !important;width:min(1240px,95vw) !important;border:1px solid var(--border-strong) !important;border-radius:16px;
+  transform:translate(-50%,14px) scale(.985) !important;opacity:0;transition:transform .22s ease,opacity .22s ease,visibility 0s .22s !important;z-index:2001 !important;overflow:hidden}
+.oc-drawer.on{transform:translate(-50%,0) scale(1) !important;opacity:1;transition:transform .22s ease,opacity .22s ease !important}
+.oc-scrim{z-index:2000 !important}
+.oc-drawer>header{padding:20px 28px 14px}
+.oc-dbody{padding:18px 28px 40px}
+.oc-dbody .oc-kv{grid-template-columns:repeat(auto-fill,minmax(150px,170px) minmax(200px,1fr))}
+@media (max-width:900px){.oc-drawer{top:0 !important;bottom:0 !important;width:100vw !important;border-radius:0}.oc-dbody .oc-kv{grid-template-columns:minmax(110px,150px) 1fr}}
+/* Chamado (fabricante) e case SolarEdge */
+#chamadoDetalheOverlay>div{max-width:min(1240px,95vw) !important;max-height:94vh !important;min-height:70vh;padding:28px !important}
+#seOverlay{align-items:center !important}
+#seOverlay>.se-modal{max-width:min(1240px,95vw) !important;min-height:80vh;max-height:94vh;overflow-y:auto;padding:24px 28px !important}
+/* Performance — diagnóstico */
+.pf-ov{justify-content:center !important;align-items:center}
+.pf-dr{width:min(1240px,95vw) !important;height:94vh !important;border:1px solid var(--border-strong) !important;border-radius:16px}
+/* Elaborar OS e Nova Atividade */
+#osRapidaOverlay .ch-modal,#novaAtivOverlay .ch-modal{max-width:min(1240px,95vw) !important;width:100%;height:94vh;max-height:94vh;display:flex;flex-direction:column}
+#osRapidaOverlay .ch-body,#novaAtivOverlay .ch-body{flex:1;overflow-y:auto;padding:22px 28px}
+#osRapidaOverlay .ch-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px;align-items:start}
+#osRapidaOverlay #osRapidaInputStep{grid-column:1;grid-row:1}
+#osRapidaOverlay #osRapidaLoading,#osRapidaOverlay #osRapidaResult,#osRapidaOverlay #osRapidaError,#osRapidaOverlay #osRapidaVazio{grid-column:2;grid-row:1}
+#osRapidaOverlay #osRapidaInput{min-height:38vh}
+#osRapidaVazio{border:1px dashed var(--border-strong);border-radius:12px;padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px}
+#novaAtivFormStep{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);column-gap:28px;align-items:start}
+#novaAtivFormStep>*{grid-column:2}
+#novaAtivFormStep>:first-child{grid-column:1;grid-row:1 / span 30}
+#novaAtivDropZone{min-height:46vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+@media (max-width:900px){
+  #osRapidaOverlay .ch-modal,#novaAtivOverlay .ch-modal{height:100vh;max-height:100vh;border-radius:0}
+  #osRapidaOverlay .ch-body,#novaAtivFormStep{display:block}
+  #novaAtivDropZone{min-height:auto}
+  #chamadoDetalheOverlay>div,#seOverlay>.se-modal,.pf-dr{min-height:0;height:auto !important}
+}
+/* Preparação para reunião */
+.rp-prep{margin-top:16px}
+.rp-prep-t{margin:0;font-size:16px;font-weight:600}
+.rp-prep-add{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:14px 0}
+.rp-prep-add textarea{flex:1 1 360px;min-height:44px;resize:vertical}
+.rp-prep-it{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border)}
+.rp-prep-it.feito{opacity:.55}
+.rp-prep-it .tx{flex:1;min-width:0;font-size:13.5px;white-space:pre-wrap}
+.rp-prep-it .meta{font-size:11.5px;color:var(--text-faint);margin-top:2px}
+.rp-prep-it label{display:flex;gap:5px;align-items:center;font-size:12px;color:var(--text-dim);white-space:nowrap;cursor:pointer}
+.rp-prep-it button{background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:7px;padding:3px 8px;font-size:12px;cursor:pointer}
+/* Tratativas na proposta Thopen */
+.vt-trat{margin:6px 0;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:rgba(45,212,191,.05)}
+.vt-trat b{font-size:12px;color:var(--teal)}
+.vt-trat div{font-size:12.5px;color:var(--text-dim);margin-top:3px}
+.vt-trat.vazia{background:rgba(245,166,35,.06)} .vt-trat.vazia b{color:var(--amber)}
+</style>
 </head>
 <body>
 
@@ -2964,6 +3017,18 @@ select.rp-input{display:block;}
               </button>
               <div id="relStatus" class="rp-status" role="status" aria-live="polite"></div>
             </aside>
+          </div>
+          <div class="rp-card rp-prep" id="rpPrep">
+            <div class="rp-prep-h">
+              <div><h3 class="rp-prep-t">Preparação para a reunião</h3>
+                <p class="rp-sub" style="margin:2px 0 0">Anote o que precisa ser debatido com <b id="rpPrepCli">o cliente</b>. Os pontos marcados entram na apresentação: na pauta e num slide "PONTOS PARA DEBATE". Depois da reunião, marque como discutido.</p></div>
+            </div>
+            <div class="rp-prep-add">
+              <select id="rpPrepUsina" class="rel-input rp-input" style="max-width:220px"><option value="">Geral (sem usina)</option></select>
+              <textarea id="rpPrepTexto" class="rel-input rp-input" rows="2" placeholder="Ex.: Colíder I — OS de queda de rede aberta sem data fim; alinhar religamento remoto…"></textarea>
+              <button type="button" class="rel-btn-primario" onclick="_rpPrepAdd()">Adicionar ponto</button>
+            </div>
+            <div id="rpPrepLista"></div>
           </div>
         </div>
       </section>
@@ -22144,6 +22209,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       <div class="vt-pedido">${e(p.pedido)}</div>
       ${p.trecho ? `<div class="vt-trecho">“${e(p.trecho)}”</div>` : ''}
       ${oc ? `<div class="vt-just">Ocorrência sugerida: <b>${e(oc.id)}</b> · ${e(oc.status)} · ${e(oc.equip || '')} ${e(oc.nequip || '')} — ${e((oc.titulo || oc.causa || '').slice(0, 120))} <button type="button" class="oc-link" data-vt="ver" data-oc="${e(oc.id)}">abrir</button></div>` : ''}
+      ${Array.isArray(p.tratativas) && p.tratativas.length ? `<div class="vt-trat"><b>Tratativa encontrada</b>${p.tratativas.map(t => `<div>${e(t.grupo || '')}${t.quando ? ' · ' + e(t.quando) : ''}${t.quem ? ' · ' + e(t.quem) : ''}: ${e(t.texto || '')}</div>`).join('')}</div>` : (/sem tratativa/i.test(p.justificativa || '') ? '<div class="vt-trat vazia"><b>Sem tratativa encontrada nos grupos das equipes</b></div>' : '')}
       ${p.justificativa ? `<div class="vt-just">${e(p.justificativa)}</div>` : ''}
       ${modo ? '' : `<div class="vt-acts">
         <button type="button" class="oc-btn sm${p.tipo === 'agregar' ? ' pri' : ''}" data-vt="abrir-agregar">Agregar a ocorrência existente</button>
@@ -23209,6 +23275,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v21: cartões grandes, preparação de reunião, tratativas Thopen */
 /* LAYOUT v20: cartão grande da atividade */
 /* LAYOUT v19: preventivas mostram 'Múltiplos ativos/Usina completa' */
 /* LAYOUT v18: relatório mostra OS de outro cliente */
@@ -23355,6 +23422,76 @@ try {
   if (_adlB) new MutationObserver(() => _adlOrganizar()).observe(_adlB, { childList: true });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ativDrawer')?.classList.contains('open') && !document.getElementById('auOv') && !document.getElementById('pfOv')) _fecharAtivDrawer(); });
 } catch (e) {}
+
+/* ══ LAYOUT v21 (13/11/2026): cartões grandes, preparação de reunião ══ */
+(function () {
+  try {
+    // Elaborar OS: coluna da direita mostra um aviso enquanto não há resultado
+    const body = document.querySelector('#osRapidaOverlay .ch-body');
+    if (body && !document.getElementById('osRapidaVazio')) {
+      const v = document.createElement('div'); v.id = 'osRapidaVazio';
+      v.innerHTML = 'A OS elaborada aparece aqui.<br>Descreva o problema à esquerda (pode colar prints) e clique em <b>Gerar</b>.';
+      body.appendChild(v);
+      const sync = () => {
+        const vis = ['osRapidaLoading', 'osRapidaResult', 'osRapidaError'].some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none' && el.style.display !== ''; });
+        v.style.display = vis ? 'none' : '';
+      };
+      ['osRapidaLoading', 'osRapidaResult', 'osRapidaError'].forEach(id => { const el = document.getElementById(id); if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['style'] }); });
+      sync();
+    }
+  } catch (e) {}
+})();
+const _RP_API = 'https://api.168.138.232.237.sslip.io';
+let _rpPrepItens = [], _rpPrepCliAtual = '';
+function _rpPrepCliente() { const s = document.getElementById('relCliente'); return s && s.value ? s.value : ''; }
+async function _rpPrepCarregar() {
+  const cli = _rpPrepCliente(); _rpPrepCliAtual = cli;
+  const nome = document.getElementById('rpPrepCli'); if (nome) nome.textContent = cli || 'o cliente';
+  const L = document.getElementById('rpPrepLista'); if (!L) return;
+  if (!cli) { L.innerHTML = '<div class="rp-sub">Escolha o cliente no passo 1.</div>'; return; }
+  try {
+    const usinas = [...new Set((typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).filter(a => (a.cliente || '') === cli).map(a => a.usina).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const sel = document.getElementById('rpPrepUsina'); if (sel) sel.innerHTML = '<option value="">Geral (sem usina)</option>' + usinas.map(u => `<option>${esc(u)}</option>`).join('');
+  } catch (e) {}
+  try {
+    const j = await (await fetch(_RP_API + '/reuniao-preparacao?cliente=' + encodeURIComponent(cli))).json();
+    if (cli !== _rpPrepCliAtual) return;
+    _rpPrepItens = j.itens || [];
+  } catch (e) { L.innerHTML = '<div class="rp-sub" style="color:var(--red)">Não consegui carregar os pontos.</div>'; return; }
+  _rpPrepRender();
+}
+function _rpPrepRender() {
+  const L = document.getElementById('rpPrepLista'); if (!L) return;
+  const ab = _rpPrepItens.filter(x => !x.discutido), fe = _rpPrepItens.filter(x => x.discutido);
+  const linha = x => `<div class="rp-prep-it${x.discutido ? ' feito' : ''}">
+      <div class="tx">${x.usina ? `<b>${esc(x.usina)}:</b> ` : ''}${esc(x.texto)}<div class="meta">Anotado em ${esc(x.criadoEm || '')}${x.discutidoEm ? ' · discutido em ' + esc(x.discutidoEm) : ''}</div></div>
+      ${x.discutido ? '' : `<label><input type="checkbox" ${x.incluir !== false ? 'checked' : ''} onchange="_rpPrepUpd('${x.id}',{incluir:this.checked})"> Na apresentação</label>`}
+      <label><input type="checkbox" ${x.discutido ? 'checked' : ''} onchange="_rpPrepUpd('${x.id}',{discutido:this.checked})"> Discutido</label>
+      <button type="button" onclick="_rpPrepDel('${x.id}')">Excluir</button></div>`;
+  const n = ab.filter(x => x.incluir !== false).length;
+  L.innerHTML = (ab.length ? `<div class="rp-sub" style="margin-bottom:4px">${n} ponto${n !== 1 ? 's' : ''} vai${n !== 1 ? 'ão' : ''} para a apresentação.</div>` + ab.map(linha).join('') : '<div class="rp-sub">Nenhum ponto anotado para a próxima reunião.</div>')
+    + (fe.length ? `<details style="margin-top:10px"><summary class="rp-sub" style="cursor:pointer">Já discutidos (${fe.length})</summary>${fe.map(linha).join('')}</details>` : '');
+}
+async function _rpPrepPost(corpo) {
+  const r = await fetch(_RP_API + '/reuniao-preparacao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ cliente: _rpPrepCliente() }, corpo)) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro');
+  _rpPrepItens = j.itens || []; _rpPrepRender();
+}
+async function _rpPrepAdd() {
+  const t = document.getElementById('rpPrepTexto'), u = document.getElementById('rpPrepUsina');
+  if (!_rpPrepCliente()) { showToast('Escolha o cliente primeiro.', false); return; }
+  if (!t || !t.value.trim()) { showToast('Escreva o ponto a debater.', false); return; }
+  try { await _rpPrepPost({ acao: 'add', item: { texto: t.value.trim(), usina: u ? u.value : '' } }); t.value = ''; showToast('Ponto anotado.', true); }
+  catch (e) { showToast('Não consegui salvar: ' + e.message, false); }
+}
+async function _rpPrepUpd(id, campos) { try { await _rpPrepPost({ acao: 'update', item: Object.assign({ id }, campos) }); } catch (e) { showToast('Não consegui salvar: ' + e.message, false); } }
+async function _rpPrepDel(id) { try { await _rpPrepPost({ acao: 'delete', item: { id } }); } catch (e) { showToast('Não consegui excluir: ' + e.message, false); } }
+try {
+  document.getElementById('relCliente')?.addEventListener('change', _rpPrepCarregar);
+  const _rpSw = switchNav;
+  switchNav = function (nav) { const r = _rpSw.apply(this, arguments); if (nav === 'relatorios') setTimeout(_rpPrepCarregar, 300); return r; };
+} catch (e) {}
+
 </script>
 
 </body>
