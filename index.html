@@ -2219,6 +2219,9 @@ select.rp-input{display:block;}
 .vt-trat div{font-size:12.5px;color:var(--text-dim);margin-top:3px}
 .vt-trat.vazia{background:rgba(245,166,35,.06)} .vt-trat.vazia b{color:var(--amber)}
 </style>
+<style id="lv22css">/* LAYOUT v22 — avisos sempre acima dos cards */
+.toast{z-index:12000 !important}
+</style>
 </head>
 <body>
 
@@ -23275,6 +23278,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v22: camadas (última janela na frente) */
 /* LAYOUT v21: cartões grandes, preparação de reunião, tratativas Thopen */
 /* LAYOUT v20: cartão grande da atividade */
 /* LAYOUT v19: preventivas mostram 'Múltiplos ativos/Usina completa' */
@@ -23491,6 +23495,47 @@ try {
   const _rpSw = switchNav;
   switchNav = function (nav) { const r = _rpSw.apply(this, arguments); if (nav === 'relatorios') setTimeout(_rpPrepCarregar, 300); return r; };
 } catch (e) {}
+
+
+/* ══ LAYOUT v22 (13/11/2026): camadas — a janela aberta por último fica na frente ══ */
+(function () {
+  const FUNDOS = '#ativDrawerBackdrop,.oc-scrim';
+  const SEL = '#ativDrawer,#ativDrawerBackdrop,.oc-drawer,.oc-scrim,.oc-modal,.ch-overlay,.pf-ov,.au-ov,.se-ov,.rondas-overlay,[id$="Overlay"],[id$="overlay"],[class*="-overlay"],[class*="modal-ov"]';
+  const IGNORA = el => el.id === 'loginScreen' || el.classList.contains('toast') || el.classList.contains('central-notif-backdrop') || el.classList.contains('central-notif-modal') || el.id === 'ajudaPanel' || el.id === 'ajudaBubble';
+  let topo = 2100, abertos = new Set(), agendado = false;
+  function aberto(el) {
+    if (!el.isConnected) return false;
+    const cs = getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= innerWidth * 0.4 && r.height >= innerHeight * 0.4;
+  }
+  function candidatos() {
+    const s = new Set(document.querySelectorAll(SEL));
+    for (const el of document.body.children) if (el.nodeType === 1 && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') s.add(el);
+    return [...s].filter(el => !IGNORA(el));
+  }
+  function ajustar() {
+    agendado = false;
+    const agora = new Set();
+    const novos = [];
+    for (const el of candidatos()) {
+      if (!aberto(el)) continue;
+      agora.add(el);
+      if (!abertos.has(el)) novos.push(el);
+    }
+    // fundos (escurecimento) primeiro, depois o card; o resto na ordem do documento
+    novos.sort((a, b) => (b.matches(FUNDOS) ? 1 : 0) - (a.matches(FUNDOS) ? 1 : 0));
+    for (const el of novos) el.style.setProperty('z-index', String(++topo), 'important');
+    abertos = agora;
+  }
+  function agendar() { if (!agendado) { agendado = true; requestAnimationFrame(ajustar); } }
+  try {
+    new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    document.addEventListener('click', () => setTimeout(agendar, 30), true);
+    agendar();
+  } catch (e) {}
+})();
 
 </script>
 
