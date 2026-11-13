@@ -19203,10 +19203,15 @@ _ppReaplicarSidebar = function () {
 };
 
 /* ══ INICIALIZAÇÃO FINAL ══ */
-if (window._pendingSession) {
-  initDashboard(window._pendingSession);
-  window._pendingSession = null;
-}
+/* LAYOUT v24 (13/11/2026): roda depois que o bloco de script termina. Antes rodava no meio
+   do bloco, antes de "const relPeriodo" ser declarado; ao abrir já em Reuniões e relatórios
+   dava erro e o resto do script não carregava (o painel não abria mais ao clicar). */
+queueMicrotask(() => {
+  if (window._pendingSession) {
+    initDashboard(window._pendingSession);
+    window._pendingSession = null;
+  }
+});
 
 
 
@@ -23279,6 +23284,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v24: inicialização após o script */
 /* LAYOUT v23: comunicar atividade pelo grupo da usina */
 /* LAYOUT v22: camadas (última janela na frente) */
 /* LAYOUT v21: cartões grandes, preparação de reunião, tratativas Thopen */
