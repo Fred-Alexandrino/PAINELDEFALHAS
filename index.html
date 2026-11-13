@@ -2143,6 +2143,29 @@ select.rp-input{display:block;}
 .au-sec{font-size:13px;font-weight:700;color:var(--teal);margin:14px 0 6px}
 .au-li{font-size:12.5px;color:var(--text-dim);line-height:1.5}
 </style>
+<style id="lv20css">
+/* LAYOUT v20 — atividade abre num cartão grande central (como o Nexus), não em gaveta lateral */
+#ativDrawerBackdrop{z-index:1990 !important}
+#ativDrawer{z-index:2000 !important;top:3vh;bottom:3vh;left:50%;right:auto;width:min(1240px,95vw);border:1px solid var(--border-strong);border-radius:16px;
+  transform:translate(-50%,14px) scale(.985);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .22s ease;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+#ativDrawer.open{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+#ativDrawer .drawer-head{position:absolute;top:10px;right:12px;padding:0;border:none;z-index:3}
+#ativDrawerBody{padding:24px 28px 28px;overflow-y:auto}
+#ativDrawerBody .adl-head{padding-right:56px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+#ativDrawerBody .adl-head h2{font-size:22px}
+#ativDrawerBody .adl-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+#ativDrawerBody .adl-main{min-width:0;display:flex;flex-direction:column;gap:12px}
+#ativDrawerBody .adl-main > *{margin-top:0 !important}
+#ativDrawerBody .adl-acts{display:flex;flex-direction:column;gap:8px;position:sticky;top:0;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel-alt,rgba(255,255,255,.02))}
+#ativDrawerBody .adl-acts .nova-oc-submit{margin:0 !important;width:100%}
+#ativDrawerBody .adl-acts-t{font-family:'Geist Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:2px}
+@media (max-width:900px){
+  #ativDrawer{top:0;bottom:0;width:100vw;border-radius:0;border:none}
+  #ativDrawerBody{padding:18px 16px 24px}
+  #ativDrawerBody .adl-grid{grid-template-columns:1fr}
+  #ativDrawerBody .adl-acts{position:static}
+}
+</style>
 </head>
 <body>
 
@@ -22856,6 +22879,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v20: cartão grande da atividade */
 /* LAYOUT v19: preventivas mostram 'Múltiplos ativos/Usina completa' */
 /* LAYOUT v18: relatório mostra OS de outro cliente */
 /* ══ LAYOUT v16 (12/11/2026): Auditoria Fracttal x Central O&M (campo a campo) ══ */
@@ -22969,6 +22993,37 @@ try {
   new MutationObserver(_fbAtualizar).observe(document.body, { attributes: true, attributeFilter: ['data-nav'] });
   const _fbEl = document.getElementById('filterBar');
   if (_fbEl) new MutationObserver(() => { const nav = document.body.dataset.nav; if (_fbEl.hidden && _FB_TELAS.includes(nav)) _fbAtualizar(); }).observe(_fbEl, { attributes: true, attributeFilter: ['hidden'] });
+} catch (e) {}
+
+/* ══ LAYOUT v20 (13/11/2026): cartão grande da atividade — cabeçalho, coluna de dados e coluna de ações ══ */
+function _adlOrganizar() {
+  const b = document.getElementById('ativDrawerBody');
+  if (!b || b.querySelector(':scope > .adl-grid') || !b.children.length) return;
+  const filhos = [...b.children];
+  const temCampo = el => !!el.querySelector && !!el.querySelector('input,select,textarea') || /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
+  let iHead = filhos.findIndex(el => temCampo(el) && el.id !== 'ativDrawerDesligToggle');
+  if (iHead < 0) iHead = Math.min(4, filhos.length);
+  const head = document.createElement('div'); head.className = 'adl-head';
+  const grid = document.createElement('div'); grid.className = 'adl-grid';
+  const main = document.createElement('div'); main.className = 'adl-main';
+  const acts = document.createElement('div'); acts.className = 'adl-acts';
+  acts.innerHTML = '<div class="adl-acts-t">Ações</div>';
+  filhos.forEach((el, i) => {
+    if (i < iHead) head.appendChild(el);
+    else if (el.matches && el.matches('.nova-oc-submit')) acts.appendChild(el);
+    else main.appendChild(el);
+  });
+  b.appendChild(head);
+  grid.appendChild(main);
+  if (acts.children.length > 1) grid.appendChild(acts); else grid.style.gridTemplateColumns = '1fr';
+  b.appendChild(grid);
+}
+try {
+  // fora do .main-content (que cria contexto de empilhamento), senão a barra lateral e os filtros ficam por cima
+  ['ativDrawerBackdrop', 'ativDrawer'].forEach(id => { const el = document.getElementById(id); if (el && el.parentElement !== document.body) document.body.appendChild(el); });
+  const _adlB = document.getElementById('ativDrawerBody');
+  if (_adlB) new MutationObserver(() => _adlOrganizar()).observe(_adlB, { childList: true });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ativDrawer')?.classList.contains('open') && !document.getElementById('auOv') && !document.getElementById('pfOv')) _fecharAtivDrawer(); });
 } catch (e) {}
 </script>
 
