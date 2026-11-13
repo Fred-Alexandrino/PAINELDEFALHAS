@@ -21932,6 +21932,336 @@ function _pontoCopiarComunicado(id, btn) {
 window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.OC) OC.novo(); };
 </script>
 
+<style>
+/* ── Verificar Thopen (Claude) — propostas aguardando aprovação (12/11/2026) ── */
+.vt-box{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--teal);border-radius:12px;padding:12px 14px;margin:0 0 14px;box-shadow:var(--shadow);}
+.vt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.vt-head h3{margin:0;font-size:15px;font-weight:700;}
+.vt-head .grow{flex:1;}
+.vt-st{font-size:12.5px;color:var(--text-dim);}
+.vt-st.err{color:var(--red);}
+.vt-resumo{font-size:13px;color:var(--text-dim);margin:8px 0 0;white-space:pre-wrap;line-height:1.5;}
+.vt-nv{font-size:12px;color:var(--text-faint);margin:6px 0 0;padding-left:18px;}
+.vt-list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+.vt-p{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel-alt);}
+.vt-p-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;}
+.vt-p-h b{font-size:14px;}
+.vt-tag{font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;border:1px solid var(--border-strong);color:var(--text-dim);}
+.vt-tag.alta{color:var(--teal);border-color:var(--teal);}
+.vt-tag.baixa{color:var(--amber);border-color:var(--amber);}
+.vt-pedido{font-size:14px;margin:6px 0 4px;line-height:1.45;}
+.vt-trecho{font-size:12.5px;color:var(--text-dim);border-left:3px solid var(--border-strong);padding:2px 0 2px 8px;margin:4px 0;white-space:pre-wrap;}
+.vt-just{font-size:12.5px;color:var(--text-faint);margin:4px 0;}
+.vt-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.vt-ed{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;}
+.vt-ed .oc-form{margin-top:4px;}
+.vt-ed .vt-sug{font-size:12px;color:var(--text-faint);margin:0 0 6px;}
+.vt-ed .vt-acts{margin-top:10px;}
+.vt-prog{margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel-alt);}
+.vt-prog-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;}
+.vt-steps{list-style:none;margin:8px 0 4px;padding:0;display:flex;flex-direction:column;gap:5px;font-size:13px;}
+.vt-steps li{display:flex;align-items:baseline;gap:8px;color:var(--text-faint);}
+.vt-steps li .i{display:inline-flex;justify-content:center;width:18px;font-weight:700;}
+.vt-steps li.ok{color:var(--text-dim);} .vt-steps li.ok .i{color:var(--teal);}
+.vt-steps li.run{color:var(--text);font-weight:600;} .vt-steps li.run .i{color:var(--amber);animation:vtgira 1.2s linear infinite;}
+.vt-steps li.err{color:var(--red);}
+@keyframes vtgira{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.vt-steps li.run .i{animation:none;}}
+.vt-ok{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--panel-alt);color:var(--text-dim);}
+.vt-ok .i{color:var(--teal);font-weight:700;}
+.vt-erro{color:var(--red);font-size:12.5px;margin-top:6px;}
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════
+   VERIFICAR THOPEN (Claude) — botão no Painel de Ocorrências.
+   O servidor manda os dados do grupo "Thopen & GridCo. | Usinas FRED ALEXANDRINO",
+   das equipes, ocorrências e OS para o Claude (GitHub Action) e recebe PROPOSTAS.
+   Nada é gravado sem aprovação: agregar ao histórico de uma ocorrência existente,
+   criar nova (conferindo os campos) ou descartar. Só na visão do Fred.
+══════════════════════════════════════════════════════════ */
+(function () {
+  const API = 'https://api.168.138.232.237.sslip.io';
+  const sessao = () => (typeof _currentSession !== 'undefined' && _currentSession) || {};
+  const ehFred = () => sessao().role === 'manager' && !(typeof _supEscopoAtivo !== 'undefined' && _supEscopoAtivo);
+  const e = s => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s));
+  const toast = (m, ok = true) => { try { showToast(m, ok); } catch (x) {} };
+  const hoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const CRITS = ['', 'Baixa', 'Média', 'Alta', 'Muito Alta'];
+  let iniT = 0, tick = null;
+  let PROPS = [], EST = null, timer = null, erroPid = {}, ocupado = false, montado = false;
+  /* cada proposta tem seu próprio formulário aberto e rascunho; decididas viram uma linha ✓ */
+  const ABERTOS = {}, RASC = {}, OCUP = {}; let FEITOS = [];
+  const rv = (id, def) => (Object.prototype.hasOwnProperty.call(RASC, id) ? RASC[id] : def);
+
+  async function api(path, corpo) {
+    const opt = corpo === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) };
+    const r = await fetch(API + path, opt);
+    let j = null; try { j = await r.json(); } catch (x) {}
+    if (!r.ok || !j || j.ok === false) throw new Error((j && j.error) || ('Falha na requisição (' + r.status + ')'));
+    return j;
+  }
+  const itensOc = () => (window.OC && typeof OC.itens === 'function' ? OC.itens() : []) || [];
+
+  function montar() {
+    if (montado) return;
+    const bar = document.querySelector('#ocRoot .oc-bar');
+    const vOc = document.getElementById('ocVOc');
+    if (!bar || !vOc) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'oc-btn'; btn.id = 'vtBtn';
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>Verificar Thopen';
+    btn.addEventListener('click', iniciar);
+    const novo = document.getElementById('ocNovo');
+    bar.insertBefore(btn, novo || null);
+    const box = document.createElement('section');
+    box.className = 'vt-box'; box.id = 'vtBox'; box.hidden = true;
+    box.setAttribute('aria-label', 'Pedidos da Thopen aguardando aprovação');
+    vOc.parentNode.insertBefore(box, vOc);
+    box.addEventListener('click', clique);
+    const guarda = ev => { const t = ev.target; if (t && t.id && t.id.startsWith('vt')) RASC[t.id] = t.value; };
+    box.addEventListener('input', guarda); box.addEventListener('change', guarda);
+    montado = true;
+  }
+
+  async function iniciar() {
+    if (ocupado) return;
+    ocupado = true; iniT = Date.now(); desenhar(); relogio();
+    try {
+      const r = await api('/verificar-thopen/iniciar', { horas: 48 });
+      EST = r.estado; EST._recebido = Date.now();
+      toast(r.jaRodando ? 'Já há uma verificação em andamento.' : 'Verificação enviada ao Claude. Leva alguns minutos.');
+      acompanhar();
+    } catch (x) { toast('Não consegui iniciar: ' + x.message, false); }
+    ocupado = false; desenhar();
+  }
+
+  function acompanhar() {
+    clearTimeout(timer);
+    if (!EST || EST.status !== 'rodando') return;
+    timer = setTimeout(async () => {
+      try {
+        const r = await api('/verificar-thopen/status');
+        const antes = EST && EST.status;
+        EST = r.estado; EST._recebido = Date.now();
+        if (antes === 'rodando' && EST.status === 'concluido') {
+          await carregarProps();
+          toast(EST.importadas ? `Claude terminou: ${EST.importadas} proposta(s) para aprovar.` : 'Claude terminou: nenhum pedido novo.');
+        } else if (antes === 'rodando' && EST.status === 'erro') toast('Verificação falhou: ' + (EST.erro || ''), false);
+      } catch (x) {}
+      desenhar(); acompanhar();
+    }, 10000);
+  }
+
+  /* relógio: atualiza só o bloco de progresso (não mexe nos formulários abertos) */
+  function relogio() {
+    clearInterval(tick);
+    tick = setInterval(() => {
+      const el = document.getElementById('vtProg');
+      if (!(ocupado || (EST && EST.status === 'rodando'))) { clearInterval(tick); tick = null; return; }
+      if (el) el.innerHTML = htmlProg();
+    }, 1000);
+  }
+  const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+  function htmlProg() {
+    const rodando = EST && EST.status === 'rodando';
+    if (!ocupado && !rodando) return '';
+    const dec = ocupado ? (Date.now() - iniT) / 1000 : (EST.decorrido_s || 0) + (Date.now() - (EST._recebido || Date.now())) / 1000;
+    const a = (EST && EST.acao) || null;
+    const passos = [];
+    const P = (nome, st, extra) => passos.push({ nome, st, extra });
+    P('Reunindo mensagens (Thopen, equipes), ocorrências e OS', ocupado ? 'run' : 'ok', ocupado ? 'leva até ~1 min' : '');
+    const fila = !a ? 'run' : (a.status === 'queued' ? 'run' : 'ok');
+    if (!ocupado) {
+      P('Na fila do GitHub', fila, !a ? 'aguardando o GitHub iniciar' : '');
+      const nomes = ['Preparando o Claude', 'Claude analisando os pedidos', 'Publicando o resultado'];
+      nomes.forEach(n => {
+        const p = a && (a.passos || []).find(x => x.nome === n);
+        let st = 'wait';
+        if (p) st = p.status === 'completed' ? (p.conclusao === 'success' ? 'ok' : 'err') : (p.status === 'in_progress' ? 'run' : 'wait');
+        P(n, st, n === 'Claude analisando os pedidos' && st === 'run' ? 'costuma levar 2 a 5 min' : '');
+      });
+      P('Importando as propostas para o painel', a && a.status === 'completed' ? 'run' : 'wait', '');
+    } else ['Na fila do GitHub', 'Preparando o Claude', 'Claude analisando os pedidos', 'Publicando o resultado', 'Importando as propostas para o painel'].forEach(n => P(n, 'wait', ''));
+    const ic = { ok: '✓', run: '◌', wait: '·', err: '✕' };
+    const c = (EST && EST.contagem) || {};
+    const dados = !ocupado && c.mensagens_thopen !== undefined
+      ? `<div class="vt-st">Dados enviados: ${c.mensagens_thopen || 0} mensagens no período${c.mensagens_contexto ? ` + ${c.mensagens_contexto} de contexto` : ''} · ${c.grupos_equipe || 0} grupos de equipe · ${c.ocorrencias || 0} ocorrências · ${c.os_abertas || 0} OS abertas</div>` : '';
+    return `<div class="vt-prog-h"><b>Verificação em andamento</b><span class="vt-st">${mmss(dec)} · pode continuar usando o painel</span>${a && a.url ? `<a class="oc-link" href="${e(a.url)}" target="_blank" rel="noopener">ver no GitHub ↗</a>` : ''}</div>
+      <ol class="vt-steps">${passos.map(p => `<li class="${p.st}"><span class="i">${ic[p.st]}</span>${e(p.nome)}${p.extra ? ` <span class="vt-st">— ${e(p.extra)}</span>` : ''}</li>`).join('')}</ol>${dados}`;
+  }
+
+  async function carregarProps() {
+    try { const r = await api('/ocorrencias/propostas'); PROPS = r.itens || []; } catch (x) { /* mantém */ }
+  }
+
+  function txtEstado() {
+    if (ocupado || (EST && EST.status === 'rodando')) return { t: '', err: false, rodando: true };
+    if (!EST || !EST.status) return { t: '', err: false };
+    if (EST.status === 'erro') return { t: 'Última verificação falhou: ' + (EST.erro || ''), err: true };
+    const c = EST.contagem || {};
+    const quando = EST.fim ? new Date(EST.fim * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    return { t: `Última verificação ${quando}: ${c.mensagens_thopen || 0} mensagens do grupo Thopen, ${EST.importadas || 0} proposta(s) nova(s).`, err: false };
+  }
+
+  function desenhar() {
+    montar();
+    const btn = document.getElementById('vtBtn'), box = document.getElementById('vtBox');
+    if (!btn || !box) return;
+    const fred = ehFred();
+    btn.hidden = !fred; btn.disabled = ocupado || (EST && EST.status === 'rodando');
+    if (!fred) { box.hidden = true; return; }
+    const st = txtEstado();
+    const mostrar = PROPS.length || FEITOS.length || st.t || st.rodando;
+    box.hidden = !mostrar;
+    if (!mostrar) return;
+    const nv = (EST && EST.status === 'concluido' && (EST.nao_verificado || []).length)
+      ? `<details><summary class="vt-st">Não verificado pelo Claude (${EST.nao_verificado.length})</summary><ul class="vt-nv">${EST.nao_verificado.map(x => `<li>${e(x)}</li>`).join('')}</ul></details>` : '';
+    box.innerHTML = `
+      <div class="vt-head"><h3>Pedidos da Thopen · aguardando aprovação${PROPS.length ? ` (${PROPS.length})` : ''}</h3><span class="grow"></span>
+        <span class="vt-st${st.err ? ' err' : ''}">${e(st.t)}</span></div>
+      <div id="vtProg" class="vt-prog"${st.rodando ? '' : ' hidden'}>${htmlProg()}</div>
+      ${EST && EST.status === 'concluido' && EST.resumo ? `<p class="vt-resumo">${e(EST.resumo)}</p>` : ''}${nv}
+      <div class="vt-list">${FEITOS.map(f => `<div class="vt-ok"><span class="i">✓</span>${f.usina ? `<b>${e(f.usina)}</b> · ` : ''}${e(f.msg)}${f.oc ? ` <button type="button" class="oc-link" data-vt="ver" data-oc="${e(f.oc)}">abrir</button>` : ''}</div>`).join('')}${PROPS.map(cartao).join('') || (FEITOS.length ? '' : '<p class="oc-vazio">Nenhuma proposta pendente.</p>')}</div>`;
+  }
+
+  function rotuloTipo(p) {
+    if (p.tipo === 'agregar') return `Agregar à ${e(p.ocorrencia)}`;
+    if (p.tipo === 'nova') return 'Nova ocorrência';
+    return 'Só informação';
+  }
+
+  function cartao(p) {
+    const oc = itensOc().find(x => x.id === p.ocorrencia);
+    const conf = (p.confianca || '').toLowerCase();
+    const modo = ABERTOS[p.pid];
+    let ed = '';
+    if (modo === 'agregar') ed = formAgregar(p);
+    if (modo === 'nova') ed = formNova(p);
+    return `<article class="vt-p" data-pid="${e(p.pid)}">
+      <div class="vt-p-h">${p.usina ? `<b>${e(p.usina)}</b>` : '<span class="vt-tag baixa">Usina a confirmar</span>'}<span class="vt-tag">${rotuloTipo(p)}</span>${conf ? `<span class="vt-tag ${conf === 'alta' ? 'alta' : conf === 'baixa' ? 'baixa' : ''}">confiança ${e(conf)}</span>` : ''}
+        <span class="vt-st">${e(p.quem || '')}${p.quando ? ' · ' + e(p.quando) : ''}</span></div>
+      <div class="vt-pedido">${e(p.pedido)}</div>
+      ${p.trecho ? `<div class="vt-trecho">“${e(p.trecho)}”</div>` : ''}
+      ${oc ? `<div class="vt-just">Ocorrência sugerida: <b>${e(oc.id)}</b> · ${e(oc.status)} · ${e(oc.equip || '')} ${e(oc.nequip || '')} — ${e((oc.titulo || oc.causa || '').slice(0, 120))} <button type="button" class="oc-link" data-vt="ver" data-oc="${e(oc.id)}">abrir</button></div>` : ''}
+      ${p.justificativa ? `<div class="vt-just">${e(p.justificativa)}</div>` : ''}
+      ${modo ? '' : `<div class="vt-acts">
+        <button type="button" class="oc-btn sm${p.tipo === 'agregar' ? ' pri' : ''}" data-vt="abrir-agregar">Agregar a ocorrência existente</button>
+        <button type="button" class="oc-btn sm${p.tipo === 'nova' ? ' pri' : ''}" data-vt="abrir-nova">Criar nova ocorrência</button>
+        <button type="button" class="oc-btn sm" data-vt="descartar">Descartar</button></div>`}
+      ${ed}
+      ${erroPid[p.pid] ? `<div class="vt-erro">${e(erroPid[p.pid])}</div>` : ''}
+    </article>`;
+  }
+
+  function opcoesOcorrencias(p) {
+    const base = norm(p.usina);
+    const lista = itensOc().slice().sort((a, b) => {
+      const ma = norm(a.usina).includes(base.split(' ')[0]) ? 0 : 1, mb = norm(b.usina).includes(base.split(' ')[0]) ? 0 : 1;
+      return ma - mb || (a.status === 'Finalizado') - (b.status === 'Finalizado') || String(b.id).localeCompare(String(a.id));
+    });
+    const sel = rv('vtOc-' + p.pid, p.ocorrencia || '');
+    return '<option value="">— escolha a ocorrência —</option>' + lista.map(x =>
+      `<option value="${e(x.id)}"${x.id === sel ? ' selected' : ''}>${e(x.id)} · ${e(x.usina)} · ${e(x.equip || '')} ${e(x.nequip || '')} · ${e(x.status)} — ${e((x.titulo || x.causa || '').slice(0, 70))}</option>`).join('');
+  }
+  function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+
+  function formAgregar(p) {
+    const texto = p.texto || `${p.quando ? p.quando.split(' ')[0] + ' — ' : ''}Thopen (${p.quem || 'cliente'}): ${p.pedido}`;
+    return `<div class="vt-ed"><p class="vt-sug">Só o histórico da ocorrência escolhida será atualizado.</p>
+      <div class="oc-form">
+        <div class="full"><label for="vtOc-${e(p.pid)}">Ocorrência</label><select id="vtOc-${e(p.pid)}">${opcoesOcorrencias(p)}</select></div>
+        <div><label for="vtDt-${e(p.pid)}">Data do registro</label><input type="date" id="vtDt-${e(p.pid)}" value="${e(rv('vtDt-' + p.pid, hoje()))}"></div>
+        <div class="full"><label for="vtTx-${e(p.pid)}">Registro no histórico</label><textarea id="vtTx-${e(p.pid)}">${e(rv('vtTx-' + p.pid, texto))}</textarea></div>
+      </div>
+      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-agregar"${OCUP[p.pid] ? ' disabled' : ''}>${OCUP[p.pid] ? 'Salvando…' : 'Agregar ao histórico'}</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
+  }
+
+  function formNova(p) {
+    const n = p.nova || {};
+    const usinas = [...new Set([p.usina, ...itensOc().map(x => x.usina)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const id = k => `vtN-${k}-${e(p.pid)}`;
+    const campo = (k, rot, v, cls = '') => `<div class="${cls}"><label for="${id(k)}">${rot}</label><input id="${id(k)}" value="${e(rv(`vtN-${k}-${p.pid}`, v || ''))}"></div>`;
+    const registro = p.texto || `${p.quando ? p.quando.split(' ')[0] + ' — ' : ''}Thopen (${p.quem || 'cliente'}): ${p.pedido}`;
+    return `<div class="vt-ed"><p class="vt-sug">Confira e corrija os campos antes de criar.</p>
+      <div class="oc-form">
+        <div><label for="${id('usina')}">Usina</label><input id="${id('usina')}" list="vtUsinas-${e(p.pid)}" value="${e(rv('vtN-usina-' + p.pid, p.usina))}"><datalist id="vtUsinas-${e(p.pid)}">${usinas.map(u => `<option value="${e(u)}">`).join('')}</datalist></div>
+        ${campo('cliente', 'Cliente', 'Thopen')}
+        ${campo('equip', 'Equipamento', n.equip)}
+        ${campo('nequip', 'Ativo (identificação)', n.nequip)}
+        ${campo('fab', 'Fabricante', n.fab)}
+        ${campo('chamado', 'Chamado', n.chamado)}
+        ${campo('sn', 'S/N', n.sn)}
+        ${campo('os', 'OS vinculada (separe por vírgula)', n.os)}
+        <div><label for="${id('crit')}">Criticidade</label><select id="${id('crit')}">${CRITS.map(c => `<option value="${e(c)}"${c === rv('vtN-crit-' + p.pid, n.crit || '') ? ' selected' : ''}>${c || '—'}</option>`).join('')}</select></div>
+        ${campo('resp', 'Responsável', n.resp || 'Fred')}
+        <div><label for="${id('inicio')}">Início</label><input type="date" id="${id('inicio')}" value="${e(rv('vtN-inicio-' + p.pid, hoje()))}"></div>
+        ${campo('titulo', 'Título', n.titulo || p.pedido.slice(0, 120), 'full')}
+        <div class="full"><label for="${id('causa')}">Descrição</label><textarea id="${id('causa')}">${e(rv('vtN-causa-' + p.pid, n.causa || p.pedido))}</textarea></div>
+        ${campo('impacto', 'Impacto', n.impacto, 'full')}
+        <div class="full"><label for="${id('registro')}">Primeiro registro do histórico</label><textarea id="${id('registro')}">${e(rv('vtN-registro-' + p.pid, registro))}</textarea></div>
+      </div>
+      <div class="vt-acts"><button type="button" class="oc-btn pri sm" data-vt="ok-nova"${OCUP[p.pid] ? ' disabled' : ''}>${OCUP[p.pid] ? 'Salvando…' : 'Criar ocorrência'}</button><button type="button" class="oc-btn sm" data-vt="cancelar">Cancelar</button></div></div>`;
+  }
+
+  async function decidir(p, corpo) {
+    if (OCUP[p.pid]) return;
+    OCUP[p.pid] = true; erroPid[p.pid] = ''; desenhar();
+    try {
+      const r = await api('/ocorrencias/propostas/decidir', Object.assign({ pid: p.pid }, corpo));
+      const novaId = r.resultado && r.resultado.startsWith('criada') ? r.resultado.replace('criada ', '') : '';
+      const msg = corpo.acao === 'agregar' ? `Histórico da ${corpo.ocorrencia} atualizado`
+        : corpo.acao === 'nova' ? `Ocorrência ${novaId} criada` : 'Proposta descartada';
+      PROPS = PROPS.filter(x => x.pid !== p.pid); delete ABERTOS[p.pid];
+      Object.keys(RASC).forEach(k => { if (k.endsWith('-' + p.pid)) delete RASC[k]; });
+      FEITOS.push({ usina: (corpo.campos && corpo.campos.usina) || p.usina, msg, oc: corpo.ocorrencia || novaId });
+      if (corpo.acao !== 'descartar' && window.OC) { try { OC.recarregar(); } catch (x) {} }
+    } catch (x) { erroPid[p.pid] = x.message; }
+    delete OCUP[p.pid]; desenhar();
+  }
+
+  function clique(ev) {
+    const b = ev.target.closest('[data-vt]'); if (!b) return;
+    const card = b.closest('[data-pid]'); const p = card && PROPS.find(x => x.pid === card.dataset.pid);
+    const a = b.dataset.vt;
+    if (a === 'ver') { if (window.OC) OC.abrir(b.dataset.oc); return; }
+    if (!p) return;
+    const v = k => { const el = document.getElementById(`vtN-${k}-${p.pid}`); return el ? el.value.trim() : ''; };
+    if (a === 'abrir-agregar' || a === 'abrir-nova') { ABERTOS[p.pid] = a.slice(6); erroPid[p.pid] = ''; desenhar(); return; }
+    if (a === 'cancelar') { delete ABERTOS[p.pid]; desenhar(); return; }
+    if (a === 'descartar') { decidir(p, { acao: 'descartar' }); return; }
+    if (a === 'ok-agregar') {
+      const oc = document.getElementById('vtOc-' + p.pid).value;
+      const texto = document.getElementById('vtTx-' + p.pid).value.trim();
+      if (!oc) { erroPid[p.pid] = 'Escolha a ocorrência.'; desenhar(); return; }
+      decidir(p, { acao: 'agregar', ocorrencia: oc, texto, data: document.getElementById('vtDt-' + p.pid).value });
+      return;
+    }
+    if (a === 'ok-nova') {
+      const campos = {};
+      ['usina', 'cliente', 'equip', 'nequip', 'fab', 'chamado', 'sn', 'os', 'crit', 'resp', 'inicio', 'titulo', 'causa', 'impacto'].forEach(k => { const x = v(k); if (x) campos[k] = x; });
+      decidir(p, { acao: 'nova', campos, registro: v('registro') });
+    }
+  }
+
+  async function entrar() {
+    montar();
+    if (!ehFred()) { desenhar(); return; }
+    try { const r = await api('/verificar-thopen/status'); EST = r.estado; EST._recebido = Date.now(); } catch (x) {}
+    await carregarProps();
+    desenhar(); acompanhar();
+    if (EST && EST.status === 'rodando') relogio();
+  }
+
+  window.VT = { entrar, recarregar: async () => { await carregarProps(); desenhar(); } };
+  if (window.OC && typeof OC.entrar === 'function' && !OC._vtLigado) {
+    const orig = OC.entrar;
+    OC.entrar = function () { const r = orig.apply(this, arguments); setTimeout(() => { try { entrar(); } catch (x) {} }, 1200); return r; };  /* depois das ocorrências, para não disputar a planilha */
+    OC._vtLigado = true;
+  }
+})();
+</script>
+
 <!-- BOTTOM NAVIGATION — mobile only -->
 <nav class="bottom-nav" id="bottomNav">
   <div class="bn-item active" data-nav="atividades">
