@@ -15813,10 +15813,11 @@ function _abrirComunicarAtividade() {
 
   document.getElementById('comunicarAtivTexto').value = texto;
   const enviarBtn = document.getElementById('comunicarAtivEnviarBtn');
-  if (a.cluster) {
+  if (a.cluster || a.usina) {
     enviarBtn.disabled = false;
-    enviarBtn.textContent = `📲 Enviar pro grupo de ${a.cluster}`;
-    enviarBtn.onclick = () => _dispararComunicadoCluster(a.cluster, idSeguro, enviarBtn);
+    const _gUs = _ativGrupoDaUsina(a.usina);
+    enviarBtn.textContent = _gUs ? `📲 Enviar pro grupo ${_gUs}` : (a.usina ? `📲 Enviar pro grupo da equipe de ${a.usina}` : `📲 Enviar pro grupo de ${a.cluster}`);
+    enviarBtn.onclick = () => _dispararComunicadoAtividade(a, idSeguro, enviarBtn, _gUs);
   } else {
     enviarBtn.disabled = true;
     enviarBtn.textContent = '📲 Sem cluster definido — só copiar';
@@ -23278,6 +23279,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v23: comunicar atividade pelo grupo da usina */
 /* LAYOUT v22: camadas (última janela na frente) */
 /* LAYOUT v21: cartões grandes, preparação de reunião, tratativas Thopen */
 /* LAYOUT v20: cartão grande da atividade */
@@ -23536,6 +23538,39 @@ try {
     agendar();
   } catch (e) {}
 })();
+
+
+/* ══ LAYOUT v23 (13/11/2026): Comunicar Atividade → grupo da equipe da usina ══ */
+function _ativGrupoDaUsina(usina) {
+  try {
+    const n = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    const it = (_mapUfvsCache || []).find(i => n(i.usina) === n(usina));
+    return it && it.grupo_nome ? it.grupo_nome : '';
+  } catch (e) { return ''; }
+}
+async function _dispararComunicadoAtividade(a, idSeguro, btnEl, grupoNome) {
+  const texto = _comunicadoTextoCache[idSeguro];
+  if (!texto) return;
+  const destino = grupoNome ? `"${grupoNome}"` : (a.usina ? `da equipe de ${a.usina}` : `do cluster "${a.cluster}"`);
+  if (!confirm(`Enviar esse comunicado agora pro grupo de WhatsApp ${destino}?`)) return;
+  const original = btnEl.innerHTML;
+  btnEl.disabled = true; btnEl.innerHTML = 'Enviando…';
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-cluster', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cluster: a.cluster || '', usina: a.usina || '', texto }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao disparar');
+    btnEl.innerHTML = '✓ Enviado!';
+    showToast('Comunicado enviado' + (data.grupoNome ? ' para ' + data.grupoNome : '') + '!', true);
+    setTimeout(() => { btnEl.innerHTML = original; btnEl.disabled = false; }, 2500);
+  } catch (e) {
+    btnEl.innerHTML = original; btnEl.disabled = false;
+    showToast('Erro ao disparar: ' + e.message, false);
+  }
+}
 
 </script>
 
