@@ -4652,6 +4652,34 @@ Manutenção preventiva e corretiva.</textarea>
 <!-- Toast -->
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" id="toastIcon"></svg><span id="toastMsg"></span></div>
 <script>
+/* LAYOUT v28 (16/11/2026): endereço alternativo do servidor. No 5G do Fred o endereço
+   api.168.138.232.237.sslip.io dá ERR_SSL_PROTOCOL_ERROR (a operadora recusa o domínio).
+   O mesmo servidor responde em api.168-138-232-237.nip.io. Se uma chamada ao endereço
+   principal falhar por rede, repete no alternativo e passa a usar ele direto. */
+(function () {
+  const PRI = 'https://api.168.138.232.237.sslip.io', ALT = 'https://api.168-138-232-237.nip.io';
+  const _f = window.fetch.bind(window);
+  let usarAlt = false;
+  try { usarAlt = localStorage.getItem('apiAlt') === '1'; } catch (e) {}
+  function troca(u) { return typeof u === 'string' && u.startsWith(PRI) ? ALT + u.slice(PRI.length) : u; }
+  window.fetch = async function (input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (!url.startsWith(PRI)) return _f(input, init);
+    if (usarAlt) return _f(typeof input === 'string' ? troca(input) : new Request(troca(url), input), init);
+    try {
+      return await _f(input, init);
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
+      try {
+        const r = await _f(typeof input === 'string' ? troca(input) : new Request(troca(url), input), init);
+        usarAlt = true; try { localStorage.setItem('apiAlt', '1'); } catch (e) {}
+        return r;
+      } catch (e2) { throw err; }
+    }
+  };
+})();
+</script>
+<script>
 /* ══════════════════════════════════════════════════════════
    PAINEL O&M v4.0 — Script principal
    Toda a lógica de dados é idêntica à versão anterior.
@@ -23284,6 +23312,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v28: endereço alternativo do servidor (nip.io) */
 /* LAYOUT v27: atividades com 45 s de tempo limite (celular) */
 /* LAYOUT v26: menu lateral no celular volta a funcionar (camadas ignoram o menu) */
 /* LAYOUT v25: Nova Ipixuna I no catálogo e no escopo do Vitor */
