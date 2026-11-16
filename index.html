@@ -2222,6 +2222,113 @@ select.rp-input{display:block;}
 <style id="lv22css">/* LAYOUT v22 — avisos sempre acima dos cards */
 .toast{z-index:12000 !important}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══ VISÃO GERAL (16/11/2026) — identidade Philo, escopada só neste painel ══ */
+#sec-visao-geral{
+  --vg-fundo:#04110F; --vg-sup:#0A1E1B; --vg-sup-2:#0F2A26; --vg-sup-3:#16372F;
+  --vg-linha:rgba(223,221,208,.08); --vg-linha-forte:rgba(223,221,208,.16);
+  --vg-tinta:#EDEBE1; --vg-tinta-2:#BFC8C2; --vg-mudo:#8A9A94; --vg-fraco:#61736D;
+  --vg-marca:#266D5F; --vg-marca-forte:#2F8A77; --vg-marca-suave:rgba(47,138,119,.16);
+  --vg-acao:#EA5A2A; --vg-acao-suave:rgba(234,90,42,.14);
+  --vg-focar:#EA5A2A; --vg-acompanhar:#E9B44C; --vg-emdia:#4FB38F; --vg-barra-txt:#0B1715;
+  --vg-sombra:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -18px rgba(0,0,0,.7);
+  font-family:'Poppins',system-ui,sans-serif; color:var(--vg-tinta);
+  background:var(--vg-fundo); margin:0; border-radius:18px; padding:26px 28px 40px;
+}
+[data-theme="light"] #sec-visao-geral{
+  --vg-fundo:#F2F1EA; --vg-sup:#FFFFFF; --vg-sup-2:#F7F6F0; --vg-sup-3:#E9E7DC;
+  --vg-linha:rgba(4,74,68,.10); --vg-linha-forte:rgba(4,74,68,.20);
+  --vg-tinta:#0B2622; --vg-tinta-2:#2E4A44; --vg-mudo:#55706A; --vg-fraco:#7A8F8A;
+  --vg-marca-forte:#1F5C50; --vg-marca-suave:rgba(38,109,95,.10);
+  --vg-acao:#C9461A; --vg-acao-suave:rgba(234,90,42,.10);
+  --vg-focar:#C9461A; --vg-acompanhar:#A87412; --vg-emdia:#1F7A5C; --vg-barra-txt:#FFFFFF;
+  --vg-sombra:0 1px 2px rgba(4,74,68,.06), 0 10px 28px -18px rgba(4,74,68,.35);
+}
+#sec-visao-geral *{box-sizing:border-box}
+#sec-visao-geral .vg-num{font-variant-numeric:tabular-nums}
+#sec-visao-geral .vg-olho{font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--vg-marca-forte);text-transform:uppercase}
+#sec-visao-geral h1.vg-h1{font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.02em;margin:4px 0;display:flex;align-items:center;gap:10px;color:var(--vg-tinta)}
+#sec-visao-geral .vg-pergunta{color:var(--vg-tinta-2);font-weight:300;font-size:15px;margin:0}
+#sec-visao-geral .vg-topo{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+#sec-visao-geral .vg-vivo{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--vg-mudo);font-size:12px}
+#sec-visao-geral .vg-vivo i{width:7px;height:7px;border-radius:50%;background:var(--vg-emdia)}
+#sec-visao-geral .vg-btn{font:inherit;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;font-weight:500;font-size:13px;border:1px solid var(--vg-linha-forte);background:none;color:var(--vg-tinta);cursor:pointer}
+#sec-visao-geral .vg-btn:hover{background:var(--vg-sup-2)}
+#sec-visao-geral .vg-explica{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--vg-acompanhar);color:var(--vg-acompanhar);font-size:11px;font-weight:700;display:inline-grid;place-items:center;position:relative;cursor:help}
+#sec-visao-geral .vg-bal{display:none;position:absolute;top:28px;left:-10px;width:300px;background:var(--vg-sup-3);color:var(--vg-tinta);border:1px solid var(--vg-linha-forte);border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:400;letter-spacing:0;line-height:1.5;z-index:20;box-shadow:var(--vg-sombra)}
+#sec-visao-geral .vg-explica:hover .vg-bal,#sec-visao-geral .vg-explica:focus .vg-bal{display:block}
+#sec-visao-geral .vg-alerta{margin:20px 0 18px;display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;background:var(--vg-acao-suave);border:1px solid color-mix(in srgb,var(--vg-acao) 40%,transparent)}
+#sec-visao-geral .vg-alerta .vg-n{font-size:24px;font-weight:800;color:var(--vg-acao);line-height:1}
+#sec-visao-geral .vg-alerta small{color:var(--vg-tinta-2)}
+#sec-visao-geral .vg-alerta .vg-btn{margin-left:auto;border-color:color-mix(in srgb,var(--vg-acao) 45%,transparent);color:var(--vg-acao)}
+#sec-visao-geral .vg-ok{margin:20px 0 18px;padding:12px 16px;border-radius:14px;background:var(--vg-marca-suave);color:var(--vg-tinta-2)}
+#sec-visao-geral .vg-pulso{width:9px;height:9px;border-radius:50%;background:var(--vg-acao);animation:vgp 1.8s infinite;flex:none}
+@keyframes vgp{0%{box-shadow:0 0 0 0 rgba(234,90,42,.6)}100%{box-shadow:0 0 0 12px transparent}}
+@media (prefers-reduced-motion:reduce){#sec-visao-geral .vg-pulso{animation:none}}
+#sec-visao-geral .vg-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+#sec-visao-geral .vg-kpi{background:var(--vg-sup);border:1px solid var(--vg-linha);border-radius:14px;padding:16px 18px;box-shadow:var(--vg-sombra);position:relative;overflow:hidden;cursor:pointer;text-align:left;font:inherit;color:inherit}
+#sec-visao-geral .vg-kpi:hover{border-color:var(--vg-linha-forte)}
+#sec-visao-geral .vg-rot{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--vg-mudo)}
+#sec-visao-geral .vg-v{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px;line-height:1.1}
+#sec-visao-geral .vg-ref{font-size:12.5px;color:var(--vg-tinta-2)}
+#sec-visao-geral .vg-kpi.ruim .vg-v{color:var(--vg-acao)}
+#sec-visao-geral .vg-kpi.ruim::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--vg-acao)}
+#sec-visao-geral .vg-tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+#sec-visao-geral .vg-tag.ruim{background:var(--vg-acao-suave);color:var(--vg-acao)}
+#sec-visao-geral .vg-tag.bom{background:color-mix(in srgb,var(--vg-emdia) 16%,transparent);color:var(--vg-emdia)}
+#sec-visao-geral .vg-grade{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:start}
+#sec-visao-geral .vg-bloco{background:var(--vg-sup);border:1px solid var(--vg-linha);border-radius:14px;padding:18px;box-shadow:var(--vg-sombra);min-width:0}
+#sec-visao-geral .vg-bloco h3{font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;margin:0;color:var(--vg-tinta)}
+#sec-visao-geral .vg-sub{color:var(--vg-mudo);font-size:12.5px;margin:2px 0 14px}
+#sec-visao-geral .vg-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--vg-tinta-2)}
+#sec-visao-geral .vg-leg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+#sec-visao-geral .vg-idade{display:flex;height:34px;border-radius:9px;overflow:hidden;gap:2px;margin:6px 0 10px}
+#sec-visao-geral .vg-idade div,#sec-visao-geral .vg-barra div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--vg-barra-txt);min-width:24px}
+#sec-visao-geral .vg-idade-rot{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#sec-visao-geral .vg-idade-rot div{font-size:12px;color:var(--vg-mudo)}
+#sec-visao-geral .vg-idade-rot b{display:block;font-size:17px;color:var(--vg-tinta);font-weight:600}
+#sec-visao-geral .vg-fluxo{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;align-items:end;height:150px;margin-top:8px;padding-bottom:20px}
+#sec-visao-geral .vg-sem{display:flex;gap:3px;align-items:end;height:100%;position:relative}
+#sec-visao-geral .vg-sem span{flex:1;border-radius:4px 4px 1px 1px;min-height:2px}
+#sec-visao-geral .vg-sem .cr{background:var(--vg-fraco)}
+#sec-visao-geral .vg-sem .co{background:var(--vg-marca-forte)}
+#sec-visao-geral .vg-sem em{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-style:normal;font-size:11px;color:var(--vg-mudo)}
+#sec-visao-geral .vg-sem:hover::after{content:attr(data-t);position:absolute;bottom:105%;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--vg-sup-3);border:1px solid var(--vg-linha-forte);padding:5px 8px;border-radius:8px;font-size:11.5px;z-index:3;color:var(--vg-tinta)}
+#sec-visao-geral table.vg-tab{width:100%;border-collapse:collapse}
+#sec-visao-geral .vg-tab th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--vg-fraco);text-align:left;padding:0 10px 10px;background:none;border:0}
+#sec-visao-geral .vg-tab td{padding:11px 10px;border-top:1px solid var(--vg-linha);vertical-align:middle;color:var(--vg-tinta);background:none}
+#sec-visao-geral .vg-tab tr:hover td{background:var(--vg-sup-2)}
+#sec-visao-geral .vg-us b{font-weight:600;display:block}
+#sec-visao-geral .vg-us small{color:var(--vg-mudo);font-size:12px}
+#sec-visao-geral .vg-barra{display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px;min-width:160px}
+#sec-visao-geral .vg-cli{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--vg-linha-forte);color:var(--vg-tinta-2);white-space:nowrap}
+#sec-visao-geral .vg-ir{color:var(--vg-acao);font-weight:600;font-size:12.5px;white-space:nowrap;background:none;border:0;cursor:pointer;font-family:inherit}
+#sec-visao-geral .vg-ir:hover{text-decoration:underline}
+#sec-visao-geral .vg-clusters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+#sec-visao-geral .vg-cl{border:1px solid var(--vg-linha);border-radius:10px;padding:10px 12px;background:var(--vg-sup-2)}
+#sec-visao-geral .vg-cl b{font-size:12.5px;font-weight:600}
+#sec-visao-geral .vg-cl .vg-lin{display:flex;align-items:baseline;gap:6px;margin-top:4px}
+#sec-visao-geral .vg-cl .vg-lin span{font-size:20px;font-weight:700}
+#sec-visao-geral .vg-cl .vg-lin small{color:var(--vg-mudo);font-size:11.5px}
+#sec-visao-geral .vg-mini{height:4px;border-radius:2px;background:var(--vg-sup-3);margin-top:8px;overflow:hidden}
+#sec-visao-geral .vg-mini i{display:block;height:100%;background:var(--vg-acao)}
+#sec-visao-geral .vg-carregando{padding:60px 0;text-align:center;color:var(--vg-mudo)}
+#sec-visao-geral .vg-rodape{margin-top:22px;color:var(--vg-fraco);font-size:12px}
+@media (max-width:1100px){#sec-visao-geral .vg-kpis{grid-template-columns:repeat(2,1fr)}#sec-visao-geral .vg-grade{grid-template-columns:1fr}}
+@media (max-width:820px){
+  #sec-visao-geral{border-radius:14px;padding:18px 14px 40px}
+  #sec-visao-geral h1.vg-h1{font-size:23px}
+  #sec-visao-geral .vg-v{font-size:28px}
+  #sec-visao-geral .vg-col-tec,#sec-visao-geral .vg-col-cli{display:none}
+  #sec-visao-geral .vg-barra{min-width:110px}
+  #sec-visao-geral .vg-alerta{flex-wrap:wrap}
+  #sec-visao-geral .vg-alerta .vg-btn{margin-left:0}
+  #sec-visao-geral .vg-vivo{margin-left:0}
+}
+@media (max-width:480px){#sec-visao-geral .vg-kpis{gap:10px}#sec-visao-geral .vg-kpi{padding:13px}#sec-visao-geral .vg-v{font-size:25px}#sec-visao-geral .vg-ref{font-size:11.5px}}
+</style>
 </head>
 <body>
 
@@ -2259,6 +2366,10 @@ select.rp-input{display:block;}
     <!-- Zona 2: Navegação -->
     <nav class="sb-nav" id="sbNav">
       <div class="sb-section-label-row" data-section-key="paineis" draggable="true">Operação</div>
+      <a href="#visao-geral" class="sb-nav-item" data-nav="visao-geral" data-label="Visão geral" draggable="true">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Visão geral
+      </a>
       <a href="#atividades" class="sb-nav-item active" data-nav="atividades" data-label="Atividades" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Atividades
@@ -3643,6 +3754,9 @@ select.rp-input{display:block;}
         </div>
 
       </section>
+
+      <!-- ── SEÇÃO: VISÃO GERAL (16/11/2026) ── -->
+      <section class="content-section" id="sec-visao-geral"><div id="vgRoot"></div></section>
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section active" id="sec-atividades">
@@ -23609,6 +23723,190 @@ async function _dispararComunicadoAtividade(a, idSeguro, btnEl, grupoNome) {
     showToast('Erro ao disparar: ' + e.message, false);
   }
 }
+
+
+/* ══ VISÃO GERAL (16/11/2026) ══════════════════════════════════════════
+   Painel novo, só leitura, para manager/admin. Reaproveita ATIVIDADES (mesmo
+   filtro do Painel de Atividades: só usinas do mapeamento) e as mesmas regras
+   (_ativIsConcluida, _ativAtrasada, isDesligamentoAtividade) — os números
+   batem com os KPIs de Atividades. Cluster/responsável vêm de /mapeamento-ufvs.
+   Identidade Philo escopada em #sec-visao-geral (CSS "VISÃO GERAL"). */
+NAV_TITLES['visao-geral'] = 'Visão geral';
+function _vgPermitido() { try { return !_currentSession || ['manager', 'admin'].includes(_currentSession.role); } catch (e) { return true; } }
+let _vgCarregando = false;
+function _vgData(s) { try { return _ativParseDataBR(String(s || '').split(' ')[0]); } catch (e) { return null; } }
+function _vgDias(d) { const h = new Date(); h.setHours(0, 0, 0, 0); return Math.round((h - d) / 86400000); }
+function _vgFmt(n) { return Number(n).toLocaleString('pt-BR'); }
+
+async function _vgEntrar() {
+  const root = document.getElementById('vgRoot');
+  if (!root || _vgCarregando) return;
+  if (!ATIVIDADES || !ATIVIDADES.length) {
+    _vgCarregando = true;
+    root.innerHTML = '<div class="vg-carregando">Carregando a visão geral…</div>';
+    try { await carregarAtividades(); } catch (e) {}
+    // carregarAtividades pode estar sendo feito por outra chamada ou em nova tentativa: espera até 60 s
+    for (let i = 0; i < 30 && (!ATIVIDADES || !ATIVIDADES.length); i++) await new Promise(r => setTimeout(r, 2000));
+    _vgCarregando = false;
+    if (_activeNav !== 'visao-geral') return;
+  }
+  let mapa = [];
+  try { mapa = (await _mapUfvsCarregar()) || []; } catch (e) {}
+  _vgRender(mapa);
+}
+
+function _vgRender(mapa) {
+  const root = document.getElementById('vgRoot');
+  if (!root) return;
+  if (!ATIVIDADES || !ATIVIDADES.length) { root.innerHTML = '<div class="vg-carregando">Não foi possível carregar as atividades agora. <button class="vg-btn" onclick="_vgEntrar()">Tentar de novo</button></div>'; return; }
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  const porUsina = {};
+  (mapa || []).forEach(m => { porUsina[norm(m.usina)] = m; });
+  const info = a => porUsina[norm(a.usina)] || {};
+
+  const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
+  const atrasadas = ATIVIDADES.filter(_ativAtrasada);
+  const verif = abertas.filter(a => _ativEmVerificacao(a)).length;
+  const altas = abertas.filter(a => (a.prioridade || '').toLowerCase() === 'alta').length;
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+
+  // idade do atraso
+  const faixas = [['1–7 dias', 0, 7], ['8–30 dias', 8, 30], ['31–90 dias', 31, 90], ['90+ dias', 91, 1e9]];
+  const idade = faixas.map(([r, lo, hi]) => [r, atrasadas.filter(a => { const d = _vgDias(_vgData(a.prazo)); return d >= lo && d <= hi; }).length]);
+  const mais30 = idade[2][1] + idade[3][1];
+  const coresIdade = ['var(--vg-acompanhar)', 'color-mix(in srgb,var(--vg-acompanhar) 55%,var(--vg-focar))', 'var(--vg-focar)', 'color-mix(in srgb,var(--vg-focar) 70%,#000)'];
+
+  // fluxo semanal (segunda a domingo), últimas 8 semanas fechadas + a atual
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const seg = new Date(hoje); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
+  const semanas = [];
+  for (let w = 7; w >= 0; w--) {
+    const s = new Date(seg); s.setDate(s.getDate() - 7 * w);
+    const e = new Date(s); e.setDate(e.getDate() + 7);
+    const dentro = d => d && d >= s && d < e;
+    semanas.push([String(s.getDate()).padStart(2, '0') + '/' + String(s.getMonth() + 1).padStart(2, '0'),
+      ATIVIDADES.filter(a => dentro(_vgData(a.dataCriacao))).length,
+      ATIVIDADES.filter(a => (a.status || '').toLowerCase().includes('conclu') && dentro(_vgData(a.dataConclusao))).length, w === 0]);
+  }
+  const ult = semanas[semanas.length - 2]; // última semana fechada
+  const saldo = ult[1] - ult[2];
+  const maxF = Math.max(1, ...semanas.flatMap(x => [x[1], x[2]]));
+
+  // focar primeiro: por usina
+  const pu = {};
+  abertas.forEach(a => {
+    const k = a.usina || '—';
+    const p = pu[k] || (pu[k] = { usina: k, cliente: a.cliente, ab: 0, at: 0, a30: 0 });
+    p.ab++;
+    if (_ativAtrasada(a)) { p.at++; if (_vgDias(_vgData(a.prazo)) > 30) p.a30++; }
+  });
+  const focar = Object.values(pu).sort((x, y) => y.a30 - x.a30 || y.at - x.at).slice(0, 10);
+
+  // clusters
+  const pc = {};
+  abertas.forEach(a => {
+    const c = info(a).cluster || 'Sem cluster';
+    const p = pc[c] || (pc[c] = { c, ab: 0, at: 0 });
+    p.ab++; if (_ativAtrasada(a)) p.at++;
+  });
+  const clusters = Object.values(pc).sort((x, y) => y.ab - x.ab);
+
+  // desligadas (mesma regra do banner de Atividades)
+  const desl = [...new Set(ATIVIDADES.filter(a => { try { return isDesligamentoAtividade(a); } catch (e) { return false; } }).map(a => a.usina))];
+
+  const agora = new Date();
+  const hora = String(agora.getDate()).padStart(2, '0') + '/' + String(agora.getMonth() + 1).padStart(2, '0') + ' ' + String(agora.getHours()).padStart(2, '0') + ':' + String(agora.getMinutes()).padStart(2, '0');
+  const seg2 = (n, c) => n ? `<div style="flex:${n};background:${c}">${n}</div>` : '';
+
+  root.innerHTML = `
+  <div class="vg-topo">
+    <div>
+      <div class="vg-olho">Central O&amp;M</div>
+      <h1 class="vg-h1">Visão geral
+        <span class="vg-explica" tabindex="0">!<span class="vg-bal"><b>De onde vem:</b> as mesmas atividades do Painel de Atividades (OSs da Fracttal e atividades criadas aqui), só das usinas do seu mapeamento. Cluster e responsável vêm do mapeamento oficial.<br><br><b>Atrasada:</b> em aberto com prazo anterior a hoje.<br><br><b>Fluxo:</b> criadas pela data de criação, concluídas pela data de conclusão, semanas de segunda a domingo. A barra mais à direita é a semana atual, ainda incompleta.</span></span>
+      </h1>
+      <p class="vg-pergunta">Na minha carteira: o que está atrasado, há quanto tempo, onde e com quem.</p>
+    </div>
+    <span class="vg-vivo"><i></i>atualizado ${hora}<button class="vg-btn" onclick="ATIVIDADES=[];_vgEntrar()">Atualizar</button></span>
+  </div>
+
+  ${desl.length ? `<div class="vg-alerta"><span class="vg-pulso"></span><span class="vg-n vg-num">${desl.length}</span>
+    <div><b>${desl.length === 1 ? 'usina desligada agora' : 'usinas desligadas agora'}</b><br><small>${desl.slice(0, 4).map(esc).join(' · ')}${desl.length > 4 ? ' +' + (desl.length - 4) : ''}</small></div>
+    <button class="vg-btn" onclick="switchNav('atividades');if(!_ativDesligFiltro)toggleAtivDesligFiltro()">Ver atividades →</button></div>`
+    : `<div class="vg-ok">Nenhuma usina desligada agora.</div>`}
+
+  <section class="vg-kpis">
+    <button class="vg-kpi" onclick="switchNav('atividades')"><div class="vg-rot">Em aberto</div><div class="vg-v vg-num">${_vgFmt(abertas.length)}</div><div class="vg-ref">${_vgFmt(abertas.length - verif)} em processo · ${_vgFmt(verif)} em verificação</div></button>
+    <button class="vg-kpi ruim" onclick="switchNav('atividades');if(!_ativFiltroAtrasada)_ativToggleFiltroAtrasada()"><div class="vg-rot">Atrasadas</div><div class="vg-v vg-num">${_vgFmt(atrasadas.length)}</div><div class="vg-ref"><span class="vg-tag ruim">${pct(atrasadas.length, abertas.length)}% das abertas</span> ${_vgFmt(mais30)} há mais de 30 dias</div></button>
+    <button class="vg-kpi" onclick="switchNav('atividades');if(!_ativFiltroPrioridadeAlta)_ativToggleFiltroPrioridadeAlta()"><div class="vg-rot">Prioridade alta</div><div class="vg-v vg-num">${_vgFmt(altas)}</div><div class="vg-ref">${pct(altas, abertas.length)}% das abertas</div></button>
+    <button class="vg-kpi${saldo > 0 ? ' ruim' : ''}" onclick="switchNav('atividades')"><div class="vg-rot">Fila na semana passada</div><div class="vg-v vg-num">${saldo > 0 ? '+' : ''}${_vgFmt(saldo)}</div><div class="vg-ref">${_vgFmt(ult[1])} criadas · ${_vgFmt(ult[2])} concluídas <span class="vg-tag ${saldo > 0 ? 'ruim' : 'bom'}">${saldo > 0 ? 'fila cresceu' : 'fila diminuiu'}</span></div></button>
+  </section>
+
+  <section class="vg-grade">
+    <div class="vg-bloco">
+      <h3>Há quanto tempo estão atrasadas</h3>
+      <p class="vg-sub">${_vgFmt(atrasadas.length)} atividades com prazo vencido, pela idade do atraso</p>
+      <div class="vg-idade">${idade.map(([r, n], i) => n ? `<div style="flex:${n};background:${coresIdade[i]}" title="${r}: ${n}">${n}</div>` : '').join('')}</div>
+      <div class="vg-idade-rot">${idade.map(([r, n]) => `<div><b class="vg-num">${pct(n, atrasadas.length)}%</b>${r}</div>`).join('')}</div>
+    </div>
+    <div class="vg-bloco">
+      <h3>Criadas × concluídas por semana</h3>
+      <p class="vg-sub">Quando a barra cinza fica mais alta que a verde, a fila cresce</p>
+      <div class="vg-leg"><span><i style="background:var(--vg-fraco)"></i>Criadas</span><span><i style="background:var(--vg-marca-forte)"></i>Concluídas</span></div>
+      <div class="vg-fluxo">${semanas.map(([s, cr, co, atual]) => `<div class="vg-sem" data-t="${s}${atual ? ' (em curso)' : ''}: ${cr} criadas · ${co} concluídas" style="${atual ? 'opacity:.55' : ''}"><span class="cr" style="height:${cr / maxF * 100}%"></span><span class="co" style="height:${co / maxF * 100}%"></span><em>${s}</em></div>`).join('')}</div>
+    </div>
+  </section>
+
+  <section class="vg-bloco" style="margin-top:14px">
+    <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div><h3>Focar primeiro</h3><p class="vg-sub">Usinas com mais atividades atrasadas há mais de 30 dias</p></div>
+      <div class="vg-leg" style="margin-left:auto"><span><i style="background:var(--vg-focar)"></i>Atrasada +30 dias</span><span><i style="background:var(--vg-acompanhar)"></i>Atrasada até 30 dias</span><span><i style="background:var(--vg-emdia)"></i>No prazo</span></div>
+    </div>
+    <table class="vg-tab"><thead><tr><th>Usina</th><th class="vg-col-cli">Cliente</th><th class="vg-col-tec">Responsável</th><th>Abertas</th><th></th></tr></thead><tbody>
+    ${focar.map(p => { const m = porUsina[norm(p.usina)] || {}; return `<tr>
+      <td class="vg-us"><b>${esc(p.usina)}</b><small>${esc(m.cluster || '')}</small></td>
+      <td class="vg-col-cli"><span class="vg-cli">${esc(m.cliente || p.cliente || '')}</span></td>
+      <td class="vg-col-tec">${esc(m.responsavel || '—')}</td>
+      <td><div class="vg-barra">${seg2(p.a30, 'var(--vg-focar)')}${seg2(p.at - p.a30, 'var(--vg-acompanhar)')}${seg2(p.ab - p.at, 'var(--vg-emdia)')}</div></td>
+      <td><button class="vg-ir" onclick="_vgIrUsina(${esc(JSON.stringify(p.usina))})">Ver ${p.at} →</button></td></tr>`; }).join('')}
+    </tbody></table>
+  </section>
+
+  <section class="vg-bloco" style="margin-top:14px">
+    <h3>Por cluster</h3>
+    <p class="vg-sub">Abertas e o quanto delas está atrasado</p>
+    <div class="vg-clusters">${clusters.map(c => `<div class="vg-cl"><b>${esc(c.c)}</b><div class="vg-lin"><span class="vg-num">${c.ab}</span><small>${c.at} atrasadas</small></div><div class="vg-mini"><i style="width:${pct(c.at, c.ab)}%"></i></div></div>`).join('')}</div>
+  </section>
+  <p class="vg-rodape">Só leitura. Clique num número para abrir as atividades filtradas.</p>`;
+}
+
+// "Ver N →": abre Atividades já filtrada pela usina (mesmo filtro da sidebar) e só atrasadas
+function _vgIrUsina(usina) {
+  switchNav('atividades');
+  try {
+    selUsinaValues.clear(); selUsinaValues.add(usina);
+    _updateCbLabel('Usina'); _renderCbDropdown('Usina');
+    if (!_ativFiltroAtrasada) _ativToggleFiltroAtrasada();
+    applyFilters();
+  } catch (e) { console.warn('[Visão geral] filtro por usina', e); }
+}
+
+const _vgSwitchBase = switchNav;
+switchNav = function (nav) {
+  if (nav === 'visao-geral' && !_vgPermitido()) nav = 'atividades';
+  const r = _vgSwitchBase.apply(this, [nav]);
+  if (nav === 'visao-geral') _vgEntrar();
+  return r;
+};
+const _vgSyncBase = _lvSync;
+_lvSync = function () {
+  const r = _vgSyncBase.apply(this, arguments);
+  try {
+    const it = document.querySelector('#sbNav .sb-nav-item[data-nav="visao-geral"]');
+    if (it && !_vgPermitido()) { it.style.display = 'none'; it.classList.add('sup-oculto'); }
+  } catch (e) {}
+  return r;
+};
 
 </script>
 
