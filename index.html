@@ -2332,6 +2332,46 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .login-brand-icon svg{stroke:#04110F}
 /* botão principal "Novo": laranja Philo (ação), o resto continua no verde da marca */
 .topbar #tbNovoBtn{background:var(--acao)!important;border-color:transparent!important;color:#1A0A04!important}
+
+/* ══ PHILO v2 (16/11/2026): verde + laranja + areia — seleção em areia, ação em laranja, status em verde ══ */
+:root{--areia:#DFDDD0;--sel-bg:#DFDDD0;--sel-tx:#04110F;--acao-tx:#1A0A04;}
+[data-theme="light"]{--sel-bg:#044A44;--sel-tx:#F4F3EC;--acao-tx:#FFFFFF;}
+.sb-nav-item.active,.resumo-tab-btn.active,.pps-toggle button.on,.view-btn.active,.icon-toggle-btn.active,.oc-seg button[aria-pressed="true"],.rp-seg-btn.on,.pf-tab.active,.au-ch button.on,#sbSketchbookBtn.active{background:var(--sel-bg)!important;border-color:var(--sel-bg)!important;color:var(--sel-tx)!important}
+.sb-nav-item.active{box-shadow:inset 3px 0 0 var(--acao)}
+.sb-nav-badge-unread,.sb-nav-item.active .sb-nav-badge,.sb-nav-item.active .sb-nav-badge-unread{background:var(--acao)!important;color:var(--acao-tx)!important;border-color:transparent!important}
+.topbar #tbNovoBtn,.pps-btn.pri,.rel-btn-primario,.oc-btn.pri,.au-btn.pri,#comunicadoGerarBtn{background:var(--acao)!important;border-color:var(--acao)!important;color:var(--acao-tx)!important}
+.tab-btn.active{border-bottom-color:var(--acao)}
+.tab-btn.active .tab-count{background:var(--acao);color:var(--acao-tx)}
+.tabs-wrapper .tab-btn.active{border-color:var(--acao);border-bottom-color:var(--acao);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px var(--acao),var(--shadow)}
+.tabs-wrapper .tab-btn.active::before{background:var(--acao)}
+.sb-section-label-row{color:color-mix(in srgb,var(--areia) 60%,transparent)}
+[data-theme="light"] .sb-section-label-row{color:#55706A}
+.card-unread-dot{background:var(--acao)}
+.rel-cal-dia.selecionado{background:var(--acao)!important;color:var(--acao-tx)!important}
+@keyframes card-atrasada-pulse{0%,100%{box-shadow:0 0 0 0 rgba(234,90,42,.38)}50%{box-shadow:0 0 0 5px rgba(234,90,42,0)}}
+.sb-logo-title{display:flex;align-items:center;gap:8px}
+.sb-logo-title::before{content:"";width:20px;height:20px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='8.5' fill='%23EA5A2A'/%3E%3Ccircle cx='20' cy='20' r='3.6' fill='%2304110F'/%3E%3Cg stroke='%23EA5A2A' stroke-width='2.8' stroke-linecap='round'%3E%3Cpath d='M20 3v4M20 33v4M3 20h4M33 20h4M8 8l2.8 2.8M29.2 29.2L32 32M8 32l2.8-2.8M29.2 10.8L32 8'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+.sb-logo-eyebrow{color:color-mix(in srgb,var(--areia) 55%,transparent)}
+[data-theme="light"] .sb-logo-eyebrow{color:#55706A}
+/* ── Atividades: visão em lista ── */
+.al-tab{width:100%;border-collapse:collapse;font-size:13px}
+.al-tab th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);text-align:left;padding:10px 10px;border-bottom:1px solid var(--border-strong);position:sticky;top:0;background:var(--panel);z-index:1;white-space:nowrap}
+.al-tab td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text)}
+.al-tab tr.al-row{cursor:pointer}
+.al-tab tr.al-row:hover td{background:var(--panel-alt)}
+.al-tab tr.al-row:focus{outline:2px solid var(--acao);outline-offset:-2px}
+.al-prazo b{display:block;font-weight:600}
+.al-prazo small{font-size:11.5px;color:var(--text-faint)}
+.al-prazo.atr b{color:var(--acao)}
+.al-prazo.atr small{color:var(--acao);opacity:.85}
+.al-os{font-weight:600;color:var(--teal);white-space:nowrap}
+.al-us b{display:block;font-weight:600}
+.al-us small,.al-desc small{color:var(--text-dim);font-size:12px}
+.al-desc b{display:block;font-weight:600;line-height:1.3}
+.al-pri{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.al-pri i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.al-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:auto;max-height:calc(100vh - 260px)}
+@media (max-width:820px){.al-tab .al-c-resp,.al-tab .al-c-pri,.al-tab .al-c-os{display:none}.al-wrap{max-height:none}}
 </style>
 </head>
 <body>
@@ -3814,6 +3854,9 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               </button>
               <button class="icon-toggle-btn active" id="ativViewKanban" onclick="_ativSetViewMode('kanban')" title="Ver em Kanban">
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="12" rx="1"/><rect x="16" y="3" width="5" height="15" rx="1"/></svg>
+              </button>
+              <button class="icon-toggle-btn" id="ativViewLista" onclick="_ativSetViewMode('lista')" title="Ver em Lista">
+                <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
               </button>
             </div>
             <button class="icon-toggle-btn" id="ativKanbanOrdemBtn" onclick="_ativAlternarOrdemKanban()" title="Ordem: Mais recentes primeiro">
@@ -17154,9 +17197,9 @@ document.getElementById('zelExtrairOverlay')?.addEventListener('click', e => { i
 
 function _prioridadeCor(p) {
   const v = (p||'').toLowerCase();
-  if (v === 'alta') return '#EF4444';
-  if (v === 'baixa') return '#EAB308';
-  return '#F97316';
+  if (v === 'alta') return '#EA5A2A';
+  if (v === 'baixa') return '#8FA39C';
+  return '#E9B44C';
 }
 
 let _ativTab = 'ativas';
@@ -17210,10 +17253,12 @@ function _ativSetViewMode(mode) {
   _ativViewMode = mode;
   document.getElementById('ativViewCards')?.classList.toggle('active', mode === 'cards');
   document.getElementById('ativViewKanban')?.classList.toggle('active', mode === 'kanban');
-  document.getElementById('ativGrid').style.display = mode === 'cards' ? 'grid' : 'none';
+  document.getElementById('ativViewLista')?.classList.toggle('active', mode === 'lista');
+  try { localStorage.setItem('ativViewMode_v1', mode); } catch (e) {}
+  document.getElementById('ativGrid').style.display = mode === 'cards' ? 'grid' : (mode === 'lista' ? 'block' : 'none');
   document.getElementById('ativKanban').style.display = mode === 'kanban' ? 'grid' : 'none';
   const sg = document.getElementById('ativSortGroup');
-  if (sg) sg.style.display = mode === 'cards' ? 'flex' : 'none';
+  if (sg) sg.style.display = (mode === 'cards' || mode === 'lista') ? 'flex' : 'none';
   const ob = document.getElementById('ativKanbanOrdemBtn');
   if (ob) ob.style.display = mode === 'kanban' ? 'flex' : 'none';
   renderAtividadeCards();
@@ -17344,7 +17389,7 @@ function _ativRenderKpis() {
     {num:ativas.length, label:'Atividades em aberto', color:'var(--text-dim)', glow:'transparent',
      icon:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
      cls:'kpi-clickable', id:'kpiAtivAberto', title:'Clique para ver as atividades em aberto'},
-    {num:atrasadas.length, label:'Atrasadas', color:'#EF4444', glow:'rgba(239,68,68,.1)',
+    {num:atrasadas.length, label:'Atrasadas', color:'var(--acao)', glow:'rgba(234,90,42,.12)',
      icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
      cls:'kpi-clickable kpi-alert'+(_ativFiltroAtrasada?' active-filter':''), id:'kpiAtivAtrasadas', title:'Clique para filtrar só as atrasadas'},
     {num:altas.length, label:'Prioridade alta (abertas)', color:'var(--amber)', glow:'rgba(245,166,35,.1)',
@@ -17914,6 +17959,16 @@ function renderAtividadeCards() {
   if (ordenadas.length === 0) {
     const msgVazio = _ativTab==='historico' ? 'Nenhuma atividade concluída' : (_ativTab==='verificacao' ? 'Nenhuma atividade em verificação' : 'Nenhuma atividade em aberto');
     grid.innerHTML = `<div class="empty-state"><strong>${msgVazio}</strong>${ATIVIDADES.length===0 ? 'Use "Nova Atividade" na barra lateral para criar a primeira.' : 'Ajuste os filtros ou troque de aba.'}</div>`;
+    return;
+  }
+
+  if (_ativViewMode === 'lista') {
+    grid.innerHTML = _ativRenderLista(ordenadas);
+    grid.querySelectorAll('tr.al-row').forEach(r => {
+      r.addEventListener('click', e => { if (e.target.closest('a')) return; _abrirAtivDrawer(r.dataset.id); });
+      r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _abrirAtivDrawer(r.dataset.id); } });
+    });
+    _atualizarBadgesNaoLidos();
     return;
   }
 
@@ -23872,7 +23927,7 @@ function _vgRender(mapa) {
       <td class="vg-col-cli"><span class="vg-cli">${esc(m.cliente || p.cliente || '')}</span></td>
       <td class="vg-col-tec">${esc(m.responsavel || '—')}</td>
       <td><div class="vg-barra">${seg2(p.a30, 'var(--vg-focar)')}${seg2(p.at - p.a30, 'var(--vg-acompanhar)')}${seg2(p.ab - p.at, 'var(--vg-emdia)')}</div></td>
-      <td><button class="vg-ir" onclick="_vgIrUsina(${esc(JSON.stringify(p.usina))})">Ver ${p.at} →</button></td></tr>`; }).join('')}
+      <td><button class="vg-ir" onclick="_vgIrUsina(${esc(JSON.stringify(p.usina))})">Ver atrasadas →</button></td></tr>`; }).join('')}
     </tbody></table>
   </section>
 
@@ -23890,6 +23945,7 @@ function _vgIrUsina(usina) {
   try {
     selUsinaValues.clear(); selUsinaValues.add(usina);
     _updateCbLabel('Usina'); _renderCbDropdown('Usina');
+    if (_ativViewMode !== 'lista') _ativSetViewMode('lista');
     if (!_ativFiltroAtrasada) _ativToggleFiltroAtrasada();
     applyFilters();
   } catch (e) { console.warn('[Visão geral] filtro por usina', e); }
@@ -23911,6 +23967,40 @@ _lvSync = function () {
   } catch (e) {}
   return r;
 };
+
+
+/* ══ ATIVIDADES · VISÃO EM LISTA (16/11/2026) — mesmas abas, filtros e ordenação dos cards ══ */
+function _ativRenderLista(lista) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const linhas = lista.map(a => {
+    const d = _ativParseDataBR(a.prazo);
+    let prazo = '<span class="al-prazo"><b>—</b></span>';
+    if (d) {
+      const dias = Math.round((hoje - d) / 86400000);
+      const dt = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      const atr = _ativAtrasada(a);
+      const sub = atr ? `atrasada há ${dias} dia${dias !== 1 ? 's' : ''}` : (dias === 0 ? 'vence hoje' : (dias < 0 ? `em ${-dias} dia${dias !== -1 ? 's' : ''}` : ''));
+      prazo = `<span class="al-prazo${atr ? ' atr' : ''}"><b>${dt}</b><small>${sub}</small></span>`;
+    }
+    const os = a.numeroOS ? (a.linkOS ? `<a class="al-os" href="${esc(a.linkOS)}" target="_blank" rel="noopener">${esc(a.numeroOS)}</a>` : `<span class="al-os">${esc(a.numeroOS)}</span>`) : '<span style="color:var(--text-faint)">—</span>';
+    const pc = _prioridadeCor(a.prioridade);
+    return `<tr class="al-row" tabindex="0" data-id="${esc(a.id)}">
+      <td>${prazo}</td>
+      <td class="al-c-os">${os}</td>
+      <td class="al-us"><b>${esc(a.usina || '—')}</b><small>${esc(a.cliente || '')}</small></td>
+      <td class="al-desc"><b>${a.visualizado !== 'sim' ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acao);margin-right:6px;vertical-align:1px"></span>' : ''}${esc(a.descricao || '')}</b><small>${esc(_ativEquipamento(a))}</small></td>
+      <td class="al-c-resp">${esc(a.responsavel || 'Sem responsável')}</td>
+      <td class="al-c-pri"><span class="al-pri"><i style="background:${pc}"></i>${esc(a.prioridade || '—')}</span></td>
+      <td>${_ativBadgeStatus(a)}</td></tr>`;
+  }).join('');
+  return `<div class="al-wrap"><table class="al-tab"><thead><tr><th>Prazo</th><th class="al-c-os">OS</th><th>Usina</th><th>Atividade</th><th class="al-c-resp">Responsável</th><th class="al-c-pri">Prioridade</th><th>Status</th></tr></thead><tbody>${linhas}</tbody></table></div>`;
+}
+try {
+  const _modoSalvo = localStorage.getItem('ativViewMode_v1');
+  if (_modoSalvo && ['cards', 'kanban', 'lista'].includes(_modoSalvo) && _modoSalvo !== _ativViewMode) {
+    setTimeout(() => { try { _ativSetViewMode(_modoSalvo); } catch (e) {} }, 0);
+  }
+} catch (e) {}
 
 </script>
 
