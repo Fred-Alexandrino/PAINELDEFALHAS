@@ -23284,6 +23284,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v26: menu lateral no celular volta a funcionar (camadas ignoram o menu) */
 /* LAYOUT v25: Nova Ipixuna I no catálogo e no escopo do Vitor */
 /* LAYOUT v24: inicialização após o script */
 /* LAYOUT v23: comunicar atividade pelo grupo da usina */
@@ -23510,7 +23511,7 @@ try {
 (function () {
   const FUNDOS = '#ativDrawerBackdrop,.oc-scrim';
   const SEL = '#ativDrawer,#ativDrawerBackdrop,.oc-drawer,.oc-scrim,.oc-modal,.ch-overlay,.pf-ov,.au-ov,.se-ov,.rondas-overlay,[id$="Overlay"],[id$="overlay"],[class*="-overlay"],[class*="modal-ov"]';
-  const IGNORA = el => el.id === 'loginScreen' || el.classList.contains('toast') || el.classList.contains('central-notif-backdrop') || el.classList.contains('central-notif-modal') || el.id === 'ajudaPanel' || el.id === 'ajudaBubble';
+  const IGNORA = el => el.id === 'loginScreen' || el.id === 'sbMobileOverlay' || el.id === 'sidebar' || el.classList.contains('sb-mobile-overlay') || el.classList.contains('toast') || el.classList.contains('central-notif-backdrop') || el.classList.contains('central-notif-modal') || el.id === 'ajudaPanel' || el.id === 'ajudaBubble';
   let topo = 2100, abertos = new Set(), agendado = false;
   function aberto(el) {
     if (!el.isConnected) return false;
