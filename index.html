@@ -14215,7 +14215,7 @@ async function carregarAtividades(tentativa = 1) {
   if (sub) sub.textContent = tentativa > 1 ? `Carregando… (tentativa ${tentativa})` : 'Carregando…';
   try {
     const ctrl = new AbortController();
-    const timeoutId = setTimeout(() => ctrl.abort(), 20000);
+    const timeoutId = setTimeout(() => ctrl.abort(), 45000);
     const resp = await fetch('https://api.168.138.232.237.sslip.io/atividades', { signal: ctrl.signal });
     clearTimeout(timeoutId);
     const result = await resp.json();
@@ -23284,6 +23284,7 @@ function _pfDrawer(nome) {
 }
 
 
+/* LAYOUT v27: atividades com 45 s de tempo limite (celular) */
 /* LAYOUT v26: menu lateral no celular volta a funcionar (camadas ignoram o menu) */
 /* LAYOUT v25: Nova Ipixuna I no catálogo e no escopo do Vitor */
 /* LAYOUT v24: inicialização após o script */
