@@ -2361,7 +2361,8 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .al-tab tr.al-row:hover td{background:var(--panel-alt)}
 .al-tab tr.al-row:focus{outline:2px solid var(--acao);outline-offset:-2px}
 .al-prazo b{display:block;font-weight:600}
-.al-prazo small{font-size:11.5px;color:var(--text-faint)}
+.al-prazo small{font-size:11.5px;color:var(--text-faint);white-space:nowrap}
+.al-tab td:last-child *{white-space:nowrap}
 .al-prazo.atr b{color:var(--acao)}
 .al-prazo.atr small{color:var(--acao);opacity:.85}
 .al-os{font-weight:600;color:var(--teal);white-space:nowrap}
@@ -2372,6 +2373,28 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .al-pri i{width:8px;height:8px;border-radius:50%;display:inline-block}
 .al-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:auto;max-height:calc(100vh - 260px)}
 @media (max-width:820px){.al-tab .al-c-resp,.al-tab .al-c-pri,.al-tab .al-c-os{display:none}.al-wrap{max-height:none}}
+
+#sec-visao-geral tr.vg-row{cursor:pointer}
+#sec-visao-geral tr.vg-row.aberto td{background:var(--vg-sup-2)}
+#sec-visao-geral .vg-ger b{display:block;font-size:17px;font-weight:700}
+#sec-visao-geral .vg-ger small{color:var(--vg-mudo);font-size:11.5px}
+#sec-visao-geral .vg-chev{color:var(--vg-mudo);width:28px}
+#sec-visao-geral .vg-chev svg{transition:transform .15s}
+#sec-visao-geral tr.vg-row.aberto .vg-chev svg{transform:rotate(180deg);color:var(--vg-acao)}
+#sec-visao-geral tr.vg-det td{background:var(--vg-sup-2);padding:4px 10px 16px}
+#sec-visao-geral .vg-det-in{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px;align-items:start}
+#sec-visao-geral .vg-pf{background:var(--vg-sup);border-color:var(--vg-linha)}
+#sec-visao-geral .vg-at-tit{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vg-mudo);margin-bottom:6px}
+#sec-visao-geral .vg-at{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--vg-linha);padding:8px 4px;color:var(--vg-tinta);cursor:pointer;font:inherit}
+#sec-visao-geral .vg-at:hover{background:var(--vg-sup)}
+#sec-visao-geral .vg-at-dias{flex:none;min-width:40px;text-align:center;font-size:12px;font-weight:700;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--vg-acompanhar) 20%,transparent);color:var(--vg-acompanhar)}
+#sec-visao-geral .vg-at-dias.f{background:var(--vg-acao-suave);color:var(--vg-acao)}
+#sec-visao-geral .vg-at-txt b{display:block;font-weight:600;font-size:13px;line-height:1.3}
+#sec-visao-geral .vg-at-txt small{color:var(--vg-mudo);font-size:12px}
+@media (max-width:820px){#sec-visao-geral .vg-det-in{grid-template-columns:1fr}}
+.vg-faixa{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:rgba(234,90,42,.12);border:1px solid rgba(234,90,42,.4);font-size:13px;color:var(--text)}
+.vg-faixa button{font:inherit;font-size:12.5px;font-weight:600;border-radius:8px;padding:5px 10px;cursor:pointer;border:1px solid rgba(234,90,42,.5);background:none;color:var(--acao)}
+.vg-faixa button:first-of-type{background:var(--acao);color:var(--acao-tx);border-color:transparent;margin-left:auto}
 </style>
 </head>
 <body>
@@ -23810,7 +23833,9 @@ async function _vgEntrar() {
     if (_activeNav !== 'visao-geral') return;
   }
   let mapa = [];
+  const _pfP = (typeof _pfDados !== 'undefined' && !_pfDados && typeof _pfCarregar === 'function') ? _pfCarregar().catch(() => {}) : Promise.resolve();
   try { mapa = (await _mapUfvsCarregar()) || []; } catch (e) {}
+  try { await _pfP; } catch (e) {}
   _vgRender(mapa);
 }
 
@@ -23855,11 +23880,12 @@ function _vgRender(mapa) {
   const pu = {};
   abertas.forEach(a => {
     const k = a.usina || '—';
-    const p = pu[k] || (pu[k] = { usina: k, cliente: a.cliente, ab: 0, at: 0, a30: 0 });
+    const p = pu[k] || (pu[k] = { usina: k, cliente: a.cliente, ab: 0, at: 0, a30: 0, lista: [] });
     p.ab++;
-    if (_ativAtrasada(a)) { p.at++; if (_vgDias(_vgData(a.prazo)) > 30) p.a30++; }
+    if (_ativAtrasada(a)) { p.at++; p.lista.push(a); if (_vgDias(_vgData(a.prazo)) > 30) p.a30++; }
   });
   const focar = Object.values(pu).sort((x, y) => y.a30 - x.a30 || y.at - x.at).slice(0, 10);
+  window._vgFocar = focar;
 
   // clusters
   const pc = {};
@@ -23918,16 +23944,21 @@ function _vgRender(mapa) {
 
   <section class="vg-bloco" style="margin-top:14px">
     <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <div><h3>Focar primeiro</h3><p class="vg-sub">Usinas com mais atividades atrasadas há mais de 30 dias</p></div>
+      <div><h3>Focar primeiro</h3><p class="vg-sub">Usinas com mais atividades atrasadas há mais de 30 dias, com a geração do mês. Clique numa usina para ver o detalhe.</p></div>
       <div class="vg-leg" style="margin-left:auto"><span><i style="background:var(--vg-focar)"></i>Atrasada +30 dias</span><span><i style="background:var(--vg-acompanhar)"></i>Atrasada até 30 dias</span><span><i style="background:var(--vg-emdia)"></i>No prazo</span></div>
     </div>
-    <table class="vg-tab"><thead><tr><th>Usina</th><th class="vg-col-cli">Cliente</th><th class="vg-col-tec">Responsável</th><th>Abertas</th><th></th></tr></thead><tbody>
-    ${focar.map(p => { const m = porUsina[norm(p.usina)] || {}; return `<tr>
-      <td class="vg-us"><b>${esc(p.usina)}</b><small>${esc(m.cluster || '')}</small></td>
+    <table class="vg-tab"><thead><tr><th>Usina</th><th class="vg-col-cli">Cliente</th><th class="vg-col-tec">Responsável</th><th>Abertas</th><th>Geração do mês</th><th></th></tr></thead><tbody>
+    ${focar.map((p, idx) => { const m = porUsina[norm(p.usina)] || {}; const pf = _vgPerf(p.usina); const at = pf ? pf.atingimento : null;
+      const corG = at == null ? 'var(--vg-mudo)' : (at >= 95 ? 'var(--vg-emdia)' : (at >= 85 ? 'var(--vg-acompanhar)' : 'var(--vg-focar)'));
+      const risco = (at != null && at < 85 && p.a30 > 0) ? '<span class="vg-tag ruim" style="margin-top:4px">atraso + geração baixa</span>' : ((at != null && at >= 95) ? '<span class="vg-tag bom" style="margin-top:4px">gerando bem</span>' : '');
+      return `<tr class="vg-row" tabindex="0" data-i="${idx}" onclick="_vgToggle(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();_vgToggle(this)}">
+      <td class="vg-us"><b>${esc(p.usina)}</b><small>${esc(m.cluster || '')}</small>${risco ? '<div>' + risco + '</div>' : ''}</td>
       <td class="vg-col-cli"><span class="vg-cli">${esc(m.cliente || p.cliente || '')}</span></td>
       <td class="vg-col-tec">${esc(m.responsavel || '—')}</td>
       <td><div class="vg-barra">${seg2(p.a30, 'var(--vg-focar)')}${seg2(p.at - p.a30, 'var(--vg-acompanhar)')}${seg2(p.ab - p.at, 'var(--vg-emdia)')}</div></td>
-      <td><button class="vg-ir" onclick="_vgIrUsina(${esc(JSON.stringify(p.usina))})">Ver atrasadas →</button></td></tr>`; }).join('')}
+      <td class="vg-ger"><b style="color:${corG}">${at == null ? '—' : _pfFmt(at, 0) + '%'}</b><small>${at == null ? 'sem leitura' : 'do esperado'}</small></td>
+      <td class="vg-chev"><svg viewBox="0 0 24 24" width="16" height="16"><polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2"/></svg></td></tr>
+      <tr class="vg-det" hidden><td colspan="6"></td></tr>`; }).join('')}
     </tbody></table>
   </section>
 
@@ -23940,6 +23971,47 @@ function _vgRender(mapa) {
 }
 
 // "Ver N →": abre Atividades já filtrada pela usina (mesmo filtro da sidebar) e só atrasadas
+function _vgNorm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase(); }
+function _vgPerf(usina) {
+  try { const k = _vgNorm(usina); return ((_pfDados && _pfDados.usinas) || []).find(u => _vgNorm(u.usina) === k) || null; } catch (e) { return null; }
+}
+function _vgToggle(tr) {
+  const det = tr.nextElementSibling;
+  if (!det || !det.classList.contains('vg-det')) return;
+  const abrir = det.hidden;
+  if (abrir) { const p = (window._vgFocar || [])[+tr.dataset.i]; det.firstElementChild.innerHTML = p ? _vgDetalhe(p) : ''; }
+  det.hidden = !abrir;
+  tr.classList.toggle('aberto', abrir);
+}
+function _vgDetalhe(p) {
+  const u = _vgPerf(p.usina);
+  let card;
+  if (u) {
+    const a = _pfAgrega([u]);
+    let gap = null; try { const d = _pfDiag(u); gap = d ? d.gap : null; } catch (e) {}
+    card = `<div class="pf-cli vg-pf" style="cursor:default"><h3>Performance · ${esc(typeof _pfMesRot === 'function' ? _pfMesRot(_pfDados.mes) : _pfDados.mes)} <span>Nexus lido em ${esc(_pfDados.lidoEm || '—')}</span></h3><div class="g">
+      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh)</div></div>
+      <div><div class="n ${gap > 0 ? 'pf-mal' : 'pf-ok'}">${_pfFmt(gap > 0 ? gap : 0, 0)}</div><div class="l">MWh abaixo do esperado</div></div>
+      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR · meta ${_pfFmt(a.prMeta)}%</div></div>
+      <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">disponibilidade (equip. ${_pfFmt(a.dispEquip)}%)</div></div>
+    </div></div>`;
+  } else {
+    card = `<div class="pf-cli vg-pf" style="cursor:default"><h3>Performance</h3><div class="l" style="font-size:12.5px;color:var(--text-dim)">Sem leitura do Nexus para esta usina.</div></div>`;
+  }
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const lista = [...p.lista].sort((x, y) => (_vgData(x.prazo) || 0) - (_vgData(y.prazo) || 0));
+  const itens = lista.slice(0, 10).map(a => {
+    const d = _vgData(a.prazo); const dias = d ? Math.round((hoje - d) / 86400000) : 0;
+    return `<button class="vg-at" onclick="event.stopPropagation();_abrirAtivDrawer(${esc(JSON.stringify(a.id))})">
+      <span class="vg-at-dias${dias > 30 ? ' f' : ''}">${dias}d</span>
+      <span class="vg-at-txt"><b>${a.numeroOS ? 'OS ' + esc(a.numeroOS) + ' · ' : ''}${esc(a.descricao || '')}</b><small>${esc(_ativEquipamento(a))}${_ativEmVerificacao(a) ? ' · em verificação' : ''}</small></span></button>`;
+  }).join('');
+  return `<div class="vg-det-in">${card}
+    <div class="vg-at-lista"><div class="vg-at-tit">${p.at} atrasada${p.at !== 1 ? 's' : ''}${p.at > 10 ? ' · as 10 mais antigas' : ''}</div>${itens || '<div class="vg-sub">Nenhuma atrasada.</div>'}
+      <button class="vg-btn" style="margin-top:8px" onclick="event.stopPropagation();_vgIrUsina(${esc(JSON.stringify(p.usina))})">Abrir no Painel de Atividades →</button></div></div>`;
+}
+
+// Abre Atividades filtrada pela usina (só atrasadas, em lista) com uma faixa visível para desfazer
 function _vgIrUsina(usina) {
   switchNav('atividades');
   try {
@@ -23948,8 +24020,36 @@ function _vgIrUsina(usina) {
     if (_ativViewMode !== 'lista') _ativSetViewMode('lista');
     if (!_ativFiltroAtrasada) _ativToggleFiltroAtrasada();
     applyFilters();
+    _vgFaixa(usina);
   } catch (e) { console.warn('[Visão geral] filtro por usina', e); }
 }
+function _vgFaixa(usina) {
+  document.getElementById('vgFaixaFiltro')?.remove();
+  if (!usina) return;
+  const sec = document.getElementById('sec-atividades'); if (!sec) return;
+  const el = document.createElement('div');
+  el.id = 'vgFaixaFiltro'; el.className = 'vg-faixa'; el.dataset.usina = usina;
+  el.innerHTML = `<span>Filtro vindo da Visão geral: <b>${esc(usina)}</b> · só atrasadas</span><button type="button" onclick="_vgLimparFaixa()">Limpar filtro ✕</button><button type="button" onclick="_vgLimparFaixa();switchNav('visao-geral')">← Voltar à Visão geral</button>`;
+  sec.insertBefore(el, sec.firstChild);
+  try { el.scrollIntoView({ block: 'start' }); } catch (e) {}
+}
+function _vgLimparFaixa() {
+  const el = document.getElementById('vgFaixaFiltro'); const u = el && el.dataset.usina;
+  el?.remove();
+  try {
+    if (u) selUsinaValues.delete(u);
+    _updateCbLabel('Usina'); _renderCbDropdown('Usina');
+    if (_ativFiltroAtrasada) _ativToggleFiltroAtrasada();
+    applyFilters();
+  } catch (e) {}
+}
+// se o filtro de usina for mudado por outro caminho (filtros do topo, "Limpar filtros"), a faixa some sozinha
+const _vgApplyBase = applyFilters;
+applyFilters = function () {
+  const r = _vgApplyBase.apply(this, arguments);
+  try { const el = document.getElementById('vgFaixaFiltro'); if (el && !(selUsinaValues.size === 1 && selUsinaValues.has(el.dataset.usina))) el.remove(); } catch (e) {}
+  return r;
+};
 
 const _vgSwitchBase = switchNav;
 switchNav = function (nav) {
