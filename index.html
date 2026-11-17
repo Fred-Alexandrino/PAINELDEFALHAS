@@ -3016,7 +3016,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
               <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
               <button class="tb-btn se-so-grid" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
-              <button class="tb-btn se-so-grid" style="color:var(--teal);border-color:rgba(63,165,140,.4);" onclick="_seSyncAgora()" title="Requer a extensão Grid Sync SolarEdge instalada no Chrome">Sincronizar agora</button>
+              <button class="tb-btn se-so-grid" id="seSyncBtn" style="background:var(--acao);border-color:var(--acao);color:var(--acao-tx);font-weight:600;" onclick="_seSyncAgora()" title="Busca os cases direto do site da SolarEdge (extensão Grid Sync SolarEdge no Chrome)">Atualizar da SolarEdge</button>
               <button class="tb-btn se-so-grid" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
               <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
               <input type="file" id="seArquivo" accept=".xlsx,.xls" style="display:none;" onchange="_seImportar(this)">
@@ -11803,7 +11803,13 @@ function _seRender() {
   const usinas = [...new Set(_SE.itens.map(c => c.usina || '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const sel = document.getElementById('seFiltroUsina');
   if (sel) sel.innerHTML = '<option value="">Todas as usinas</option>' + usinas.map(u => `<option value="${esc(u)}" ${u === _SE.usina ? 'selected' : ''}>${esc(u === '—' ? 'Sem usina identificada' : u)}</option>`).join('');
-  document.getElementById('seSync').textContent = _SE.ultima ? 'Atualizado em ' + _seDataBR(_SE.ultima.replace('T', ' ')) : 'Nunca importado';
+  (function () {
+    const el = document.getElementById('seSync'); if (!el) return;
+    if (!_SE.ultima) { el.textContent = 'Nunca importado'; return; }
+    const d = new Date(String(_SE.ultima).replace(' ', 'T')); const h = isNaN(d) ? 0 : (Date.now() - d) / 3600e3;
+    const idade = h < 1 ? 'agora há pouco' : h < 48 ? 'há ' + Math.round(h) + ' h' : 'há ' + Math.round(h / 24) + ' dias';
+    el.innerHTML = 'Lido do site em ' + esc(_seDataBR(_SE.ultima.replace('T', ' '))) + ' · ' + idade + (h > 24 ? ' <b style="color:var(--acao)">· desatualizado</b>' : '');
+  })();
   const itens = _seFiltrados();
   let extra = '';
   if (_SE.filtro === 'todos') {
@@ -11878,14 +11884,43 @@ function _seColRender() {
 /* ── Sync automático via extensão do Chrome ── */
 window._seExt = false;
 window.addEventListener('message', e => { if (e.source === window && e.data && e.data.tipo === 'GRID_SE_EXT') window._seExt = true; });
+// 17/11/2026: mesmo fluxo do "Atualizar do Nexus" — pede a leitura, mostra que está aguardando e só termina
+// quando o servidor recebe dados novos (ou explica o que conferir depois de 4 min).
+let _seSyncPoll = null;
 function _seSyncAgora() {
+  const btn = document.getElementById('seSyncBtn'), msg = document.getElementById('seImportMsg');
+  const say = (t, erro) => { if (msg) { msg.innerHTML = t || ''; msg.style.color = erro ? 'var(--acao)' : 'var(--text-dim)'; } };
+  const fim = () => { clearInterval(_seSyncPoll); if (btn) { btn.disabled = false; btn.textContent = 'Atualizar da SolarEdge'; } };
+  const antes = _SE.ultima || '';
+  window._seExt = false;
   window.postMessage({ tipo: 'GRID_SE_PING' }, '*');
+  if (btn) { btn.disabled = true; btn.textContent = 'Procurando a extensão…'; }
   setTimeout(() => {
-    if (!window._seExt) { showToast('Extensão “Grid Sync SolarEdge” não detectada neste navegador. Instale-a no Chrome e recarregue o painel.', false); return; }
+    if (!window._seExt) {
+      fim();
+      say('A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R). Enquanto isso, dá para usar "Importar export (.xlsx)".', true);
+      return;
+    }
     window.postMessage({ tipo: 'GRID_SE_SYNC' }, '*');
-    showToast('Sincronizando com a SolarEdge em segundo plano… o painel atualiza sozinho em ~1 min.', true);
-    setTimeout(() => _seCarregar(true), 75000);
-  }, 700);
+    if (btn) btn.textContent = 'Aguardando a SolarEdge…';
+    say('Lendo os cases no site da SolarEdge em segundo plano. A lista atualiza sozinha quando os dados chegarem (costuma levar ~1 min).');
+    let n = 0;
+    clearInterval(_seSyncPoll);
+    _seSyncPoll = setInterval(async () => {
+      n++;
+      await _seCarregar(true);
+      if (_SE.ultima && _SE.ultima !== antes) {
+        fim(); say('');
+        showToast('Chamados SolarEdge atualizados: ' + _SE.itens.length + ' cases.', true);
+        _seRender();
+        return;
+      }
+      if (n >= 16) {
+        fim();
+        say('A SolarEdge não devolveu dados em 4 minutos. Confira: 1) você está logado no site (<a href="' + _SE_SITE + '" target="_blank" rel="noopener" style="color:var(--teal)">abrir Support Cases</a>); 2) a extensão Grid Sync SolarEdge está ativa. Depois clique de novo.', true);
+      }
+    }, 15000);
+  }, 900);
 }
 
 /* ── Comunicado ao técnico (texto pronto p/ WhatsApp), baseado no retorno da SolarEdge ── */
@@ -24303,7 +24338,7 @@ function _vgAtualizarNexus(btn) {
   }, 15000);
 }
 function alertaNexusSemResposta() {
-  const msg = 'O Nexus não enviou dados em 4 minutos. Confira no Chrome: 1) você está logado no Nexus; 2) o Tampermonkey está ativo com o script "Grid Performance → Painel" (v1.2); 3) em chrome://extensions › Tampermonkey › Detalhes, "Permitir scripts de usuário" está ligado.';
+  const msg = 'O Nexus não enviou dados em 4 minutos. Confira no Chrome: 1) você está logado no Nexus; 2) o Tampermonkey está ativo com o script "Grid Performance → Painel" (v1.2); 3) em chrome://extensions › Tampermonkey › Detalhes, "Permitir scripts de usuário" está ligado; 4) a própria Performance do Nexus pode estar fora do ar — se o Painel NOC do Nexus estiver em branco, o script avisa na aba do Nexus e é só tentar mais tarde.';
   if (typeof showToast === 'function') showToast(msg, false); else console.warn(msg);
 }
 const _vgPfRenderBase = _pfRender;
