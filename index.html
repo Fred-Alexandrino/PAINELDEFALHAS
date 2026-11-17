@@ -2468,6 +2468,20 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .resumo-item.active{box-shadow:inset 3px 0 0 var(--acao),var(--shadow)!important;border-color:var(--border-strong)!important}
 .lv-subtab.active{border-bottom-color:var(--acao)!important}
 #sec-visao-geral{background:transparent!important;padding:4px 0 40px!important;border-radius:0!important}
+
+/* Filtros no celular (17/11/2026): o contêiner do dropdown tinha altura fixa de 38px, então a lista aberta
+   vazava por cima de Cluster/Equipamento/Técnico. Agora a lista empurra os campos de baixo. */
+@media(max-width:768px),(max-width:1024px) and (orientation:portrait){
+  .filterbar .cb-dropdown{height:auto!important}
+  .filterbar .cb-list{position:static!important;max-height:240px!important;overflow-y:auto!important;background:var(--panel)!important;border:1px solid var(--border-strong)!important;border-radius:10px!important;margin-top:6px!important}
+  .filterbar .fb-pop-panel{position:static!important}
+  .filterbar{max-height:70vh!important;box-shadow:0 10px 24px -12px rgba(0,0,0,.35)}
+  .filterbar .sb-filters{gap:12px!important}
+  .filterbar .sb-filter-label{font-size:11.5px!important;font-weight:500!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:var(--text-dim)!important}
+}
+
+/* Gaveta fechada fora da tela deixava a sombra vazar na borda direita (faixa cinza no celular) */
+.drawer:not(.open),.oc-drawer:not(.on){box-shadow:none!important}
 </style>
 </head>
 <body>
