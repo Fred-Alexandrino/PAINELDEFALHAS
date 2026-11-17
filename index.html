@@ -24175,6 +24175,18 @@ try {
   }
 } catch (e) {}
 
+
+/* Visão geral é a tela inicial (pedido do Fred, 17/11/2026) para manager/admin; um #painel na URL continua tendo prioridade */
+const _vgInitBase = initDashboard;
+initDashboard = function (session) {
+  const r = _vgInitBase.apply(this, arguments);
+  try {
+    const h = (location.hash || '').slice(1);
+    if ((!h || !document.getElementById('sec-' + h)) && session && ['manager', 'admin'].includes(session.role)) switchNav('visao-geral');
+  } catch (e) { console.warn('[Visão geral] tela inicial', e); }
+  return r;
+};
+
 </script>
 
 </body>
