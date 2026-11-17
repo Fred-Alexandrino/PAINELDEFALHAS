@@ -50,8 +50,39 @@
     },
   };
 
+  const MAX_PRINTS = 4;
+  // Usinas juntas (mesmo local): vêm do mapeamento (campo "conjunto" de /mapeamento-ufvs,
+  // USINAS_JUNTAS no app.py). Esta lista só vale se o backend ainda não mandar o campo.
+  const JUNTAS_PADRAO = [['Canarana I', 'Canarana II'], ['União I', 'União II'], ['Nova Londrina I', 'Nova Londrina II'],
+    ['Pharmas II', 'Pharmas III', 'Pharmas IV'], ['Coração I', 'Coração II'],
+    ['Guatambu I', 'Guatambu II', 'Guatambu III', 'Guatambu IV'], ['Aparecida do Taboado I', 'Aparecida do Taboado II']];
+  function juntas(mapa) {
+    const por = {};
+    (mapa || []).forEach(u => { if (u.conjunto) (por[u.conjunto] = por[u.conjunto] || []).push(u.usina); });
+    const l = Object.values(por).filter(g => g.length > 1);
+    return l.length ? l : JUNTAS_PADRAO;
+  }
+  // "UFV União I · UFV União II" → "UFV União I e II"
+  function rotuloUfvs(lista) {
+    const nomes = lista.map(u => u.usina || u);
+    const out = [], usadas = new Set();
+    nomes.forEach(n => {
+      if (usadas.has(n)) return;
+      const g = juntas(st.mapa).find(j => j.includes(n));
+      const sel = g ? g.filter(x => nomes.includes(x)) : [n];
+      sel.forEach(x => usadas.add(x));
+      out.push('UFV ' + (sel.length > 1 ? nomeConjunto(sel) : n));
+    });
+    return out.join(' · ');
+  }
+  function nomeConjunto(usinas) {
+    const base = usinas[0].split(' ').slice(0, -1).join(' ');
+    const r = usinas.map(n => n.split(' ').pop());
+    return base + ' ' + (r.length > 1 ? r.slice(0, -1).join(', ') + ' e ' + r[r.length - 1] : r[0]);
+  }
   const st = {
-    tipo: 'cliente', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
+    tipo: 'cliente', cliente: '', filtroCliente: '', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
+    prints: [], // [{base64, mimeType, url}] — só na memória (não vai para o localStorage)
     resultados: [], // [{grupo, versoes:[{n, saida, ajuste}], atual, gerando, erro, ajusteAberto}]
   };
 
@@ -70,7 +101,7 @@
 
   function salvar() {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ tipo: st.tipo, ufvs: st.ufvs, rascunho: st.rascunho,
+      localStorage.setItem(LS_KEY, JSON.stringify({ tipo: st.tipo, cliente: st.cliente, ufvs: st.ufvs, rascunho: st.rascunho,
         resultados: st.resultados.map(r => ({ grupo: r.grupo, versoes: r.versoes, atual: r.atual })) }));
     } catch (e) {}
   }
@@ -80,6 +111,7 @@
       if (!d) return;
       if (TIPOS.some(t => t[0] === d.tipo)) st.tipo = d.tipo;
       st.ufvs = Array.isArray(d.ufvs) ? d.ufvs : [];
+      st.cliente = typeof d.cliente === 'string' ? d.cliente : '';
       st.rascunho = d.rascunho || '';
       st.resultados = Array.isArray(d.resultados) ? d.resultados.map(r => Object.assign({ gerando: false, erro: '', ajusteAberto: false }, r)) : [];
     } catch (e) {}
@@ -102,7 +134,16 @@
     render();
   }
 
-  const rotas = () => (st.mapa ? G.resolver({ tipo: st.tipo, ufvs: st.ufvs, mapeamento: st.mapa }) : { grupos: [], avisos: [] });
+  const porCliente = () => INFO[st.tipo].lista !== 'tecnico';
+  function rotas() {
+    if (!st.mapa) return { grupos: [], avisos: [] };
+    if (!porCliente()) return G.resolver({ tipo: st.tipo, ufvs: st.ufvs, mapeamento: st.mapa });
+    if (!st.cliente) return { grupos: [], avisos: [] };
+    const doCliente = st.ufvs.filter(n => { const u = G.buscarUfv(st.mapa, n); return u && u.cliente === st.cliente; });
+    if (doCliente.length) return G.resolver({ tipo: st.tipo, ufvs: doCliente, mapeamento: st.mapa });
+    const c = G.contatoDoCliente(st.cliente);
+    return { grupos: [{ chave: 'cli:' + st.cliente, tipo: st.tipo, cliente: st.cliente, destinatarios: c ? [c.nome] : [], ufvs: [] }], avisos: [] };
+  }
 
   // ── saída: sanitiza (WhatsApp) e valida ──
   function preparar(saida, tipo) {
@@ -122,8 +163,10 @@
       tipo: grupo.tipo,
       destinatarios: grupo.destinatarios,
       ufvs: grupo.ufvs.map(u => ({ ufv: u.ufv, cidadeUf: u.cidadeUf, cliente: u.cliente, tecnico: u.tecnico, funcao: u.funcao })),
+      cliente: grupo.cliente || '',
       dataHoraEnvio: envioBR(st.envio),
       rascunho: st.rascunho,
+      prints: st.prints.map(p => ({ base64: p.base64, mimeType: p.mimeType })),
     }, extra || {});
     const r = await fetch(API + '/comunicacao/gerar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(100000),
@@ -135,9 +178,9 @@
   }
 
   async function gerar() {
-    if (!st.rascunho.trim()) return toast('Cole o rascunho/relato antes de gerar.', false);
+    if (!st.rascunho.trim() && !st.prints.length) return toast('Escreva o rascunho ou anexe um print antes de gerar.', false);
     const { grupos } = rotas();
-    if (!grupos.length) return toast('Selecione ao menos uma UFV do mapeamento.', false);
+    if (!grupos.length) return toast(porCliente() ? 'Escolha o cliente.' : 'Selecione ao menos uma UFV do mapeamento.', false);
     if (grupos.length > 1 && !confirm(`Vão sair ${grupos.length} mensagens separadas (uma por ${st.tipo === 'tecnico' ? 'técnico' : 'cliente'}). Gerar todas?`)) return;
     st.resultados = grupos.map(g => ({ grupo: g, versoes: [], atual: -1, gerando: true, erro: '', ajusteAberto: false }));
     render();
@@ -170,6 +213,39 @@
     render();
   }
 
+  // ── prints: reduz para no máx. 1600 px (JPEG) antes de enviar ──
+  function lerPrint(file) {
+    return new Promise((ok, falha) => {
+      if (!file || !/^image\//.test(file.type)) return falha(new Error('não é imagem'));
+      const fr = new FileReader();
+      fr.onerror = () => falha(new Error('não consegui ler o arquivo'));
+      fr.onload = () => {
+        const img = new Image();
+        img.onerror = () => falha(new Error('imagem inválida'));
+        img.onload = () => {
+          const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          const url = c.toDataURL('image/jpeg', 0.85);
+          ok({ base64: url.split(',')[1], mimeType: 'image/jpeg', url });
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  async function adicionarPrints(files) {
+    const lista = [...(files || [])].filter(f => /^image\//.test(f.type));
+    if (!lista.length) return;
+    for (const f of lista) {
+      if (st.prints.length >= MAX_PRINTS) { toast(`No máximo ${MAX_PRINTS} prints por mensagem.`, false); break; }
+      try { st.prints.push(await lerPrint(f)); } catch (e) { toast('Print ignorado: ' + e.message, false); }
+    }
+    render();
+  }
+
   async function copiar(texto, btn) {
     let ok = false;
     try { await navigator.clipboard.writeText(texto); ok = true; } catch (e) {
@@ -188,26 +264,43 @@
     const f = G.normalizar(st.filtro);
     const info = INFO[st.tipo];
     const porTec = info.lista === 'tecnico';
+    const cliMode = !porTec;
     const chave = u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—'));
     const grupos = {};
+    const itens = [];
+    const usadas = new Set();
+    const JUNTAS = juntas(mapa);
     mapa.forEach(u => {
-      if (f && !G.normalizar(u.usina + ' ' + u.cliente + ' ' + u.responsavel + ' ' + u.cluster).includes(f)) return;
+      if (usadas.has(u.usina)) return;
+      const par = JUNTAS.find(j => j.includes(u.usina));
+      const membros = par ? par.map(n => mapa.find(x => x.usina === n)).filter(Boolean) : [u];
+      membros.forEach(m => usadas.add(m.usina));
+      const nome = par && membros.length > 1 ? nomeConjunto(membros.map(m => m.usina)) : u.usina;
+      itens.push(Object.assign({}, u, { nomeLista: nome, usinas: membros.map(m => m.usina) }));
+    });
+    itens.forEach(u => {
+      if (cliMode && u.cliente !== st.cliente) return;
+      if (!cliMode && st.filtroCliente && u.cliente !== st.filtroCliente) return;
+      if (f && !G.normalizar(u.nomeLista + ' ' + u.cliente + ' ' + u.responsavel + ' ' + u.cluster).includes(f)) return;
       (grupos[chave(u)] = grupos[chave(u)] || []).push(u);
     });
     const sel = new Set(st.ufvs);
+    const marcado = u => u.usinas.every(n => sel.has(n));
     const lista = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR')).map(k => `
       <div class="cm-cli">
         <div class="cm-cli-h"><span>${porTec ? '👷 ' : ''}${h(k)}${porTec ? ` <em>${h(grupos[k][0].funcao || '')} · ${h([...new Set(grupos[k].map(u => u.cluster))].join(', '))}</em>` : ''}</span><button type="button" class="cm-link" data-acao="todas" data-grupo="${h(k)}">marcar todas</button></div>
-        ${grupos[k].map(u => `<label class="cm-ufv${sel.has(u.usina) ? ' on' : ''}">
-          <input type="checkbox" data-acao="ufv" value="${h(u.usina)}" ${sel.has(u.usina) ? 'checked' : ''}>
-          <span><b>UFV ${h(u.usina)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cidade_uf || '') : h(u.responsavel || 'sem responsável') + ' · ' + h(u.cluster || '')}</small></span></label>`).join('')}
-      </div>`).join('') || `<div class="cm-vazio">${st.mapa ? 'Nenhuma UFV encontrada.' : 'Carregando o mapeamento…'}</div>`;
+        ${grupos[k].map(u => `<label class="cm-ufv${marcado(u) ? ' on' : ''}">
+          <input type="checkbox" data-acao="ufv" value="${h(u.usinas.join('|'))}" ${marcado(u) ? 'checked' : ''}>
+          <span><b>UFV ${h(u.nomeLista)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cidade_uf || '') : h(u.cidade_uf || '')}</small></span></label>`).join('')}
+      </div>`).join('') || `<div class="cm-vazio">${!st.mapa ? 'Carregando o mapeamento…' : cliMode && !st.cliente ? 'Escolha o cliente acima.' : 'Nenhuma UFV encontrada.'}</div>`;
+    const clientes = (G.CONTATOS_CLIENTE || []).map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.cliente === c.cliente ? ' on' : ''}" data-acao="cliente" data-cliente="${h(c.cliente)}">${h(c.cliente)} <small>→ ${h(c.nome)}${c.incluirTecnico ? ' + técnico' : ''}</small></button>`).join('');
+    const prints = st.prints.map((p, k) => `<div class="cm-print"><img src="${p.url}" alt="print ${k + 1}"><button type="button" data-acao="rm-print" data-k="${k}" title="Remover">×</button></div>`).join('');
 
     const r = rotas();
     const rotaHtml = r.grupos.length ? r.grupos.map(g => `
       <div class="cm-rota">
         <div><span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'contato a definir')}</b>${g.cliente ? ` <span class="cm-tag">${h(g.cliente)}</span>` : ''}</div>
-        <div class="cm-rota-ufvs">${g.ufvs.map(u => h(u.ufv)).join(' · ')}</div>
+        <div class="cm-rota-ufvs">${h(rotuloUfvs(g.ufvs)) || 'UFVs não selecionadas (opcional)'}</div>
         ${st.tipo === 'tecnico' && g.ufvs.some(u => u.membros && u.membros.length) ? `<div class="cm-rota-obs">Equipe: ${h([...new Set(g.ufvs.flatMap(u => u.membros || []))].join(', '))}</div>` : ''}
       </div>`).join('') : `<div class="cm-vazio">${h(info.dest)}</div>`;
     const rotaAvisos = r.avisos.map(a => `<div class="cm-aviso">⚠️ ${h(a)}</div>`).join('');
@@ -218,7 +311,9 @@
         <p class="cm-desc">${h(info.desc)}</p>
         <div class="cm-grade">
           <div>
-            <div class="cm-rot">UFV(s) · ${st.ufvs.length} selecionada(s)${porTec ? ' · por técnico' : ' · por cliente'}</div>
+            ${cliMode ? `<div class="cm-rot">Cliente</div><div class="cm-clientes">${clientes}</div>` : ''}
+            ${porTec ? `<div class="cm-rot">Cliente</div><div class="cm-clientes">${['', ...(G.CONTATOS_CLIENTE || []).map(c => c.cliente)].map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.filtroCliente === c ? ' on' : ''}" data-acao="filtro-cliente" data-cliente="${h(c)}">${h(c || 'Todos')}</button>`).join('')}</div>` : ''}
+            <div class="cm-rot">UFV(s) · ${st.ufvs.length} selecionada(s)${porTec ? ' · por técnico' : ' · opcional'}</div>
             <input class="cm-input" type="search" placeholder="Buscar usina, cliente, técnico ou cluster" value="${h(st.filtro)}" data-acao="filtro">
             <div class="cm-lista">${lista}</div>
             ${st.ufvs.length ? `<button type="button" class="cm-link" data-acao="limpar-ufvs">limpar seleção</button>` : ''}
@@ -228,6 +323,12 @@
             <div class="cm-rotas">${rotaHtml}${rotaAvisos}</div>
             <label class="cm-rot" for="cmRascunho">${h(info.rotulo)}</label>
             <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
+            <div class="cm-prints">
+              <button type="button" class="cm-btn" data-acao="anexar-print" ${st.prints.length >= MAX_PRINTS ? 'disabled' : ''}>📎 Anexar print</button>
+              <span class="cm-dica">ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo</span>
+              <input type="file" id="cmPrintInput" accept="image/*" multiple hidden data-acao="print-input">
+              ${prints ? `<div class="cm-print-lista">${prints}</div>` : ''}
+            </div>
             <div class="cm-linha">
               <label><span class="cm-rot">Data/hora de envio</span><input class="cm-input" type="datetime-local" value="${h(st.envio)}" data-acao="envio"></label>
               <button type="button" class="cm-btn pri" data-acao="gerar" ${st.resultados.some(x => x.gerando) ? 'disabled' : ''}>${h(info.botao)}</button>
@@ -240,7 +341,7 @@
   function renderResultado(res, i) {
     const g = res.grupo;
     const cab = `<div class="cm-res-h"><div><span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'contato a definir')}</b>
-      <small>${h(g.ufvs.map(u => u.ufv).join(' · '))}</small></div>
+      <small>${h(rotuloUfvs(g.ufvs))}</small></div>
       ${res.versoes.length > 1 ? `<select class="cm-input cm-ver" data-acao="versao" data-i="${i}">${res.versoes.map((v, k) => `<option value="${k}" ${k === res.atual ? 'selected' : ''}>Versão ${v.n}${v.ajuste ? ' — ' + h(v.ajuste.slice(0, 40)) : ''}</option>`).join('')}</select>` : ''}</div>`;
     if (res.gerando && !res.versoes.length) return `<div class="cm-bloco">${cab}<div class="cm-vazio">Gerando…</div></div>`;
     if (!res.versoes.length) return `<div class="cm-bloco">${cab}<div class="cm-erro">Não consegui gerar: ${h(res.erro)}</div></div>`;
@@ -312,9 +413,18 @@
       if (!b || b.disabled) return;
       const a = b.dataset.acao, i = +b.dataset.i;
       if (a === 'tipo') { st.tipo = b.dataset.tipo; st.resultados = []; salvar(); render(); }
+      else if (a === 'cliente') {
+        st.cliente = b.dataset.cliente; st.resultados = [];
+        st.ufvs = st.ufvs.filter(n => { const u = G.buscarUfv(st.mapa || [], n); return u && u.cliente === st.cliente; });
+        salvar(); render();
+      }
+      else if (a === 'filtro-cliente') { st.filtroCliente = b.dataset.cliente; render(); }
+      else if (a === 'anexar-print') { const inp = document.getElementById('cmPrintInput'); if (inp) inp.click(); }
+      else if (a === 'rm-print') { st.prints.splice(+b.dataset.k, 1); render(); }
       else if (a === 'todas') {
         const k = b.dataset.grupo, porTec = INFO[st.tipo].lista === 'tecnico';
-        (st.mapa || []).filter(u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—')) === k).forEach(u => { if (!st.ufvs.includes(u.usina)) st.ufvs.push(u.usina); });
+        (st.mapa || []).filter(u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—')) === k)
+          .filter(u => !porTec || !st.filtroCliente || u.cliente === st.filtroCliente).forEach(u => { if (!st.ufvs.includes(u.usina)) st.ufvs.push(u.usina); });
         salvar(); render();
       }
       else if (a === 'limpar-ufvs') { st.ufvs = []; salvar(); render(); }
@@ -330,10 +440,20 @@
     el.addEventListener('change', ev => {
       const t = ev.target, a = t.dataset.acao;
       if (a === 'ufv') {
-        if (t.checked) { if (!st.ufvs.includes(t.value)) st.ufvs.push(t.value); } else st.ufvs = st.ufvs.filter(x => x !== t.value);
+        const ns = t.value.split('|');
+        if (t.checked) ns.forEach(n => { if (!st.ufvs.includes(n)) st.ufvs.push(n); }); else st.ufvs = st.ufvs.filter(x => !ns.includes(x));
         salvar(); render();
       } else if (a === 'versao') { st.resultados[+t.dataset.i].atual = +t.value; salvar(); render(); }
       else if (a === 'envio') { st.envio = t.value || agoraSP(); render(); }
+      else if (a === 'print-input') { adicionarPrints(t.files); t.value = ''; }
+    });
+    // Ctrl+V de imagem em qualquer lugar da Central
+    document.addEventListener('paste', ev => {
+      if (window._activeNav !== NAV && (typeof _activeNav === 'undefined' || _activeNav !== NAV)) return;
+      const imgs = [...((ev.clipboardData && ev.clipboardData.items) || [])].filter(i => i.kind === 'file' && /^image\//.test(i.type)).map(i => i.getAsFile());
+      if (!imgs.length) return;
+      ev.preventDefault();
+      adicionarPrints(imgs);
     });
     el.addEventListener('input', ev => {
       const t = ev.target, a = t.dataset.acao;
