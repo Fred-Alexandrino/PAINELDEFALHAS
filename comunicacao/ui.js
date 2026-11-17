@@ -18,6 +18,37 @@
   const TIPOS = [
     ['cliente', 'Cliente'], ['tecnico', 'Técnico'], ['email', 'E-mail'], ['envio_relatorio', 'Envio de relatório'],
   ];
+  // O que cada tipo muda na tela (lista, textos, destinatário e botão)
+  const INFO = {
+    cliente: {
+      desc: 'Mensagem de WhatsApp para o cliente: diagnóstico, risco, o que a Grid fez e o que precisa dele.',
+      dest: 'Vai para o contato do cliente: 2C Energia → Carol · Thopen → Iago · Renogrid → Vitor + técnico da usina.',
+      rotulo: 'Rascunho / relato',
+      ph: 'Ex.: o que foi encontrado em campo, o risco, o que a equipe já fez, as opções e o que você precisa que o cliente decida.',
+      botao: 'Gerar mensagem ao cliente', lista: 'cliente',
+    },
+    tecnico: {
+      desc: 'Mensagem de WhatsApp para o técnico. Sai UMA mensagem por técnico, juntando todas as usinas dele.',
+      dest: 'Vai para o responsável de cada UFV no mapeamento. A lista abaixo está agrupada por técnico.',
+      rotulo: 'O que cobrar ou orientar',
+      ph: 'Ex.: pendências por usina com datas (de onde veio a informação: PCM, painel de atividades) e o que você precisa que ele responda, com prazo.',
+      botao: 'Gerar mensagem ao técnico', lista: 'tecnico',
+    },
+    email: {
+      desc: 'E-mail formal para o cliente: sai com Assunto + texto + sua assinatura (sem endereços).',
+      dest: 'Destinatário pelo contato do cliente (só para a saudação e o texto; os endereços você coloca no e-mail).',
+      rotulo: 'Conteúdo do e-mail',
+      ph: 'Ex.: o assunto, os fatos e datas, os anexos que vão junto e o que você pede ao cliente.',
+      botao: 'Gerar e-mail', lista: 'cliente',
+    },
+    envio_relatorio: {
+      desc: 'Texto que acompanha um relatório enviado ao cliente: explica o que está no anexo e o que se pede.',
+      dest: 'Vai para o contato do cliente, como em "Cliente".',
+      rotulo: 'Sobre o relatório anexado',
+      ph: 'Ex.: Relatório de Ocorrência da via de acesso, vistoria de 16/11, com cronologia, riscos, fotos e recomendações; pedir posicionamento sobre a recuperação.',
+      botao: 'Gerar texto de envio', lista: 'cliente',
+    },
+  };
 
   const st = {
     tipo: 'cliente', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
@@ -155,18 +186,21 @@
   function renderForm() {
     const mapa = st.mapa || [];
     const f = G.normalizar(st.filtro);
-    const porCliente = {};
+    const info = INFO[st.tipo];
+    const porTec = info.lista === 'tecnico';
+    const chave = u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—'));
+    const grupos = {};
     mapa.forEach(u => {
       if (f && !G.normalizar(u.usina + ' ' + u.cliente + ' ' + u.responsavel + ' ' + u.cluster).includes(f)) return;
-      (porCliente[u.cliente || '—'] = porCliente[u.cliente || '—'] || []).push(u);
+      (grupos[chave(u)] = grupos[chave(u)] || []).push(u);
     });
     const sel = new Set(st.ufvs);
-    const lista = Object.keys(porCliente).sort().map(cli => `
+    const lista = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR')).map(k => `
       <div class="cm-cli">
-        <div class="cm-cli-h"><span>${h(cli)}</span><button type="button" class="cm-link" data-acao="todas" data-cli="${h(cli)}">marcar todas</button></div>
-        ${porCliente[cli].map(u => `<label class="cm-ufv${sel.has(u.usina) ? ' on' : ''}">
+        <div class="cm-cli-h"><span>${porTec ? '👷 ' : ''}${h(k)}${porTec ? ` <em>${h(grupos[k][0].funcao || '')} · ${h([...new Set(grupos[k].map(u => u.cluster))].join(', '))}</em>` : ''}</span><button type="button" class="cm-link" data-acao="todas" data-grupo="${h(k)}">marcar todas</button></div>
+        ${grupos[k].map(u => `<label class="cm-ufv${sel.has(u.usina) ? ' on' : ''}">
           <input type="checkbox" data-acao="ufv" value="${h(u.usina)}" ${sel.has(u.usina) ? 'checked' : ''}>
-          <span><b>UFV ${h(u.usina)}</b><small>${h(u.responsavel || 'sem responsável')} · ${h(u.cluster || '')}</small></span></label>`).join('')}
+          <span><b>UFV ${h(u.usina)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cidade_uf || '') : h(u.responsavel || 'sem responsável') + ' · ' + h(u.cluster || '')}</small></span></label>`).join('')}
       </div>`).join('') || `<div class="cm-vazio">${st.mapa ? 'Nenhuma UFV encontrada.' : 'Carregando o mapeamento…'}</div>`;
 
     const r = rotas();
@@ -175,15 +209,16 @@
         <div><span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'contato a definir')}</b>${g.cliente ? ` <span class="cm-tag">${h(g.cliente)}</span>` : ''}</div>
         <div class="cm-rota-ufvs">${g.ufvs.map(u => h(u.ufv)).join(' · ')}</div>
         ${st.tipo === 'tecnico' && g.ufvs.some(u => u.membros && u.membros.length) ? `<div class="cm-rota-obs">Equipe: ${h([...new Set(g.ufvs.flatMap(u => u.membros || []))].join(', '))}</div>` : ''}
-      </div>`).join('') : '<div class="cm-vazio">Selecione as UFVs para ver quem recebe.</div>';
+      </div>`).join('') : `<div class="cm-vazio">${h(info.dest)}</div>`;
     const rotaAvisos = r.avisos.map(a => `<div class="cm-aviso">⚠️ ${h(a)}</div>`).join('');
 
     return `
       <div class="cm-bloco">
         <div class="cm-tipos" role="tablist">${TIPOS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${st.tipo === k}" class="cm-tipo${st.tipo === k ? ' on' : ''}" data-acao="tipo" data-tipo="${k}">${l}</button>`).join('')}</div>
+        <p class="cm-desc">${h(info.desc)}</p>
         <div class="cm-grade">
           <div>
-            <div class="cm-rot">UFV(s) · ${st.ufvs.length} selecionada(s)</div>
+            <div class="cm-rot">UFV(s) · ${st.ufvs.length} selecionada(s)${porTec ? ' · por técnico' : ' · por cliente'}</div>
             <input class="cm-input" type="search" placeholder="Buscar usina, cliente, técnico ou cluster" value="${h(st.filtro)}" data-acao="filtro">
             <div class="cm-lista">${lista}</div>
             ${st.ufvs.length ? `<button type="button" class="cm-link" data-acao="limpar-ufvs">limpar seleção</button>` : ''}
@@ -191,11 +226,11 @@
           <div>
             <div class="cm-rot">Destinatário(s)</div>
             <div class="cm-rotas">${rotaHtml}${rotaAvisos}</div>
-            <label class="cm-rot" for="cmRascunho">Rascunho / relato</label>
-            <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="Cole aqui a anotação, o relato de campo ou o áudio transcrito. A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
+            <label class="cm-rot" for="cmRascunho">${h(info.rotulo)}</label>
+            <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
             <div class="cm-linha">
               <label><span class="cm-rot">Data/hora de envio</span><input class="cm-input" type="datetime-local" value="${h(st.envio)}" data-acao="envio"></label>
-              <button type="button" class="cm-btn pri" data-acao="gerar" ${st.resultados.some(x => x.gerando) ? 'disabled' : ''}>Gerar mensagem</button>
+              <button type="button" class="cm-btn pri" data-acao="gerar" ${st.resultados.some(x => x.gerando) ? 'disabled' : ''}>${h(info.botao)}</button>
             </div>
           </div>
         </div>
@@ -278,8 +313,8 @@
       const a = b.dataset.acao, i = +b.dataset.i;
       if (a === 'tipo') { st.tipo = b.dataset.tipo; st.resultados = []; salvar(); render(); }
       else if (a === 'todas') {
-        const cli = b.dataset.cli;
-        (st.mapa || []).filter(u => (u.cliente || '—') === cli).forEach(u => { if (!st.ufvs.includes(u.usina)) st.ufvs.push(u.usina); });
+        const k = b.dataset.grupo, porTec = INFO[st.tipo].lista === 'tecnico';
+        (st.mapa || []).filter(u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—')) === k).forEach(u => { if (!st.ufvs.includes(u.usina)) st.ufvs.push(u.usina); });
         salvar(); render();
       }
       else if (a === 'limpar-ufvs') { st.ufvs = []; salvar(); render(); }
@@ -336,6 +371,8 @@
       return r;
     };
   }
+  // 17/11/2026 (Fred): o comunicado livre com IA saiu; "Elaborar Comunicado" abre a Central de Mensagens
+  window._openElaborarComunicado = function () { window.switchNav(NAV); };
   restaurar();
   // a sessão é criada depois do login: confere o acesso até ela existir
   let tentativas = 0;

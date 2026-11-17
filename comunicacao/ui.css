@@ -82,3 +82,8 @@
 #sec-central-mensagens .cm-gerando{color:var(--vg-mudo);font-size:12.5px}
 #sec-central-mensagens .cm-ajuste{margin-top:10px}
 #sec-central-mensagens .cm-vazio{color:var(--vg-mudo);font-size:13px;padding:12px 4px}
+#sec-central-mensagens .cm-desc{margin:-4px 0 16px;color:var(--vg-tinta-2);font-size:13.5px}
+#sec-central-mensagens .cm-cli-h em{font-style:normal;font-weight:400;color:var(--vg-mudo);margin-left:4px}
+/* 17/11/2026 (Fred): sai o comunicado livre com IA; fica só o Comunicado direto (sem IA) */
+#comTabPainelLivre > .rel-card:not(#comLivreDiretoCard),#comLivreResult{display:none !important}
+#comLivreDiretoCard{margin-top:32px !important}
