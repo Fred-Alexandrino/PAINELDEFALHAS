@@ -23306,18 +23306,37 @@ function _pfAlertas(u) {
 }
 function _pfSuspeito(u) { return u.pr != null && (u.pr > 120 || u.pr < 0); }
 function _pfAgrega(lista) {
+  // 17/11/2026: a meta de PR era somada só nas usinas que tinham PR — usina sem PR (ex.: sem dados de POA) ficava "meta —%"
+  // no cartão e "meta 76,3%" na linha. Agora meta, PR e geração têm cada um seu próprio conjunto e contagem.
   let pw = 0, pp = 0, pm = 0, prod = 0, p50 = 0, dw = 0, dd = 0, de = 0, kwh = 0, abaixo = 0;
+  let mw = 0, mm = 0, nPr = 0, nSusp = 0, nGer = 0, motivo = '', atW = 0;
   lista.forEach(u => {
-    const w = u.potMwp || (u.potKwp ? u.potKwp / 1000 : 0);
-    if (u.pr != null && !_pfSuspeito(u) && w) { pw += w; pp += u.pr * w; if (u.prMeta != null) pm += u.prMeta * w; }
-    if (u.prodMwh != null && u.p50Mwh != null && !u.agregadoNexus) { prod += u.prodMwh; p50 += u.p50Mwh; }
+    const w = u.potMwp || (u.potKwp ? u.potKwp / 1000 : 0) || 1;
+    if (u.prMeta != null) { mw += w; mm += u.prMeta * w; }
+    if (u.pr != null && !_pfSuspeito(u)) { pw += w; pp += u.pr * w; nPr++; if (u.prMeta != null) pm += u.prMeta * w; }
+    else if (_pfSuspeito(u)) nSusp++;
+    else if (!motivo && u.prMotivo) motivo = u.prMotivo;
+    if (u.prodMwh != null && u.p50Mwh != null && !u.agregadoNexus) { prod += u.prodMwh; p50 += u.p50Mwh; nGer++; atW += (u.atingimento != null ? u.atingimento : (u.p50Mwh ? u.prodMwh / u.p50Mwh * 100 : 0)) * u.p50Mwh; }
     if (u.disp != null) { const k = u.potKwp || w * 1000 || 1; dw += k; dd += u.disp * k; de += (u.dispEquip ?? u.disp) * k; }
     if (u.kwhPerdido) kwh += u.kwhPerdido;
     if (u.pr != null && u.prMeta != null && !_pfSuspeito(u) && u.pr < u.prMeta) abaixo++;
   });
-  return { pr: pw ? pp / pw : null, prMeta: pw ? pm / pw : null, ating: p50 ? prod / p50 * 100 : null, prod, p50,
-    disp: dw ? dd / dw : null, dispEquip: dw ? de / dw : null, kwh, abaixo, n: lista.length };
+  return { pr: pw ? pp / pw : null, prMeta: mw ? mm / mw : null, prMetaComp: pw ? pm / pw : null, ating: p50 ? atW / p50 : null, prod, p50,
+    disp: dw ? dd / dw : null, dispEquip: dw ? de / dw : null, kwh, abaixo, n: lista.length, nPr, nSusp, nGer, motivo };
 }
+/* Bloco de PR único para todos os cartões (cliente, usina, Visão geral): o mesmo dado sempre com o mesmo texto */
+function _pfPrBloco(a, ponderado) {
+  // com PR parcial, a meta mostrada é a das MESMAS usinas que entram no PR (comparação justa)
+  const mv = a.pr != null ? (a.prMetaComp ?? a.prMeta) : a.prMeta;
+  const meta = mv != null ? ' · meta ' + _pfFmt(mv) + '%' : ' · sem meta';
+  if (a.pr == null) {
+    const porque = a.nSusp ? 'PR inválido no Nexus' : (a.motivo ? 'sem PR (' + a.motivo + ')' : 'sem PR no Nexus');
+    return `<div><div class="n" style="color:var(--text-faint)">—</div><div class="l">${esc(porque)}${meta}</div></div>`;
+  }
+  const parcial = a.n > 1 && a.nPr < a.n ? ` · ${a.nPr} de ${a.n} usinas` : '';
+  return `<div><div class="n ${_pfCor(a.pr, a.prMetaComp ?? a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR${ponderado ? ' ponderado' : ''}${meta}${parcial}</div></div>`;
+}
+function _pfGerParcial(a) { return a.n > 1 && a.nGer < a.n ? ` · ${a.nGer} de ${a.n} usinas` : ''; }
 function _pfCor(v, meta, tol) { if (v == null || meta == null) return ''; return v >= meta ? 'pf-ok' : v >= meta - (tol || 3) ? 'pf-aten' : 'pf-mal'; }
 function _pfRender() {
   const sub = document.getElementById('pfSub'), K = document.getElementById('pfKpis'), C = document.getElementById('pfCorpo');
@@ -23330,7 +23349,7 @@ function _pfRender() {
   K.innerHTML = Object.keys(porCli).sort().map(c => {
     const a = _pfAgrega(porCli[c]);
     return `<div class="pf-cli"><h3>${esc(c)} <span>${a.n} usina${a.n !== 1 ? 's' : ''}</span></h3><div class="g">
-      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR ponderado · meta ${_pfFmt(a.prMeta)}%</div></div>
+      ${_pfPrBloco(a, true)}
       <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating)}%</div><div class="l">Geração x P50 (${_pfFmt(a.prod, 0)} / ${_pfFmt(a.p50, 0)} MWh)</div></div>
       <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">Disponibilidade · equip. ${_pfFmt(a.dispEquip)}%</div></div>
       <div><div class="n">${_pfFmt(a.kwh / 1000, 0)}</div><div class="l">MWh perdidos · ${a.abaixo} abaixo da meta de PR</div></div>
@@ -23501,9 +23520,9 @@ function _pfRender() {
     const a = _pfAgrega(porCli[c]);
     const gapCli = porCli[c].reduce((t, u) => { const d = _pfDiag(u); return t + (d && d.gap > 0 && !u.agregadoNexus ? d.gap : 0); }, 0);
     return `<div class="pf-cli${selC === c ? ' sel' : ''}" onclick="_pfCliToggle('${esc(c).replace(/'/g, "\\'")}')" title="Clique para ver só ${esc(c)}"><h3>${esc(c)} <span>${a.n} usina${a.n !== 1 ? 's' : ''}</span></h3><div class="g">
-      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh)</div></div>
+      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh${_pfGerParcial(a)})</div></div>
       <div><div class="n ${gapCli > 0 ? 'pf-mal' : 'pf-ok'}">${_pfFmt(gapCli, 0)}</div><div class="l">MWh abaixo do esperado</div></div>
-      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR · meta ${_pfFmt(a.prMeta)}%</div></div>
+      ${_pfPrBloco(a, a.n > 1)}
       <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">disponibilidade (equip. ${_pfFmt(a.dispEquip)}%)</div></div>
     </div></div>`;
   }).join('');
@@ -23520,7 +23539,7 @@ function _pfRender() {
     return `<button type="button" class="pf-card" onclick="_pfDrawer('${esc(id)}')">
       <div><div class="nm">${esc(u.usina)}</div><div class="cl">${esc(u.cliente || '')}${u.potMwp ? ' · ' + _pfFmt(u.potMwp, 2) + ' MWp' : ''}</div></div>
       <div><div class="big">${d ? `<span class="${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento, 0)}%</span> do esperado · ${_pfFmt(d.R)} de ${_pfFmt(d.E)} MWh${d.gap > 0 ? ` · <b class="pf-mal">−${_pfFmt(d.gap)} MWh</b>` : ''}` : '—'}</div>${_pfStackHtml(d)}
-        <div class="cl">PR ${u.pr == null ? '—' : _pfFmt(u.pr) + '%'} (meta ${_pfFmt(u.prMeta)}%) · disponib. ${_pfFmt(u.disp)}%</div></div>
+        <div class="cl">${u.pr == null ? (_pfSuspeito(u) ? 'PR inválido no Nexus' : 'sem PR' + (u.prMotivo ? ' (' + esc(u.prMotivo) + ')' : '')) : 'PR ' + _pfFmt(u.pr) + '%'}${u.prMeta != null ? ' · meta ' + _pfFmt(u.prMeta) + '%' : ''} · disponib. ${_pfFmt(u.disp)}%</div></div>
       <div class="why">${_pfFrase(u, d)}${chips ? '<div class="pf-chips" style="margin-top:4px">' + chips + '</div>' : ''}</div>
       <div class="go">Ver diagnóstico ›</div></button>`;
   }).join('') + '</div>';
@@ -23582,7 +23601,7 @@ function _pfDrawer(nome) {
     <section><div class="pf-kg">
       <div><div class="n ${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento, 0)}%</div><div class="l">gerou do esperado</div></div>
       <div><div class="n">${d ? _pfFmt(d.gap) : '—'}</div><div class="l">MWh abaixo do esperado</div></div>
-      <div><div class="n ${_pfSuspeito(u) ? 'pf-aten' : _pfCor(u.pr, u.prMeta)}">${_pfFmt(u.pr)}%</div><div class="l">PR · meta ${_pfFmt(u.prMeta)}%</div></div>
+      ${_pfPrBloco(_pfAgrega([u]), false)}
       <div><div class="n ${_pfCor(u.disp, 98, 3)}">${_pfFmt(u.disp)}%</div><div class="l">disponib. · equip. ${_pfFmt(u.dispEquip)}% · rede ${_pfFmt(u.dispQueda)}%</div></div>
       <div><div class="n">${_pfFmt(u.ipoa)}</div><div class="l">irradiação kWh/m² (prev. ${_pfFmt(u.ipoaPrev)})</div></div>
     </div></section>
@@ -24094,9 +24113,9 @@ function _vgDetalhe(p) {
     const a = _pfAgrega([u]);
     let gap = null; try { const d = _pfDiag(u); gap = d ? d.gap : null; } catch (e) {}
     card = `<div class="pf-cli vg-pf" style="cursor:default"><h3>Performance · ${esc(typeof _pfMesRot === 'function' ? _pfMesRot(_pfDados.mes) : _pfDados.mes)} <span>Nexus lido em ${esc(_pfDados.lidoEm || '—')}${_vgNexusVelho() ? ' <b style="color:var(--acao)">· desatualizado</b>' : ''}</span></h3><div class="g">
-      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh)</div></div>
+      <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh${_pfGerParcial(a)})</div></div>
       <div><div class="n ${gap > 0 ? 'pf-mal' : 'pf-ok'}">${_pfFmt(gap > 0 ? gap : 0, 0)}</div><div class="l">MWh abaixo do esperado</div></div>
-      <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR · meta ${_pfFmt(a.prMeta)}%</div></div>
+      ${_pfPrBloco(a, a.n > 1)}
       <div><div class="n ${_pfCor(a.disp, 98, 3)}">${_pfFmt(a.disp)}%</div><div class="l">disponibilidade (equip. ${_pfFmt(a.dispEquip)}%)</div></div>
     </div></div>`;
   } else {
