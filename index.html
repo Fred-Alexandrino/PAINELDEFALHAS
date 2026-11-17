@@ -23896,20 +23896,29 @@ function _vgFmt(n) { return Number(n).toLocaleString('pt-BR'); }
 async function _vgEntrar() {
   const root = document.getElementById('vgRoot');
   if (!root || _vgCarregando) return;
+  // Performance e mapeamento começam JÁ, em paralelo com as atividades (antes era em sequência)
+  const _pfP = (typeof _pfDados !== 'undefined' && !_pfDados && typeof _pfCarregar === 'function') ? _pfCarregar().catch(() => {}) : Promise.resolve();
+  const _mapaP = (async () => { try { return (await _mapUfvsCarregar()) || []; } catch (e) { return []; } })();
   if (!ATIVIDADES || !ATIVIDADES.length) {
     _vgCarregando = true;
-    root.innerHTML = '<div class="vg-carregando">Carregando a visão geral…</div>';
+    // Mostra na hora a última Visão geral salva neste navegador, enquanto busca os dados novos
+    let snap = null; try { snap = JSON.parse(localStorage.getItem('vgSnap_v1') || 'null'); } catch (e) {}
+    if (snap && snap.html && Date.now() - snap.t < 48 * 3600e3) {
+      const d = new Date(snap.t), hh = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      window._vgFocar = null;
+      root.innerHTML = `<div class="vg-ok" style="margin:0 0 14px;display:flex;align-items:center;gap:10px"><span class="vg-pulso" style="background:var(--vg-acompanhar)"></span>Mostrando a leitura de ${hh} · atualizando…</div>` + snap.html;
+    } else {
+      root.innerHTML = '<div class="vg-carregando">Carregando a visão geral…</div>';
+    }
     try { await carregarAtividades(); } catch (e) {}
-    // carregarAtividades pode estar sendo feito por outra chamada ou em nova tentativa: espera até 60 s
     for (let i = 0; i < 30 && (!ATIVIDADES || !ATIVIDADES.length); i++) await new Promise(r => setTimeout(r, 2000));
     _vgCarregando = false;
     if (_activeNav !== 'visao-geral') return;
   }
-  let mapa = [];
-  const _pfP = (typeof _pfDados !== 'undefined' && !_pfDados && typeof _pfCarregar === 'function') ? _pfCarregar().catch(() => {}) : Promise.resolve();
-  try { mapa = (await _mapUfvsCarregar()) || []; } catch (e) {}
+  const mapa = await _mapaP;
   try { await _pfP; } catch (e) {}
   _vgRender(mapa);
+  try { localStorage.setItem('vgSnap_v1', JSON.stringify({ t: Date.now(), html: root.innerHTML })); } catch (e) {}
 }
 
 function _vgRender(mapa) {
@@ -24049,6 +24058,7 @@ function _vgPerf(usina) {
   try { const k = _vgNorm(usina); return ((_pfDados && _pfDados.usinas) || []).find(u => _vgNorm(u.usina) === k) || null; } catch (e) { return null; }
 }
 function _vgToggle(tr) {
+  if (!window._vgFocar) return;
   const det = tr.nextElementSibling;
   if (!det || !det.classList.contains('vg-det')) return;
   const abrir = det.hidden;
@@ -24185,6 +24195,20 @@ initDashboard = function (session) {
     if ((!h || !document.getElementById('sec-' + h)) && session && ['manager', 'admin'].includes(session.role)) switchNav('visao-geral');
   } catch (e) { console.warn('[Visão geral] tela inicial', e); }
   return r;
+};
+
+
+/* Desempenho (17/11/2026): /atividades (5,4 MB) era buscado 2x ao mesmo tempo no login — uma pela Visão geral e outra pelo
+   carregamento normal — disputando os mesmos workers do servidor. Agora chamadas simultâneas reaproveitam a mesma busca. */
+const _carregarAtivBase = carregarAtividades;
+let _carregarAtivEmCurso = null;
+carregarAtividades = function (tentativa) {
+  if ((tentativa || 1) > 1) return _carregarAtivBase.apply(this, arguments);
+  if (_carregarAtivEmCurso) return _carregarAtivEmCurso;
+  const p = _carregarAtivBase.apply(this, arguments);
+  _carregarAtivEmCurso = p;
+  Promise.resolve(p).finally(() => { if (_carregarAtivEmCurso === p) _carregarAtivEmCurso = null; });
+  return p;
 };
 
 </script>
