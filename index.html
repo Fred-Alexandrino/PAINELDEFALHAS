@@ -24225,6 +24225,16 @@ carregarAtividades = function (tentativa) {
   return p;
 };
 
+
+/* Correção 17/11/2026: com a sessão salva, o login automático roda (queueMicrotask) ANTES deste bloco de script
+   existir, então o embrulho acima não pegava e a Central abria em Atividades. Se já iniciou, troca agora. */
+try {
+  const _vgShell = document.getElementById('appShell');
+  const _vgRole = (typeof _currentSession !== 'undefined' && _currentSession && _currentSession.role) || localStorage.getItem('om_role');
+  const _vgH = (location.hash || '').slice(1);
+  if (_vgShell && _vgShell.classList.contains('ready') && ['manager', 'admin'].includes(_vgRole) && (!_vgH || !document.getElementById('sec-' + _vgH))) switchNav('visao-geral');
+} catch (e) { console.warn('[Visão geral] tela inicial (sessão salva)', e); }
+
 </script>
 
 </body>
