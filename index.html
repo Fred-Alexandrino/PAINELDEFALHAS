@@ -2395,6 +2395,79 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .vg-faixa{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:rgba(234,90,42,.12);border:1px solid rgba(234,90,42,.4);font-size:13px;color:var(--text)}
 .vg-faixa button{font:inherit;font-size:12.5px;font-weight:600;border-radius:8px;padding:5px 10px;cursor:pointer;border:1px solid rgba(234,90,42,.5);background:none;color:var(--acao)}
 .vg-faixa button:first-of-type{background:var(--acao);color:var(--acao-tx);border-color:transparent;margin-left:auto}
+
+/* ══ DESIGN SYSTEM PHILO (17/11/2026) — um só padrão para todos os painéis ══
+   Superfície 1 (cartões, KPIs, linhas de lista): --panel sólido, borda --border, sombra --shadow, sem vidro.
+   Superfície 2 (colunas/contêineres que agrupam cartões): --ds-s2, sem sombra.
+   Seleção: areia (escuro) / verde profundo (claro). Ação: laranja. Status/ok: verde.
+   Tipografia: Poppins; rótulo 11.5px/500 maiúsculo; número 30px/700; título de bloco 15px/600. */
+:root{--surface-2:var(--ds-s2);--ds-s2:#061613;--ds-r:14px}
+[data-theme="light"]{--ds-s2:#ECEBE2;--ink:#FFFFFF}
+.panel,.kpi,.zel-collapsible,.zel-kpi,.rel-card,.skel-card,.table-wrap,.zel-table-wrap,.comunicado-card,.log-msg-card,.ronda-msg-card,
+.list-header-bar,.pps-kpi,.cmp-cliente-bloco,.ch-item,.pf-card,.pf-cli,.oc-kpi,.oc-filtros,.rp-card,.vt-box,#comunicadoListaEquipes>label{
+  background:var(--panel)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  border:1px solid var(--border)!important;box-shadow:var(--shadow)!important}
+.card,.cmp-card,.pps-card,.oc-card{
+  background:var(--panel)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  border-top-color:var(--border)!important;border-right-color:var(--border)!important;border-bottom-color:var(--border)!important;
+  box-shadow:var(--shadow)!important}
+.cmp-card.cmp-atrasado{border-color:var(--acao)!important}
+.card:hover,.ch-item:hover,.pps-card:hover,.oc-card:hover,.kpi.kpi-clickable:hover,#comunicadoListaEquipes>label:hover{border-top-color:var(--border-strong)!important;border-right-color:var(--border-strong)!important;border-bottom-color:var(--border-strong)!important}
+.panel,.kpi,.card,.kanban-col,.zel-kpi,.oc-kpi,.pps-kpi,.rel-card,.rp-card,.oc-filtros,.table-wrap,.zel-table-wrap,.zel-collapsible,.cmp-cliente-bloco,.pf-cli,.vt-box{border-radius:var(--ds-r)!important}
+.ch-item,.pps-card,.oc-card,.cmp-card,#comunicadoListaEquipes>label{border-radius:12px!important}
+.kanban-col,.oc-col,.pps-col,.resumo-item{background:var(--ds-s2)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;border-color:var(--border)!important}
+.kpi.kpi-clickable.active-filter{background:var(--panel)!important;border-color:var(--acao)!important;box-shadow:0 0 0 1px var(--acao),var(--shadow)!important}
+/* KPIs: rótulo em cima, número embaixo, mesma escala em todos os painéis */
+.kpi{display:flex!important;flex-direction:column}
+.kpi .label{order:-1;font-size:11.5px!important;font-weight:500!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:var(--text-dim)!important;margin:0 0 6px!important}
+.kpi .num{font-size:32px!important;font-weight:700!important;letter-spacing:-.02em;line-height:1.1}
+.kpi::after{display:none!important}
+.oc-kpi{display:flex!important;flex-direction:column}
+.oc-kpi .l{order:-1;font-size:11.5px!important;font-weight:500!important;letter-spacing:.1em!important;margin:0 0 6px!important}
+.oc-kpi .n{font-size:30px!important}
+.oc-kpi::before,.zel-kpi::before{display:none!important}
+.oc-kpi.alerta{box-shadow:inset 3px 0 0 var(--acao),var(--shadow)!important}
+.oc-kpi.alerta .n{color:var(--acao)!important}
+.zel-kpi{display:flex!important;flex-direction:column}
+.zel-kpi .zk-label{order:-1;font-size:11.5px!important;font-weight:500!important;letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px!important}
+.zel-kpi .zk-num{font-size:30px!important;color:var(--text)!important}
+.pps-kpi{display:flex!important;flex-direction:column;padding:12px 16px!important}
+.pps-kpi span{order:-1;font-size:11px!important;font-weight:500;letter-spacing:.1em!important;color:var(--text-dim)!important;margin-bottom:4px}
+.pps-kpi b{font-size:24px!important;font-weight:700}
+/* Abas: um só controle segmentado em todo o sistema */
+.tabs-wrapper,.oc-seg,.rp-seg,.icon-toggle-group,.zel-tabs,.pps-toggle,.pf-tabs,#pfTabs,.resumo-tabs{
+  background:var(--ds-s2)!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:4px!important;gap:4px!important;box-shadow:none!important}
+.tabs-wrapper{display:inline-flex!important;flex-wrap:wrap}
+.tabs-wrapper .tab-btn,.zel-tab,.pf-tab,.resumo-tab-btn,.rp-seg-btn,.oc-seg button,.pps-toggle button{
+  background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;box-shadow:none!important;
+  border-radius:9px!important;font-family:'Poppins',sans-serif!important;font-weight:500!important;color:var(--text-dim)!important}
+.tabs-wrapper .tab-btn{padding:8px 14px!important;font-size:13.5px!important}
+.tabs-wrapper .tab-btn::before{display:none!important}
+.tabs-wrapper .tab-btn:hover,.zel-tab:hover,.pf-tab:hover,.resumo-tab-btn:hover,.rp-seg-btn:hover,.oc-seg button:hover{color:var(--text)!important;background:var(--panel)!important}
+.tabs-wrapper .tab-btn.active,.zel-tab.active,.pf-tab.active,.resumo-tab-btn.active,.rp-seg-btn.on,.oc-seg button[aria-pressed="true"],.pps-toggle button.on,.icon-toggle-btn.active{
+  background:var(--sel-bg)!important;color:var(--sel-tx)!important;font-weight:600!important}
+.tabs-wrapper .tab-btn.active svg{color:currentColor!important}
+.tab-count{background:var(--panel)!important;color:var(--text-dim)!important;font-size:11.5px!important;font-weight:600!important}
+.tab-btn.active .tab-count{background:var(--acao)!important;color:var(--acao-tx)!important}
+/* Botões: secundário neutro, primário laranja */
+.tb-btn,.oc-btn,.pps-btn,.pps-nav,.rel-btn,.au-btn,.vg-btn,.rel-btn-primario{font-family:'Poppins',sans-serif!important;border-radius:10px!important}
+.tb-btn-refresh,.pps-nav,.oc-btn:not(.pri),.pps-btn:not(.pri){background:var(--panel)!important;border:1px solid var(--border-strong)!important;color:var(--text)!important;font-weight:500!important}
+.tb-btn-refresh:hover,.pps-nav:hover,.oc-btn:not(.pri):hover,.pps-btn:not(.pri):hover{background:var(--ds-s2)!important}
+#comunicadoPriorizacaoBtn{background:var(--panel)!important;border:1px solid var(--border-strong)!important;color:var(--text)!important}
+/* Selos de status: mesma forma e peso em todo lugar */
+.status-chip,.oc-tag,.chamado-status-chip,.zs-chip,.cmp-badge,.pf-tag,.ds-pill,.filter-badge{border-radius:99px!important;font-family:'Poppins',sans-serif!important;font-weight:600!important;font-size:11.5px!important;letter-spacing:.02em!important;padding:3px 10px!important;line-height:1.4}
+/* Títulos de bloco */
+.content-section h2{font-weight:700!important;letter-spacing:-.01em}
+.content-section h3{font-weight:600!important}
+/* Chamados: número do chamado */
+.ch-ticket{font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+.ch-semtk{display:inline-block;font-size:12px;font-weight:600;color:var(--text-dim);background:var(--ds-s2);border:1px dashed var(--border-strong);border-radius:99px;padding:2px 9px}
+.ch-canal{display:block;font-size:11px;font-weight:500;color:var(--text-faint);margin-top:3px}
+
+.resumo-item{background:var(--panel)!important;border:1px solid var(--border)!important;box-shadow:var(--shadow)!important;border-radius:12px!important}
+.resumo-item.active{box-shadow:inset 3px 0 0 var(--acao),var(--shadow)!important;border-color:var(--border-strong)!important}
+.lv-subtab.active{border-bottom-color:var(--acao)!important}
+#sec-visao-geral{background:transparent!important;padding:4px 0 40px!important;border-radius:0!important}
 </style>
 </head>
 <body>
@@ -2885,20 +2958,20 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             <input type="text" id="chamadosBusca" placeholder="Buscar por motivo, equipamento ou usina…"
                    style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;
                           padding:6px 10px;color:var(--text);font-size:12px;font-family:'Poppins',sans-serif;min-width:220px;">
-            <button onclick="_abrirResumoChamadosPainel()" style="display:flex;align-items:center;gap:6px;background:rgba(251,191,36,.08);
-                    border:1px solid rgba(251,191,36,.3);color:var(--amber);border-radius:8px;padding:7px 12px;
+            <button onclick="_abrirResumoChamadosPainel()" style="display:flex;align-items:center;gap:6px;background:var(--panel);
+                    border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;">
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
               Resumo
             </button>
-            <button onclick="_chGcAbrir()" style="display:flex;align-items:center;gap:6px;background:rgba(63,165,140,.08);
-                    border:1px solid rgba(63,165,140,.3);color:var(--teal);border-radius:8px;padding:7px 12px;
+            <button onclick="_chGcAbrir()" style="display:flex;align-items:center;gap:6px;background:var(--panel);
+                    border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;">
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               Gestão Cliente
             </button>
-            <button id="chamadosNexusBtn" onclick="_nexusAtualizarChamados()" title="Envia ao painel os chamados lidos da tela Chamados › Garantias do Nexus (pelo script do Tampermonkey)" style="display:flex;align-items:center;gap:6px;background:rgba(63,165,140,.08);
-                    border:1px solid rgba(63,165,140,.3);color:var(--teal);border-radius:8px;padding:7px 12px;
+            <button id="chamadosNexusBtn" onclick="_nexusAtualizarChamados()" title="Envia ao painel os chamados lidos da tela Chamados › Garantias do Nexus (pelo script do Tampermonkey)" style="display:flex;align-items:center;gap:6px;background:var(--panel);
+                    border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:7px 12px;
                     font-size:12px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;">
               <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
               Atualizar do Nexus
@@ -2963,7 +3036,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             <h2 style="font-size:16px;font-weight:700;">Zeladoria</h2>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button class="tb-btn" id="zelExtrairBtn" onclick="_abrirZelExtrairPrint()" style="background:rgba(63,165,140,.1);border-color:rgba(63,165,140,.4);color:var(--teal);"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Enviar Print/Observação</button>
+            <button class="tb-btn" id="zelExtrairBtn" onclick="_abrirZelExtrairPrint()" style="background:var(--panel);border-color:rgba(63,165,140,.4);color:var(--text);"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Enviar Print/Observação</button>
           </div>
         </div>
 
@@ -2978,7 +3051,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <span class="save-badge" id="zelSaveBadge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvo</span>
               <div class="topbar-live" id="zelSourceBadge"><div class="topbar-live-dot" id="zelSourceDot"></div><span id="zelSourceLabel" style="font-family:'Poppins',monospace;font-size:13px;">aguardando…</span></div>
               <button class="tb-btn tb-btn-refresh" id="zelRefreshBtn" onclick="event.stopPropagation();"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
-              <button class="tb-btn" id="zelAddRow" onclick="event.stopPropagation();" style="background:rgba(63,165,140,.1);border-color:rgba(63,165,140,.4);color:var(--teal);"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Usina</button>
+              <button class="tb-btn" id="zelAddRow" onclick="event.stopPropagation();" style="background:var(--panel);border-color:rgba(63,165,140,.4);color:var(--text);"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Usina</button>
               <svg class="zel-collapsible-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
@@ -3419,7 +3492,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             </div>
 
             <button id="pontoAnalisarBtn" onclick="_analisarControlePonto()" disabled
-                    style="width:100%;margin-top:14px;background:var(--teal);border:none;color:#04110F;
+                    style="width:100%;margin-top:14px;background:var(--acao);border:none;color:var(--acao-tx);
                            border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;
                            display:flex;align-items:center;justify-content:center;gap:8px;opacity:.5;">
               <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;">
@@ -3520,7 +3593,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               </div>
             </div>
             <div id="comunicadoListaEquipes" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
-            <button id="comunicadoGerarBtn" onclick="_gerarComunicados()" style="width:100%;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <button id="comunicadoGerarBtn" onclick="_gerarComunicados()" style="width:100%;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
               <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
               Gerar comunicados
             </button>
@@ -3583,7 +3656,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 
             <button id="gcGerarBtn" onclick="_gcGerarResumo()" disabled
                     style="width:100%;max-width:520px;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;
-                           background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:12px;
+                           background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;
                            font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;opacity:.5;">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
               Gerar resumo (<span id="gcSelecionadasCount">0</span> selecionadas)
@@ -3607,7 +3680,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 
                 <button id="gcEnviarBtn" onclick="_gcEnviarResumo()"
                         style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
-                               background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;
+                               background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;
                                font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
                   <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                   Enviar pro grupo
@@ -3637,7 +3710,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               </div>
               <div id="comLivreFontePreview" style="margin-top:8px;"></div>
 
-              <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
+              <button onclick="_gerarComunicadoLivre()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
                 <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Gerar
               </button>
@@ -3669,7 +3742,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             <div style="font-size:13px;color:var(--text-dim);margin:14px 0 8px;font-weight:600;">Enviar para quais grupos?</div>
             <div id="comLivreDiretoGrupos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
 
-            <button id="comLivreDiretoBtn" onclick="_dispararComunicadoDireto()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
+            <button id="comLivreDiretoBtn" onclick="_dispararComunicadoDireto()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Enviar comunicado
             </button>
@@ -3695,7 +3768,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">Enviar para quais grupos?</div>
               <div id="comLivreGrupos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
 
-              <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
+              <button id="comLivreDispararBtn" onclick="_dispararComunicadoLivre()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
                 <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Disparar comunicado
               </button>
@@ -3737,11 +3810,11 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             </div>
             <div id="sobreavisoListaGrupos" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-bottom:14px;"></div>
             <div style="display:flex;gap:8px;">
-              <button id="sobreavisoGerarBtn" onclick="_gerarComunicadosSobreaviso()" style="flex:1;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <button id="sobreavisoGerarBtn" onclick="_gerarComunicadosSobreaviso()" style="flex:1;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                 <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 Gerar comunicados
               </button>
-              <button id="sobreavisoConferirBtn" onclick="_conferirCoberturaSobreaviso()" style="flex:1;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <button id="sobreavisoConferirBtn" onclick="_conferirCoberturaSobreaviso()" style="flex:1;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                 <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 Conferir cobertura (todas as usinas)
               </button>
@@ -3763,7 +3836,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-bottom:12px;">
                   <div id="sbMs_usinas"></div><div id="sbMs_equipes"></div><div id="sbMs_clusters"></div><div id="sbMs_colaboradores"></div>
                 </div>
-                <button id="sbTabGerarBtn" onclick="_sbTabGerar()" style="width:100%;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Gerar tabela</button>
+                <button id="sbTabGerarBtn" onclick="_sbTabGerar()" style="width:100%;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Gerar tabela</button>
                 <div id="sbTabResult" style="margin-top:14px;"></div>
               </div>
             </div>
@@ -3795,8 +3868,8 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <div id="sobreavisoMeuBox" style="display:none;padding:14px 4px 4px;">
                 <div style="font-size:12px;color:var(--text-faint);margin-bottom:10px;">Usa as equipes marcadas na lista acima. Selecione o público e gere.</div>
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-                  <button onclick="_gerarMeuSobreaviso('tecnicos')" style="flex:1;min-width:160px;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra técnicos</button>
-                  <button onclick="_gerarMeuSobreaviso('clientes')" style="flex:1;min-width:160px;background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra clientes</button>
+                  <button onclick="_gerarMeuSobreaviso('tecnicos')" style="flex:1;min-width:160px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra técnicos</button>
+                  <button onclick="_gerarMeuSobreaviso('clientes')" style="flex:1;min-width:160px;background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar pra clientes</button>
                 </div>
                 <div id="sobreavisoMeuResult"></div>
               </div>
@@ -3811,7 +3884,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <div id="sobreavisoTratativasBox" style="display:none;padding:14px 4px 4px;">
                 <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px;">Liste as tratativas críticas do período (desligamentos de usina/inversor, etc.) — uma por linha.</div>
                 <textarea id="sobreavisoTratativasTexto" rows="5" placeholder="Ex.: Usina Cedro I — inversor 2 desligado desde sexta, aguardando peça.&#10;Poconé — possível desligamento programado da concessionária no sábado às 14h." style="width:100%;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;padding:10px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;margin-bottom:10px;"></textarea>
-                <button onclick="_gerarTratativasSupervisores()" style="width:100%;background:#8B7EDB;border:none;color:#160f2e;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar comunicado</button>
+                <button onclick="_gerarTratativasSupervisores()" style="width:100%;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Gerar comunicado</button>
                 <div id="sobreavisoTratativasResult" style="margin-top:12px;"></div>
               </div>
             </div>
@@ -3938,8 +4011,8 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             <div class="pps-toggle" id="progPcmModo"><button type="button" data-modo="semana" class="on" onclick="_ppSetModo('semana')">Semana</button><button type="button" data-modo="dia" onclick="_ppSetModo('dia')">Dia</button></div>
             <input type="date" id="progPcmData" onchange="carregarProgramacaoPcm();" class="sb-select" style="width:auto;min-width:140px;">
             <button class="tb-btn tb-btn-refresh" id="progPcmRefreshBtn" onclick="carregarProgramacaoPcm(null,true);"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
-            <button class="tb-btn" id="progPcmEnviarBtn" onclick="_ppAbrirEnvio()" style="display:flex;align-items:center;gap:5px;background:#25D366;border:none;color:#05290F;font-weight:700;">📤 Enviar por cluster</button>
-            <button class="tb-btn" id="progPcmReprogramarBtn" onclick="_abrirReprogramacao()" style="display:flex;align-items:center;gap:5px;background:var(--teal);border:none;color:#04110F;font-weight:700;">
+            <button class="tb-btn" id="progPcmEnviarBtn" onclick="_ppAbrirEnvio()" style="display:flex;align-items:center;gap:5px;background:var(--acao);border:none;color:var(--acao-tx);font-weight:600;">📤 Enviar por cluster</button>
+            <button class="tb-btn" id="progPcmReprogramarBtn" onclick="_abrirReprogramacao()" style="display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);font-weight:500;">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
               Reprogramações
             </button>
@@ -4064,7 +4137,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
             <div id="reprogUsinaChecks" style="max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
           </div>
         </div>
-        <button id="reprogGerarBtn" onclick="_gerarSugestaoReprogramacao()" style="width:100%;background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button id="reprogGerarBtn" onclick="_gerarSugestaoReprogramacao()" style="width:100%;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
           Gerar sugestão com IA
         </button>
@@ -4103,7 +4176,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
           <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:6px;">Observações (opcional)</label>
           <textarea id="zelExtrairObsInput" placeholder="Ex: Eco Clean confirmou início da limpeza em Matão I pra 30/07..." style="width:100%;min-height:100px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:12.5px;font-family:'Poppins',sans-serif;resize:vertical;"></textarea>
         </div>
-        <button id="zelExtrairGerarBtn" onclick="_zelExtrairComIA()" style="width:100%;background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button id="zelExtrairGerarBtn" onclick="_zelExtrairComIA()" style="width:100%;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
           Extrair com IA
         </button>
@@ -4117,7 +4190,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
         <div id="zelExtrairRevisaoLista" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;"></div>
         <div style="display:flex;gap:8px;">
           <button onclick="_zelExtrairVoltar()" style="flex:1;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:8px;padding:11px;font-size:12.5px;cursor:pointer;">Voltar</button>
-          <button id="zelExtrairConfirmarBtn" onclick="_zelExtrairConfirmarSalvar()" style="flex:2;background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Confirmar e salvar</button>
+          <button id="zelExtrairConfirmarBtn" onclick="_zelExtrairConfirmarSalvar()" style="flex:2;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Confirmar e salvar</button>
         </div>
       </div>
       <div id="zelExtrairError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
@@ -4143,7 +4216,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
         <textarea id="resumoClienteTexto" class="nova-oc-textarea" rows="8" style="width:100%;box-sizing:border-box;margin-bottom:14px;"></textarea>
         <div id="resumoClienteGrupos" style="margin-bottom:14px;"></div>
         <button class="nova-oc-submit" id="resumoClienteCopiarBtn" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text);">📋 Copiar resumo</button>
-        <button class="nova-oc-submit" id="resumoClienteEnviarBtn" style="width:100%;background:var(--teal);color:var(--ink);">📲 Enviar pro grupo do cliente</button>
+        <button class="nova-oc-submit" id="resumoClienteEnviarBtn" style="width:100%;background:var(--acao);color:var(--acao-tx);">📲 Enviar pro grupo do cliente</button>
       </div>
       <div id="resumoClienteError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
@@ -4162,7 +4235,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
     <div class="ch-body">
       <textarea id="comunicarAtivTexto" class="nova-oc-textarea" rows="8" readonly style="width:100%;box-sizing:border-box;margin-bottom:14px;"></textarea>
       <button class="nova-oc-submit" id="comunicarAtivCopiarBtn" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text);">📋 Copiar mensagem</button>
-      <button class="nova-oc-submit" id="comunicarAtivEnviarBtn" style="width:100%;background:var(--teal);color:var(--ink);">📲 Enviar pro grupo do cluster</button>
+      <button class="nova-oc-submit" id="comunicarAtivEnviarBtn" style="width:100%;background:var(--acao);color:var(--acao-tx);">📲 Enviar pro grupo do cluster</button>
     </div>
   </div>
 </div>
@@ -4688,7 +4761,7 @@ Manutenção preventiva e corretiva.</textarea>
           <span id="osRapidaDropHint" style="font-size:11.5px;color:var(--text-faint);">ou arraste / cole (Ctrl+V) — até 6 imagens</span>
           <div id="osRapidaThumbs" style="display:flex;flex-wrap:wrap;gap:8px;width:100%;"></div>
         </div>
-        <button onclick="_gerarOSRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
+        <button onclick="_gerarOSRapida()" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Gerar
         </button>
@@ -4743,7 +4816,7 @@ Manutenção preventiva e corretiva.</textarea>
 
       <button id="chGcGerarBtn" onclick="_chGcGerarResumo()" disabled
               style="width:100%;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;
-                     background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:11px;
+                     background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:11px;
                      font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;opacity:.5;">
         <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Gerar resumo (<span id="chGcSelecionadasCount">0</span> selecionados)
@@ -4764,7 +4837,7 @@ Manutenção preventiva e corretiva.</textarea>
 
         <button id="chGcEnviarBtn" onclick="_chGcEnviarResumo()"
                 style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
-                       background:var(--amber);border:none;color:#2b1a02;border-radius:8px;padding:12px;
+                       background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:12px;
                        font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
           <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           Enviar pro grupo
@@ -4797,7 +4870,7 @@ Manutenção preventiva e corretiva.</textarea>
     </div>
     <div class="rondas-modal-footer" id="rondasFooter">
       <a class="rondas-log-btn" href="https://docs.google.com/spreadsheets/d/1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs/edit#gid=0" target="_blank"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ver Log</a>
-      <button class="rondas-log-btn" id="btnBuscarGrupos" style="background:rgba(242,169,59,.08);border-color:rgba(242,169,59,.25);color:var(--amber);"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Últimas rondas por grupo</button>
+      <button class="rondas-log-btn" id="btnBuscarGrupos" style="background:var(--panel);border-color:rgba(242,169,59,.25);color:var(--text);"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Últimas rondas por grupo</button>
     </div>
   </div>
 </div>
@@ -7891,7 +7964,7 @@ const STATUS_PALETTE = {
   'resolvido':              {color:'#10B981', glow:'rgba(16,185,129,.55)', pulse:false},
   'fechado':                {color:'#6B7780', glow:'rgba(107,119,128,.55)',pulse:false},
 };
-const STATUS_AUTO = [{color:'#3FC1B0',glow:'rgba(63,165,140,.55)'},{color:'#60A5FA',glow:'rgba(96,165,250,.55)'},{color:'#F472B6',glow:'rgba(244,114,182,.55)'}];
+const STATUS_AUTO = [{color:'#3FC1B0',glow:'rgba(63,165,140,.55)'},{color:'#60A5FA',glow:'rgba(96,165,250,.55)'},{color:'#EA5A2A',glow:'rgba(234,90,42,.55)'}];
 const _statusColorCache = {}; let _statusAutoIdx = 0;
 function getStatusPalette(s) { const key=(s||'').toLowerCase().trim(); if(STATUS_PALETTE[key])return STATUS_PALETTE[key]; for(const[k,v]of Object.entries(STATUS_PALETTE)){if(key.includes(k)||k.includes(key))return v;} if(!_statusColorCache[key]){_statusColorCache[key]=STATUS_AUTO[_statusAutoIdx%STATUS_AUTO.length];_statusAutoIdx++;} return _statusColorCache[key]; }
 function statusColor(s) { return getStatusPalette(s).color; }
@@ -8365,7 +8438,7 @@ function _mapLinhaEdicao(i, n, ncols) {
       ${lbl('ID do grupo (…@g.us)', inp('grupo_novo', ''))}${lbl('Nome do grupo', inp('grupo_nome_novo', ''))}
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
-      <button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;background:#16a34a;color:#fff;border-color:#16a34a;" onclick="mapSalvar()">Salvar</button>
+      <button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;background:var(--acao);color:var(--acao-tx);border-color:var(--acao);" onclick="mapSalvar()">Salvar</button>
       <button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;" onclick="mapCancelar()">Cancelar</button>
       ${(i.editados || []).length ? `<button class="modal-close-btn" style="width:auto;padding:0 14px;height:32px;font-size:13px;" onclick="mapRestaurar()">Restaurar padrão</button>` : ''}
       <span id="mapEdMsg" style="font-size:12px;color:var(--text-faint);"></span>
@@ -10496,22 +10569,22 @@ function _htmlCamposOS(osList) {
         <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Título</div>
         <div style="display:flex;gap:6px;margin-bottom:14px;">
           <input type="text" readonly value="${esc(titulo)}" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--text);font-size:12.5px;font-family:'Poppins',sans-serif;">
-          <button class="os-campo-copiar" data-copy="${esc(titulo)}" style="flex-shrink:0;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:0 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Poppins',monospace;">Copiar</button>
+          <button class="os-campo-copiar" data-copy="${esc(titulo)}" style="flex-shrink:0;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:0 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Poppins',monospace;">Copiar</button>
         </div>
 
         ${observacao ? `
         <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">Observação</div>
         <div style="display:flex;gap:6px;margin-bottom:14px;align-items:flex-start;">
           <textarea readonly rows="3" style="flex:1;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--text);font-size:12.5px;line-height:1.5;font-family:'Poppins',sans-serif;resize:vertical;">${esc(observacao)}</textarea>
-          <button class="os-campo-copiar" data-copy="${esc(observacao)}" style="flex-shrink:0;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.4);color:#5B9BD5;border-radius:7px;padding:8px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Poppins',monospace;align-self:flex-start;">Copiar</button>
+          <button class="os-campo-copiar" data-copy="${esc(observacao)}" style="flex-shrink:0;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:8px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Poppins',monospace;align-self:flex-start;">Copiar</button>
         </div>` : ''}
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <div style="font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;">Subtarefas (${subtarefas.length})</div>
-          <button class="os-campo-copiar-todas" data-copy="${esc(subtarefasTextoCompleto)}" style="background:rgba(63,165,140,.1);border:1px solid rgba(63,165,140,.3);color:var(--teal);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;">Copiar todas</button>
+          <button class="os-campo-copiar-todas" data-copy="${esc(subtarefasTextoCompleto)}" style="background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;">Copiar todas</button>
         </div>
         <ul style="list-style:none;margin:0;padding:0;background:var(--panel-alt);border:1px solid var(--border);border-radius:7px;padding:2px 10px;">${subtarefasHtml}</ul>
-        <button class="os-campo-nexus" data-nexus="${esc(JSON.stringify({ titulo, observacao, subtarefas, ctx: osItem._ctx || null }))}" title="Guarda este pacote para o script preencher a Solicitação no Nexus" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(63,165,140,.1);border:1px solid rgba(63,165,140,.35);color:var(--teal);border-radius:7px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">Enviar ao Nexus</button>
+        <button class="os-campo-nexus" data-nexus="${esc(JSON.stringify({ titulo, observacao, subtarefas, ctx: osItem._ctx || null }))}" title="Guarda este pacote para o script preencher a Solicitação no Nexus" style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">Enviar ao Nexus</button>
       </div>
     `;
   }).join('');
@@ -12470,7 +12543,7 @@ function openChamadosInline(){
     const equip = c['Identificação do Equipamento'] || c['Ativo'] || '';
     const _divFechados = (i === _idxPrimeiroFechado && i > 0) ? `<div style="font-size:12px;font-weight:700;color:var(--text-faint);letter-spacing:.04em;text-transform:uppercase;margin:10px 0 2px;">Encerrados</div>` : '';
     return _divFechados + `<div class="ch-item" data-idx="${i}" style="cursor:pointer;">
-      <div class="ch-ticket">${esc(c['Ticket/RMA']||'—')}</div>
+      <div class="ch-ticket">${(() => { const tk = String(c['Ticket/RMA'] || '').trim(); if (/\d/.test(tk)) return esc(tk); return `<span class="ch-semtk">sem nº</span>${tk ? `<small class="ch-canal">aberto por ${esc(tk.toLowerCase() === 'email' ? 'e-mail' : tk)}</small>` : ''}`; })()}</div>
       <div class="ch-info">
         <div class="ch-equip">${esc(equip)}</div>
         ${c['Motivo da abertura do chamado'] ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:3px;">${esc(c['Motivo da abertura do chamado'])}</div>` : ''}
@@ -12482,7 +12555,7 @@ function openChamadosInline(){
         </div>
       </div>
       <div class="ch-status" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-        <span style="font-size:13px;font-family:'Poppins',monospace;font-weight:700;padding:3px 10px;border-radius:6px;background:${sc}1A;color:${sc};border:1px solid ${sc}44;">${esc(c['Status']||'—')}</span>
+        <span class="ds-pill" style="background:${sc}1A;color:${sc};border:1px solid ${sc}44;">${esc(c['Status']||'—')}</span>
         ${statusOS ? `<span style="font-size:13px;color:var(--text-faint);">OS: ${esc(statusOS)}</span>` : ''}
       </div>
     </div>`;
@@ -12543,7 +12616,7 @@ function _abrirDetalheChamado(idx) {
         <div style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Nota do dashboard (não grava na planilha do SharePoint)</div>
         <textarea id="chamadoDetalheObsInput" rows="4" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;font-family:inherit;resize:vertical;">${esc(c['NotaDashboard']||'')}</textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-          <button id="chamadoDetalheSalvarObs" class="tb-btn" style="background:var(--teal);color:#04110F;border:none;">Salvar nota</button>
+          <button id="chamadoDetalheSalvarObs" class="tb-btn" style="background:var(--acao);color:var(--acao-tx);border:none;">Salvar nota</button>
         </div>
       </div>
     </div>`;
@@ -12686,7 +12759,7 @@ function _abrirResumoChamadosPainel() {
       <div style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);margin-bottom:5px;">Texto pra copiar</div>
       <textarea id="resumoChamadosTexto" readonly rows="8" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:12.5px;font-family:'Poppins',monospace;resize:vertical;margin-bottom:10px;">${esc(texto)}</textarea>
       <div style="display:flex;justify-content:flex-end;gap:8px;">
-        <button id="resumoChamadosCopiar" class="tb-btn" style="background:var(--teal);color:#04110F;border:none;">Copiar texto</button>
+        <button id="resumoChamadosCopiar" class="tb-btn" style="background:var(--acao);color:var(--acao-tx);border:none;">Copiar texto</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -13273,7 +13346,7 @@ async function _gerarComunicadoLivre() {
       <div>Erro ao gerar comunicado: ${esc(err.message || '')}</div>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
         <button type="button" onclick="_gerarComunicadoLivre()"
-                style="background:var(--teal);border:none;color:#04110F;border-radius:8px;padding:9px 16px;
+                style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:9px 16px;
                        font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;
                        display:flex;align-items:center;gap:6px;">
           <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -15429,7 +15502,7 @@ function _renderSugestaoReprogramacao(sugestao, totalAtividades, truncado, total
     ${avisos.map(a => `⚠️ ${esc(a)}`).join('<br>')}
   </div>` : ''}
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-  <button id="reprogCopiarBtn" style="flex:1;min-width:200px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--teal);border:none;color:#04110F;border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
+  <button id="reprogCopiarBtn" style="flex:1;min-width:200px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--acao);border:none;color:var(--acao-tx);border-radius:7px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">
     <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
     Copiar texto (p/ técnicos)
   </button>
@@ -15812,11 +15885,11 @@ function _gerarComunicados() {
           <div id="comunicadoContagem_${idSeguro}" style="font-size:13px;color:var(--amber);margin-top:3px;">${lista.length} de ${lista.length} selecionada${lista.length!==1?'s':''} pro comunicado</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button id="copiarBtn_${idSeguro}" onclick="_copiarComunicado('${idSeguro}')" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          <button id="copiarBtn_${idSeguro}" onclick="_copiarComunicado('${idSeguro}')" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Copiar mensagem
           </button>
-          ${ehChamado ? '' : `<button id="dispararBtn_${idSeguro}" onclick="_dispararComunicadoCluster('${esc(equipe)}','${idSeguro}', this)" style="background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          ${ehChamado ? '' : `<button id="dispararBtn_${idSeguro}" onclick="_dispararComunicadoCluster('${esc(equipe)}','${idSeguro}', this)" style="background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Disparar comunicado
           </button>`}
@@ -16085,7 +16158,7 @@ async function _sugerirPriorizacaoIA() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <span style="font-size:12px;font-weight:700;color:var(--text);">Ordem de prioridade sugerida</span>
-        <button onclick="_copiarPriorizacao()" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <button onclick="_copiarPriorizacao()" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
           <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copiar mensagem
         </button>
@@ -16300,7 +16373,7 @@ async function _sobreavisoCarregarGrupos() {
       return `<label style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;">
         <input type="checkbox" class="sobreaviso-grupo-check" value="${esc(idSeguro)}" checked style="width:16px;height:16px;accent-color:var(--teal);flex:none;margin-top:2px;">
         <span style="flex:1;">
-          <span style="font-size:13px;color:var(--text);display:block;">${esc(g.titulo)}${g.dupla ? ' <span style="color:#8B7EDB;font-size:11.5px;">· dupla</span>' : ''}</span>
+          <span style="font-size:13px;color:var(--text);display:block;">${esc(g.titulo)}${g.dupla ? ' <span style="color:var(--teal);font-size:11.5px;">· dupla</span>' : ''}</span>
           <span style="font-size:11.5px;color:var(--text-faint);display:block;margin-top:2px;">${esc(usinasTxt)} · Supervisor: ${esc(supervisoresTxt)}</span>
         </span>
         <span style="font-size:12.5px;color:var(--text-dim);white-space:nowrap;">${esc(pessoasTxt)}</span>
@@ -16339,11 +16412,11 @@ function _gerarComunicadosSobreaviso() {
           <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${esc(g.supervisores.join(' + '))} · ${esc(g.clientes.join(', '))}${g.dupla ? ' · dupla de sobreaviso' : ''}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="_copiarComunicadoSobreaviso('${esc(idSeguro)}')" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          <button onclick="_copiarComunicadoSobreaviso('${esc(idSeguro)}')" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Copiar mensagem
           </button>
-          <button id="dispararSobreavisoBtn_${esc(idSeguro)}" onclick="_dispararComunicadoSobreaviso('${esc(idSeguro)}', this)" style="background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+          <button id="dispararSobreavisoBtn_${esc(idSeguro)}" onclick="_dispararComunicadoSobreaviso('${esc(idSeguro)}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="12" height="12" style="stroke:currentColor;fill:none;stroke-width:2;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Disparar comunicado
           </button>
@@ -16360,7 +16433,7 @@ function _gerarComunicadosSobreaviso() {
               <select id="ajusteSel1_${esc(idSeguro)}_${pi}" class="sb-select" style="width:auto;min-width:170px;">${op}</select>
               <select id="ajusteSel2_${esc(idSeguro)}_${pi}" class="sb-select" style="width:auto;min-width:170px;${p.por_bloco === 2 ? '' : 'display:none;'}">${op}</select></div>`;
           }).join('')}
-          <button onclick="_atualizarTextoSobreaviso('${esc(idSeguro)}')" style="background:#8B7EDB;border:none;color:#160f2e;border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">Atualizar texto</button>
+          <button onclick="_atualizarTextoSobreaviso('${esc(idSeguro)}')" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">Atualizar texto</button>
         </div>
       </div>
     </div>`;
@@ -16623,7 +16696,7 @@ function _sbTabRenderResultado() {
     </div>
     <pre id="sbTabTexto" style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:12px 0 10px;">${esc(_sbTabTexto(linhas))}</pre>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-      <button onclick="_sbTabCopiar()" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto pro WhatsApp</button>
+      <button onclick="_sbTabCopiar()" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto pro WhatsApp</button>
     </div>
     <div style="border:1px solid var(--border);border-radius:8px;padding:10px;">
       <div style="font-size:12px;color:var(--text-faint);margin-bottom:8px;">Disparar direto nos grupos de WhatsApp das equipes (marque quais):</div>
@@ -16633,7 +16706,7 @@ function _sbTabRenderResultado() {
           <option value="propria">Cada grupo recebe só a escala da sua equipe</option>
           <option value="completa">Todos os grupos recebem a tabela completa</option>
         </select>
-        <button id="sbTabDispararBtn" onclick="_sbTabDisparar(this)" style="background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Disparar</button>
+        <button id="sbTabDispararBtn" onclick="_sbTabDisparar(this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Disparar</button>
       </div>
     </div>`;
   _sbMsRender('dest');
@@ -16791,7 +16864,7 @@ function _sbSupRender() {
       <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="${th}">Período</th><th style="${th}">Tipo</th><th style="${th}">Supervisores de sobreaviso</th></tr></thead><tbody>${linhas}</tbody></table>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;">${resumo}</div>
-    <button onclick="_sbSupCopiar()" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto</button>`;
+    <button onclick="_sbSupCopiar()" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Copiar texto</button>`;
 }
 
 async function _sbSupCopiar() {
@@ -16942,8 +17015,8 @@ async function _gerarMeuSobreaviso(audiencia) {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
           <div style="font-size:13px;font-weight:700;color:var(--text);">📍 ${esc(titulo)}</div>
           <div style="display:flex;gap:6px;">
-            <button onclick="_copiarMeuSobreaviso('${idCard}')" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
-            ${audiencia === 'tecnicos' ? `<button id="dispararMeuBtn_${idCard}" onclick="_dispararMeuSobreaviso('${idCard}', this)" style="background:transparent;border:1px solid #8B7EDB;color:#8B7EDB;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Disparar</button>` : ''}
+            <button onclick="_copiarMeuSobreaviso('${idCard}')" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
+            ${audiencia === 'tecnicos' ? `<button id="dispararMeuBtn_${idCard}" onclick="_dispararMeuSobreaviso('${idCard}', this)" style="background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Disparar</button>` : ''}
           </div>
         </div>
         <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(item.texto)}</pre>
@@ -17012,7 +17085,7 @@ function _gerarTratativasSupervisores() {
   const result = document.getElementById('sobreavisoTratativasResult');
   result.innerHTML = `<div style="border:1px solid var(--border-strong);border-radius:10px;padding:12px;">
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button onclick="_copiarTratativasSupervisores()" style="background:var(--teal);border:none;color:#04110F;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
+      <button onclick="_copiarTratativasSupervisores()" style="background:var(--acao);border:none;color:var(--acao-tx);border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer;">Copiar</button>
     </div>
     <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.02);border-radius:6px;padding:10px;margin:0;">${esc(texto)}</pre>
   </div>`;
@@ -18235,12 +18308,12 @@ function _renderAtivDrawer() {
       Histórico Fracttal
     </button>` : ''}
 
-    <button class="nova-oc-submit" onclick="_ajudaDaAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+    <button class="nova-oc-submit" onclick="_ajudaDaAtividade()" style="width:100%;margin-bottom:10px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>
       Ajuda: o que fazer
     </button>
 
-    <button class="nova-oc-submit" onclick="_abrirResumoClienteAtividade()" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+    <button class="nova-oc-submit" onclick="_abrirResumoClienteAtividade()" style="width:100%;margin-bottom:10px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
       Resumo pra Cliente
     </button>
@@ -18255,7 +18328,7 @@ function _renderAtivDrawer() {
       Solicitar OS
     </button>
 
-    <button class="nova-oc-submit" id="ativConverterBtn" onclick="_converterAtividadeEmOcorrencia()" style="width:100%;margin-bottom:16px;background:transparent;border:1px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+    <button class="nova-oc-submit" id="ativConverterBtn" onclick="_converterAtividadeEmOcorrencia()" style="width:100%;margin-bottom:16px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Transformar em Ocorrência
     </button>
@@ -20808,8 +20881,8 @@ function _pontoCardColaborador(c, idx) {
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <span style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);">Comunicado individual</span>
-        <button onclick="_pontoCopiarComunicado('${comunicadoId}', this)" style="background:rgba(63,165,140,.1);border:1px solid rgba(63,165,140,.35);
-                color:var(--teal);border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;">Copiar</button>
+        <button onclick="_pontoCopiarComunicado('${comunicadoId}', this)" style="background:var(--panel);border:1px solid var(--border-strong);
+                color:var(--text);border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;">Copiar</button>
       </div>
       <textarea id="${comunicadoId}" readonly style="width:100%;min-height:110px;background:var(--surface-2);border:1px solid var(--border);
                 border-radius:8px;padding:10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit;">${c.comunicado_individual}</textarea>
@@ -23120,7 +23193,7 @@ _gerarComunicados = function () {
       const cb = document.getElementById('copiarBtn_' + id); if (!cb || !cb.parentElement) return;
       const mk = (txt, fn, destaque) => {
         const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.onclick = function () { fn(id, this); };
-        b.style.cssText = 'border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;' + (destaque ? 'background:var(--amber);border:none;color:#2b1a02;' : 'background:transparent;border:1px solid var(--border-strong);color:var(--text);');
+        b.style.cssText = 'border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;' + (destaque ? 'background:var(--acao);border:none;color:var(--acao-tx);' : 'background:transparent;border:1px solid var(--border-strong);color:var(--text);');
         return b;
       };
       const w = cb.parentElement;
