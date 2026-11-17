@@ -2482,6 +2482,12 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 
 /* Gaveta fechada fora da tela deixava a sombra vazar na borda direita (faixa cinza no celular) */
 .drawer:not(.open),.oc-drawer:not(.on){box-shadow:none!important}
+
+#sec-visao-geral .vg-nexus-velho{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--vg-acompanhar) 14%,transparent);border:1px solid color-mix(in srgb,var(--vg-acompanhar) 45%,transparent);font-size:13px;color:var(--vg-tinta)}
+#sec-visao-geral .vg-nexus-velho .vg-btn{margin-left:auto}
+.vg-nx-btn{font:500 12px 'Poppins',sans-serif;margin-left:8px;padding:3px 10px;border-radius:8px;border:1px solid var(--border-strong);background:var(--panel);color:var(--text);cursor:pointer;vertical-align:1px}
+.vg-nx-btn.velho{border-color:var(--acao);color:var(--acao)}
+.vg-nx-btn:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -24011,6 +24017,7 @@ function _vgRender(mapa) {
     <span class="vg-vivo"><i></i>atualizado ${hora}<button class="vg-btn" onclick="ATIVIDADES=[];_vgEntrar()">Atualizar</button></span>
   </div>
 
+  ${_vgNexusVelho() ? `<div class="vg-nexus-velho"><span>Performance do Nexus lida em <b>${esc(_pfDados.lidoEm)}</b> (há ${_vgNexusIdadeTxt()}). A geração do mês está desatualizada.</span><button class="vg-btn" onclick="_vgAtualizarNexus(this)">Atualizar do Nexus</button></div>` : ''}
   ${desl.length ? `<div class="vg-alerta"><span class="vg-pulso"></span><span class="vg-n vg-num">${desl.length}</span>
     <div><b>${desl.length === 1 ? 'usina desligada agora' : 'usinas desligadas agora'}</b><br><small>${desl.slice(0, 4).map(esc).join(' · ')}${desl.length > 4 ? ' +' + (desl.length - 4) : ''}</small></div>
     <button class="vg-btn" onclick="switchNav('atividades');if(!_ativDesligFiltro)toggleAtivDesligFiltro()">Ver atividades →</button></div>`
@@ -24086,7 +24093,7 @@ function _vgDetalhe(p) {
   if (u) {
     const a = _pfAgrega([u]);
     let gap = null; try { const d = _pfDiag(u); gap = d ? d.gap : null; } catch (e) {}
-    card = `<div class="pf-cli vg-pf" style="cursor:default"><h3>Performance · ${esc(typeof _pfMesRot === 'function' ? _pfMesRot(_pfDados.mes) : _pfDados.mes)} <span>Nexus lido em ${esc(_pfDados.lidoEm || '—')}</span></h3><div class="g">
+    card = `<div class="pf-cli vg-pf" style="cursor:default"><h3>Performance · ${esc(typeof _pfMesRot === 'function' ? _pfMesRot(_pfDados.mes) : _pfDados.mes)} <span>Nexus lido em ${esc(_pfDados.lidoEm || '—')}${_vgNexusVelho() ? ' <b style="color:var(--acao)">· desatualizado</b>' : ''}</span></h3><div class="g">
       <div><div class="n ${_pfCor(a.ating, 100, 10)}">${_pfFmt(a.ating, 0)}%</div><div class="l">gerou do esperado (${_pfFmt(a.prod, 0)} de ${_pfFmt(a.p50, 0)} MWh)</div></div>
       <div><div class="n ${gap > 0 ? 'pf-mal' : 'pf-ok'}">${_pfFmt(gap > 0 ? gap : 0, 0)}</div><div class="l">MWh abaixo do esperado</div></div>
       <div><div class="n ${_pfCor(a.pr, a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR · meta ${_pfFmt(a.prMeta)}%</div></div>
@@ -24234,6 +24241,64 @@ try {
   const _vgH = (location.hash || '').slice(1);
   if (_vgShell && _vgShell.classList.contains('ready') && ['manager', 'admin'].includes(_vgRole) && (!_vgH || !document.getElementById('sec-' + _vgH))) switchNav('visao-geral');
 } catch (e) { console.warn('[Visão geral] tela inicial (sessão salva)', e); }
+
+
+/* ══ Atualizar do Nexus (17/11/2026) ══
+   A performance só chega quando o script "Grid Performance → Painel" (Tampermonkey) roda numa aba do Nexus logada.
+   O botão abre o Nexus com #central-atualizar (o script v1.2 envia na hora e fecha a aba) e a Central espera a leitura nova. */
+function _vgNexusData() {
+  try { const m = String((_pfDados && _pfDados.lidoEm) || '').match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]) : null; } catch (e) { return null; }
+}
+function _vgNexusVelho() { const d = _vgNexusData(); return !!d && (Date.now() - d) > 6 * 3600e3; }
+function _vgNexusIdadeTxt() {
+  const d = _vgNexusData(); if (!d) return '—';
+  const h = Math.round((Date.now() - d) / 3600e3);
+  return h < 48 ? h + ' h' : Math.round(h / 24) + ' dias';
+}
+let _vgNexusPoll = null;
+function _vgAtualizarNexus(btn) {
+  const antes = (_pfDados && _pfDados.lidoEm) || '';
+  window.open('https://app.gridco.com.br/t/performance/noc#central-atualizar', '_blank');
+  if (btn) { btn.disabled = true; btn.textContent = 'Aguardando o Nexus…'; }
+  clearInterval(_vgNexusPoll);
+  let n = 0;
+  _vgNexusPoll = setInterval(async () => {
+    n++;
+    try {
+      const r = await fetch('https://api.168.138.232.237.sslip.io/nexus-performance');
+      const j = await r.json();
+      if (j && j.lidoEm && j.lidoEm !== antes) {
+        clearInterval(_vgNexusPoll);
+        _pfDados = null;
+        if (_activeNav === 'performance' && typeof _pfCarregar === 'function') { _pfCarregar(); }
+        else if (_activeNav === 'visao-geral') { _vgEntrar(); }
+        if (typeof showToast === 'function') showToast('Performance do Nexus atualizada (' + j.lidoEm + ')');
+        return;
+      }
+    } catch (e) {}
+    if (n >= 16) {
+      clearInterval(_vgNexusPoll);
+      if (btn) { btn.disabled = false; btn.textContent = 'Atualizar do Nexus'; }
+      alertaNexusSemResposta();
+    }
+  }, 15000);
+}
+function alertaNexusSemResposta() {
+  const msg = 'O Nexus não enviou dados em 4 minutos. Confira no Chrome: 1) você está logado no Nexus; 2) o Tampermonkey está ativo com o script "Grid Performance → Painel" (v1.2); 3) em chrome://extensions › Tampermonkey › Detalhes, "Permitir scripts de usuário" está ligado.';
+  if (typeof showToast === 'function') showToast(msg, false); else console.warn(msg);
+}
+const _vgPfRenderBase = _pfRender;
+_pfRender = function () {
+  const r = _vgPfRenderBase.apply(this, arguments);
+  try {
+    const sub = document.getElementById('pfSub');
+    if (sub && _pfDados && !_pfDados.vazio) {
+      const velho = _vgNexusVelho();
+      sub.insertAdjacentHTML('beforeend', ` <button class="vg-nx-btn${velho ? ' velho' : ''}" onclick="_vgAtualizarNexus(this)">${velho ? 'Desatualizado · ' : ''}Atualizar do Nexus</button>`);
+    }
+  } catch (e) {}
+  return r;
+};
 
 </script>
 
