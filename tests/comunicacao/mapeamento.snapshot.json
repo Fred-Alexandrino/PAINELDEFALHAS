@@ -7,7 +7,8 @@
   "responsavel": "Railson Gomes",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Wesley Silva"
  },
  {
   "usina": "Sete Lagoas",
@@ -17,7 +18,8 @@
   "responsavel": "Daniel de Paula",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Patrick Viana"
  },
  {
   "usina": "Nova Xavantina I",
@@ -27,7 +29,8 @@
   "responsavel": "Gabriel Oliveira",
   "funcao": "Mantenedor",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Nova Xavantina II",
@@ -37,7 +40,8 @@
   "responsavel": "Gabriel Oliveira",
   "funcao": "Mantenedor",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Canarana I",
@@ -47,7 +51,8 @@
   "responsavel": "Marcelo Lino",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Canarana II",
@@ -57,7 +62,8 @@
   "responsavel": "Marcelo Lino",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Ribeirão Cascalheira",
@@ -67,7 +73,8 @@
   "responsavel": "Marcelo Lino",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Colíder I",
@@ -77,7 +84,8 @@
   "responsavel": "Deivity Saugo",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Colíder II",
@@ -87,7 +95,8 @@
   "responsavel": "Deivity Saugo",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Araputanga",
@@ -99,7 +108,8 @@
   "membros": [
    "Aniel Rocha (Mantenedor)"
   ],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Poconé",
@@ -111,7 +121,8 @@
   "membros": [
    "Aniel Rocha (Mantenedor)"
   ],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Nobres",
@@ -121,7 +132,8 @@
   "responsavel": "Valmir Júnior",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Diamantino",
@@ -131,7 +143,8 @@
   "responsavel": "Valmir Júnior",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Elias Fausto",
@@ -141,7 +154,8 @@
   "responsavel": "Bruno Pupo",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": "Felipe Lima"
+  "alternativo": "Felipe Lima",
+  "supervisor_campo": "Bruno Pupo"
  },
  {
   "usina": "União I",
@@ -153,7 +167,8 @@
   "membros": [
    "Antônio Neto (Eletricista)"
   ],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Wesley Silva"
  },
  {
   "usina": "União II",
@@ -165,7 +180,8 @@
   "membros": [
    "Antônio Neto (Eletricista)"
   ],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Wesley Silva"
  },
  {
   "usina": "Ipixuna do Pará I",
@@ -175,7 +191,8 @@
   "responsavel": "Wesllen",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Nova Ipixuna I",
@@ -197,7 +214,8 @@
   "membros": [
    "João Salles (Eletricista)"
   ],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Samuel Lucena"
  },
  {
   "usina": "Alto Paraná I",
@@ -207,7 +225,8 @@
   "responsavel": "Matheus Gois",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Alto Paraná II",
@@ -217,7 +236,8 @@
   "responsavel": "Matheus Gois",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Paranavaí",
@@ -227,7 +247,8 @@
   "responsavel": "Matheus Gois",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Assis Chateaubriand",
@@ -237,7 +258,8 @@
   "responsavel": "Gilson Milhomem",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Céu Azul",
@@ -247,7 +269,8 @@
   "responsavel": "Gilson Milhomem",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Colorado I",
@@ -257,7 +280,8 @@
   "responsavel": "Marcos Camargo",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Colorado II",
@@ -267,7 +291,8 @@
   "responsavel": "Marcos Camargo",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Mandaguaçu",
@@ -277,7 +302,8 @@
   "responsavel": "Marcos Camargo",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Sarandi",
@@ -287,7 +313,8 @@
   "responsavel": "Marcos Camargo",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Nova Londrina I",
@@ -297,7 +324,8 @@
   "responsavel": "Ronaldo Silva",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Nova Londrina II",
@@ -307,7 +335,8 @@
   "responsavel": "Ronaldo Silva",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Cidade Gaúcha",
@@ -317,7 +346,8 @@
   "responsavel": "Ronaldo Silva",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Pharmas II",
@@ -327,7 +357,8 @@
   "responsavel": "Valdir Felix",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Pharmas III",
@@ -337,7 +368,8 @@
   "responsavel": "Valdir Felix",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Pharmas IV",
@@ -347,7 +379,8 @@
   "responsavel": "Valdir Felix",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Santo Antonio da Platina",
@@ -357,7 +390,8 @@
   "responsavel": "Valdir Felix",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Coração I",
@@ -367,7 +401,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Coração II",
@@ -377,7 +412,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Guatambu I",
@@ -387,7 +423,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Guatambu II",
@@ -397,7 +434,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Guatambu III",
@@ -407,7 +445,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Guatambu IV",
@@ -417,7 +456,8 @@
   "responsavel": "Ademir Necker",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Pedro Candido"
  },
  {
   "usina": "Ceilândia I",
@@ -427,7 +467,8 @@
   "responsavel": "Janderson Miranda",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Ceilândia II",
@@ -437,7 +478,8 @@
   "responsavel": "Janderson Miranda",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Sítio dos Nogueiras",
@@ -447,7 +489,8 @@
   "responsavel": "Janderson Miranda",
   "funcao": "Técnico",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Vitor Valadares"
  },
  {
   "usina": "Aparecida do Taboado I",
@@ -457,7 +500,8 @@
   "responsavel": "Paulo Ribeiro",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Samuel Lucena"
  },
  {
   "usina": "Aparecida do Taboado II",
@@ -467,6 +511,7 @@
   "responsavel": "Paulo Ribeiro",
   "funcao": "Eletricista",
   "membros": [],
-  "alternativo": ""
+  "alternativo": "",
+  "supervisor_campo": "Samuel Lucena"
  }
 ]

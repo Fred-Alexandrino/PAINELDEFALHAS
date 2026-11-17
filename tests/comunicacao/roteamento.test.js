@@ -7,7 +7,7 @@ test('técnico: várias UFVs do mesmo técnico viram UMA mensagem', () => {
   const r = resolver({ tipo: 'tecnico', ufvs: ['Colorado I', 'Sarandi', 'Mandaguaçu'], mapeamento: mapa });
   assert.equal(r.grupos.length, 1);
   assert.equal(r.grupos[0].tecnico, 'Marcos Camargo');
-  assert.deepEqual(r.grupos[0].destinatarios, ['Marcos Camargo']);
+  assert.deepEqual(r.grupos[0].destinatarios, ['Pedro Candido']); // supervisor de campo (Nexus)
   assert.deepEqual(r.grupos[0].ufvs.map(u => u.ufv), ['UFV Colorado I', 'UFV Sarandi', 'UFV Mandaguaçu']);
 });
 
@@ -52,4 +52,10 @@ test('UFV repetida entra uma vez só', () => {
 
 test('tipo inválido dá erro', () => {
   assert.throws(() => resolver({ tipo: 'sms', ufvs: [], mapeamento: mapa }));
+});
+
+test('técnico: mensagem dirigida ao supervisor de campo; sem cadastro gera aviso', () => {
+  const r = resolver({ tipo: 'tecnico', ufvs: ['Colíder I', 'Nova Ipixuna I'], mapeamento: mapa });
+  assert.deepEqual(r.grupos.map(g => [g.tecnico, g.destinatarios.join('+')]), [['Deivity Saugo', 'Vitor Valadares'], ['Heitor Vidal Silva', '']]);
+  assert.ok(r.avisos.some(a => /Nova Ipixuna I: sem supervisor de campo/.test(a)));
 });

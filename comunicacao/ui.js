@@ -16,7 +16,7 @@
   const NAV = 'central-mensagens';
   const LS_KEY = 'cmEstado_v1';
   const TIPOS = [
-    ['cliente', 'Cliente'], ['tecnico', 'Técnico'], ['email', 'E-mail'], ['envio_relatorio', 'Envio de relatório'],
+    ['cliente', 'Cliente'], ['tecnico', 'Campo'], ['email', 'E-mail'], ['envio_relatorio', 'Envio de relatório'],
   ];
   // O que cada tipo muda na tela (lista, textos, destinatário e botão)
   const INFO = {
@@ -28,11 +28,11 @@
       botao: 'Gerar mensagem ao cliente', lista: 'cliente',
     },
     tecnico: {
-      desc: 'Mensagem de WhatsApp para o técnico. Sai UMA mensagem por técnico, juntando todas as usinas dele.',
-      dest: 'Vai para o responsável de cada UFV no mapeamento. A lista abaixo está agrupada por técnico.',
+      desc: 'Mensagem no grupo da equipe, dirigida ao supervisor de campo (Responsável O&M). Sai UMA mensagem por equipe, juntando as usinas dela.',
+      dest: 'Para o supervisor de campo de cada usina, no grupo da equipe. A lista abaixo está agrupada por técnico (equipe).',
       rotulo: 'O que cobrar ou orientar',
       ph: 'Ex.: pendências por usina com datas (de onde veio a informação: PCM, painel de atividades) e o que você precisa que ele responda, com prazo.',
-      botao: 'Gerar mensagem ao técnico', lista: 'tecnico',
+      botao: 'Gerar mensagem ao campo', lista: 'tecnico',
     },
     email: {
       desc: 'E-mail formal para o cliente: sai com Assunto + texto + sua assinatura (sem endereços).',
@@ -299,7 +299,8 @@
     const r = rotas();
     const rotaHtml = r.grupos.length ? r.grupos.map(g => `
       <div class="cm-rota">
-        <div>${porTec ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>` : `<span class="cm-tag">${h(g.cliente)}</span>`}${porTec && g.cliente ? ` <span class="cm-tag">${h(g.cliente)}</span>` : ''}</div>
+        <div>${porTec ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'supervisor de campo não cadastrado')}</b> <small class="cm-sub2">supervisor de campo</small>` : `<span class="cm-tag">${h(g.cliente)}</span>`}</div>
+        ${porTec ? `<div class="cm-rota-obs">${g.grupoNome ? 'No grupo <b>' + h(g.grupoNome) + '</b> · técnico ' : 'No grupo da equipe do técnico '}${h(g.tecnico)}${g.funcao ? ' (' + h(g.funcao) + ')' : ''}</div>` : ''}
         <div class="cm-rota-ufvs">${h(rotuloUfvs(g.ufvs)) || 'UFVs não selecionadas (opcional)'}</div>
         ${st.tipo === 'tecnico' && g.ufvs.some(u => u.membros && u.membros.length) ? `<div class="cm-rota-obs">Equipe: ${h([...new Set(g.ufvs.flatMap(u => u.membros || []))].join(', '))}</div>` : ''}
       </div>`).join('') : `<div class="cm-vazio">${h(info.dest)}</div>`;
@@ -342,7 +343,7 @@
 
   function renderResultado(res, i) {
     const g = res.grupo;
-    const cab = `<div class="cm-res-h"><div>${g.destinatarios.length ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>` : `<b>${h(g.cliente || '')}</b>`}
+    const cab = `<div class="cm-res-h"><div>${g.destinatarios.length ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>${g.tipo === 'tecnico' ? ` <small class="cm-sub2" style="display:inline">no grupo da equipe de ${h(g.tecnico)}</small>` : ''}` : `<b>${h(g.cliente || g.tecnico || '')}</b>`}
       <small>${h(rotuloUfvs(g.ufvs))}</small></div>
       ${res.versoes.length > 1 ? `<select class="cm-input cm-ver" data-acao="versao" data-i="${i}">${res.versoes.map((v, k) => `<option value="${k}" ${k === res.atual ? 'selected' : ''}>Versão ${v.n}${v.ajuste ? ' — ' + h(v.ajuste.slice(0, 40)) : ''}</option>`).join('')}</select>` : ''}</div>`;
     if (res.gerando && !res.versoes.length) return `<div class="cm-bloco">${cab}<div class="cm-vazio">Gerando…</div></div>`;

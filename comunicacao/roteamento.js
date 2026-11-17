@@ -1,6 +1,7 @@
 /* Central de Mensagens — roteamento (seção 10 do padrão)
- * Técnico: destinatário = responsável da UFV no mapeamento oficial (/mapeamento-ufvs),
- * uma mensagem por técnico. Cliente/E-mail/Envio de relatório: agrupa por cliente,
+ * Técnico (campo): uma mensagem por equipe/técnico, postada no grupo da equipe e
+ * DIRIGIDA AO SUPERVISOR DE CAMPO da usina (campo supervisor_campo de /mapeamento-ufvs =
+ * "Responsável O&M" do Nexus — Fred, 17/11/2026). Sem supervisor cadastrado: avisa. Cliente/E-mail/Envio de relatório: agrupa por cliente,
  * SEM contato fixo (Fred, 17/11/2026: com quem falar muda conforme o assunto — o
  * nome, se houver, é digitado por ele no campo "Para quem").
  */
@@ -40,6 +41,8 @@
       cluster: u.cluster || '',
       cidadeUf: u.cidade_uf || u.cidadeUf || '',
       tecnico: u.responsavel || '',
+      supervisorCampo: u.supervisor_campo || '',
+      grupoNome: u.grupo_nome || '',
       funcao: u.funcao || '',
       membros: Array.isArray(u.membros) ? u.membros.slice() : [],
     };
@@ -78,9 +81,10 @@
     if (TIPOS[tipo].publico === 'tecnico') {
       for (const it of itens) {
         if (!it.tecnico) { avisos.push(`${it.ufv}: sem responsável no mapeamento`); continue; }
-        const g = pegar('tec:' + normalizar(it.tecnico), { tecnico: it.tecnico, funcao: it.funcao });
+        const g = pegar('tec:' + normalizar(it.tecnico), { tecnico: it.tecnico, funcao: it.funcao, grupoNome: it.grupoNome });
         g.ufvs.push(it);
-        if (!g.destinatarios.length) g.destinatarios.push(it.tecnico);
+        if (it.supervisorCampo) { if (!g.destinatarios.includes(it.supervisorCampo)) g.destinatarios.push(it.supervisorCampo); }
+        else avisos.push(`${it.ufv}: sem supervisor de campo no mapeamento (Responsável O&M do Nexus)`);
       }
     } else {
       const para = String((opts && opts.para) || '').trim();
