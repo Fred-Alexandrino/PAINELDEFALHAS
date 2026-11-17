@@ -1,0 +1,8 @@
+{
+  "name": "central-om-frontend",
+  "private": true,
+  "description": "Central O&M (GitHub Pages). Sem dependências: só os testes do módulo Central de Mensagens.",
+  "scripts": {
+    "test": "node --test \"tests/comunicacao/*.test.js\""
+  }
+}

@@ -2489,6 +2489,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .vg-nx-btn.velho{border-color:var(--acao);color:var(--acao)}
 .vg-nx-btn:disabled{opacity:.6;cursor:wait}
 </style>
+<link rel="stylesheet" href="comunicacao/ui.css?v=20261117a">
 </head>
 <body>
 
@@ -2570,6 +2571,10 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
       <a href="#com-sobreaviso" class="sb-nav-item" data-nav="com-sobreaviso" data-label="Sobreavisos" draggable="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Sobreavisos
+      </a>
+      <a href="#central-mensagens" class="sb-nav-item" data-nav="central-mensagens" data-label="Central de Mensagens" draggable="true">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+        Central de Mensagens
       </a>
       <a href="#comunicados" class="sb-nav-item" data-nav="comunicados" data-label="Comunicados &amp; OSs" tabindex="-1" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -3917,6 +3922,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 
       <!-- ── SEÇÃO: VISÃO GERAL (16/11/2026) ── -->
       <section class="content-section" id="sec-visao-geral"><div id="vgRoot"></div></section>
+      <section class="content-section" id="sec-central-mensagens"><div id="cmRoot"></div></section>
 
       <!-- ── SEÇÃO: PAINEL DE ATIVIDADES ─────────────────────── -->
       <section class="content-section active" id="sec-atividades">
@@ -6429,7 +6435,7 @@ let _locRaiosAtivos = new Set(); // chaves "cliente|usina" com raio de 150km lig
 const LOC_RAIO_METROS = 150000; // 150km — área de atuação da equipe, sem contar deslocamento de jornada
 const LOC_CORES_CLIENTE = {
   'Renogrid': '#F5A623', 'Thopen': '#60A5FA', '2C Energia': '#9FE870',
-  'GD Energy': '#EF4444', 'Alves Lima': '#A78BFA', 'Sal Energia': '#34D399',
+  'GD Energy': '#EF4444', 'Alves Lima': '#A78BFA',
 };
 let _locMarkersByChave = {};
 
@@ -7944,7 +7950,6 @@ const CLIENTE_CANONICO = {
   'alves lima': 'Alves Lima',
   'gd energy': 'GD Energy',
   'renogrid': 'Renogrid', 'reno grid': 'Renogrid',
-  'sal energia': 'Sal Energia', 'sal': 'Sal Energia',
   'thopen': 'Thopen',
 };
 function normalizeCliente(raw) {
@@ -14614,7 +14619,7 @@ const _PP_API = 'https://api.168.138.232.237.sslip.io';
 let _ppModo = 'semana';          // 'semana' | 'dia'
 let _ppSemana = null;            // última resposta de /programacao-pcm/semana
 let _ppAgruparOS = false;
-let _ppMostrarFora = false;      // OS do PCM de usinas que não estão no mapeamento (ex.: Sal Energia)
+let _ppMostrarFora = false;      // OS do PCM de usinas que não estão no mapeamento
 let _ppEnvioStatus = {};
 let _ppDiaUlt = null;            // última resposta de /programacao-pcm (modo Dia)         // cluster -> {ok, msg}
 
@@ -14745,7 +14750,7 @@ function _ppRenderSemana() {
       <label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;">
         <input type="checkbox" ${_ppAgruparOS ? 'checked' : ''} onchange="_ppAgruparOS=this.checked;_ppRenderSemana();"> Agrupar por usina
       </label>
-      ${foraTotal ? `<label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="OS que o PCM programou pra você em usinas que não estão no seu mapeamento atual (ex.: Sal Energia). Não entram nos envios.">
+      ${foraTotal ? `<label style="font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="OS que o PCM programou pra você em usinas que não estão no seu mapeamento atual. Não entram nos envios.">
         <input type="checkbox" ${_ppMostrarFora ? 'checked' : ''} onchange="_ppMostrarFora=this.checked;_ppRenderSemana();"> Mostrar fora do mapeamento (${foraTotal})
       </label>` : ''}
     </div>
@@ -24358,6 +24363,11 @@ _pfRender = function () {
 
 </script>
 
+<!-- Central de Mensagens (docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md) -->
+<script src="comunicacao/formatWhatsApp.js?v=20261117a"></script>
+<script src="comunicacao/roteamento.js?v=20261117a"></script>
+<script src="comunicacao/validators.js?v=20261117a"></script>
+<script src="comunicacao/ui.js?v=20261117a"></script>
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
