@@ -29,7 +29,7 @@
     },
     tecnico: {
       desc: 'Mensagem no grupo da equipe, dirigida ao supervisor de campo (Responsável O&M). Sai UMA mensagem por equipe, juntando as usinas dela.',
-      dest: 'Para o supervisor de campo de cada usina, no grupo da equipe. A lista abaixo está agrupada por técnico (equipe).',
+      dest: 'Para o supervisor de campo de cada usina, no grupo da equipe. A lista abaixo está agrupada por supervisor de campo.',
       rotulo: 'O que cobrar ou orientar',
       ph: 'Ex.: pendências por usina com datas (de onde veio a informação: PCM, painel de atividades) e o que você precisa que ele responda, com prazo.',
       botao: 'Gerar mensagem ao campo', lista: 'tecnico',
@@ -166,6 +166,7 @@
       dataHoraEnvio: envioBR(st.envio),
       rascunho: st.rascunho,
       prints: st.prints.map(p => ({ base64: p.base64, mimeType: p.mimeType })),
+      pessoas: pessoasComCargo(),
     }, extra || {});
     const r = await fetch(API + '/comunicacao/gerar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(100000),
@@ -245,6 +246,30 @@
     render();
   }
 
+  // Cargos conhecidos (mapeamento): supervisores de campo e técnicos de cada usina
+  function pessoasComCargo() {
+    const m = new Map();
+    (st.mapa || []).forEach(u => {
+      if (u.supervisor_campo) m.set(u.supervisor_campo, 'Supervisor de Campo');
+    });
+    (st.mapa || []).forEach(u => {
+      if (u.responsavel && !m.has(u.responsavel)) m.set(u.responsavel, (u.funcao || 'Técnico') + ' de campo (equipe ' + (u.cluster || '') + ')');
+      (u.membros || []).forEach(x => { const mm = String(x).match(/^(.*?)\s*\((.*)\)$/); if (mm && !m.has(mm[1])) m.set(mm[1], mm[2] + ' de campo (equipe ' + (u.cluster || '') + ')'); });
+    });
+    return [...m].map(([nome, cargo]) => ({ nome, cargo }));
+  }
+
+  // E-mail: *negrito* vira negrito do Outlook (HTML); o texto puro sai sem asteriscos
+  const emailHtml = t => h(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,;:!?])/g, '$1<i>$2</i>').replace(/\n/g, '<br>');
+  const emailTexto = t => String(t).replace(/\*([^*\n]+)\*/g, '$1').replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,;:!?])/g, '$1$2');
+  async function copiarEmail(texto, btn) {
+    try {
+      const html = '<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">' + emailHtml(texto) + '</div>';
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([emailTexto(texto)], { type: 'text/plain' }) })]);
+      if (btn) { const o = btn.textContent; btn.textContent = 'Copiado ✓'; setTimeout(() => { btn.textContent = o; }, 1600); }
+    } catch (e) { copiar(emailTexto(texto), btn); }
+  }
+
   async function copiar(texto, btn) {
     let ok = false;
     try { await navigator.clipboard.writeText(texto); ok = true; } catch (e) {
@@ -264,7 +289,7 @@
     const info = INFO[st.tipo];
     const porTec = info.lista === 'tecnico';
     const cliMode = !porTec;
-    const chave = u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—'));
+    const chave = u => (porTec ? (u.supervisor_campo || 'Sem supervisor de campo') : (u.cliente || '—'));
     const grupos = {};
     const itens = [];
     const usadas = new Set();
@@ -287,10 +312,10 @@
     const marcado = u => u.usinas.every(n => sel.has(n));
     const lista = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR')).map(k => `
       <div class="cm-cli">
-        <div class="cm-cli-h"><span>${porTec ? '👷 ' : ''}${h(k)}${porTec ? ` <em>${h(grupos[k][0].funcao || '')} · ${h([...new Set(grupos[k].map(u => u.cluster))].join(', '))}</em>` : ''}</span><button type="button" class="cm-link" data-acao="todas" data-grupo="${h(k)}">marcar todas</button></div>
+        <div class="cm-cli-h"><span>${h(k)}${porTec ? ' <em>supervisor de campo</em>' : ''}</span><button type="button" class="cm-link" data-acao="todas" data-grupo="${h(k)}">marcar todas</button></div>
         ${grupos[k].map(u => `<label class="cm-ufv${marcado(u) ? ' on' : ''}">
           <input type="checkbox" data-acao="ufv" value="${h(u.usinas.join('|'))}" ${marcado(u) ? 'checked' : ''}>
-          <span><b>UFV ${h(u.nomeLista)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cidade_uf || '') : h(u.cidade_uf || '')}</small></span></label>`).join('')}
+          <span><b>UFV ${h(u.nomeLista)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cluster || '') : h(u.cidade_uf || '')}</small></span></label>`).join('')}
       </div>`).join('') || `<div class="cm-vazio">${!st.mapa ? 'Carregando o mapeamento…' : cliMode && !st.cliente ? 'Escolha o cliente acima.' : 'Nenhuma UFV encontrada.'}</div>`;
     const listaClientes = [...new Set(mapa.map(u => u.cliente).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const clientes = listaClientes.map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.cliente === c ? ' on' : ''}" data-acao="cliente" data-cliente="${h(c)}">${h(c)}</button>`).join('');
@@ -300,9 +325,9 @@
     const rotaHtml = r.grupos.length ? r.grupos.map(g => `
       <div class="cm-rota">
         <div>${porTec ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'supervisor de campo não cadastrado')}</b> <small class="cm-sub2">supervisor de campo</small>` : `<span class="cm-tag">${h(g.cliente)}</span>`}</div>
-        ${porTec ? `<div class="cm-rota-obs">${g.grupoNome ? 'No grupo <b>' + h(g.grupoNome) + '</b> · técnico ' : 'No grupo da equipe do técnico '}${h(g.tecnico)}${g.funcao ? ' (' + h(g.funcao) + ')' : ''}</div>` : ''}
+        ${porTec ? `<div class="cm-rota-obs">${g.grupoNome ? 'No grupo <b>' + h(g.grupoNome) + '</b>' : 'No grupo da equipe ' + h([...new Set(g.ufvs.map(u => u.cluster).filter(Boolean))].join(', '))}</div>` : ''}
         <div class="cm-rota-ufvs">${h(rotuloUfvs(g.ufvs)) || 'UFVs não selecionadas (opcional)'}</div>
-        ${st.tipo === 'tecnico' && g.ufvs.some(u => u.membros && u.membros.length) ? `<div class="cm-rota-obs">Equipe: ${h([...new Set(g.ufvs.flatMap(u => u.membros || []))].join(', '))}</div>` : ''}
+
       </div>`).join('') : `<div class="cm-vazio">${h(info.dest)}</div>`;
     const rotaAvisos = r.avisos.map(a => `<div class="cm-aviso">⚠️ ${h(a)}</div>`).join('');
 
@@ -343,7 +368,7 @@
 
   function renderResultado(res, i) {
     const g = res.grupo;
-    const cab = `<div class="cm-res-h"><div>${g.destinatarios.length ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>${g.tipo === 'tecnico' ? ` <small class="cm-sub2" style="display:inline">no grupo da equipe de ${h(g.tecnico)}</small>` : ''}` : `<b>${h(g.cliente || g.tecnico || '')}</b>`}
+    const cab = `<div class="cm-res-h"><div>${g.destinatarios.length ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>${g.tipo === 'tecnico' ? ` <small class="cm-sub2" style="display:inline">no grupo da equipe ${h([...new Set(g.ufvs.map(u => u.cluster).filter(Boolean))].join(', '))}</small>` : ''}` : `<b>${h(g.cliente || g.tecnico || '')}</b>`}
       <small>${h(rotuloUfvs(g.ufvs))}</small></div>
       ${res.versoes.length > 1 ? `<select class="cm-input cm-ver" data-acao="versao" data-i="${i}">${res.versoes.map((v, k) => `<option value="${k}" ${k === res.atual ? 'selected' : ''}>Versão ${v.n}${v.ajuste ? ' — ' + h(v.ajuste.slice(0, 40)) : ''}</option>`).join('')}</select>` : ''}</div>`;
     if (res.gerando && !res.versoes.length) return `<div class="cm-bloco">${cab}<div class="cm-vazio">Gerando…</div></div>`;
@@ -363,7 +388,7 @@
         <div class="cm-copybox${bloqueado ? ' bloq' : ''}">
           <div class="cm-copybox-bar"><span class="cm-rot">Mensagem ${k + 1}${saida.mensagens.length > 1 ? ' de ' + saida.mensagens.length : ''}</span>
             <button type="button" class="cm-btn pri" data-acao="copiar" data-i="${i}" data-k="${k}" ${bloqueado ? 'disabled title="Corrija os erros abaixo antes de copiar"' : ''}>Copiar</button></div>
-          <pre class="cm-texto">${h(m.texto)}</pre>
+          ${g.tipo === 'email' ? `<div class="cm-texto cm-email">${emailHtml(m.texto)}</div>` : `<pre class="cm-texto">${h(m.texto)}</pre>`}
         </div>
         ${errosCx.map(e => `<div class="cm-erro">⛔ ${h(e.msg)}</div>`).join('')}`;
     }).join('');
@@ -426,7 +451,7 @@
       else if (a === 'rm-print') { st.prints.splice(+b.dataset.k, 1); render(); }
       else if (a === 'todas') {
         const k = b.dataset.grupo, porTec = INFO[st.tipo].lista === 'tecnico';
-        (st.mapa || []).filter(u => (porTec ? (u.responsavel || 'Sem responsável') : (u.cliente || '—')) === k)
+        (st.mapa || []).filter(u => (porTec ? (u.supervisor_campo || 'Sem supervisor de campo') : (u.cliente || '—')) === k)
           .filter(u => !porTec || !st.filtroCliente || u.cliente === st.filtroCliente).forEach(u => { if (!st.ufvs.includes(u.usina)) st.ufvs.push(u.usina); });
         salvar(); render();
       }
@@ -437,7 +462,9 @@
       else if (a === 'dividir') novaVersao(i, '', true);
       else if (a === 'copiar') {
         const res = st.resultados[i]; const m = res.versoes[res.atual].saida.mensagens[+b.dataset.k];
-        copiar(b.dataset.campo === 'assunto' ? m.assunto : m.texto, b);
+        if (b.dataset.campo === 'assunto') copiar(m.assunto, b);
+        else if (res.grupo.tipo === 'email') copiarEmail(m.texto, b);
+        else copiar(m.texto, b);
       }
     });
     el.addEventListener('change', ev => {

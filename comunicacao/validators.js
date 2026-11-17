@@ -218,7 +218,7 @@
     // encerramento — só na última caixa
     const ultima = String(msgs[msgs.length - 1].texto || '');
     const fim = norm(_ultimasLinhas(_corpoSemAssinatura(ultima), 2));
-    const esperado = tipo === 'tecnico' ? ENCERRAMENTO_TECNICO : ENCERRAMENTO_CLIENTE;
+    const esperado = tipo === 'tecnico' ? ENCERRAMENTO_TECNICO : tipo === 'email' ? ENCERRAMENTO_CLIENTE.concat(['no aguardo', 'aguardamos', 'aguardo']) : ENCERRAMENTO_CLIENTE;
     if (ultima.trim() && !esperado.some(e => fim.includes(e)))
       A('encerramento', tipo === 'tecnico' ? 'Termine com "Aguardo retorno."' : 'Termine com um encerramento padrão ("Seguimos à disposição." / "Qualquer dúvida, sigo à disposição!").', msgs.length - 1);
 

@@ -149,3 +149,9 @@ test('assinatura de e-mail em mensagem de WhatsApp é aviso', () => {
   const r = validarSaida(msgs(ex.ex3 + '\n\nAtenciosamente,\n\nFred Alexandrino\nSupervisor de O&M\nGrid Co.'), ctx('cliente'));
   assert.ok(codigos(r.avisos).includes('assinatura_whatsapp'));
 });
+
+test('e-mail pode terminar com "Ficamos no aguardo..." antes da assinatura', () => {
+  const texto = 'Solicitamos a autorização para o deslocamento do Supervisor de Campo Vitor Valadares até a *UFV Colíder I*.\n\nFicamos no aguardo da aprovação para o agendamento da logística.\n\nAtenciosamente,\n\nFred Alexandrino\nSupervisor de O&M\nGrid Co.';
+  const r = validarSaida(msgs({ assunto: 'Solicitação de deslocamento — UFV Colíder I', texto }), ctx('email'));
+  assert.ok(!codigos(r.avisos).includes('encerramento'));
+});
