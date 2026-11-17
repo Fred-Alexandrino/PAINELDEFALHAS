@@ -23365,8 +23365,10 @@ function _pfPrBloco(a, ponderado) {
   const mv = a.pr != null ? (a.prMetaComp ?? a.prMeta) : a.prMeta;
   const meta = mv != null ? ' · meta ' + _pfFmt(mv) + '%' : ' · sem meta';
   if (a.pr == null) {
-    const porque = a.nSusp ? 'PR inválido no Nexus' : (a.motivo ? 'sem PR (' + a.motivo + ')' : 'sem PR no Nexus');
-    return `<div><div class="n" style="color:var(--text-faint)">—</div><div class="l">${esc(porque)}${meta}</div></div>`;
+    // sem PR: a meta aparece como "meta de PR" para não ser lida como resultado
+    const porque = a.nSusp ? 'PR inválido no Nexus' : (a.motivo ? 'PR não calculado (' + a.motivo + ')' : 'PR não calculado no Nexus');
+    const metaSem = a.prMeta != null ? ' · meta de PR ' + _pfFmt(a.prMeta) + '%' : '';
+    return `<div title="PR = energia gerada ÷ energia possível pela irradiação medida no plano dos módulos (POA). Sem o sensor de POA não há como calcular."><div class="n" style="color:var(--text-faint)">—</div><div class="l">${esc(porque)}${metaSem}</div></div>`;
   }
   const parcial = a.n > 1 && a.nPr < a.n ? ` · ${a.nPr} de ${a.n} usinas` : '';
   return `<div><div class="n ${_pfCor(a.pr, a.prMetaComp ?? a.prMeta)}">${_pfFmt(a.pr)}%</div><div class="l">PR${ponderado ? ' ponderado' : ''}${meta}${parcial}</div></div>`;
@@ -23574,7 +23576,7 @@ function _pfRender() {
     return `<button type="button" class="pf-card" onclick="_pfDrawer('${esc(id)}')">
       <div><div class="nm">${esc(u.usina)}</div><div class="cl">${esc(u.cliente || '')}${u.potMwp ? ' · ' + _pfFmt(u.potMwp, 2) + ' MWp' : ''}</div></div>
       <div><div class="big">${d ? `<span class="${_pfCor(u.atingimento, 100, 10)}">${_pfFmt(u.atingimento, 0)}%</span> do esperado · ${_pfFmt(d.R)} de ${_pfFmt(d.E)} MWh${d.gap > 0 ? ` · <b class="pf-mal">−${_pfFmt(d.gap)} MWh</b>` : ''}` : '—'}</div>${_pfStackHtml(d)}
-        <div class="cl">${u.pr == null ? (_pfSuspeito(u) ? 'PR inválido no Nexus' : 'sem PR' + (u.prMotivo ? ' (' + esc(u.prMotivo) + ')' : '')) : 'PR ' + _pfFmt(u.pr) + '%'}${u.prMeta != null ? ' · meta ' + _pfFmt(u.prMeta) + '%' : ''} · disponib. ${_pfFmt(u.disp)}%</div></div>
+        <div class="cl">${u.pr == null ? (_pfSuspeito(u) ? 'PR inválido no Nexus' : 'PR não calculado' + (u.prMotivo ? ' (' + esc(u.prMotivo) + ')' : '')) : 'PR ' + _pfFmt(u.pr) + '%'}${u.prMeta != null ? ' · meta de PR ' + _pfFmt(u.prMeta) + '%' : ''} · disponib. ${_pfFmt(u.disp)}%</div></div>
       <div class="why">${_pfFrase(u, d)}${chips ? '<div class="pf-chips" style="margin-top:4px">' + chips + '</div>' : ''}</div>
       <div class="go">Ver diagnóstico ›</div></button>`;
   }).join('') + '</div>';
