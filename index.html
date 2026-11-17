@@ -3021,10 +3021,9 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
               <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
               <button class="tb-btn tb-btn-refresh" onclick="_seCarregar(false)"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Atualizar</button>
               <button class="tb-btn se-so-grid" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
+              <button class="tb-btn se-so-grid" onclick="_seRelatorio()" title="Relatório em PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e posição de cada case)">Gerar relatório</button>
               <button class="tb-btn se-so-grid" id="seSyncBtn" style="background:var(--acao);border-color:var(--acao);color:var(--acao-tx);font-weight:600;" onclick="_seSyncAgora()" title="Busca os cases direto do site da SolarEdge (extensão Grid Sync SolarEdge no Chrome)">Atualizar da SolarEdge</button>
-              <button class="tb-btn se-so-grid" onclick="document.getElementById('seArquivo').click()">Importar export (.xlsx)</button>
               <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
-              <input type="file" id="seArquivo" accept=".xlsx,.xls" style="display:none;" onchange="_seImportar(this)">
             </div>
           </div>
           <div id="seImportMsg" class="se-so-grid" style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;"></div>
@@ -11604,7 +11603,7 @@ let CHAMADOS_FABRICANTE = [];
 
 /* ══════════ CHAMADOS SOLAREDGE (subpainel do Painel de Chamados) — 20/10/2026 ══════════
    Fonte da verdade = site SolarEdge Service Center. Os dados vêm de GET /solaredge-chamados
-   (espelho na aba SolarEdgeCases), atualizado por "Importar export (.xlsx)" ou pelo Claude
+   (espelho na aba SolarEdgeCases), atualizado pela extensão Grid Sync SolarEdge ("Atualizar da SolarEdge")
    (que lê os comentários de dentro de cada case). Controle interno (status/nota) é da Grid. */
 const _SE_API = 'https://api.168.138.232.237.sslip.io';
 const _SE_SITE = 'https://www.solaredge.com/service/support/cases';
@@ -11904,7 +11903,7 @@ function _seSyncAgora() {
   setTimeout(() => {
     if (!window._seExt) {
       fim();
-      say('A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R). Enquanto isso, dá para usar "Importar export (.xlsx)".', true);
+      say('A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R).', true);
       return;
     }
     window.postMessage({ tipo: 'GRID_SE_SYNC' }, '*');
@@ -12085,6 +12084,173 @@ function _seTextoApresentacao() {
     <textarea id="seApTxt" class="se-in" rows="18" style="font-family:'Poppins',monospace;font-size:12.5px;">${esc(_seTextoApresMontar(clientes.includes('Renogrid') ? 'Renogrid' : ''))}</textarea>
     <div style="display:flex;gap:8px;margin-top:8px;"><button class="se-btn pri" onclick="navigator.clipboard.writeText(document.getElementById('seApTxt').value).then(()=>showToast('Texto copiado — cole no slide.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar texto</button></div></div>`;
   document.body.appendChild(ov);
+}
+
+/* ── Relatório PDF dos chamados SolarEdge (layout da skill de relatório) — 17/11/2026 ──
+   O frontend monta os dados (mesmas regras do subpainel) e o backend só desenha o PDF
+   (POST /relatorios/chamados-solaredge). Versão para o cliente: sem notas internas da Grid. */
+const _SE_REL_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const _SE_REL_COR = { fabricante: '#1565C0', grid: '#B26A00', standby: '#777777', coleta: '#B26A00', acompanhamento: '#2E7D32', encerrado: '#2E7D32' };
+function _seRelGrupo(c) {
+  if (_seColetaPend(c)) return 'coleta';
+  const si = (c.statusInterno || '').trim();
+  if (/^standby/i.test(si)) return 'standby';
+  if (/^resolvido/i.test(si)) return 'acompanhamento';
+  if (/aguardando retorno do fabricante|aguardando pe[çc]a/i.test(si)) return 'fabricante';
+  if (/^testes em campo/i.test(si)) return 'grid';
+  return c.quemAge === 'Grid' ? 'grid' : 'fabricante';
+}
+function _seRelData(iso) { return _seDataBR(iso).slice(0, 10); }
+function _seRelTexto(t, max) {
+  let x = _seLimpaMsg(t).split('\n')
+    .filter(l => !/whats\s?app|wa\.me|https?:\/\/|www\.|telefone|portal de suporte|^\(?\d{2}\)?\s?\d{4,5}-?\d{4}/i.test(l))
+    .join(' ').replace(/\s+/g, ' ').trim();
+  for (let i = 0; i < 3; i++) x = x.replace(/^(bom dia|boa tarde|boa noite|ol[áa]|oi|prezad[oa]s?|car[oa]s?|equipe)(?=[\s,.!:])[^.!?\n]{0,70}?[,.!:]\s*/i, '').replace(/^(grid\.?\s?co\.?|grid co\.?)[^!?]{0,40}?renogrid[.,:]?\s*/i, '').trim();
+  const corte = x.search(/\s(att\.?,|att\s|atenciosamente|abs\.?,|from:|de:\s|enviado:|sent:|-{3,}|_{3,})/i);
+  if (corte > 20) x = x.slice(0, corte).trim();
+  if (x) x = x[0].toUpperCase() + x.slice(1);
+  if (x.length > max) {
+    const cut = x.slice(0, max);
+    const i = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('; '));
+    x = i > max * 0.5 ? cut.slice(0, i + 1) : cut.replace(/\s+\S*$/, '') + '…';
+  }
+  return x;
+}
+function _seRelAtualizacao(c, encerrado) {
+  const l = (c.comentarios || []).filter(m => (m.texto || '').trim()).slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  if (!l.length) return c.descricao ? { rotulo: 'Descrição do chamado', data: '', texto: _seRelTexto(c.descricao, 320) } : null;
+  const m = l[l.length - 1], data = _seRelData(m.data), t = m.texto || '';
+  if (m.quem === 'Grid' && /CNPJ|CPF|INFORMA[ÇC][ÕO]ES PARA FATURAMENTO|Raz[ãa]o Social/i.test(t))
+    return { rotulo: 'Retorno da Grid Co. ao fabricante', data, texto: 'Dados de faturamento e envio do equipamento encaminhados ao fabricante.' };
+  if (m.quem === 'Grid') return { rotulo: encerrado ? 'Desfecho — último retorno da Grid Co.' : 'Retorno da Grid Co. ao fabricante', data, texto: _seRelTexto(t, 340) };
+  if (/n[ãa]o recebemos mais (mensagens|informa)|parceiro log[íi]stico|setor (de )?log[íi]stic/i.test(t))
+    return { rotulo: 'SolarEdge', data, texto: 'Caso direcionado ao parceiro logístico da SolarEdge para o envio do equipamento; o acompanhamento da entrega segue fora do case.' };
+  if (/Raz[ãa]o Social\)?:?\s*\n\s*CPF/i.test(t) || /INFORMA[ÇC][ÕO]ES PARA FATURAMENTO/i.test(t))
+    return { rotulo: 'Solicitação da SolarEdge', data, texto: 'Pedido dos dados de faturamento e envio do equipamento em garantia (razão social, CNPJ, endereços e responsável pela logística reversa).' };
+  return { rotulo: encerrado ? 'Desfecho — último registro da SolarEdge' : (c.quemAge === 'Grid' ? 'Solicitação da SolarEdge' : 'Última posição da SolarEdge'), data, texto: _seRelTexto(t, 360) };
+}
+function _seRelItem(c, g) {
+  const dias = _seDias(c.criado);
+  return {
+    case: c.case, usina: c.usina || 'Usina não identificada', equipamento: c.equipamento || '', assunto: c.assunto || '',
+    status: g === 'encerrado' ? 'Encerrado pela SolarEdge' : _seRotuloApres(c), statusCor: _SE_REL_COR[g] || '#1C1F3B',
+    aberto: _seRelData(c.criado), dias: g === 'encerrado' ? '' : dias,
+    os: (c.osVinculadas || []).map(v => v.os).filter(Boolean).join(', '), rma: c.rma || '', serial: c.serial || '',
+    extra: g === 'encerrado' && (c.fechadoEm || c.atualizadoEm) ? 'Encerrado em ' + _seRelData(String(c.fechadoEm || c.atualizadoEm).replace('T', ' ')) : '',
+    atualizacao: _seRelAtualizacao(c, g === 'encerrado'), _dias: dias || 0,
+  };
+}
+const _seRelLista = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1];
+const _seRelPl = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+
+async function _seRelMontar(cliente, comEncerrados) {
+  const doCli = c => !cliente || (c.cliente || '') === cliente;
+  const ab = _SE.itens.filter(c => _seAberto(c) && doCli(c));
+  const enc = comEncerrados ? _SE.itens.filter(c => _seRecente(c) && doCli(c)) : [];
+  const por = { fabricante: [], grid: [], standby: [], acompanhamento: [], coleta: [] };
+  ab.forEach(c => por[_seRelGrupo(c)].push(c));
+  const n = ab.length, k = x => por[x].length;
+  const usinas = [...new Set(ab.concat(enc).map(c => c.usina || 'Usina não identificada'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  let mapa = [];
+  try { mapa = (await _mapUfvsCarregar()) || []; } catch (e) {}
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const sup = u => (mapa.find(m => norm(m.usina) === norm(u)) || {}).supervisor_campo || '—';
+  const hoje = new Date(), dd = String(hoje.getDate()).padStart(2, '0'), mm = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dataBR = `${dd}/${mm}/${hoje.getFullYear()}`, iso = `${hoje.getFullYear()}-${mm}-${dd}`;
+  const mes = _SE_REL_MESES[hoje.getMonth()], ext = `${hoje.getDate()} de ${mes} de ${hoje.getFullYear()}`;
+  const cliTxt = cliente || 'Todos os clientes';
+  const partes = [k('fabricante') && `${k('fabricante')} com a SolarEdge`, k('grid') && `${k('grid')} em tratativa pela Grid Co.`,
+    k('coleta') && `${k('coleta')} aguardando coleta do equipamento substituído`, k('standby') && `${k('standby')} em standby`,
+    k('acompanhamento') && `${k('acompanhamento')} resolvido(s) em acompanhamento`].filter(Boolean);
+  const usAb = [...new Set(ab.map(c => c.usina || 'Usina não identificada'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const zero = v => v ? String(v) : '—';
+  const porUsina = usinas.map(u => {
+    const l = ab.filter(c => (c.usina || 'Usina não identificada') === u), q = x => l.filter(c => _seRelGrupo(c) === x).length;
+    return [u, sup(u), String(l.length), zero(q('fabricante')), zero(q('grid')), zero(q('standby') + q('acompanhamento')), zero(q('coleta'))];
+  }).filter(r => r[2] !== '0');
+  const ordem = a => a.map(c => _seRelItem(c, _seRelGrupo(c))).sort((x, y) => y._dias - x._dias);
+  const grupos = [
+    { titulo: 'Aguardando a SolarEdge', itens: ordem(por.fabricante), descricao: 'Chamados em análise pelo fabricante ou com o envio do equipamento em processamento.' },
+    { titulo: 'Em tratativa pela Grid Co.', itens: ordem(por.grid), descricao: 'Chamados em que o fabricante aguarda testes em campo, evidências ou retorno da Grid Co.' },
+    { titulo: 'Aguardando coleta do equipamento substituído (RMA)', itens: ordem(por.coleta), descricao: 'Equipamento de reposição já enviado pela SolarEdge; falta a devolução do equipamento defeituoso.' },
+    { titulo: 'Em standby', itens: ordem(por.standby) },
+    { titulo: 'Resolvidos — em acompanhamento', itens: ordem(por.acompanhamento) },
+    { titulo: 'Encerrados pela SolarEdge — últimos 15 dias', itens: enc.map(c => _seRelItem(c, 'encerrado')).sort((x, y) => String(y.extra).localeCompare(String(x.extra))) },
+  ];
+  const antigos = ab.filter(c => !_seColetaPend(c)).map(c => _seRelItem(c, _seRelGrupo(c))).sort((x, y) => y._dias - x._dias).slice(0, 3);
+  const proximos = [
+    k('fabricante') && `Acompanhar junto à SolarEdge o retorno de ${_seRelPl(k('fabricante'), 'chamado em análise', 'chamados em análise')} pelo fabricante.`,
+    k('grid') && `Concluir as ações da Grid Co. em ${_seRelPl(k('grid'), 'chamado', 'chamados')} (testes em campo, envio de evidências e retornos ao fabricante).`,
+    k('coleta') && `Concluir a devolução de ${_seRelPl(k('coleta'), 'equipamento substituído', 'equipamentos substituídos')} aguardando coleta pela SolarEdge.`,
+    k('standby') && `Retomar ${_seRelPl(k('standby'), 'o chamado em standby', 'os chamados em standby')} assim que as condições em campo permitirem.`,
+    antigos.length && `Priorizar os chamados abertos há mais tempo: ${_seRelLista(antigos.map(i => `#${i.case} (${i.usina}${i.equipamento ? ' · ' + i.equipamento : ''}, ${i._dias} dias)`))}.`,
+  ].filter(Boolean);
+  const leitura = _SE.ultima ? _seDataBR(String(_SE.ultima).replace('T', ' ')) : '';
+  return {
+    arquivo: `Relatorio_Chamados_SolarEdge_${(cliente || 'Todos').replace(/\s+/g, '_')}_${iso}_R01.pdf`,
+    tituloPdf: `Chamados de garantia SolarEdge — ${cliTxt}`,
+    rotuloCapa: 'RELATÓRIO DE CHAMADOS', tituloCapa: 'Chamados de Garantia com a SolarEdge —', destaqueCapa: cliTxt,
+    subtituloCapa: `Situação dos cases no SolarEdge Service Center · ${_seRelPl(usAb.length, 'usina', 'usinas')}`,
+    fraseResumo: `${_seRelPl(n, 'chamado em andamento', 'chamados em andamento')}${partes.length ? ': ' + _seRelLista(partes) : ''}.`,
+    dataCapa: `Posição de ${dataBR}`, cliente: cliTxt, usinasTexto: _seRelLista(usinas), dataExtenso: ext,
+    responsavelTecnico: 'Fred Alexandrino — Supervisor de O&M',
+    cabecalho: `RELATÓRIO DE CHAMADOS  |  Chamados de garantia SolarEdge — ${cliTxt}`,
+    rodape: `Grid Co.  |  ${cliTxt}  |  Revisão 01  |  ${mes} ${hoje.getFullYear()}`,
+    introducao: [`Segue a atualização dos chamados de garantia com a SolarEdge${cliente ? ' referentes às usinas da ' + cliente : ''}: ${_seRelPl(n, 'chamado em andamento', 'chamados em andamento')}${usAb.length ? ' nas usinas ' + _seRelLista(usAb) : ''}${enc.length ? `, além de ${_seRelPl(enc.length, 'chamado encerrado', 'chamados encerrados')} pelo fabricante nos últimos 15 dias` : ''}.`],
+    kpis: [{ valor: n, rotulo: 'em andamento', cor: '#1C1F3B' }, { valor: k('fabricante'), rotulo: 'com a SolarEdge', cor: _SE_REL_COR.fabricante },
+      { valor: k('grid'), rotulo: 'em tratativa pela Grid Co.', cor: _SE_REL_COR.grid }, { valor: k('coleta'), rotulo: 'aguardando coleta (RMA)', cor: _SE_REL_COR.coleta },
+      { valor: k('standby') + k('acompanhamento'), rotulo: 'standby / acompanhamento', cor: _SE_REL_COR.standby }],
+    enquadramento: `Situação lida do SolarEdge Service Center${leitura ? ' em ' + leitura : ''}. Os status e as solicitações do fabricante seguem o registro de cada case no site.`,
+    porUsinaCab: ['Usina', 'Supervisor', 'Total', 'SolarEdge', 'Grid Co.', 'Standby', 'Coleta'],
+    porUsinaLarguras: [0.22, 0.22, 0.1, 0.12, 0.12, 0.11, 0.11],
+    porUsina, porUsinaTotal: ['Total', '', String(n), zero(k('fabricante')), zero(k('grid')), zero(k('standby') + k('acompanhamento')), zero(k('coleta'))],
+    grupos, proximos,
+    conclusao: ['Em caso de dúvida, a equipe de Gestão de Chamados da Grid Co. está à disposição.'],
+    localData: ext + '.',
+    _envio: { n, fab: k('fabricante'), grid: k('grid'), col: k('coleta'), dataBR, cliente },
+  };
+}
+function _seRelTextoEnvio(e) {
+  const p = [e.fab && `*${e.fab}* com o fabricante`, e.grid && `*${e.grid}* em tratativa pela Grid Co.`, e.col && `*${e.col}* aguardando a coleta do equipamento substituído`].filter(Boolean);
+  return `Encaminhamos em anexo a atualização dos chamados de garantia com a SolarEdge${e.cliente ? ' das usinas da *' + e.cliente + '*' : ''}, com a posição de *${e.dataBR}*: *${e.n}* ${e.n === 1 ? 'chamado' : 'chamados'} em andamento${p.length ? ', sendo ' + _seRelLista(p) : ''}.\n\nSeguimos acompanhando junto ao fabricante e permanecemos à disposição.`;
+}
+function _seRelatorio() {
+  document.getElementById('seRelOverlay')?.remove();
+  const clientes = [...new Set(_SE.itens.filter(c => _seAberto(c) || _seRecente(c)).map(c => c.cliente || ''))].filter(Boolean).sort();
+  const pad = clientes.includes('Renogrid') ? 'Renogrid' : (clientes.length === 1 ? clientes[0] : '');
+  const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seRelOverlay'; ov.style.zIndex = 10001;
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Gerar relatório — Chamados SolarEdge</h3><button class="se-btn" onclick="document.getElementById('seRelOverlay').remove()">Fechar</button></div>
+    <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 10px;">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada chamado com a última posição do case). Versão para o cliente: sem notas internas.</div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <label style="font-size:12.5px;">Cliente: <select id="seRelCliente" class="se-in" style="width:auto;display:inline-block;"><option value="">Todos</option>${clientes.map(c => `<option value="${esc(c)}" ${c === pad ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="seRelEnc" checked> Incluir encerrados pela SolarEdge (15 dias)</label></div>
+    <button class="se-btn pri" id="seRelBtn" onclick="_seRelatorioGerar()">Gerar PDF</button>
+    <div id="seRelMsg" style="font-size:12.5px;color:var(--text-dim);margin-top:8px;"></div>
+    <div id="seRelEnvio" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;">Texto de envio</div>
+      <textarea id="seRelEnvioTxt" class="se-in" rows="6" style="font-family:'Poppins',monospace;font-size:12.5px;"></textarea>
+      <button class="se-btn pri" style="margin-top:8px;" onclick="navigator.clipboard.writeText(document.getElementById('seRelEnvioTxt').value).then(()=>showToast('Texto copiado.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar</button></div></div>`;
+  document.body.appendChild(ov);
+}
+async function _seRelatorioGerar() {
+  const btn = document.getElementById('seRelBtn'), msg = document.getElementById('seRelMsg');
+  const cliente = document.getElementById('seRelCliente').value, comEnc = document.getElementById('seRelEnc').checked;
+  btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…';
+  try {
+    const d = await _seRelMontar(cliente, comEnc);
+    if (!d._envio.n && !d.grupos.some(g => g.itens.length)) throw new Error('não há chamados para este cliente');
+    const r = await fetch(_SE_API + '/relatorios/chamados-solaredge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
+    if (!r.ok) { let er = 'HTTP ' + r.status; try { er = (await r.json()).error || er; } catch (e) {} throw new Error(er); }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = d.arquivo; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    msg.textContent = '✓ ' + d.arquivo + ' baixado.';
+    document.getElementById('seRelEnvioTxt').value = _seRelTextoEnvio(d._envio);
+    document.getElementById('seRelEnvio').style.display = 'block';
+  } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
+  btn.disabled = false;
 }
 
 function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
