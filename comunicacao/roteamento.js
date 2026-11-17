@@ -1,7 +1,8 @@
 /* Central de Mensagens — roteamento (seção 10 do padrão)
- * usina → cliente → destinatário(s). Fonte das usinas/técnicos: o mapeamento
- * oficial (/mapeamento-ufvs), passado como parâmetro — nada é inventado aqui.
- * Contatos de cliente: só os definidos na seção 10.
+ * Técnico: destinatário = responsável da UFV no mapeamento oficial (/mapeamento-ufvs),
+ * uma mensagem por técnico. Cliente/E-mail/Envio de relatório: agrupa por cliente,
+ * SEM contato fixo (Fred, 17/11/2026: com quem falar muda conforme o assunto — o
+ * nome, se houver, é digitado por ele no campo "Para quem").
  */
 (function (root, factory) {
   const api = factory();
@@ -9,12 +10,6 @@
   else { root.GridCom = Object.assign(root.GridCom || {}, api); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-
-  const CONTATOS_CLIENTE = [
-    { cliente: '2C Energia', nome: 'Carol' },
-    { cliente: 'Thopen', nome: 'Iago' },
-    { cliente: 'Renogrid', nome: 'Vitor', incluirTecnico: true },
-  ];
 
   const TIPOS = {
     cliente: { canal: 'whatsapp', publico: 'cliente', rotulo: 'Cliente' },
@@ -37,11 +32,6 @@
     return (mapeamento || []).find(u => normalizar(u.usina) === alvo) || null;
   }
 
-  function contatoDoCliente(cliente) {
-    const c = normalizar(cliente);
-    return CONTATOS_CLIENTE.find(x => normalizar(x.cliente) === c) || null;
-  }
-
   function _ufvResumo(u) {
     return {
       usina: u.usina,
@@ -59,8 +49,8 @@
    *   { grupos: [{chave, tipo, destinatarios:[], cliente?, tecnico?, ufvs:[resumo]}],
    *     avisos: [texto], naoEncontradas: [nome] }
    * Técnico: um grupo por técnico responsável (agrupa todas as usinas dele).
-   * Cliente/E-mail/Envio de relatório: um grupo por cliente; Renogrid soma o
-   * técnico da usina aos destinatários. */
+   * Cliente/E-mail/Envio de relatório: um grupo por cliente, sem destinatário fixo
+   * (opts.para, se vier, vira o destinatário). */
   function resolver(opts) {
     const tipo = opts && opts.tipo;
     if (!TIPOS[tipo]) throw new Error('tipo inválido: ' + tipo);
@@ -93,21 +83,15 @@
         if (!g.destinatarios.length) g.destinatarios.push(it.tecnico);
       }
     } else {
+      const para = String((opts && opts.para) || '').trim();
       for (const it of itens) {
         const g = pegar('cli:' + normalizar(it.cliente), { cliente: it.cliente });
         g.ufvs.push(it);
-        const contato = contatoDoCliente(it.cliente);
-        if (!contato) {
-          if (!g._semContato) { avisos.push(`Cliente "${it.cliente || '—'}" sem contato definido no padrão (seção 10)`); g._semContato = true; }
-          continue;
-        }
-        if (!g.destinatarios.includes(contato.nome)) g.destinatarios.unshift(contato.nome);
-        if (contato.incluirTecnico && it.tecnico && !g.destinatarios.includes(it.tecnico)) g.destinatarios.push(it.tecnico);
+        if (para && !g.destinatarios.length) g.destinatarios.push(para);
       }
-      grupos.forEach(g => { delete g._semContato; });
     }
     return { grupos, avisos, naoEncontradas };
   }
 
-  return { CONTATOS_CLIENTE, TIPOS, resolver, nomeFormal, buscarUfv, contatoDoCliente, normalizar };
+  return { TIPOS, resolver, nomeFormal, buscarUfv, normalizar };
 });

@@ -22,7 +22,7 @@
   const INFO = {
     cliente: {
       desc: 'Mensagem de WhatsApp para o cliente: diagnóstico, risco, o que a Grid fez e o que precisa dele.',
-      dest: 'Vai para o contato do cliente: 2C Energia → Carol · Thopen → Iago · Renogrid → Vitor + técnico da usina.',
+      dest: 'Escolha o cliente. Se quiser, diga para quem é no campo "Para quem".',
       rotulo: 'Rascunho / relato',
       ph: 'Ex.: o que foi encontrado em campo, o risco, o que a equipe já fez, as opções e o que você precisa que o cliente decida.',
       botao: 'Gerar mensagem ao cliente', lista: 'cliente',
@@ -36,14 +36,14 @@
     },
     email: {
       desc: 'E-mail formal para o cliente: sai com Assunto + texto + sua assinatura (sem endereços).',
-      dest: 'Destinatário pelo contato do cliente (só para a saudação e o texto; os endereços você coloca no e-mail).',
+      dest: 'Escolha o cliente. Os endereços você coloca no e-mail.',
       rotulo: 'Conteúdo do e-mail',
       ph: 'Ex.: o assunto, os fatos e datas, os anexos que vão junto e o que você pede ao cliente.',
       botao: 'Gerar e-mail', lista: 'cliente',
     },
     envio_relatorio: {
       desc: 'Texto que acompanha um relatório enviado ao cliente: explica o que está no anexo e o que se pede.',
-      dest: 'Vai para o contato do cliente, como em "Cliente".',
+      dest: 'Escolha o cliente. Se quiser, diga para quem é no campo "Para quem".',
       rotulo: 'Sobre o relatório anexado',
       ph: 'Ex.: Relatório de Ocorrência da via de acesso, vistoria de 16/11, com cronologia, riscos, fotos e recomendações; pedir posicionamento sobre a recuperação.',
       botao: 'Gerar texto de envio', lista: 'cliente',
@@ -81,7 +81,7 @@
     return base + ' ' + (r.length > 1 ? r.slice(0, -1).join(', ') + ' e ' + r[r.length - 1] : r[0]);
   }
   const st = {
-    tipo: 'cliente', cliente: '', filtroCliente: '', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
+    tipo: 'cliente', cliente: '', para: '', filtroCliente: '', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
     prints: [], // [{base64, mimeType, url}] — só na memória (não vai para o localStorage)
     resultados: [], // [{grupo, versoes:[{n, saida, ajuste}], atual, gerando, erro, ajusteAberto}]
   };
@@ -140,9 +140,8 @@
     if (!porCliente()) return G.resolver({ tipo: st.tipo, ufvs: st.ufvs, mapeamento: st.mapa });
     if (!st.cliente) return { grupos: [], avisos: [] };
     const doCliente = st.ufvs.filter(n => { const u = G.buscarUfv(st.mapa, n); return u && u.cliente === st.cliente; });
-    if (doCliente.length) return G.resolver({ tipo: st.tipo, ufvs: doCliente, mapeamento: st.mapa });
-    const c = G.contatoDoCliente(st.cliente);
-    return { grupos: [{ chave: 'cli:' + st.cliente, tipo: st.tipo, cliente: st.cliente, destinatarios: c ? [c.nome] : [], ufvs: [] }], avisos: [] };
+    if (doCliente.length) return G.resolver({ tipo: st.tipo, ufvs: doCliente, mapeamento: st.mapa, para: st.para });
+    return { grupos: [{ chave: 'cli:' + st.cliente, tipo: st.tipo, cliente: st.cliente, destinatarios: st.para.trim() ? [st.para.trim()] : [], ufvs: [] }], avisos: [] };
   }
 
   // ── saída: sanitiza (WhatsApp) e valida ──
@@ -293,13 +292,14 @@
           <input type="checkbox" data-acao="ufv" value="${h(u.usinas.join('|'))}" ${marcado(u) ? 'checked' : ''}>
           <span><b>UFV ${h(u.nomeLista)}</b><small>${porTec ? h(u.cliente || '') + ' · ' + h(u.cidade_uf || '') : h(u.cidade_uf || '')}</small></span></label>`).join('')}
       </div>`).join('') || `<div class="cm-vazio">${!st.mapa ? 'Carregando o mapeamento…' : cliMode && !st.cliente ? 'Escolha o cliente acima.' : 'Nenhuma UFV encontrada.'}</div>`;
-    const clientes = (G.CONTATOS_CLIENTE || []).map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.cliente === c.cliente ? ' on' : ''}" data-acao="cliente" data-cliente="${h(c.cliente)}">${h(c.cliente)} <small>→ ${h(c.nome)}${c.incluirTecnico ? ' + técnico' : ''}</small></button>`).join('');
+    const listaClientes = [...new Set(mapa.map(u => u.cliente).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const clientes = listaClientes.map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.cliente === c ? ' on' : ''}" data-acao="cliente" data-cliente="${h(c)}">${h(c)}</button>`).join('');
     const prints = st.prints.map((p, k) => `<div class="cm-print"><img src="${p.url}" alt="print ${k + 1}"><button type="button" data-acao="rm-print" data-k="${k}" title="Remover">×</button></div>`).join('');
 
     const r = rotas();
     const rotaHtml = r.grupos.length ? r.grupos.map(g => `
       <div class="cm-rota">
-        <div><span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'contato a definir')}</b>${g.cliente ? ` <span class="cm-tag">${h(g.cliente)}</span>` : ''}</div>
+        <div>${porTec ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>` : `<span class="cm-tag">${h(g.cliente)}</span>`}${porTec && g.cliente ? ` <span class="cm-tag">${h(g.cliente)}</span>` : ''}</div>
         <div class="cm-rota-ufvs">${h(rotuloUfvs(g.ufvs)) || 'UFVs não selecionadas (opcional)'}</div>
         ${st.tipo === 'tecnico' && g.ufvs.some(u => u.membros && u.membros.length) ? `<div class="cm-rota-obs">Equipe: ${h([...new Set(g.ufvs.flatMap(u => u.membros || []))].join(', '))}</div>` : ''}
       </div>`).join('') : `<div class="cm-vazio">${h(info.dest)}</div>`;
@@ -312,15 +312,17 @@
         <div class="cm-grade">
           <div>
             ${cliMode ? `<div class="cm-rot">Cliente</div><div class="cm-clientes">${clientes}</div>` : ''}
-            ${porTec ? `<div class="cm-rot">Cliente</div><div class="cm-clientes">${['', ...(G.CONTATOS_CLIENTE || []).map(c => c.cliente)].map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.filtroCliente === c ? ' on' : ''}" data-acao="filtro-cliente" data-cliente="${h(c)}">${h(c || 'Todos')}</button>`).join('')}</div>` : ''}
+            ${porTec ? `<div class="cm-rot">Cliente</div><div class="cm-clientes">${['', ...listaClientes].map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.filtroCliente === c ? ' on' : ''}" data-acao="filtro-cliente" data-cliente="${h(c)}">${h(c || 'Todos')}</button>`).join('')}</div>` : ''}
             <div class="cm-rot">UFV(s) · ${st.ufvs.length} selecionada(s)${porTec ? ' · por técnico' : ' · opcional'}</div>
             <input class="cm-input" type="search" placeholder="Buscar usina, cliente, técnico ou cluster" value="${h(st.filtro)}" data-acao="filtro">
             <div class="cm-lista">${lista}</div>
             ${st.ufvs.length ? `<button type="button" class="cm-link" data-acao="limpar-ufvs">limpar seleção</button>` : ''}
           </div>
           <div>
-            <div class="cm-rot">Destinatário(s)</div>
+            <div class="cm-rot">${porTec ? 'Destinatário(s)' : 'Resumo'}</div>
             <div class="cm-rotas">${rotaHtml}${rotaAvisos}</div>
+            ${cliMode ? `<label class="cm-rot" for="cmPara">Para quem (opcional)</label>
+            <input id="cmPara" class="cm-input cm-para" type="text" placeholder="Ex.: Iago, Gabriel (coordenador), Paula… Deixe vazio se não importar." value="${h(st.para)}" data-acao="para">` : ''}
             <label class="cm-rot" for="cmRascunho">${h(info.rotulo)}</label>
             <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
             <div class="cm-prints">
@@ -340,7 +342,7 @@
 
   function renderResultado(res, i) {
     const g = res.grupo;
-    const cab = `<div class="cm-res-h"><div><span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + ') || 'contato a definir')}</b>
+    const cab = `<div class="cm-res-h"><div>${g.destinatarios.length ? `<span class="cm-rot">Para</span> <b>${h(g.destinatarios.join(' + '))}</b>` : `<b>${h(g.cliente || '')}</b>`}
       <small>${h(rotuloUfvs(g.ufvs))}</small></div>
       ${res.versoes.length > 1 ? `<select class="cm-input cm-ver" data-acao="versao" data-i="${i}">${res.versoes.map((v, k) => `<option value="${k}" ${k === res.atual ? 'selected' : ''}>Versão ${v.n}${v.ajuste ? ' — ' + h(v.ajuste.slice(0, 40)) : ''}</option>`).join('')}</select>` : ''}</div>`;
     if (res.gerando && !res.versoes.length) return `<div class="cm-bloco">${cab}<div class="cm-vazio">Gerando…</div></div>`;
@@ -458,6 +460,7 @@
     el.addEventListener('input', ev => {
       const t = ev.target, a = t.dataset.acao;
       if (a === 'rascunho') { st.rascunho = t.value; salvar(); }
+      else if (a === 'para') { st.para = t.value; }
       else if (a === 'filtro') { st.filtro = t.value; render(); }
     });
   }

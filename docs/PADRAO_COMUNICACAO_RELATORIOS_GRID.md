@@ -11,7 +11,10 @@
 > 3. **Saudação**: na Central de Mensagens quem escreve a saudação é o Fred. A IA começa direto no corpo; os validadores não exigem saudação (avisam se a IA escrever uma). O encerramento é conferido só na **última** caixa.
 > 4. **Cordialidade não se anuncia**: nada de "Solicitamos, de forma cordial, ...". A cordialidade aparece no tom e na escolha das palavras (validador avisa).
 > 5. **E-mail**: o gerador entrega só **assunto + texto** (sem endereços de destinatários).
-> 6. **Implementação (Fase 1)**: página **Central de Mensagens** no grupo Comunicação; módulo em JavaScript (`comunicacao/*.js`, sem TypeScript/React no projeto) e backend em `comunicacao_mensagens.py` (repo `painel-falhas`), IA via Gemini.
+> 6. **Sem contato fixo de cliente**: com quem falar muda conforme o assunto (ex.: Iago, o coordenador Gabriel, Paula, Marcelo Galvão). A Central não direciona a mensagem de cliente para ninguém: o Fred escolhe o cliente e, se quiser, digita "Para quem". As regras de contato por cliente da seção 10 ficam sem efeito. Para técnico continua valendo o responsável da UFV.
+> 7. **Usinas juntas** (mesmo local): Canarana I e II; União I e II; Nova Londrina I e II; Pharmas II, III e IV; Coração I e II; Guatambu I–IV; Aparecida do Taboado I e II (campo `conjunto` de `/mapeamento-ufvs`).
+> 8. **Prints**: a Central aceita até 4 prints por mensagem; a IA lê o conteúdo sem citar a origem.
+> 9. **Implementação (Fase 1)**: página **Central de Mensagens** no grupo Comunicação; módulo em JavaScript (`comunicacao/*.js`, sem TypeScript/React no projeto) e backend em `comunicacao_mensagens.py` (repo `painel-falhas`), IA via Gemini.
 
 Sugestão de lugar no repositório: `docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md`. Se o projeto usa Claude Code, referencie este arquivo no `CLAUDE.md` (ex.: "Antes de mexer em qualquer gerador de texto ou relatório, leia `docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md`").
 
@@ -507,9 +510,7 @@ A fonte de verdade é o mapeamento oficial do dashboard (`MAPEAMENTO_UFVS` no `a
 
 Regras de roteamento:
 - **Mensagem a técnico:** destinatário = Responsável da UFV; se houver "Demais membros", incluir no grupo do cluster quando o assunto envolver a equipe. Agrupar por técnico (seção 4.5).
-- **Cliente 2C Energia:** comunicados (inclusive BM/medição) para **Carol**.
-- **Cliente Thopen:** comunicados para **Iago** (ex.: UFV Nova Londrina II).
-- **Cliente Renogrid** (Colíder, Crateús, Nova Xavantina, Nobres, Elias Fausto): comunicados para **Vitor Valadares** (supervisor de campo) **junto com o técnico da usina**.
+- ~~Contato fixo por cliente (2C → Carol, Thopen → Iago, Renogrid → Vitor + técnico)~~ → **removido em 17/11/2026**: o interlocutor muda conforme o assunto; o Fred informa "Para quem" quando quiser.
 - Nome da usina sempre normalizado para "UFV <Nome do mapeamento>".
 
 Modelo:
