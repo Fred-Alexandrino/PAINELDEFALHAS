@@ -20999,6 +20999,40 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 @media (max-width:520px){#ajudaBubble{right:14px;bottom:14px;}}
 
 /* ── COPILOTO (17/11/2026): substitui o balão "Ajuda" ── */
+.vg-cp{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--border-strong);border-radius:14px;padding:14px 18px;margin:14px 0;box-shadow:var(--shadow)}
+.vg-cp.tem{border-left-color:var(--acao,#EA5A2A)}
+.vg-cp small{color:var(--text-dim)}
+.vg-cp ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+.vg-cp .q{color:var(--acao,#EA5A2A);font-weight:600}
+.cp-op{display:flex;gap:8px;align-items:center;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel-alt);cursor:pointer}
+.cp-op small{color:var(--text-dim)}
+.cp-hist{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:1px solid var(--border);background:var(--panel-alt);color:var(--text);border-radius:10px;padding:8px 12px;margin-bottom:6px;cursor:pointer;font:13px 'Poppins',sans-serif}
+.cp-hist small{color:var(--text-dim);font-size:11.5px}
+#ajudaPanel textarea.cp-edit{font-size:13px;line-height:1.5}
+/* barra de conversa: nada vaza da tela, alvos de toque de 40px */
+#ajudaPanel .ajd-input{padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+#ajudaPanel .ajd-inrow{align-items:stretch}
+#ajudaPanel .ajd-inrow textarea{min-width:0;min-height:42px}
+#ajudaPanel .ajd-inrow .ajd-btn{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px}
+#ajudaPanel .ajd-chip{padding:6px 12px}
+#ajudaPanel .ajd-x{width:40px;height:40px;align-items:center;justify-content:center;border-radius:10px}
+#ajudaPanel .ajd-x:hover{background:var(--panel-alt)}
+#ajudaPanel .ajd-btn.sm{min-height:32px}
+@media(max-width:768px){
+  #ajudaPanel .ajd-head{padding:12px 14px}
+  .cp-tabs{margin:10px 12px 0}
+  #ajudaPanel .ajd-body{padding:12px 14px 18px}
+  #ajudaPanel .ajd-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px 8px;padding:0 14px}
+  #ajudaPanel .ajd-chips::-webkit-scrollbar{display:none}
+  #ajudaPanel .ajd-chip{white-space:nowrap;flex-shrink:0;min-height:36px}
+  #ajdManual .lbl{display:none}
+  #ajdManual{width:44px;padding:0}
+  #ajudaPanel .ajd-btn{min-height:40px;padding:8px 14px;font-size:13px}
+  #ajudaPanel .ajd-btn.sm{min-height:38px;padding:7px 12px}
+  #ajudaPanel .ajd-row{gap:8px}
+  #ajudaPanel .ajd-row .ajd-in{min-width:0;flex:1 1 100%}
+  #ajudaPanel .cp-acoes .ajd-btn{flex:0 0 auto}
+}
 #ajudaBubble{display:none!important}
 #copilotoBtn{position:relative;gap:7px}
 #copilotoBtn .cp-ico{width:18px;height:18px;flex:none}
@@ -21054,7 +21088,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   <div class="ajd-body" id="ajdCorpo"></div>
   <div class="ajd-input" id="ajdInputRow" style="display:none">
     <div class="ajd-chips" id="ajdChips"></div>
-    <div class="ajd-inrow"><textarea id="ajdMsg" rows="1" placeholder="Acrescente informações ou peça orientação…" maxlength="3000"></textarea><button class="ajd-btn" id="ajdManual" type="button" title="Pesquisa o manual/datasheet do equipamento na web e cita as fontes">🔎 Manual</button><button class="ajd-btn pri" id="ajdEnviar">Enviar</button></div>
+    <div class="ajd-inrow"><textarea id="ajdMsg" rows="1" placeholder="Acrescente informações ou peça orientação…" maxlength="3000"></textarea><button class="ajd-btn" id="ajdManual" type="button" title="Pesquisa o manual/datasheet do equipamento na web e cita as fontes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="lbl">Manual</span></button><button class="ajd-btn pri" id="ajdEnviar">Enviar</button></div>
   </div>
 </div>
 
@@ -21151,6 +21185,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       if (conv !== sessao) { ocupado = false; return; }   // o Fred voltou/refez a análise enquanto esperava
       ld.remove(); addMsg('model', d.resposta || '(sem resposta)', d.texto_para_copiar || '', d.fontes_web, { biblioteca: d.biblioteca, salvar: { pergunta: msg, fontes: d.fontes_web } });
       sessao.historico.push({ role: 'user', texto: msg }, { role: 'model', texto: (d.resposta || '') + (d.texto_para_copiar ? '\n[Texto sugerido]: ' + d.texto_para_copiar : '') });
+      if (sess) { (sess.reg.conversa = sess.reg.conversa || []).push({ tipo: 'user', texto: (web ? '🔎 ' : '') + msg }, { tipo: 'model', texto: d.resposta || '', copia: d.texto_para_copiar || '' }); histSalvar(true); }
       if (sessao.historico.length > 20) sessao.historico = sessao.historico.slice(-20);
     } catch (e) { if (conv === sessao) { ld.remove(); addMsg('erro', e.message); } }
     ocupado = false;
@@ -21223,10 +21258,11 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 
   /* ── COPILOTO (17/11/2026): abas Pendentes · Perguntar · Biblioteca ── */
   const CP_KEY = 'copilotoTemas_v1';
+  let histPorUsina = {}, histCarregado = false;
   let aba = 'pendentes', naAba = true;
   const cp = { porCliente: {}, horas: 48, carregando: false, erros: [] };
-  try { const sv = JSON.parse(localStorage.getItem(CP_KEY) || 'null'); if (sv && sv.porCliente) { cp.porCliente = sv.porCliente; cp.horas = sv.horas || 48; } } catch(e){}
-  function cpSalvar(){ try { localStorage.setItem(CP_KEY, JSON.stringify({ porCliente: cp.porCliente, horas: cp.horas })); } catch(e){} }
+  try { const sv = JSON.parse(localStorage.getItem(CP_KEY) || 'null'); if (sv && sv.porCliente) { cp.porCliente = sv.porCliente; cp.horas = [24, 48].includes(sv.horas) ? sv.horas : 48; cp.lidoHoras = sv.lidoHoras || cp.horas; } } catch(e){}
+  function cpSalvar(){ try { localStorage.setItem(CP_KEY, JSON.stringify({ porCliente: cp.porCliente, horas: cp.horas, lidoHoras: cp.lidoHoras })); } catch(e){} }
   function cliApi(c){ return /^2c/i.test(String(c || '')) ? '2C' : c; }
   async function clientesLista(){
     const u = await carregarUsinas();
@@ -21254,7 +21290,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     out.sort((a, b) => ST_RANK(a.status) - ST_RANK(b.status) || PR_RANK(a.prioridade) - PR_RANK(b.prioridade) || ((a._q || 9e15) - (b._q || 9e15)));
     return out;
   }
-  function contaPend(){ return itensPend().filter(t => ST_RANK(t.status) <= 1).length; }
+  function contaPend(){ if (Date.now() - maisRecente() > 12 * 3600000) return 0; return itensPend().filter(t => ST_RANK(t.status) <= 1).length; }
   function atualizaBadge(){
     const n = contaPend();
     const b = document.getElementById('copilotoBadge'); if (b) { b.textContent = n > 99 ? '99+' : n; b.style.display = n ? '' : 'none'; }
@@ -21271,10 +21307,23 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
         cp.porCliente[c] = { temas: d.temas || [], lidoEm: Date.now(), mensagens: d.mensagens || 0, midias: d.midias || 0, aviso: d.aviso || '' };
       } catch(e){ erros.push(c + ': ' + e.message); }
     }));
-    cp.erros = erros; cp.carregando = false; cpSalvar(); atualizaBadge();
+    cp.erros = erros; cp.carregando = false; cp.lidoHoras = cp.horas; cpSalvar(); atualizaBadge(); if (typeof window._vgCopilotoAtualizar === 'function') window._vgCopilotoAtualizar();
     if (naAba && aba === 'pendentes' && elPanel.classList.contains('open')) renderAba();
   }
   window._copilotoCarregar = cpCarregar;
+  // cartão na Visão geral: usa só a última leitura feita (nada é lido automaticamente)
+  window._cpVgCard = function(){
+    if (!permitido()) return '';
+    const rec = maisRecente();
+    const espera = itensPend().filter(t => ST_RANK(t.status) === 0);
+    const ab = '<button class="vg-btn" onclick="abrirCopiloto()">Abrir Copiloto</button>';
+    if (!rec) return '<div class="vg-cp" id="vgCopiloto"><div><b>Clientes esperando resposta</b><br><small>Os grupos dos clientes ainda não foram lidos. Leia no Copiloto quando quiser.</small></div>' + ab + '</div>';
+    const velho = Date.now() - rec > 12 * 3600000;
+    const itens = espera.slice(0, 3).map(t => '<li><b>' + E(t.usina || t.cliente) + '</b> · ' + E(t.titulo) + (t._q ? ' <span class="q">há ' + idade(Date.now() - t._q) + '</span>' : '') + '</li>').join('');
+    return '<div class="vg-cp' + (espera.length && !velho ? ' tem' : '') + '" id="vgCopiloto"><div><b>' + (espera.length ? espera.length + (espera.length > 1 ? ' assuntos de clientes esperando' : ' assunto de cliente esperando') + ' resposta da Grid' : 'Nenhum cliente esperando resposta da Grid') + '</b>' +
+      '<br><small>Leitura de ' + (cp.lidoHoras || cp.horas) + ' h feita há ' + idade(Date.now() - rec) + (velho ? ' — desatualizada, leia de novo' : '') + '</small>' + (itens ? '<ul>' + itens + '</ul>' : '') + '</div>' + ab + '</div>';
+  };
+  window._vgCopilotoAtualizar = function(){ const el = document.getElementById('vgCopiloto'); if (el) el.outerHTML = window._cpVgCard(); };
 
   function irAba(nova){
     aba = nova || aba; naAba = true; mostrarEntrada(false);
@@ -21296,7 +21345,8 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       '<div class="cp-tit">' + E(t.titulo) + '</div>' +
       '<div class="cp-res">' + E(t.resumo || '') + '</div>' +
       (t.o_cliente_pede && !/^n\/a/i.test(t.o_cliente_pede) ? '<div class="cp-ped"><b>Cliente pede:</b> ' + E(t.o_cliente_pede) + '</div>' : '') +
-      '<div class="cp-acoes"><button class="ajd-btn pri sm" data-i="' + i + '">Preparar resposta</button><span class="cp-st">' + E(t.status || '—') + '</span><span class="cp-st">prioridade ' + E(t.prioridade || '—') + '</span></div></div>';
+      '<div class="cp-acoes"><button class="ajd-btn pri sm" data-i="' + i + '">Preparar resposta</button><span class="cp-st">' + E(t.status || '—') + '</span><span class="cp-st">prioridade ' + E(t.prioridade || '—') + '</span>' +
+      (t.usina && histPorUsina[t.usina] ? '<button class="ajd-btn sm" data-hu="' + E(t.usina) + '">Histórico (' + histPorUsina[t.usina].length + ')</button>' : '') + '</div></div>';
   }
   function renderAba(){
     if (!naAba) return;
@@ -21307,17 +21357,22 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     let msgs = 0, mid = 0; Object.values(cp.porCliente).forEach(r => { msgs += r.mensagens || 0; mid += r.midias || 0; });
     let h = '<div class="cp-topo"><div class="ajd-meta">' +
       (cp.carregando ? '<span class="ajd-spin" style="display:inline-block;vertical-align:-3px;margin-right:6px"></span>Lendo os grupos de todos os clientes…' :
-        rec ? 'Lido há ' + idade(Date.now() - rec) + ' · ' + msgs + ' mensagens' + (mid ? ' · ' + mid + ' áudios/imagens ainda não lidos' : '') : 'Ainda não li os grupos.') +
-      '</div><select class="ajd-sel" id="cpHoras">' + [[24,'24 h'],[48,'48 h'],[72,'72 h'],[168,'7 dias']].map(x => '<option value="' + x[0] + '"' + (x[0] === cp.horas ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select>' +
-      '<button class="ajd-btn sm" id="cpAtualizar"' + (cp.carregando ? ' disabled' : '') + '>Atualizar</button></div>';
+        rec ? 'Leitura das últimas ' + (cp.lidoHoras || cp.horas) + ' h feita há ' + idade(Date.now() - rec) + ' · ' + msgs + ' mensagens' + (mid ? ' · ' + mid + ' áudios/imagens/documentos não lidos' : '') : 'Os grupos só são lidos quando você pedir.') +
+      '</div><select class="ajd-sel" id="cpHoras">' + [[24,'Últimas 24 h'],[48,'Últimas 48 h']].map(x => '<option value="' + x[0] + '"' + (x[0] === cp.horas ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select>' +
+      '<button class="ajd-btn ' + (rec ? '' : 'pri ') + 'sm" id="cpAtualizar"' + (cp.carregando ? ' disabled' : '') + '>' + (rec ? 'Ler de novo' : 'Ler os grupos') + '</button></div>';
     (cp.erros || []).forEach(er => { h += '<div class="ajd-aviso">⚠ Não consegui ler ' + E(er) + '</div>'; });
     if (!todos.length && cp.carregando) h += '<div class="ajd-load"><span class="ajd-spin"></span><span>Identificando os temas em andamento (uns 15 segundos)…</span></div>';
-    else if (!ativos.length && rec) h += '<div class="ajd-meta" style="padding:14px 2px">Nenhum assunto pendente nos grupos. 👌</div>';
-    h += ativos.map(t => cardItem(t, todos.indexOf(t))).join('');
+    else if (!ativos.length && rec) h += '<div class="ajd-meta" style="padding:14px 2px">Nenhum assunto pendente nos grupos.</div>';
+    else if (!rec && !cp.carregando) h += '<div class="ajd-meta" style="padding:14px 2px">Escolha a janela e toque em <b>Ler os grupos</b>: leio os grupos dos clientes e listo quem está esperando resposta (leva uns 15 segundos).</div>';
+    const comU = ativos.filter(t => t.usina), semU = ativos.filter(t => !t.usina);
+    h += comU.map(t => cardItem(t, todos.indexOf(t))).join('');
+    if (semU.length) h += '<details class="cp-res-lista"><summary>Sem usina identificada (' + semU.length + ')</summary>' + semU.map(t => cardItem(t, todos.indexOf(t))).join('') + '</details>';
     if (resolv.length) h += '<details class="cp-res-lista"><summary>Resolvidos na janela (' + resolv.length + ')</summary>' + resolv.map(t => cardItem(t, todos.indexOf(t))).join('') + '</details>';
     elCorpo.innerHTML = h;
+    elCorpo.querySelectorAll('button[data-hu]').forEach(b => b.onclick = () => { const l = histPorUsina[b.dataset.hu] || []; if (l[0]) abrirHistorico(l[0].id); });
+    if (!histCarregado) { histCarregado = true; chamar({ modo: 'historico', limite: 200 }).then(d => { histPorUsina = {}; (d.itens || []).forEach(x => { (histPorUsina[x.usina] = histPorUsina[x.usina] || []).push(x); }); if (naAba && aba === 'pendentes') renderAba(); }).catch(() => {}); }
     document.getElementById('cpAtualizar').onclick = () => cpCarregar(true);
-    document.getElementById('cpHoras').onchange = e => { cp.horas = parseInt(e.target.value, 10); cp.porCliente = {}; cpCarregar(false); };
+    document.getElementById('cpHoras').onchange = e => { cp.horas = parseInt(e.target.value, 10); cpSalvar(); };
     elCorpo.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
       const t = todos[parseInt(b.dataset.i, 10)];
       analisar({ usina: t.usina || '', cliente: cliApi(t.cliente), tema: t.titulo + ' — ' + (t.resumo || ''), pergunta: 'Tema: ' + t.titulo + '. ' + (t.o_cliente_pede || ''), horas: Math.max(cp.horas, 72) });
@@ -21364,7 +21419,191 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     if (!arr || !arr.length) return '';
     return '<div class="ajd-sec">' + titulo + '</div><ul class="ajd-ul">' + arr.map(x => '<li>' + E(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>').join('') + '</ul>';
   }
-  function telaResultado(d, corpo){
+  /* ── COPILOTO Fase 3 (18/11/2026): resposta no padrão Grid (editável), mensagem ao técnico,
+        ocorrência (atualizar ou abrir) e histórico por tema ───────────────────────────── */
+  const API_BASE = 'https://api.168.138.232.237.sslip.io';
+  let sess = null;
+  async function postJson(caminho, corpo, ms){
+    const r = await fetch(API_BASE + caminho, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo), signal: AbortSignal.timeout(ms || 90000) });
+    let d = null; try { d = await r.json(); } catch(e){}
+    if (!d) throw new Error('Resposta inválida do servidor (HTTP ' + r.status + ').');
+    if (d.ok === false) throw new Error(d.error || 'Falha.');
+    return d;
+  }
+  function agoraBR(){ const d = new Date(), p = n => String(n).padStart(2, '0'); return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  let _histT = null;
+  function histSalvar(imediato){
+    if (!sess) return;
+    clearTimeout(_histT);
+    const go = async () => { try { const r = await chamar({ modo: 'historico_salvar', registro: sess.reg }); sess.reg.id = r.id; histCarregado = false; } catch(e){ console.warn('[copiloto] histórico', e); } };
+    if (imediato) return go(); _histT = setTimeout(go, 1500);
+  }
+  function registrarAcao(tipo, det){ if (!sess) return; (sess.reg.acoesFeitas = sess.reg.acoesFeitas || []).push({ tipo: tipo, det: det || '', em: agoraBR() }); histSalvar(true); }
+
+  function blocoMsgs(id, msgs, obs, rotuloCopiar){
+    let h = (obs || []).map(o => '<div class="ajd-aviso">⚠ ' + E(o) + '</div>').join('');
+    (msgs || []).forEach((m, i) => {
+      h += (msgs.length > 1 ? '<div class="ajd-meta" style="margin:8px 0 4px">Mensagem ' + (i + 1) + ' de ' + msgs.length + '</div>' : '') +
+        '<textarea class="ajd-ta cp-edit" data-g="' + id + '" data-i="' + i + '" rows="' + Math.min(14, Math.max(5, Math.ceil((m.texto || '').length / 80) + (m.texto || '').split('\n').length)) + '">' + E(m.texto || '') + '</textarea>' +
+        '<div class="ajd-row" style="margin-top:6px"><button class="ajd-btn pri sm" data-copia="' + id + '" data-i="' + i + '">' + (rotuloCopiar || 'Copiar') + '</button></div>';
+    });
+    return h;
+  }
+  function lerMsgs(id){ return [...elCorpo.querySelectorAll('textarea[data-g="' + id + '"]')].map(t => ({ texto: t.value })); }
+  function ligarMsgs(id, aoEditar){
+    elCorpo.querySelectorAll('textarea[data-g="' + id + '"]').forEach(t => t.addEventListener('input', () => aoEditar(lerMsgs(id))));
+    elCorpo.querySelectorAll('button[data-copia="' + id + '"]').forEach(b => b.onclick = () => { const t = elCorpo.querySelector('textarea[data-g="' + id + '"][data-i="' + b.dataset.i + '"]'); copiar(t.value, b); registrarAcao(id === 'cli' ? 'resposta_copiada' : 'tecnico_copiado'); });
+  }
+
+  // ── resposta ao cliente: mesmo redator da Central de Mensagens (POST /comunicacao/gerar, tipo cliente)
+  async function cpResposta(ajuste){
+    const box = document.getElementById('cpResp'); if (!box || !sess) return;
+    const r = sess.reg.resultado || {}, a = sess.reg.acoes || {};
+    const atual = (sess.reg.respostaCliente || []).filter(m => (m.texto || '').trim());
+    box.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>' + (ajuste ? 'Ajustando…' : 'Escrevendo no padrão de comunicação da Grid…') + '</span></div>';
+    const rasc = ['Situação: ' + (r.resumo_situacao || ''), 'O cliente pede: ' + (r.cliente_pede || []).join('; '),
+      'Já foi feito: ' + (r.ja_feito || []).join('; '), 'Pendente: ' + (r.pendente || []).join('; '),
+      'Rascunho de resposta: ' + (r.resposta_cliente || '')].join('\n');
+    const corpo = { tipo: 'cliente', cliente: a.cliente || sess.reg.cliente || '', destinatarios: [],
+      ufvs: a.usina ? [{ ufv: a.usina, cidadeUf: a.cidade_uf || '', cliente: a.cliente || '' }] : [], dataHoraEnvio: '', rascunho: rasc };
+    if (ajuste) { corpo.ajuste = ajuste; corpo.versaoAtual = { mensagens: atual }; }
+    try {
+      const d = await postJson('/comunicacao/gerar', corpo, 70000);
+      sess.reg.respostaCliente = d.mensagens || []; sess.reg.respostaObs = d.observacoes || [];
+      histSalvar(true); renderResposta();
+    } catch(e){
+      box.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn sm" id="cpRespTentar">Tentar de novo</button>';
+      document.getElementById('cpRespTentar').onclick = () => cpResposta(ajuste);
+    }
+  }
+  function renderResposta(){
+    const box = document.getElementById('cpResp'); if (!box || !sess) return;
+    const msgs = sess.reg.respostaCliente || [];
+    if (!msgs.length) { box.innerHTML = '<button class="ajd-btn pri sm" id="cpRespGerar">Escrever resposta no padrão Grid</button>'; document.getElementById('cpRespGerar').onclick = () => cpResposta(); return; }
+    box.innerHTML = '<div class="ajd-meta">Texto editável: revise e ajuste antes de copiar. Comunicação com cliente sai só depois do seu olho.</div>' +
+      blocoMsgs('cli', msgs, sess.reg.respostaObs, 'Copiar') +
+      '<div class="ajd-row" style="margin-top:10px"><input class="ajd-in" id="cpRespAjuste" placeholder="Pedir ajuste (ex.: mais curto, sem citar prazo)"><button class="ajd-btn sm" id="cpRespAjustar">Ajustar</button><button class="ajd-btn sm" id="cpRespRefazer">Reescrever</button></div>';
+    ligarMsgs('cli', m => { sess.reg.respostaCliente = m; histSalvar(); });
+    document.getElementById('cpRespAjustar').onclick = () => { const v = document.getElementById('cpRespAjuste').value.trim(); if (v) cpResposta(v); };
+    document.getElementById('cpRespRefazer').onclick = () => { sess.reg.respostaCliente = []; cpResposta(); };
+  }
+
+  // ── mensagem ao técnico (mesmo redator, tipo técnico) + envio no grupo da equipe com confirmação
+  async function cpTecnico(ajuste){
+    const box = document.getElementById('cpTec'); if (!box || !sess) return;
+    const r = sess.reg.resultado || {}, a = sess.reg.acoes || {};
+    box.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>Escrevendo a mensagem para a equipe…</span></div>';
+    const ac = (r.acoes_tecnico || []).map((x, i) => (i + 1) + ') ' + x.acao + (x.equipamento ? ' [' + x.equipamento + ']' : '') + (x.porque ? ' — ' + x.porque : '')).join('\n');
+    const corpo = { tipo: 'tecnico', cliente: a.cliente || '', destinatarios: [a.supervisor_campo || a.responsavel].filter(Boolean),
+      ufvs: a.usina ? [{ ufv: a.usina, cidadeUf: a.cidade_uf || '', cliente: a.cliente || '', tecnico: a.responsavel || '', funcao: a.funcao || '' }] : [],
+      dataHoraEnvio: '', rascunho: 'Contexto: ' + (r.resumo_situacao || '') + '\nO que preciso que a equipe faça:\n' + (ac || (r.pendente || []).join('\n')) };
+    if (ajuste) { corpo.ajuste = ajuste; corpo.versaoAtual = { mensagens: sess.reg.msgTecnico || [] }; }
+    try {
+      const d = await postJson('/comunicacao/gerar', corpo, 70000);
+      sess.reg.msgTecnico = d.mensagens || []; sess.reg.msgTecnicoObs = d.observacoes || [];
+      histSalvar(true); renderTecnico();
+    } catch(e){ box.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn sm" id="cpTecTentar">Tentar de novo</button>'; document.getElementById('cpTecTentar').onclick = () => cpTecnico(ajuste); }
+  }
+  function renderTecnico(){
+    const box = document.getElementById('cpTec'); if (!box || !sess) return;
+    const a = sess.reg.acoes || {}, msgs = sess.reg.msgTecnico || [];
+    if (!msgs.length) {
+      box.innerHTML = '<button class="ajd-btn sm" id="cpTecGerar">Escrever mensagem para a equipe</button>' + (a.grupo_equipe_nome ? '<span class="ajd-meta" style="margin-left:8px">vai para o grupo ' + E(a.grupo_equipe_nome) + '</span>' : '');
+      document.getElementById('cpTecGerar').onclick = () => cpTecnico(); return;
+    }
+    const enviada = (sess.reg.acoesFeitas || []).filter(x => x.tipo === 'tecnico_enviado').pop();
+    box.innerHTML = blocoMsgs('tec', msgs, sess.reg.msgTecnicoObs, 'Copiar') +
+      '<div class="ajd-row" style="margin-top:10px">' + (a.grupo_equipe_id ? '<button class="ajd-btn pri sm" id="cpTecEnviar">Enviar no grupo ' + E(a.grupo_equipe_nome || 'da equipe') + '</button>' : '<span class="ajd-meta" style="margin:0">Usina sem grupo de equipe no mapeamento: copie e envie manualmente.</span>') +
+      '<input class="ajd-in" id="cpTecAjuste" placeholder="Pedir ajuste"><button class="ajd-btn sm" id="cpTecAjustar">Ajustar</button></div>' +
+      (enviada ? '<div class="ajd-meta">✔ Enviada no grupo em ' + E(enviada.em) + '</div>' : '');
+    ligarMsgs('tec', m => { sess.reg.msgTecnico = m; histSalvar(); });
+    document.getElementById('cpTecAjustar').onclick = () => { const v = document.getElementById('cpTecAjuste').value.trim(); if (v) cpTecnico(v); };
+    const be = document.getElementById('cpTecEnviar');
+    if (be) be.onclick = async () => {
+      const texto = lerMsgs('tec').map(m => m.texto.trim()).filter(Boolean).join('\n\n');
+      if (!texto) return;
+      if (!confirm('Enviar agora no grupo "' + (a.grupo_equipe_nome || 'da equipe') + '" do WhatsApp?\n\n' + texto.slice(0, 600) + (texto.length > 600 ? '…' : ''))) return;
+      be.disabled = true; be.textContent = 'Enviando…';
+      try {
+        await postJson('/disparar-comunicado-livre', { texto: texto, grupos: [a.grupo_equipe_id] }, 60000);
+        registrarAcao('tecnico_enviado', a.grupo_equipe_nome || ''); if (window.showToast) showToast('Mensagem enviada no grupo da equipe.', true);
+        renderTecnico();
+      } catch(e){ be.disabled = false; be.textContent = 'Enviar no grupo ' + (a.grupo_equipe_nome || 'da equipe'); alert('Não enviei: ' + e.message); }
+    };
+  }
+
+  // ── ocorrência: atualizar uma já aberta (registro no histórico + status) ou abrir nova
+  function renderOcorrencia(){
+    const box = document.getElementById('cpOc'); if (!box || !sess) return;
+    const a = sess.reg.acoes || {}, r = sess.reg.resultado || {};
+    if (!a.usina) { box.innerHTML = '<div class="ajd-meta">Sem usina identificada: escolha a usina na aba Perguntar para registrar em ocorrência.</div>'; return; }
+    const ocs = a.ocorrencias || [];
+    const texto = 'Copiloto (' + agoraBR() + '): ' + (r.resumo_situacao || '') + ((r.pendente || []).length ? '\nPendente: ' + r.pendente.join('; ') : '');
+    const feitas = (sess.reg.acoesFeitas || []).filter(x => /^ocorrencia/.test(x.tipo));
+    let h = '<div class="ajd-row" style="flex-direction:column;align-items:stretch;gap:6px">' +
+      ocs.map((o, i) => '<label class="cp-op"><input type="radio" name="cpOcSel" value="' + E(o.id) + '"' + (i === 0 ? ' checked' : '') + '> Atualizar <b>' + E(o.id) + '</b> · ' + E(o.titulo || o.equipamento || '') + ' <small>(' + E(o.status || '') + ')</small></label>').join('') +
+      '<label class="cp-op"><input type="radio" name="cpOcSel" value="__nova"' + (ocs.length ? '' : ' checked') + '> Abrir nova ocorrência em <b>' + E(a.usina) + '</b></label></div>' +
+      '<div id="cpOcNova" style="display:none"><div class="ajd-row"><input class="ajd-in" id="cpOcTitulo" placeholder="Título" maxlength="120"><input class="ajd-in" id="cpOcEquip" placeholder="Equipamento (obrigatório)" maxlength="80">' +
+      '<select class="ajd-sel" id="cpOcCrit"><option value="">Criticidade</option><option>Baixa</option><option selected>Média</option><option>Alta</option><option>Muito Alta</option></select></div></div>' +
+      '<textarea class="ajd-ta" id="cpOcTexto" rows="5"></textarea>' +
+      '<div class="ajd-row" style="margin-top:8px"><select class="ajd-sel" id="cpOcStatus"><option value="">Manter status</option><option>Em andamento</option><option>Pausado</option><option>Finalizado</option></select>' +
+      '<button class="ajd-btn pri sm" id="cpOcSalvar">Registrar</button></div>' +
+      feitas.map(x => '<div class="ajd-meta">✔ ' + E(x.det) + ' · ' + E(x.em) + '</div>').join('');
+    box.innerHTML = h;
+    document.getElementById('cpOcTexto').value = texto;
+    document.getElementById('cpOcTitulo').value = String(sess.reg.titulo || '').slice(0, 120);
+    document.getElementById('cpOcEquip').value = ((r.acoes_tecnico || []).find(x => x.equipamento) || {}).equipamento || '';
+    const sync = () => { const nova = (box.querySelector('input[name=cpOcSel]:checked') || {}).value === '__nova'; document.getElementById('cpOcNova').style.display = nova ? '' : 'none'; document.getElementById('cpOcStatus').style.display = nova ? 'none' : ''; };
+    box.querySelectorAll('input[name=cpOcSel]').forEach(x => x.onchange = sync); sync();
+    document.getElementById('cpOcSalvar').onclick = async () => {
+      const sel = (box.querySelector('input[name=cpOcSel]:checked') || {}).value;
+      const txt = document.getElementById('cpOcTexto').value.trim(), st = document.getElementById('cpOcStatus').value;
+      const btn = document.getElementById('cpOcSalvar');
+      if (!txt) { alert('Escreva o registro.'); return; }
+      try {
+        if (sel === '__nova') {
+          const eq = document.getElementById('cpOcEquip').value.trim(); if (!eq) { alert('Informe o equipamento.'); return; }
+          if (!confirm('Abrir uma nova ocorrência em ' + a.usina + '?')) return;
+          btn.disabled = true;
+          const d = await postJson('/ocorrencias/salvar', { usina: a.usina, cliente: a.cliente || '', titulo: document.getElementById('cpOcTitulo').value.trim(), equip: eq,
+            crit: document.getElementById('cpOcCrit').value, causa: txt, registro: 'Aberta pelo Copiloto a partir da análise de ' + (sess.reg.geradoEm || agoraBR()) + '.' });
+          registrarAcao('ocorrencia_nova', 'Ocorrência ' + ((d.item || {}).id || '') + ' aberta');
+        } else {
+          if (!confirm('Registrar na ocorrência ' + sel + (st ? ' e mudar o status para "' + st + '"' : '') + '?')) return;
+          btn.disabled = true;
+          await postJson('/ocorrencias/historico/salvar', { ocorrencia: sel, texto: txt });
+          if (st) await postJson('/ocorrencias/salvar', { id: sel, status: st });
+          registrarAcao('ocorrencia_atualizada', sel + ' atualizada' + (st ? ' (status: ' + st + ')' : ''));
+        }
+        if (window.showToast) showToast('Ocorrência registrada.', true);
+        renderOcorrencia();
+      } catch(e){ btn.disabled = false; alert('Não registrei: ' + e.message); }
+    };
+  }
+
+  // ── histórico por tema/usina
+  async function renderHistUsina(){
+    const box = document.getElementById('cpHist'); if (!box || !sess || !sess.reg.usina) return;
+    try {
+      const d = await chamar({ modo: 'historico', usina: sess.reg.usina, limite: 8 });
+      const outros = (d.itens || []).filter(x => x.id !== sess.reg.id);
+      if (!outros.length) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="ajd-sec">Análises anteriores de ' + E(sess.reg.usina) + '</div>' + outros.map(x =>
+        '<button class="cp-hist" data-h="' + E(x.id) + '"><b>' + E(x.titulo || 'análise') + '</b><small>' + E(x.atualizadoEm || '') + ((x.acoesFeitas || []).length ? ' · ' + x.acoesFeitas.length + ' ação(ões)' : '') + '</small></button>').join('');
+      box.querySelectorAll('[data-h]').forEach(b => b.onclick = () => abrirHistorico(b.dataset.h));
+    } catch(e){ box.innerHTML = ''; }
+  }
+  async function abrirHistorico(id){
+    saiDaAba(); carregando('Abrindo a análise salva…');
+    try {
+      const it = (await chamar({ modo: 'historico', id: id })).item;
+      elTitulo.textContent = 'Copiloto · ' + (it.usina || 'análise salva');
+      telaResultado({ resultado: it.resultado, fontes: it.fontes, avisos: it.avisos, acoes: it.acoes, geradoEm: it.geradoEm }, it.corpo || {}, it);
+    } catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Voltar</button>'; document.getElementById('ajdVoltar').onclick = () => irAba(aba); }
+  }
+  window._copilotoAbrirHistorico = abrirHistorico;
+
+  function telaResultado(d, corpo, salvo){
     const r = d.resultado || {}, f = d.fontes || {};
     const acoes = (r.acoes_tecnico || []);
     let h = '<div class="ajd-row"><button class="ajd-btn sm" id="ajdVoltar">← Voltar</button><button class="ajd-btn sm" id="ajdRefazer">Refazer</button></div>';
@@ -21375,8 +21614,9 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       acoes.map(a => '<li><b>' + E(a.acao) + '</b>' + (a.equipamento ? ' <small>[' + E(a.equipamento) + ']</small>' : '') + (a.porque ? '<br><small>' + E(a.porque) + '</small>' : '') + '</li>').join('') +
       '</ul><div class="ajd-row" style="margin-top:6px"><button class="ajd-btn sm" id="ajdCopAcoes">Copiar ações p/ técnico</button></div>';
     h += lista('Conferir no projeto / documentação', r.conferir_no_projeto);
-    if (r.resposta_cliente) h += '<div class="ajd-sec">Sugestão de resposta ao cliente</div><textarea class="ajd-ta" id="ajdResp" rows="7">' + E(r.resposta_cliente) + '</textarea>' +
-      '<div class="ajd-row" style="margin-top:6px"><button class="ajd-btn pri sm" id="ajdCopResp">Copiar resposta</button><span class="ajd-meta" style="margin:0">Revise antes de enviar — trechos [preencher: ...] precisam de dado seu.</span></div>';
+    h += '<div class="ajd-sec">Resposta ao cliente · padrão Grid</div><div id="cpResp"></div>';
+    h += '<div class="ajd-sec">Mensagem para a equipe da usina</div><div id="cpTec"></div>';
+    h += '<div class="ajd-sec">Ocorrência</div><div id="cpOc"></div>';
     if ((r.alertas || []).length) h += '<div class="ajd-sec">Alertas</div>' + r.alertas.map(a => '<div class="ajd-alerta ' + E(a.tipo) + '"><b>' + E(a.tipo) + '</b>' + E(a.texto) + '</div>').join('');
     h += lista('O que eu não consegui saber', r.lacunas);
     const partes = [];
@@ -21387,16 +21627,24 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
     if ((f.biblioteca || []).length) partes.push('fichas da biblioteca: ' + f.biblioteca.join(', '));
     h += '<div class="ajd-foot">Base: ' + E(partes.join(' · ')) + ' · janela de ' + E(f.horas) + ' h' + (mid ? ' · ' + mid + ' áudios/imagens/documentos não lidos' : '') +
       '<br>Confiança da IA: ' + E(r.confianca || '—') + ' · gerado em ' + E(d.geradoEm || '') + '. É uma orientação: confirme os fatos antes de agir ou responder ao cliente.</div>';
-    h += '<div id="ajdConv"></div>';
+    h += '<div id="ajdConv"></div><div id="cpHist"></div>';
     elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
     conv = { corpo: corpo, analise: JSON.stringify(r).slice(0, 7000), historico: [] };
+    sess = { reg: salvo || { usina: (d.acoes || {}).usina || f.usina || corpo.usina || '', cliente: (d.acoes || {}).cliente || corpo.cliente || '',
+      titulo: (corpo.tema || corpo.pergunta || 'Análise').split(' — ')[0].replace(/^Tema:\s*/, '').slice(0, 120), corpo: corpo, resultado: r, fontes: f,
+      avisos: d.avisos || [], acoes: d.acoes || {}, geradoEm: d.geradoEm || '', conversa: [], respostaCliente: [], msgTecnico: [], acoesFeitas: [] } };
+    if (salvo) {
+      (salvo.conversa || []).forEach(m => { addMsg(m.tipo, m.texto, m.copia || ''); conv.historico.push({ role: m.tipo === 'user' ? 'user' : 'model', texto: m.texto }); });
+      const ah = document.createElement('div'); ah.className = 'ajd-meta'; ah.textContent = 'Análise salva de ' + (salvo.geradoEm || salvo.criadoEm || '') + '. Toque em Refazer para atualizar com as conversas novas.';
+      elCorpo.insertBefore(ah, elCorpo.children[1]);
+    } else histSalvar(true);
+    renderResposta(); if (!salvo && !(sess.reg.respostaCliente || []).length) cpResposta();
+    renderTecnico(); renderOcorrencia(); renderHistUsina();
     mostrarEntrada(true);
     document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
     document.getElementById('ajdRefazer').onclick = () => analisar(corpo);
     const ba = document.getElementById('ajdCopAcoes');
     if (ba) ba.onclick = () => copiar('Favor realizar' + (f.usina ? ' em ' + f.usina : '') + ':\n' + acoes.map((a, i) => (i + 1) + ') ' + a.acao + (a.equipamento ? ' [' + a.equipamento + ']' : '') + (a.porque ? ' — ' + a.porque : '')).join('\n') + '\nEnvie fotos e valores medidos no grupo.', ba);
-    const br = document.getElementById('ajdCopResp');
-    if (br) br.onclick = () => copiar(document.getElementById('ajdResp').value, br);
   }
 
   document.getElementById('ajdChips').innerHTML = CHIPS.map((c, i) => '<button type="button" class="ajd-chip" data-c="' + i + '">' + E(c.length > 38 ? c.slice(0, 36) + '…' : c) + '</button>').join('');
@@ -21422,7 +21670,6 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
       return;
     }
     if (primeiraVez || !elCorpo.innerHTML) { primeiraVez = false; irAba('pendentes'); }
-    if (!cp.carregando && Date.now() - maisRecente() > 30 * 60000) cpCarregar(false);
   };
   window.abrirCopiloto = window.abrirAjuda;
   const elCpBtn = document.getElementById('copilotoBtn');
@@ -21432,12 +21679,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   document.getElementById('ajudaBackdrop').addEventListener('click', fecharPainel);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && elPanel.classList.contains('open')) fecharPainel(); });
   atualizaBadge();
-  let _cpBg = false;
-  function cpFundo(){
-    if (_cpBg || !permitido()) return; _cpBg = true;
-    setTimeout(() => { if (Date.now() - maisRecente() > 30 * 60000) cpCarregar(false); }, 8000);
-    setInterval(() => { if (permitido() && !document.hidden && Date.now() - maisRecente() > 30 * 60000) cpCarregar(false); }, 5 * 60000);
-  }
+  function cpFundo(){ /* 18/11/2026: leitura só sob demanda (pedido do Fred) */ }
 
   if (typeof window.initDashboard === 'function') {
     const orig = window.initDashboard;
@@ -22442,6 +22684,7 @@ function _vgRender(mapa) {
     <div><b>${desl.length === 1 ? 'usina desligada agora' : 'usinas desligadas agora'}</b><br><small>${desl.slice(0, 4).map(esc).join(' · ')}${desl.length > 4 ? ' +' + (desl.length - 4) : ''}</small></div>
     <button class="vg-btn" onclick="switchNav('atividades');if(!_ativDesligFiltro)toggleAtivDesligFiltro()">Ver atividades →</button></div>`
     : `<div class="vg-ok">Nenhuma usina desligada agora.</div>`}
+  ${typeof window._cpVgCard === 'function' ? window._cpVgCard() : ''}
 
   <section class="vg-kpis">
     <button class="vg-kpi" onclick="switchNav('atividades')"><div class="vg-rot">Em aberto</div><div class="vg-v vg-num">${_vgFmt(abertas.length)}</div><div class="vg-ref">${_vgFmt(abertas.length - verif)} em processo · ${_vgFmt(verif)} em verificação</div></button>
@@ -22733,34 +22976,6 @@ _pfRender = function () {
 <script src="comunicacao/roteamento.js?v=20261117f"></script>
 <script src="comunicacao/validators.js?v=20261117f"></script>
 <script src="comunicacao/ui.js?v=20261117f"></script>
-<script>
-/* 17/11/2026 — aviso de versão nova: o GitHub Pages manda o navegador guardar a página por 10 min e o
-   celular não tem "recarregar". A cada 3 min (e ao voltar para o app) confere o ETag da página no servidor;
-   se mudou, mostra uma faixa "Versão nova do Omni — Atualizar" que recarrega sem usar a cópia guardada. */
-(function () {
-  let etag0 = null, avisado = false;
-  async function conferir() {
-    try {
-      const r = await fetch(location.pathname + '?_vchk=' + Date.now(), { cache: 'no-store', method: 'GET' });
-      const et = r.headers.get('etag') || r.headers.get('last-modified');
-      if (!et) return;
-      if (etag0 === null) { etag0 = et; return; }
-      if (et !== etag0 && !avisado) { avisado = true; mostrar(); }
-    } catch (e) {}
-  }
-  function mostrar() {
-    const d = document.createElement('div');
-    d.id = 'omniVersaoNova';
-    d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:13000;background:#0f766e;color:#fff;border-radius:10px;padding:10px 14px;font:600 14px Poppins,system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;max-width:calc(100vw - 24px)';
-    d.innerHTML = '<span>Versão nova do Omni disponível</span><button type="button" style="background:#fff;color:#0f766e;border:0;border-radius:7px;padding:6px 12px;font:700 13px Poppins,system-ui,sans-serif;cursor:pointer">Atualizar</button>';
-    d.querySelector('button').onclick = () => { location.replace(location.pathname + '?v=' + Date.now() + location.hash); };
-    document.body.appendChild(d);
-  }
-  conferir();
-  setInterval(conferir, 3 * 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) conferir(); });
-})();
-</script>
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
