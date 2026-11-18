@@ -7557,16 +7557,23 @@ async function fetchSheet() {
     } catch(e2) { parsed = null; }
   }
 
+  // 17/11/2026: sucesso é silencioso (o antigo toast "N registros carregados"
+  // contava as linhas do Painel de Falhas e aparecia em qualquer tela, a cada
+  // atualização automática). Só avisa quando algo dá errado — e, se já havia
+  // uma leitura boa, mantém ela em vez de trocar pelo snapshot embutido.
   if (parsed && parsed.length > 0) {
     DATA = parsed.filter(d => !_usinaForaDoMapa(d.usina));
     const now = new Date();
     const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    window._falhasUltimaLeitura = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     if (dot) dot.className = 'topbar-live-dot live'; if (label) label.textContent = `ao vivo · ${ts}`;
-    showToast(`${DATA.length} registros carregados`, true);
+  } else if (window._falhasUltimaLeitura && DATA && DATA.length) {
+    if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = `sem conexão · leitura de ${window._falhasUltimaLeitura}`;
+    showToast(`Falhas: a planilha não respondeu · mantendo a leitura de ${window._falhasUltimaLeitura}`, false);
   } else {
     DATA = SNAPSHOT.map(d => ({ ...d, cliente: normalizeCliente(d.cliente) })).filter(d => !_usinaForaDoMapa(d.usina));
     if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = 'snapshot local';
-    showToast('Usando dados locais (sem conexão com planilha)', false);
+    showToast('Falhas: a planilha não respondeu · exibindo dados locais', false);
   }
   btn.disabled = false; btn.classList.remove('spinning');
   populateFilters();
@@ -24185,19 +24192,30 @@ async function _vgEntrar() {
     if (snap && snap.html && Date.now() - snap.t < 48 * 3600e3) {
       const d = new Date(snap.t), hh = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
       window._vgFocar = null;
-      root.innerHTML = `<div class="vg-ok" style="margin:0 0 14px;display:flex;align-items:center;gap:10px"><span class="vg-pulso" style="background:var(--vg-acompanhar)"></span>Mostrando a leitura de ${hh} · atualizando…</div>` + snap.html;
+      root.innerHTML = `<div id="vgStatusLeitura" class="vg-ok" style="margin:0 0 14px;display:flex;align-items:center;gap:10px"><span class="vg-pulso" style="background:var(--vg-acompanhar)"></span>Mostrando a leitura de ${hh} · atualizando…</div>` + snap.html;
     } else {
+      snap = null;
       root.innerHTML = '<div class="vg-carregando">Carregando a visão geral…</div>';
     }
     try { await carregarAtividades(); } catch (e) {}
     for (let i = 0; i < 30 && (!ATIVIDADES || !ATIVIDADES.length); i++) await new Promise(r => setTimeout(r, 2000));
     _vgCarregando = false;
     if (_activeNav !== 'visao-geral') return;
+    // Falhou mas há uma leitura salva: mantém ela na tela e diz isso claramente (em vez de apagar tudo)
+    if ((!ATIVIDADES || !ATIVIDADES.length) && snap) {
+      const st = document.getElementById('vgStatusLeitura');
+      if (st) {
+        const d = new Date(snap.t), hh = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        st.style.background = 'color-mix(in srgb,var(--vg-acompanhar) 18%,transparent)';
+        st.innerHTML = `<span class="vg-pulso" style="background:var(--vg-acompanhar);animation:none"></span><span style="flex:1">Não consegui atualizar agora · mostrando a leitura de <b>${hh}</b></span><button class="vg-btn" onclick="_vgEntrar()">Tentar de novo</button>`;
+      }
+      return;
+    }
   }
   const mapa = await _mapaP;
   try { await _pfP; } catch (e) {}
   _vgRender(mapa);
-  try { localStorage.setItem('vgSnap_v1', JSON.stringify({ t: Date.now(), html: root.innerHTML })); } catch (e) {}
+  try { localStorage.setItem('vgSnap_v1', JSON.stringify({ t: Date.now(), html: root.innerHTML, k: window._vgNumeros || null })); } catch (e) {}
 }
 
 function _vgRender(mapa) {
@@ -24264,6 +24282,23 @@ function _vgRender(mapa) {
   const hora = String(agora.getDate()).padStart(2, '0') + '/' + String(agora.getMonth() + 1).padStart(2, '0') + ' ' + String(agora.getHours()).padStart(2, '0') + ':' + String(agora.getMinutes()).padStart(2, '0');
   const seg2 = (n, c) => n ? `<div style="flex:${n};background:${c}">${n}</div>` : '';
 
+  // 17/11/2026: diz o que mudou desde a última leitura salva neste navegador
+  window._vgNumeros = { ab: abertas.length, at: atrasadas.length };
+  let mudouTxt = '';
+  try {
+    const ant = JSON.parse(localStorage.getItem('vgSnap_v1') || 'null');
+    if (ant && ant.k && Date.now() - ant.t > 60e3) {
+      const d0 = new Date(ant.t), h0 = String(d0.getHours()).padStart(2, '0') + ':' + String(d0.getMinutes()).padStart(2, '0');
+      const quando = (d0.toDateString() === agora.toDateString()) ? h0 : String(d0.getDate()).padStart(2, '0') + '/' + String(d0.getMonth() + 1).padStart(2, '0') + ' ' + h0;
+      const dAb = abertas.length - ant.k.ab, dAt = atrasadas.length - ant.k.at;
+      const sn = n => (n > 0 ? '+' : '−') + Math.abs(n);
+      const partes = [];
+      if (dAt) partes.push(`<b style="color:${dAt > 0 ? 'var(--vg-focar)' : 'var(--vg-emdia)'}">${sn(dAt)} atrasada${Math.abs(dAt) === 1 ? '' : 's'}</b>`);
+      if (dAb) partes.push(`${sn(dAb)} em aberto`);
+      mudouTxt = partes.length ? ` · ${partes.join(', ')} desde ${quando}` : ` · sem mudanças desde ${quando}`;
+    }
+  } catch (e) {}
+
   root.innerHTML = `
   <div class="vg-topo">
     <div>
@@ -24273,7 +24308,7 @@ function _vgRender(mapa) {
       </h1>
       <p class="vg-pergunta">Na minha carteira: o que está atrasado, há quanto tempo, onde e com quem.</p>
     </div>
-    <span class="vg-vivo"><i></i>atualizado ${hora}<button class="vg-btn" onclick="ATIVIDADES=[];_vgEntrar()">Atualizar</button></span>
+    <span class="vg-vivo"><i></i><span>atualizado ${hora}${mudouTxt}</span><button class="vg-btn" onclick="ATIVIDADES=[];_vgEntrar()">Atualizar</button></span>
   </div>
 
   ${_vgNexusVelho() ? `<div class="vg-nexus-velho"><span>Performance do Nexus lida em <b>${esc(_pfDados.lidoEm)}</b> (há ${_vgNexusIdadeTxt()}). A geração do mês está desatualizada.</span><button class="vg-btn" onclick="_vgAtualizarNexus(this)">Atualizar do Nexus</button></div>` : ''}
