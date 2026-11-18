@@ -9234,14 +9234,13 @@ function _nexusTag(lista, d) {
 
 // Monta o pacote completo e entrega ao script "Grid OS → Nexus".
 // Caminho 1: postMessage (o script guarda). Caminho 2 (reserva): área de transferência.
-async function _enviarAoNexus(json, aba, botao) {
+function _nexusMontar(json, mapa) {
   let p;
-  try { p = JSON.parse(json); } catch (e) { try { aba && aba.close(); } catch (e2) {} showToast('Não consegui montar o pacote.', false); return; }
+  try { p = JSON.parse(json); } catch (e) { return null; }
   const ctx = p.ctx || {}; delete p.ctx;
   let cliente = ctx.cliente || '', tecnico = '';
   let usina = ctx.usina || '';
   try {
-    const mapa = await _mapUfvsCarregar();
     if (mapa && !usina) {
       const it0 = _osRapidaDetectarUsina(p.titulo || '', mapa) || _osRapidaDetectarUsina((p.titulo || '') + ' ' + (p.observacao || ''), mapa);
       if (it0) { usina = it0.usina; if (!cliente) cliente = it0.cliente; }
@@ -9258,34 +9257,39 @@ async function _enviarAoNexus(json, aba, botao) {
     cliente, usina, equipamento: ctx.equipamento || _nexusEquipDoTexto((p.titulo || '') + ' ' + (p.observacao || '')), tecnico,
     tema: r.tema, regra: r.nome, classif: { c1: r.c1, grupo: r.grupo, c2: r.c2 }, ts: Date.now(),
   });
-  try { window.postMessage({ gridosNexus: pacote }, location.origin); } catch (e) {}
-  const txt = 'GRIDOS_NEXUS::' + JSON.stringify(pacote);
-  // pacote no endereço: o script do Nexus (v1.4+) lê daqui — não depende de área de transferência
   let url = 'https://app.gridco.com.br/os/solicitacao';
-  try {
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(pacote)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    url += '#gridos=' + b64;
-  } catch (e) {}
-  try { if (aba && !aba.closed) aba.location.href = url; } catch (e) { window._nexusAbaAberta = false; }
+  try { url += '#gridos=' + btoa(unescape(encodeURIComponent(JSON.stringify(pacote)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); } catch (e) {}
+  return { pacote, url };
+}
+function _nexusFinalizar(r, botao) {
+  const pacote = r.pacote;
+  try { window.postMessage({ gridosNexus: pacote }, location.origin); } catch (e) {}
   try {
     if (botao) {
       let a = botao.parentElement.querySelector('.os-nexus-link');
       if (!a) { a = document.createElement('a'); a.className = 'os-nexus-link'; a.target = '_blank'; a.rel = 'noopener';
         a.style.cssText = 'display:block;text-align:center;margin-top:8px;font-size:12.5px;font-weight:600;color:var(--acao,#EA5A2A);text-decoration:underline'; botao.after(a); }
-      a.href = url; a.textContent = 'Não abriu? Abrir no Nexus com este pacote';
+      a.href = r.url; a.textContent = 'Não abriu? Abrir no Nexus com este pacote';
     }
   } catch (e) {}
-  const resumo = [usina || 'usina não identificada', pacote.equipamento, tecnico && ('técnico ' + tecnico)].filter(Boolean).join(' · ');
-  const ok = () => showToast('Pacote pronto (' + resumo + '). ' + (window._nexusAbaAberta === false
+  const resumo = [pacote.usina || 'usina não identificada', pacote.equipamento, pacote.tecnico && ('técnico ' + pacote.tecnico)].filter(Boolean).join(' · ');
+  showToast('Pacote pronto (' + resumo + '). ' + (window._nexusAbaAberta === false
     ? 'O navegador bloqueou a nova aba: toque no link "Abrir no Nexus com este pacote" logo abaixo do botão.'
-    : 'Na aba do Nexus que abriu, clique em "Preencher do dashboard".'), true);
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(ok); else ok();
+    : 'Na aba do Nexus, toque em "Preencher do dashboard".'), true);
+  try { navigator.clipboard && navigator.clipboard.writeText('GRIDOS_NEXUS::' + JSON.stringify(pacote)).catch(() => {}); } catch (e) {}
+}
+// mantido para quem ainda chama: monta e mostra o link (sem abrir aba)
+async function _enviarAoNexus(json, aba, botao) {
+  let mapa = null; try { mapa = await _mapUfvsCarregar(); } catch (e) {}
+  const r = _nexusMontar(json, mapa); if (!r) { showToast('Não consegui montar o pacote.', false); return; }
+  _nexusFinalizar(r, botao);
 }
 
 // Delegação de clique única pros botões "copiar" dentro de qualquer
 // container de campos de OS (título, observação, subtarefa individual ou
 // "copiar todas").
 function _wireCopiaCamposOS(container) {
+  try { if (!_mapUfvsCache) _mapUfvsCarregar(); } catch (e) {}
   if (!container || container._osCopyWired) return;
   container._osCopyWired = true;
   container.addEventListener('click', (e) => {
@@ -9293,13 +9297,16 @@ function _wireCopiaCamposOS(container) {
     if (nx) {
       // 17/11/2026: abre a Solicitação de OS do Nexus na hora do clique (como o "Atualizar do Nexus");
       // o script "Grid OS → Nexus" guarda o pacote e você só clica em "Preencher do dashboard".
-      // 18/11/2026: abre a aba já no clique (o navegador só deixa abrir no clique) e depois aponta
-      // para o Nexus levando o pacote no endereço (#gridos=...). No celular cada envio abre aba nova.
+      // 18/11/2026: monta o pacote na hora (mapeamento já em cache) e abre o endereço final do Nexus
+      // no próprio clique, com o pacote no endereço (#gridos=...). Abrir about:blank e redirecionar
+      // depois não funciona no app instalado do celular (a aba fica em branco).
       const toque = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+      const r = _nexusMontar(nx.dataset.nexus, _mapUfvsCache);
+      if (!r) { showToast('Não consegui montar o pacote.', false); return; }
       let aba = null;
-      try { aba = window.open('', toque ? '_blank' : 'nexusSolicitacao'); } catch (e2) {}
+      try { aba = window.open(r.url, toque ? '_blank' : 'nexusSolicitacao'); } catch (e2) {}
       window._nexusAbaAberta = !!aba;
-      _enviarAoNexus(nx.dataset.nexus, aba, nx);
+      _nexusFinalizar(r, nx);
       return;
     }
     const btn = e.target.closest('[data-copy]');
