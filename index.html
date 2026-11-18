@@ -2695,7 +2695,7 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
         </div>
         <div class="topbar-live" style="flex:none;">
           <div class="topbar-live-dot" id="sourceDot"></div>
-          <span id="sourceLabel" style="white-space:nowrap;">ao vivo</span>
+          <span id="sourceLabel" style="white-space:nowrap;">carregando…</span>
         </div>
       </div>
       <!-- Linha 2: clock + badge + botões -->
@@ -5584,13 +5584,6 @@ function updateClock() {
 }
 setInterval(updateClock, 1000); updateClock();
 
-/* ══ AUTO-REFRESH (sem countdown visual — roda silenciosamente) ══ */
-const REFRESH_INTERVAL = 5 * 60;
-let _countdownTimer = null;
-function startCountdown() {
-  clearInterval(_countdownTimer);
-  _countdownTimer = setInterval(() => { fetchSheet(); }, REFRESH_INTERVAL * 1000);
-}
 
 const SLA_CONFIG = { WARN_DAYS:7, BREACH_DAYS:14, CLOSED_STATUSES:['concluído','concluido','resolvido','fechado','resolved','closed'] };
 
@@ -7348,7 +7341,8 @@ function initDashboard(session) {
       carregarChamadosFabricante();
       return;
     }
-    fetchSheet().then(() => _abrirDeepLinkNotificacao());
+    _prepararPainel();
+    _abrirDeepLinkNotificacao();
     carregarAtividades();
     carregarProgramacaoPcm();
     carregarChamadosFabricante();
@@ -7383,16 +7377,13 @@ async function _abrirDeepLinkNotificacao() {
         }
         _abrirAtivDrawer(atividadeId);
       } else if (ocorrenciaId) {
-        switchNav('falhas');
-        if (typeof DATA === 'undefined' || DATA.length === 0) {
-          await fetchSheet();
-        }
-        const existe = (typeof DATA !== 'undefined') && DATA.some(d => String(d.id) === String(ocorrenciaId));
-        if (!existe && tentativa < 3) {
-          setTimeout(() => tentarAbrir(tentativa + 1), 600);
+        switchNav('ocorrencias');
+        const existe = window.OC && OC.itens().some(o => String(o.id) === String(ocorrenciaId));
+        if (!existe && tentativa < 5) {
+          setTimeout(() => tentarAbrir(tentativa + 1), 1000);
           return;
         }
-        openModal(ocorrenciaId);
+        if (window.OC) OC.abrir(ocorrenciaId);
       }
     } catch (e) {
       console.error('[DeepLink] Falha ao abrir notificação:', e);
@@ -7412,23 +7403,8 @@ document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
 
 /* ══ CONFIG ══ */
 const SHEET_ID = '1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs';
-const GID = '0';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec';
 
-/* ══ SNAPSHOT ══ */
-const SNAPSHOT = [
-  {id:"1",dataAbertura:"17/06/2026",cliente:"THOPEN",usina:"Matão I",equipamento:"Tracker 12",falha:"Falha no Tracker 12",causa:"TCU com defeito na bateria",impactados:"Tracker 12, TCU",acao:"Realizar reset e avaliar abertura de chamado para bateria",status:"Em Aberto",historico:"17/06/2026 14:00 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"2",dataAbertura:"17/06/2026",cliente:"THOPEN",usina:"Matão I",equipamento:"EP4",falha:"Falha de comunicação do EP4",causa:"Igate com problema",impactados:"EP4, Igate",acao:"Verificar integridade do Igate",status:"Em Aberto",historico:"17/06/2026 14:00 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"3",dataAbertura:"17/06/2026",cliente:"THOPEN",usina:"Topázio",equipamento:"Nobreak G3 mini",falha:"Falha de comunicação do nobreak G3 mini",causa:"Sem comunicação com o Igate",impactados:"Nobreak G3 mini, Igate",acao:"Investigar falha específica",status:"Em Aberto",historico:"17/06/2026 14:00 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"4",dataAbertura:"17/06/2026",cliente:"THOPEN",usina:"Sítio Bonfim",equipamento:"Exaustores",falha:"Parada de funcionamento",causa:"Falha interna no motor",impactados:"Exaustores e Componentes do QGBT",acao:"Deve ser realizada a compra",status:"Em Aberto",historico:"17/06/2026 15:26 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"5",dataAbertura:"17/06/2026",cliente:"THOPEN",usina:"Sítio Bonfim",equipamento:"Câmeras (CFTV)",falha:"Câmeras pararam de funcionar",causa:"Água que entrou no conector RJ45",impactados:"Câmeras (15% do monitoramento)",acao:"Esperando autorização para troca do conector RJ45",status:"Em Aberto",historico:"17/06/2026 15:26 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"6",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Piranometro POA",falha:"Equipamento parou de enviar informações",causa:"Defeito interno",impactados:"Estação solarimétrica",acao:"Enviado para reparo na fabricante (Romiotto)",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"7",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Piranometro POARI",falha:"Equipamento parou de enviar informações",causa:"Defeito interno",impactados:"Estação solarimétrica",acao:"Enviado para reparo na fabricante (Romiotto)",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"8",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Motor Tracker 08",falha:"Equipamento não estava funcionando",causa:"Água dentro do motor",impactados:"Tracker 08",acao:"Manutenção realizada no motor. Retirada toda a água, passado limpa contato.",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"9",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Motor Tracker 19",falha:"Equipamento não estava funcionando",causa:"Água dentro do motor",impactados:"Tracker 19",acao:"Manutenção realizada no motor. Retirada toda a água, passado limpa contato.",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"10",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Motor Tracker 29",falha:"Equipamento não estava funcionando",causa:"Água dentro do motor",impactados:"Tracker 29",acao:"Manutenção realizada no motor. Retirada toda a água, passado limpa contato.",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-  {id:"11",dataAbertura:"18/06/2026",cliente:"THOPEN",usina:"Poconé",equipamento:"Motor/TCU Tracker 48",falha:"Motor sem força para girar. TCU não respondia",causa:"Água dentro do motor. TCU com problema de conexão",impactados:"Tracker 48",acao:"Manutenção no motor. Garantia acionada.",status:"Em Aberto",historico:"18/06/2026 09:20 - Registro inicial.",ticketFabricante:"",numeroOS:""},
-];
 
 /* ══ ESTADO ══ */
 // Usinas retiradas do mapeamento do Fred em 06/10/2026 (em transição para outros
@@ -7449,147 +7425,36 @@ let activeTab = 'ativas';
 const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida','cancelado','cancelada','cancelled'];
 function isConcluido(d) { const s=(d.status||'').toLowerCase(); return STATUS_CONCLUIDO.some(x=>s.includes(x)); }
 
-async function fetchSheet() {
-  const btn = document.getElementById('updateBtn');
-  const dot = document.getElementById('sourceDot');
-  const label = document.getElementById('sourceLabel');
-  clearInterval(_countdownTimer);
-  btn.disabled = true; btn.classList.add('spinning');
-  if (dot) dot.className = 'topbar-live-dot loading'; if (label) label.textContent = 'buscando dados…';
-  showSkeletons();
-  let parsed = null;
-  const CLEAR_URL = 'https://script.google.com/macros/s/AKfycbyiI0LvyPPa6nzLYOk2CiwyrtZS5yBtFBei-gD_pywBh5JYxL74vGx759lZ6jj26Hd4/exec';
-  fetch(CLEAR_URL, { method:'GET', mode:'no-cors' }).catch(() => {});
-
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&headers=1&tq=select%20*&t=${Date.now()}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = await res.text();
-    const jsonStr = raw.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
-    const json = JSON.parse(jsonStr);
-    const rows = json.table.rows;
-    const cols = json.table.cols;
-    const idx = {};
-    cols.forEach((c, i) => {
-      const lbl = (c.label || '').toLowerCase().trim();
-      if (lbl === 'id') idx.id = i;
-      else if (lbl === 'cliente') idx.cliente = i;
-      else if (lbl === 'usina') idx.usina = i;
-      else if (lbl === 'equipamento') idx.equipamento = i;
-      else if (lbl.startsWith('falha')) idx.falha = i;
-      else if (lbl.startsWith('causa')) idx.causa = i;
-      else if (lbl.includes('impactado')) idx.impactados = i;
-      else if (lbl.startsWith('ação') || lbl.startsWith('acao')) idx.acao = i;
-      else if (lbl.includes('status')) idx.status = i;
-      else if (lbl.includes('histórico') || lbl.includes('historico') || lbl.includes('hist') || lbl.includes('timeline') || lbl.includes('registro')) idx.historico = i;
-      else if (lbl.includes('ticket')) idx.ticket = i;
-      else if (lbl.includes('os') || lbl.includes('ordem')) idx.os = i;
-      else if (lbl.includes('data') && lbl.includes('abertura')) idx.dataAbertura = i;
-      else if (lbl === 'data_abertura' || lbl === 'dataabertura') idx.dataAbertura = i;
-      else if (lbl.includes('1ª ação') || lbl.includes('1a ação') || lbl.includes('primeira ação') || lbl.includes('primeira acao') || lbl === 'data_primeira_acao') idx.dataPrimeiraAcao = i;
-      else if (lbl.includes('encaminhamento')) idx.dataEncaminhamento = i;
-      else if (lbl.includes('retorno externo') || lbl.includes('retorno_externo')) idx.dataRetornoExterno = i;
-      else if (lbl.includes('data') && lbl.includes('fechamento')) idx.dataFechamento = i;
-      else if (lbl === 'data_fechamento' || lbl === 'datafechamento') idx.dataFechamento = i;
-      else if (lbl.includes('mensage') && lbl.includes('origin')) idx.mensagensOriginais = i;
-    });
-    const g = (r, i) => { const cell = r.c?.[i]; if (!cell) return ''; const v = cell.v != null ? String(cell.v) : ''; const f = cell.f != null ? String(cell.f) : ''; return (f.length > v.length ? f : v).trim(); };
-    parsed = rows.map(r => ({
-      id: g(r, idx.id??0), dataAbertura: idx.dataAbertura!=null?g(r,idx.dataAbertura):'',
-      cliente: normalizeCliente(g(r, idx.cliente??1)), usina: normalizeUsina(g(r, idx.usina??2)),
-      equipamento: g(r, idx.equipamento??3), falha: g(r, idx.falha??4),
-      causa: g(r, idx.causa??5), impactados: g(r, idx.impactados??6),
-      acao: g(r, idx.acao??7), status: g(r, idx.status??8) || 'Em Aberto',
-      historico: g(r, idx.historico??11),
-      ticketFabricante: idx.ticket!=null?g(r,idx.ticket):'', numeroOS: idx.os!=null?g(r,idx.os):g(r,10),
-      dataPrimeiraAcao: idx.dataPrimeiraAcao!=null?g(r,idx.dataPrimeiraAcao):'',
-      dataEncaminhamento: idx.dataEncaminhamento!=null?g(r,idx.dataEncaminhamento):'',
-      dataRetornoExterno: idx.dataRetornoExterno!=null?g(r,idx.dataRetornoExterno):'',
-      dataFechamento: idx.dataFechamento!=null?g(r,idx.dataFechamento):'',
-      mensagensOriginais: idx.mensagensOriginais!=null?g(r,idx.mensagensOriginais):'',
-    })).filter(d => d.equipamento && d.id);
-    if (parsed.length === 0) throw new Error('gviz retornou 0 registros');
-  } catch(e1) {
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const csv = await res.text();
-      const rows = splitCSVRows(csv);
-      if (rows.length < 2) throw new Error('CSV vazio');
-      const headers = parseCSVLine(rows[0]).map(h => h.toLowerCase().trim());
-      const idx = {};
-      headers.forEach((h, i) => {
-        if (h === 'id') idx.id = i;
-        else if (h === 'cliente') idx.cliente = i;
-        else if (h === 'usina') idx.usina = i;
-        else if (h === 'equipamento') idx.equipamento = i;
-        else if (h.startsWith('falha')) idx.falha = i;
-        else if (h.startsWith('causa')) idx.causa = i;
-        else if (h.includes('impactado')) idx.impactados = i;
-        else if (h.startsWith('ação') || h.startsWith('acao')) idx.acao = i;
-        else if (h.includes('status')) idx.status = i;
-        else if (h.includes('histórico') || h.includes('historico') || h.includes('hist') || h.includes('timeline') || h.includes('registro')) idx.historico = i;
-        else if (h.includes('ticket')) idx.ticket = i;
-        else if (h.includes('os') || h.includes('ordem')) idx.os = i;
-        else if (h.includes('data') && h.includes('abertura')) idx.dataAbertura = i;
-        else if (h === 'data_abertura' || h === 'dataabertura') idx.dataAbertura = i;
-        else if (h.includes('1ª ação') || h.includes('1a ação') || h.includes('primeira ação') || h.includes('primeira acao') || h === 'data_primeira_acao') idx.dataPrimeiraAcao = i;
-        else if (h.includes('encaminhamento')) idx.dataEncaminhamento = i;
-        else if (h.includes('retorno externo') || h.includes('retorno_externo')) idx.dataRetornoExterno = i;
-        else if (h.includes('data') && h.includes('fechamento')) idx.dataFechamento = i;
-        else if (h === 'data_fechamento' || h === 'datafechamento') idx.dataFechamento = i;
-        else if (h.includes('mensage') && h.includes('origin')) idx.mensagensOriginais = i;
-      });
-      parsed = rows.slice(1).filter(r=>r.trim()).map(r => {
-        const cells = parseCSVLine(r);
-        const g = (i) => (cells[i] || '').trim();
-        return { id:g(idx.id??0), dataAbertura:idx.dataAbertura!=null?g(idx.dataAbertura):'', cliente:normalizeCliente(g(idx.cliente??1)), usina:normalizeUsina(g(idx.usina??2)), equipamento:g(idx.equipamento??3), falha:g(idx.falha??4), causa:g(idx.causa??5), impactados:g(idx.impactados??6), acao:g(idx.acao??7), status:g(idx.status??8)||'Em Aberto', historico:g(idx.historico??11), ticketFabricante:idx.ticket!=null?g(idx.ticket):'', numeroOS:idx.os!=null?g(idx.os):g(10),
-          dataPrimeiraAcao: idx.dataPrimeiraAcao!=null?g(idx.dataPrimeiraAcao):'',
-          dataEncaminhamento: idx.dataEncaminhamento!=null?g(idx.dataEncaminhamento):'',
-          dataRetornoExterno: idx.dataRetornoExterno!=null?g(idx.dataRetornoExterno):'',
-          dataFechamento: idx.dataFechamento!=null?g(idx.dataFechamento):'',
-          mensagensOriginais: idx.mensagensOriginais!=null?g(idx.mensagensOriginais):'',
-        };
-      }).filter(d => d.equipamento && d.id);
-      if (parsed.length === 0) throw new Error('CSV 0 registros');
-    } catch(e2) { parsed = null; }
-  }
-
-  // 17/11/2026: sucesso é silencioso (o antigo toast "N registros carregados"
-  // contava as linhas do Painel de Falhas e aparecia em qualquer tela, a cada
-  // atualização automática). Só avisa quando algo dá errado — e, se já havia
-  // uma leitura boa, mantém ela em vez de trocar pelo snapshot embutido.
-  if (parsed && parsed.length > 0) {
-    DATA = parsed.filter(d => !_usinaForaDoMapa(d.usina));
-    const now = new Date();
-    const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    window._falhasUltimaLeitura = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    if (dot) dot.className = 'topbar-live-dot live'; if (label) label.textContent = `ao vivo · ${ts}`;
-  } else if (window._falhasUltimaLeitura && DATA && DATA.length) {
-    if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = `sem conexão · leitura de ${window._falhasUltimaLeitura}`;
-    showToast(`Falhas: a planilha não respondeu · mantendo a leitura de ${window._falhasUltimaLeitura}`, false);
-  } else {
-    DATA = SNAPSHOT.map(d => ({ ...d, cliente: normalizeCliente(d.cliente) })).filter(d => !_usinaForaDoMapa(d.usina));
-    if (dot) dot.className = 'topbar-live-dot error'; if (label) label.textContent = 'snapshot local';
-    showToast('Falhas: a planilha não respondeu · exibindo dados locais', false);
-  }
-  btn.disabled = false; btn.classList.remove('spinning');
+// Painel de Falhas foi substituído pelo Painel de Ocorrências (09/10/2026).
+// 17/11/2026: o app parou de baixar a planilha antiga de falhas (era ela que
+// gerava o toast "N registros carregados" e o "ao vivo" do topo). DATA fica
+// vazio — o mesmo que já acontecia no login das supervisoras — e esta função
+// só prepara filtros e o modo cliente na inicialização.
+function _prepararPainel() {
+  DATA = [];
   populateFilters();
   const clienteParam = _forcedCliente || URL_CLIENTE;
   if (clienteParam) activateClientMode(clienteParam);
-  // NÃO chamar clearFilters() aqui (corrigido 07/10/2026): fetchSheet roda a
-  // cada atualização automática da planilha e no botão Atualizar — limpar os
-  // filtros a cada refresh apagava a seleção de Cliente/Usina/Cluster/Tipo/
-  // Técnico que o Fred estava usando. Só descarta seleções que deixaram de
-  // existir nos dados novos e reaplica o que já estava selecionado.
   for (const s of [...selStatusValues]) { if (!_cbStatusOpts.includes(s)) selStatusValues.delete(s); }
   _renderCbDropdown('Status');
   _renderChipsTipoEquip();
   _renderCbTecnico();
   applyFilters();
-  startCountdown();
+}
+
+// Indicador do topo: hora da última leitura das Atividades (não há auto-refresh,
+// então não diz "ao vivo" — atualiza ao abrir o app e no botão Atualizar).
+function _topoLeitura(ok) {
+  const dot = document.getElementById('sourceDot'), label = document.getElementById('sourceLabel');
+  const now = new Date();
+  if (ok) {
+    window._ativUltimaLeitura = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (dot) dot.className = 'topbar-live-dot live';
+    if (label) label.textContent = `atualizado ${now.toLocaleDateString('pt-BR').slice(0, 5)} ${window._ativUltimaLeitura}`;
+  } else {
+    if (dot) dot.className = 'topbar-live-dot error';
+    if (label) label.textContent = window._ativUltimaLeitura ? `sem conexão · leitura de ${window._ativUltimaLeitura}` : 'sem conexão';
+  }
 }
 
 /* ══ CSV PARSERS ══ */
@@ -8090,7 +7955,6 @@ function showToast(msg, ok=true) {
 }
 
 /* ══ SKELETON ══ */
-function showSkeletons() { document.getElementById('cardGrid').innerHTML=Array(6).fill(0).map(()=>`<div class="skel-card"><div class="skeleton skel-line" style="width:40%;margin-bottom:14px"></div><div class="skeleton skel-title"></div><div class="skeleton skel-sub"></div><div class="skeleton skel-foot"></div></div>`).join(''); }
 
 
 
@@ -10490,7 +10354,6 @@ async function _converterOcorrenciaEmAtividade() {
     showToast(`Convertida! Nova atividade #${result.novaAtividadeId} criada.`, true);
     document.getElementById('drawer')?.classList.remove('open');
     document.getElementById('drawerBackdrop')?.classList.remove('open');
-    if (typeof fetchSheet === 'function') fetchSheet();
     if (typeof carregarAtividades === 'function') carregarAtividades();
   } catch (e) {
     showToast('Erro ao converter ocorrência: ' + (e.message||''), false);
@@ -10837,7 +10700,7 @@ async function verificarRondas() {
         <span class="rondas-result-num" style="color:var(--text-faint)">${ignorados}</span>
       </div>
       ${totalAcoes>0
-        ?`<div style="margin-top:12px;padding:10px 12px;background:rgba(63,165,140,.08);border:1px solid rgba(63,165,140,.25);border-radius:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--teal);">Planilha atualizada — recarregando dados em 3s…</div>`
+        ?`<div style="margin-top:12px;padding:10px 12px;background:rgba(63,165,140,.08);border:1px solid rgba(63,165,140,.25);border-radius:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--teal);">Planilha atualizada.</div>`
         :`<div style="margin-top:12px;padding:10px 12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);">Nenhuma ronda nova encontrada nas últimas 6h</div>`
       }
       <div style="margin-top:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);">Informações duplicadas são ignoradas automaticamente.</div>
@@ -10864,7 +10727,6 @@ async function verificarRondas() {
     if(btnGrupos) btnGrupos.addEventListener('click', buscarRondasPorGrupo);
 
     document.getElementById('rondasOverlay').classList.add('open');
-    if(totalAcoes>0) setTimeout(()=>fetchSheet(),3000);
   } catch(err) {
     showToast(`Erro ao verificar rondas: ${err.message}`,false);console.error('[Rondas]',err);
   } finally {
@@ -11187,14 +11049,6 @@ async function _buscarPorNumeroOS() {
     if (oc) { switchNav('ocorrencias'); OC.abrir(oc.id); input.value = ''; return; }
   } catch (e) {}
 
-  const ocorrencia = (typeof DATA !== 'undefined' ? DATA : []).find(d => bateOS(d.numeroOS));
-  if (ocorrencia) {
-    switchNav('falhas');
-    openModal(ocorrencia.id);
-    input.value = '';
-    return;
-  }
-
   // Não está carregada: pode ter acabado de nascer na Fracttal (a descoberta
   // roda a cada poucos minutos) — pede a OS direto ao backend, que cria a
   // atividade se estiver no escopo ou devolve o motivo de não entrar.
@@ -11248,8 +11102,8 @@ let _chamadosBuscaTexto = '';
 
 document.getElementById('updateBtn').addEventListener('click', () => {
   if (_activeNav === 'ocorrencias' && window.OC) { OC.recarregar().then(() => showToast('Ocorrências atualizadas.', true)); return; }
-  fetchSheet();
-  if (_activeNav === 'atividades') carregarAtividades();
+  if (_activeNav === 'visao-geral') { ATIVIDADES = []; _vgEntrar(); return; }
+  carregarAtividades();
 });
 document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilter=!activeSlaFilter;document.getElementById('slaBanner').classList.toggle('active-filter',activeSlaFilter);if(activeSlaFilter)document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});applyFilters();});
 document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
@@ -14803,11 +14657,13 @@ async function carregarAtividades(tentativa = 1) {
     }
     _ativPopularClusters();
     renderAtividadeCards();
+    _topoLeitura(true);
   } catch (e) {
     if (tentativa < 3) {
       setTimeout(() => carregarAtividades(tentativa + 1), 2500);
       return;
     }
+    _topoLeitura(false);
     if (sub) sub.textContent = 'Erro ao carregar atividades.';
     if (grid) grid.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>Não foi possível buscar as atividades agora (${esc(e.message||'falha de conexão')}). Clique em Atualizar para tentar de novo.</div>`;
   }
