@@ -10411,7 +10411,7 @@ async function _seRelMontar(cliente, comEncerrados) {
     subtituloCapa: `Situação dos cases no SolarEdge Service Center · ${_seRelPl(usAb.length, 'usina', 'usinas')}`,
     fraseResumo: `${_seRelPl(n, 'chamado em andamento', 'chamados em andamento')}${partes.length ? ': ' + _seRelLista(partes) : ''}.`,
     dataCapa: `Posição de ${dataBR}`, cliente: cliTxt, usinasTexto: _seRelLista(usinas), dataExtenso: ext,
-    responsavelTecnico: 'Fred Alexandrino — Supervisor de O&M',
+    responsavelTecnico: 'Fred Alexandrino — Supervisor de Contratos',
     cabecalho: `RELATÓRIO DE CHAMADOS  |  Chamados de garantia SolarEdge — ${cliTxt}`,
     rodape: `Grid Co.  |  ${cliTxt}  |  Revisão 01  |  ${mes} ${hoje.getFullYear()}`,
     introducao: [`Segue a atualização dos chamados de garantia com a SolarEdge${cliente ? ' referentes às usinas da ' + cliente : ''}: ${_seRelPl(n, 'chamado em andamento', 'chamados em andamento')}${usAb.length ? ' nas usinas ' + _seRelLista(usAb) : ''}${enc.length ? `, além de ${_seRelPl(enc.length, 'chamado encerrado', 'chamados encerrados')} pelo fabricante nos últimos 15 dias` : ''}.`],
@@ -20726,7 +20726,7 @@ function _pontoCopiarComunicado(id, btn) {
       subtituloCapa: `Posição do Painel de Ocorrências · ${pl(usinas.length, 'usina', 'usinas')}`,
       fraseResumo: `${pl(n, 'ocorrência em aberto', 'ocorrências em aberto')}${nAlta ? ', ' + nAlta + ' de criticidade alta ou grave' : ''}.`,
       dataCapa: `Posição de ${dataBR}`, cliente: lista(clientes), usinasTexto: lista(usinas), dataExtenso: ext,
-      responsavelTecnico: 'Fred Alexandrino — Supervisor de O&M',
+      responsavelTecnico: 'Fred Alexandrino — Supervisor de Contratos',
       cabecalho: `RELATÓRIO DE OCORRÊNCIAS  |  Ocorrências em aberto — ${destaque}`,
       rodape: `Grid Co.  |  ${destaque}  |  Revisão 01  |  ${mes} ${hoje.getFullYear()}`,
       introducao: [`Segue a posição das ocorrências em aberto${clusters.length ? ' dos clusters ' + lista(clusters) : ''}: ${pl(n, 'ocorrência', 'ocorrências')} em ${pl(usinas.length, 'usina', 'usinas')}${sup.length ? ', sob a supervisão de campo de ' + lista(sup) : ''}. Cada ocorrência traz a situação, o último registro do histórico${op.plano ? ' e os próximos passos definidos' : ''}.`],
@@ -20737,7 +20737,7 @@ function _pontoCopiarComunicado(id, btn) {
       porUsinaLarguras: [0.24, 0.36, 0.1, 0.15, 0.15],
       porUsina, porUsinaTotal: ['Total', '', String(n), String(nAlta || '—'), String(nPar || '—')],
       grupos, proximos: prox,
-      conclusao: ['Em caso de dúvida, a supervisão de O&M da Grid Co. está à disposição.'], localData: ext + '.',
+      conclusao: ['Em caso de dúvida, a supervisão de Contratos da Grid Co. está à disposição.'], localData: ext + '.',
       _n: n, _alta: nAlta, _dataBR: dataBR, _destaque: destaque,
     };
   }
