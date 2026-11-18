@@ -20665,7 +20665,7 @@ function _pontoCopiarComunicado(id, btn) {
   }
   const clusterDe = x => (achar(x.usina) || {}).cluster || 'Sem cluster';
   const clienteDe = x => x.cliente || (achar(x.usina) || {}).cliente || 'Sem cliente';
-  const supDe = x => (achar(x.usina) || {}).supervisor_campo || (achar(x.usina) || {}).responsavel || '—';
+  const supDe = x => (achar(x.usina) || {}).supervisor_campo || (achar(x.usina) || {}).responsavel || 'Sem supervisor';
   const parado = x => x.parado != null ? x.parado : Math.max(0, Math.floor((Date.now() - new Date((x.ult || x.inicio || '') + 'T12:00:00')) / 864e5)) || 0;
   const nivel = x => (x.grave || x.crit === 'Muito Alta') ? 'muito' : x.crit === 'Alta' ? 'alta' : x.crit === 'Média' ? 'media' : x.crit === 'Baixa' ? 'baixa' : 'sem';
   const GRUPO = { muito: ['Grave / criticidade muito alta', COR.alta], alta: ['Criticidade alta', COR.alta], media: ['Criticidade média', COR.media], baixa: ['Criticidade baixa', COR.baixa], sem: ['Sem criticidade definida', COR.sem] };
@@ -20705,7 +20705,7 @@ function _pontoCopiarComunicado(id, btn) {
     const clusters = [...new Set(ab.map(clusterDe))].sort(), clientes = [...new Set(ab.map(clienteDe))].sort();
     const nAlta = por.muito.length + por.alta.length, nPar = ab.filter(x => parado(x) >= 7).length, nSemOs = ab.filter(x => !x.os).length;
     const nPaus = ab.filter(x => x.status === 'Pausado').length;
-    const destaque = op.clusters.length ? lista(op.clusters) : (op.clientes.length ? lista(op.clientes) : 'Todas as usinas');
+    const destaque = op.sups.length ? lista(op.sups) : op.clusters.length ? lista(op.clusters) : (op.clientes.length ? lista(op.clientes) : 'Todas as usinas');
     const porUsina = usinas.map(u => {
       const l = ab.filter(x => x.usina === u), z = v => v ? String(v) : '—', f = l[0];
       return [u, clusterDe(f) + ' · ' + supDe(f), String(l.length), z(l.filter(x => ['muito', 'alta'].includes(nivel(x))).length), z(l.filter(x => parado(x) >= 7).length)];
@@ -20718,9 +20718,9 @@ function _pontoCopiarComunicado(id, btn) {
       nSemOs && `Verificar a OS de ${pl(nSemOs, 'ocorrência sem OS vinculada', 'ocorrências sem OS vinculada')} (vincular a existente ou solicitar a abertura).`,
       nPaus && `Rever o motivo e a data de retomada de ${pl(nPaus, 'ocorrência pausada', 'ocorrências pausadas')}.`,
     ].filter(Boolean);
-    const sup = [...new Set(ab.map(supDe))].filter(s => s && s !== '—');
+    const sup = [...new Set(ab.map(supDe))].filter(s => s && s !== 'Sem supervisor');
     return {
-      arquivo: `Relatorio_Ocorrencias_Em_Aberto_${nrm(destaque).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${iso}_R01.pdf`,
+      arquivo: `Relatório_Ocorrências_${(op.sups.length ? op.sups.join('_') : 'Todos').replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_')}_${dd}-${mm}-${hoje.getFullYear()}.pdf`,
       tituloPdf: `Ocorrências em aberto — ${destaque}`,
       rotuloCapa: 'RELATÓRIO DE OCORRÊNCIAS', tituloCapa: 'Ocorrências em Aberto —', destaqueCapa: destaque,
       subtituloCapa: `Posição do Painel de Ocorrências · ${pl(usinas.length, 'usina', 'usinas')}`,
@@ -20770,6 +20770,7 @@ function _pontoCopiarComunicado(id, btn) {
       <div class="ocrel-m"><div class="ocrel-top"><h3>Gerar relatório — Ocorrências em aberto</h3><button class="ocrel-b" onclick="document.getElementById('ocRelOverlay').remove()">Fechar</button></div>
       <div class="ocrel-d">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada ocorrência com o último registro e os próximos passos). Sem selecionar nada, entram todas as ocorrências em aberto. Anotações internas nunca entram.</div>
       <div class="ocrel-h">Cliente</div><div>${cnt(clienteDe).map(([k, n]) => chk('ocrel-cli', k, n)).join('')}</div>
+      <div class="ocrel-h">Supervisor de campo</div><div>${cnt(supDe).map(([k, n]) => chk('ocrel-sup', k, n)).join('')}</div>
       <div class="ocrel-h">Cluster</div><div>${cnt(clusterDe).map(([k, n]) => chk('ocrel-clu', k, n)).join('')}</div>
       <div class="ocrel-h">Opções</div>
       <label class="ocrel-op"><input type="checkbox" id="ocRelPlano" checked> Incluir próximos passos (plano de ação)</label>
@@ -20787,8 +20788,8 @@ function _pontoCopiarComunicado(id, btn) {
   async function gerar() {
     const btn = document.getElementById('ocRelBtn'), msg = document.getElementById('ocRelMsg');
     const val = c => [...document.querySelectorAll('.' + c + ':checked')].map(i => i.value);
-    const op = { clientes: val('ocrel-cli'), clusters: val('ocrel-clu'), plano: document.getElementById('ocRelPlano').checked, pausadas: document.getElementById('ocRelPaus').checked };
-    const sel = x => (!op.clientes.length || op.clientes.includes(clienteDe(x))) && (!op.clusters.length || op.clusters.includes(clusterDe(x)));
+    const op = { clientes: val('ocrel-cli'), clusters: val('ocrel-clu'), sups: val('ocrel-sup'), plano: document.getElementById('ocRelPlano').checked, pausadas: document.getElementById('ocRelPaus').checked };
+    const sel = x => (!op.clientes.length || op.clientes.includes(clienteDe(x))) && (!op.clusters.length || op.clusters.includes(clusterDe(x))) && (!op.sups.length || op.sups.includes(supDe(x)));
     btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…';
     try {
       const d = montarDados(sel, op);
