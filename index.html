@@ -20654,7 +20654,7 @@ function _pontoCopiarComunicado(id, btn) {
   const dBR = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
   const COR = { alta: '#C62828', media: '#B26A00', baixa: '#2E7D32', sem: '#777777' };
   let MAPA = [], ITS = [], PLANOS = {};
-  let ULT = null;
+  let ULT = null, RESUMOS = {};
 
   function achar(u) {
     const n = nrm(u);
@@ -20689,8 +20689,8 @@ function _pontoCopiarComunicado(id, btn) {
       status: x.status + (x.crit ? ' · ' + x.crit : '') + (x.grave ? ' · Grave' : ''), statusCor: GRUPO[nv][1],
       aberto: dBR(x.inicio), dias, os: x.os || '', serial: x.sn || '',
       extra: [x.chamado ? 'Chamado ' + x.chamado : '', parado(x) >= 7 ? `${parado(x)} dias sem atualização` : ''].filter(Boolean).join(' · '),
-      atualizacao: u ? { rotulo: 'Último registro', data: dBR(u.d), texto: String(u.t).replace(/\s+/g, ' ').trim().slice(0, 420) } : null,
-      plano: p, _dias: dias || 0,
+      atualizacao: u ? { rotulo: 'Última ação', data: dBR(u.d), texto: String(u.t).replace(/\s+/g, ' ').trim().slice(0, 420) } : null,
+      resumo: RESUMOS[x.id] || '', plano: p, _dias: dias || 0,
     };
   }
 
@@ -20773,6 +20773,7 @@ function _pontoCopiarComunicado(id, btn) {
       <div class="ocrel-h">Supervisor de campo</div><div>${cnt(supDe).map(([k, n]) => chk('ocrel-sup', k, n)).join('')}</div>
       <div class="ocrel-h">Cluster</div><div>${cnt(clusterDe).map(([k, n]) => chk('ocrel-clu', k, n)).join('')}</div>
       <div class="ocrel-h">Opções</div>
+      <label class="ocrel-op"><input type="checkbox" id="ocRelResumo" checked> Resumo do caso por IA (em cada ocorrência)</label>
       <label class="ocrel-op"><input type="checkbox" id="ocRelPlano" checked> Incluir próximos passos (plano de ação)</label>
       <label class="ocrel-op"><input type="checkbox" id="ocRelPaus" checked> Incluir pausadas</label>
       <div style="margin-top:12px;"><button class="ocrel-b pri" id="ocRelBtn">Gerar PDF</button><div id="ocRelMsg" class="ocrel-d" style="margin-top:8px"></div></div>
@@ -20788,19 +20789,31 @@ function _pontoCopiarComunicado(id, btn) {
   async function gerar() {
     const btn = document.getElementById('ocRelBtn'), msg = document.getElementById('ocRelMsg');
     const val = c => [...document.querySelectorAll('.' + c + ':checked')].map(i => i.value);
-    const op = { clientes: val('ocrel-cli'), clusters: val('ocrel-clu'), sups: val('ocrel-sup'), plano: document.getElementById('ocRelPlano').checked, pausadas: document.getElementById('ocRelPaus').checked };
+    const op = { clientes: val('ocrel-cli'), clusters: val('ocrel-clu'), sups: val('ocrel-sup'), plano: document.getElementById('ocRelPlano').checked, resumo: document.getElementById('ocRelResumo').checked, pausadas: document.getElementById('ocRelPaus').checked };
     const sel = x => (!op.clientes.length || op.clientes.includes(clienteDe(x))) && (!op.clusters.length || op.clusters.includes(clusterDe(x))) && (!op.sups.length || op.sups.includes(supDe(x)));
     btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…';
     try {
+      RESUMOS = {};
+      if (op.resumo) {
+        const ids = ITS.filter(x => (op.pausadas || x.status !== 'Pausado') && sel(x)).map(x => x.id);
+        if (!ids.length) throw new Error('não há ocorrências em aberto para este filtro');
+        msg.textContent = `Resumindo ${ids.length} casos com IA… (pode levar até 1 minuto)`;
+        try {
+          const rr = await fetch(API + '/ocorrencias/relatorio/resumos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }), signal: AbortSignal.timeout(140000) });
+          const jj = await rr.json(); if (jj && jj.ok) RESUMOS = jj.resumos || {};
+        } catch (e) { RESUMOS = {}; }
+        msg.textContent = 'Gerando o PDF…';
+      }
       const d = montarDados(sel, op);
       if (!d._n) throw new Error('não há ocorrências em aberto para este filtro');
+      const semRes = op.resumo ? d.grupos.reduce((n, g) => n + g.itens.filter(i => !i.resumo).length, 0) : 0;
       const r = await fetch(API + '/relatorios/chamados-solaredge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
       if (!r.ok) { let er = 'HTTP ' + r.status; try { er = (await r.json()).error || er; } catch (e) {} throw new Error(er); }
       const blob = await r.blob(); if (ULT) URL.revokeObjectURL(ULT.url);
       const arq = new File([blob], d.arquivo, { type: 'application/pdf' }); ULT = { url: URL.createObjectURL(blob), arq };
       const pode = !!(navigator.canShare && navigator.canShare({ files: [arq] }));
       msg.style.color = 'var(--text-dim)';
-      msg.innerHTML = '✓ PDF pronto: ' + esc(d.arquivo) + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+      msg.innerHTML = '✓ PDF pronto: ' + esc(d.arquivo) + (semRes ? '<div style="color:var(--acao);margin-top:4px">Atenção: ' + semRes + ' ocorrência(s) saíram sem o resumo por IA (falha momentânea). Gere de novo para completar.</div>' : '') + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
         (pode ? '<button type="button" class="ocrel-b pri" id="ocRelShare">Compartilhar</button>' : '') +
         '<a class="ocrel-b' + (pode ? '' : ' pri') + '" style="text-decoration:none;display:inline-flex;align-items:center" target="_blank" rel="noopener" href="' + ULT.url + '">Abrir PDF</a>' +
         '<a class="ocrel-b" style="text-decoration:none;display:inline-flex;align-items:center" download="' + esc(d.arquivo) + '" href="' + ULT.url + '">Baixar</a></div>';
