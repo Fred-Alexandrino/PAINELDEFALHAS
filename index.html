@@ -2762,6 +2762,9 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
     </div>
 
           </div>
+          <button class="tb-btn" id="copilotoBtn" type="button" title="Copiloto: quem está esperando resposta" style="display:none">
+            <svg class="cp-ico" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#042F36"/><circle cx="48" cy="48" r="24" fill="none" stroke="#F2E6D3" stroke-width="8"/><path d="M48 24 A24 24 0 0 1 70.6 40" fill="none" stroke="#EA5A2A" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#EA5A2A"/></svg><span class="cp-lbl">Copiloto</span><span id="copilotoBadge" style="display:none"></span>
+          </button>
           <button class="tb-btn tb-btn-notif" id="centralNotifBtn" title="Notificações não vistas" style="position:relative;">
             <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="centralNotifBadge" class="sb-nav-badge-unread" style="position:absolute;top:-4px;right:-4px;margin-left:0;display:none;"></span>
@@ -16699,8 +16702,8 @@ function _renderAtivDrawer() {
     </button>` : ''}
 
     <button class="nova-oc-submit" onclick="_ajudaDaAtividade()" style="width:100%;margin-bottom:10px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
-      <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>
-      Ajuda: o que fazer
+      <svg class="cp-ico" viewBox="0 0 96 96" aria-hidden="true" style="width:16px;height:16px;flex:none"><rect width="96" height="96" rx="22" fill="#042F36"/><circle cx="48" cy="48" r="24" fill="none" stroke="#F2E6D3" stroke-width="8"/><path d="M48 24 A24 24 0 0 1 70.6 40" fill="none" stroke="#EA5A2A" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#EA5A2A"/></svg>
+      Copiloto sobre esta OS
     </button>
 
     <button class="nova-oc-submit" onclick="_abrirResumoClienteAtividade()" style="width:100%;margin-bottom:10px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
@@ -19531,7 +19534,7 @@ function _pontoCopiarComunicado(id, btn) {
     dr.style.setProperty('--c', `var(${col})`);
     const botoes = pode ? `<div class="oc-acoes">
       <button class="oc-btn sm" type="button" data-oc="editar">Editar dados</button>
-      <button class="oc-btn sm" type="button" data-oc="ajuda">Ajuda: o que fazer</button>
+      <button class="oc-btn sm" type="button" data-oc="ajuda">Copiloto sobre esta ocorrência</button>
       <button class="oc-btn sm" type="button" data-oc="comunicado"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Enviar comunicado</button>
       <button class="oc-btn sm" type="button" data-oc="singrid"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>Texto p/ time de chamados</button>
       <button class="oc-btn sm" type="button" data-oc="os-solicitar"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
@@ -20985,19 +20988,61 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 .ajd-msg.erro{border:1px solid var(--red);color:var(--red);}
 .ajd-msg .ajd-ta{margin-top:8px;}
 .ajd-foot{font-size:11.5px;color:var(--text-dim);border-top:1px solid var(--border);margin-top:14px;padding-top:8px;}
-@media (max-width:520px){#ajudaPanel{right:10px;left:10px;width:auto;bottom:80px;}#ajudaBubble{right:14px;bottom:14px;}}
-@media(max-width:768px),(max-width:1024px) and (orientation:portrait){#ajudaBubble{bottom:76px;}#ajudaPanel{bottom:140px;}}
+@media (max-width:520px){#ajudaBubble{right:14px;bottom:14px;}}
+
+/* ── COPILOTO (17/11/2026): substitui o balão "Ajuda" ── */
+#ajudaBubble{display:none!important}
+#copilotoBtn{position:relative;gap:7px}
+#copilotoBtn .cp-ico{width:18px;height:18px;flex:none}
+#copilotoBadge{position:absolute;top:-6px;right:-6px;background:var(--acao,#EA5A2A);color:#fff;border-radius:99px;font:600 10.5px 'Poppins',sans-serif;padding:1px 5px;min-width:17px;text-align:center;line-height:15px}
+@media(max-width:768px){#copilotoBtn .cp-lbl{display:none}}
+#ajudaBackdrop{position:fixed;inset:0;background:rgba(2,10,9,.55);z-index:2104!important;display:none}
+#ajudaBackdrop.open{display:block}
+#ajudaPanel{z-index:2105!important;top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(880px,94vw);max-width:none;height:min(88vh,940px);max-height:none;
+  border-radius:18px;border:1px solid var(--border);background:var(--panel);box-shadow:0 30px 70px -24px rgba(0,0,0,.6)}
+@media(max-width:768px){#ajudaPanel{top:0;left:0;transform:none;width:100vw;height:100dvh;border-radius:0;border:0}}
+#ajudaPanel .ajd-head{background:var(--panel);padding:14px 18px}
+#ajudaPanel .ajd-head .t{font-size:15px;gap:10px}
+#ajudaPanel .ajd-head .cp-ico{width:22px;height:22px}
+.cp-tabs{display:flex;gap:4px;margin:12px 18px 0;padding:4px;background:var(--ds-s2);border:1px solid var(--border);border-radius:12px;flex-shrink:0}
+.cp-tabs button{flex:1;border:0;background:transparent;color:var(--text-dim);font:500 13px 'Poppins',sans-serif;padding:8px 6px;border-radius:9px;cursor:pointer}
+.cp-tabs button.on{background:var(--sel-bg,#044A44);color:var(--sel-tx,#F2E6D3);font-weight:600}
+.cp-n{background:var(--acao,#EA5A2A);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;margin-left:4px}
+.cp-n:empty{display:none}
+#ajudaPanel .ajd-body{padding:14px 18px 20px;font-size:13.5px}
+#ajudaPanel .ajd-sel,#ajudaPanel .ajd-in,#ajudaPanel .ajd-ta,#ajudaPanel .ajd-inrow textarea{background:var(--panel-alt);border-color:var(--border-strong)}
+#ajudaPanel .ajd-btn{background:var(--panel);font-weight:500}
+#ajudaPanel .ajd-btn.pri{background:var(--acao,#EA5A2A);border-color:var(--acao,#EA5A2A);color:var(--acao-tx,#fff);font-weight:600}
+#ajudaPanel .ajd-card{background:var(--panel-alt)}
+#ajudaPanel .ajd-spin{border-top-color:var(--acao,#EA5A2A)}
+#ajudaPanel .ajd-input{background:var(--panel)}
+.cp-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cp-topo .ajd-meta{flex:1;min-width:200px;margin:0}
+.cp-item{border:1px solid var(--border);border-left:4px solid var(--border-strong);border-radius:12px;background:var(--panel-alt);padding:12px 14px;margin-bottom:10px}
+.cp-item.alta{border-left-color:#EA5A2A}.cp-item.media{border-left-color:#E9B44C}
+.cp-l1{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--text-dim)}
+.cp-l1 .esp{white-space:nowrap}.cp-l1 .esp.q{color:var(--acao,#EA5A2A);font-weight:600}
+.cp-tit{font:600 14.5px 'Poppins',sans-serif;color:var(--text);margin:4px 0 3px}
+.cp-res{font-size:12.5px;color:var(--text-dim);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cp-ped{font-size:12.5px;margin-top:5px}
+.cp-acoes{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.cp-st{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--border-strong);color:var(--text-dim)}
+.cp-res-lista summary{cursor:pointer;color:var(--text-dim);font-size:12.5px;padding:6px 2px}
+.cp-ctx{display:inline-flex;align-items:center;gap:7px}
+.cp-ctx .cp-ico{width:16px;height:16px}
 </style>
 
 <button id="ajudaBubble" title="Ajuda: o que fazer agora" aria-label="Abrir ajuda">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.9" y1="4.9" x2="9.2" y2="9.2"/><line x1="14.8" y1="14.8" x2="19.1" y2="19.1"/><line x1="14.8" y1="9.2" x2="19.1" y2="4.9"/><line x1="4.9" y1="19.1" x2="9.2" y2="14.8"/></svg>
 </button>
 
-<div id="ajudaPanel" role="dialog" aria-label="Ajuda">
+<div id="ajudaBackdrop"></div>
+<div id="ajudaPanel" role="dialog" aria-label="Copiloto">
   <div class="ajd-head">
-    <div class="t"><span class="d"></span><span id="ajdTitulo">Ajuda — o que fazer agora</span></div>
+    <div class="t"><svg class="cp-ico" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#042F36"/><circle cx="48" cy="48" r="24" fill="none" stroke="#F2E6D3" stroke-width="8"/><path d="M48 24 A24 24 0 0 1 70.6 40" fill="none" stroke="#EA5A2A" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#EA5A2A"/></svg><span id="ajdTitulo">Copiloto</span></div>
     <button class="ajd-x" id="ajdFechar" aria-label="Fechar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
+  <div class="cp-tabs" id="cpTabs"><button type="button" data-aba="pendentes">Pendentes <span class="cp-n" id="cpTabN"></span></button><button type="button" data-aba="perguntar">Perguntar</button><button type="button" data-aba="biblioteca">Biblioteca</button></div>
   <div class="ajd-body" id="ajdCorpo"></div>
   <div class="ajd-input" id="ajdInputRow" style="display:none">
     <div class="ajd-chips" id="ajdChips"></div>
@@ -21008,6 +21053,7 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
 <script>
 (function(){
   const URL_AJUDA = 'https://api.168.138.232.237.sslip.io/ajuda-cliente';
+  ['ajudaBackdrop', 'ajudaPanel'].forEach(id => { const el = document.getElementById(id); if (el && el.parentElement !== document.body) document.body.appendChild(el); });
   const elBubble = document.getElementById('ajudaBubble');
   const elPanel  = document.getElementById('ajudaPanel');
   const elCorpo  = document.getElementById('ajdCorpo');
@@ -21022,8 +21068,10 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   }
   window._ajudaAtualizarVisibilidade = function(){
     const ok = permitido();
-    elBubble.style.display = ok ? 'flex' : 'none';
-    if (!ok) elPanel.classList.remove('open');
+    elBubble.style.display = 'none';
+    const cb = document.getElementById('copilotoBtn'); if (cb) cb.style.display = ok ? 'inline-flex' : 'none';
+    if (!ok) { elPanel.classList.remove('open'); const bd = document.getElementById('ajudaBackdrop'); if (bd) bd.classList.remove('open'); }
+    else if (typeof cpFundo === 'function') cpFundo();
   };
   async function copiar(texto, btn){
     try {
@@ -21130,25 +21178,25 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   }
   async function telaBiblioteca(idAberta){
     mostrarEntrada(false);
-    elTitulo.textContent = 'Biblioteca de equipamentos';
+    if (!naAba || aba !== 'biblioteca') { irAba('biblioteca'); return; }
     carregando('Carregando as fichas…');
     let d;
     try { d = await chamar({ modo: 'biblioteca' }); }
-    catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Voltar</button>'; document.getElementById('ajdVoltar').onclick = () => telaTemas(false); return; }
+    catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div>'; return; }
     const fichas = d.fichas || [];
     let h = '<div class="ajd-row"><button class="ajd-btn sm" id="ajdVoltar">← Voltar</button><button class="ajd-btn pri sm" id="ajdNova">+ Nova ficha</button></div>' +
-      '<div class="ajd-meta">O Ajuda consulta estas fichas automaticamente quando a conversa cita a marca/modelo. "Verificada" = conferida em manual/datasheet com fonte; as demais são orientação geral ou respostas salvas.</div><div id="ajdFormF"></div>';
+      '<div class="ajd-meta">O Copiloto consulta estas fichas automaticamente quando a conversa cita a marca/modelo. "Verificada" = conferida em manual/datasheet com fonte; as demais são orientação geral ou respostas salvas.</div><div id="ajdFormF"></div>';
     Object.keys(CATS).forEach(k => {
       const L = fichas.filter(f => f.categoria === k); if (!L.length) return;
       h += '<div class="ajd-sec">' + CATS[k] + '</div>' + L.map(f => '<div class="ajd-card" style="cursor:pointer" data-id="' + E(f.id) + '"><h4>' + E(f.titulo) + '</h4><div class="ajd-badges">' +
         '<span class="ajd-b ' + (f.verificado ? 'us' : '') + '">' + (f.verificado ? 'verificada' : 'não verificada') + '</span><span class="ajd-b">' + (f.origem === 'curada' ? 'curada' : 'salva por você') + '</span></div></div>').join('');
     });
-    elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
-    document.getElementById('ajdVoltar').onclick = () => telaTemas(false);
+    elCorpo.innerHTML = h.replace('<button class="ajd-btn sm" id="ajdVoltar">← Voltar</button>', ''); elCorpo.scrollTop = 0;
     document.getElementById('ajdNova').onclick = () => formFicha(document.getElementById('ajdFormF'), {}, () => telaBiblioteca(), () => { document.getElementById('ajdFormF').innerHTML = ''; });
     elCorpo.querySelectorAll('[data-id]').forEach(c => c.onclick = () => telaFicha(c.dataset.id));
   }
   async function telaFicha(id){
+    saiDaAba();
     carregando('Abrindo a ficha…');
     try {
       const f = (await chamar({ modo: 'biblioteca', id: id })).ficha;
@@ -21159,79 +21207,140 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
         '<div style="white-space:pre-wrap;margin-top:8px">' + E(f.conteudo) + '</div>';
       if ((f.fontes || []).length) h += '<div class="ajd-sec">Fontes</div><ul class="ajd-ul">' + f.fontes.map(s => /^https?:\/\//.test(s.url) ? '<li><a href="' + E(s.url) + '" target="_blank" rel="noopener noreferrer">' + E(s.titulo || s.url) + '</a></li>' : '').join('') + '</ul>';
       elCorpo.innerHTML = h; elCorpo.scrollTop = 0;
-      document.getElementById('ajdVoltar').onclick = () => telaBiblioteca();
+      document.getElementById('ajdVoltar').onclick = () => irAba('biblioteca');
       const ex = document.getElementById('ajdExcluir');
       if (ex) ex.onclick = async () => { if (!confirm('Excluir esta ficha salva?')) return; try { await chamar({ modo: 'biblioteca_excluir', id: id }); telaBiblioteca(); } catch(e){ alert(e.message); } };
-    } catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Biblioteca</button>'; document.getElementById('ajdVoltar').onclick = () => telaBiblioteca(); }
+    } catch(e){ elCorpo.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div><button class="ajd-btn" id="ajdVoltar">← Biblioteca</button>'; document.getElementById('ajdVoltar').onclick = () => irAba('biblioteca'); }
   }
 
-  /* ── tela 1: temas do grupo + campo livre ─────────────────────────── */
-  async function telaTemas(buscar, forcar){
-    mostrarEntrada(false);
-    elTitulo.textContent = 'Ajuda — o que fazer agora';
-    const usinas = await carregarUsinas();
-    const dl = usinas.map(u => '<option value="' + E(u.usina) + '">').join('');
-    const clientes = ['Thopen','Renogrid','2C'];
+  /* ── COPILOTO (17/11/2026): abas Pendentes · Perguntar · Biblioteca ── */
+  const CP_KEY = 'copilotoTemas_v1';
+  let aba = 'pendentes', naAba = true;
+  const cp = { porCliente: {}, horas: 48, carregando: false, erros: [] };
+  try { const sv = JSON.parse(localStorage.getItem(CP_KEY) || 'null'); if (sv && sv.porCliente) { cp.porCliente = sv.porCliente; cp.horas = sv.horas || 48; } } catch(e){}
+  function cpSalvar(){ try { localStorage.setItem(CP_KEY, JSON.stringify({ porCliente: cp.porCliente, horas: cp.horas })); } catch(e){} }
+  function cliApi(c){ return /^2c/i.test(String(c || '')) ? '2C' : c; }
+  async function clientesLista(){
+    const u = await carregarUsinas();
+    const l = [...new Set(u.map(x => x.cliente).filter(Boolean))];
+    return l.length ? l : ['Thopen', 'Renogrid', '2C Energia'];
+  }
+  function quando(txt){
+    const m = String(txt || '').match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/); if (!m) return null;
+    const ag = new Date(); const d = new Date(ag.getFullYear(), +m[2] - 1, +m[1], +m[3], +m[4]);
+    if (d - ag > 86400000) d.setFullYear(d.getFullYear() - 1);
+    return d;
+  }
+  function idade(ms){
+    if (ms == null || isNaN(ms)) return '';
+    const h = ms / 3600000;
+    if (h < 1) return Math.max(1, Math.round(h * 60)) + ' min';
+    if (h < 48) return Math.round(h) + 'h';
+    return Math.round(h / 24) + ' dias';
+  }
+  const ST_RANK = st => /aguardando grid/i.test(st || '') ? 0 : /aberto/i.test(st || '') ? 1 : /resolvid|conclu|encerrad/i.test(st || '') ? 9 : 2;
+  const PR_RANK = pr => ({ alta: 0, media: 1, 'média': 1, baixa: 2 }[String(pr || '').toLowerCase()] ?? 3);
+  function itensPend(){
+    const out = [];
+    Object.keys(cp.porCliente).forEach(c => ((cp.porCliente[c] || {}).temas || []).forEach(t => { const q = quando(t.ultima_mensagem); out.push(Object.assign({ cliente: c, _q: q ? q.getTime() : null }, t)); }));
+    out.sort((a, b) => ST_RANK(a.status) - ST_RANK(b.status) || PR_RANK(a.prioridade) - PR_RANK(b.prioridade) || ((a._q || 9e15) - (b._q || 9e15)));
+    return out;
+  }
+  function contaPend(){ return itensPend().filter(t => ST_RANK(t.status) <= 1).length; }
+  function atualizaBadge(){
+    const n = contaPend();
+    const b = document.getElementById('copilotoBadge'); if (b) { b.textContent = n > 99 ? '99+' : n; b.style.display = n ? '' : 'none'; }
+    const tn = document.getElementById('cpTabN'); if (tn) tn.textContent = n ? n : '';
+  }
+  function maisRecente(){ let m = 0; Object.values(cp.porCliente).forEach(r => { if (r && r.lidoEm > m) m = r.lidoEm; }); return m; }
+  async function cpCarregar(forcar){
+    if (cp.carregando) return; cp.carregando = true;
+    if (naAba && aba === 'pendentes') renderAba();
+    const cls = await clientesLista(); const erros = [];
+    await Promise.all(cls.map(async c => {
+      try {
+        const d = await chamar({ modo: 'temas', cliente: cliApi(c), horas: cp.horas, forcar: !!forcar });
+        cp.porCliente[c] = { temas: d.temas || [], lidoEm: Date.now(), mensagens: d.mensagens || 0, midias: d.midias || 0, aviso: d.aviso || '' };
+      } catch(e){ erros.push(c + ': ' + e.message); }
+    }));
+    cp.erros = erros; cp.carregando = false; cpSalvar(); atualizaBadge();
+    if (naAba && aba === 'pendentes' && elPanel.classList.contains('open')) renderAba();
+  }
+  window._copilotoCarregar = cpCarregar;
+
+  function irAba(nova){
+    aba = nova || aba; naAba = true; mostrarEntrada(false);
+    elTitulo.textContent = 'Copiloto';
+    document.getElementById('cpTabs').style.display = '';
+    document.querySelectorAll('#cpTabs [data-aba]').forEach(b => b.classList.toggle('on', b.dataset.aba === aba));
+    if (aba === 'biblioteca') { telaBiblioteca(); return; }
+    renderAba();
+  }
+  function saiDaAba(){ naAba = false; document.getElementById('cpTabs').style.display = 'none'; }
+
+  function cardItem(t, i){
+    const ag = Date.now(), esp = t._q ? idade(ag - t._q) : '';
+    const aguarda = ST_RANK(t.status) === 0;
+    const us = t.usina ? ((t.usinas && t.usinas.length > 1) ? t.usinas.join(' + ') : t.usina) : 'usina não identificada';
+    return '<div class="cp-item ' + E(String(t.prioridade || '').toLowerCase().replace('é', 'e')) + '">' +
+      '<div class="cp-l1"><span>' + E(t.cliente) + ' · ' + E(us) + '</span><span class="esp' + (aguarda ? ' q' : '') + '">' +
+        (esp ? (aguarda ? 'cliente espera há ' : 'última msg há ') + esp : '') + '</span></div>' +
+      '<div class="cp-tit">' + E(t.titulo) + '</div>' +
+      '<div class="cp-res">' + E(t.resumo || '') + '</div>' +
+      (t.o_cliente_pede && !/^n\/a/i.test(t.o_cliente_pede) ? '<div class="cp-ped"><b>Cliente pede:</b> ' + E(t.o_cliente_pede) + '</div>' : '') +
+      '<div class="cp-acoes"><button class="ajd-btn pri sm" data-i="' + i + '">Preparar resposta</button><span class="cp-st">' + E(t.status || '—') + '</span><span class="cp-st">prioridade ' + E(t.prioridade || '—') + '</span></div></div>';
+  }
+  function renderAba(){
+    if (!naAba) return;
+    if (aba === 'perguntar') return telaPerguntar();
+    const todos = itensPend();
+    const ativos = todos.filter(t => ST_RANK(t.status) < 9), resolv = todos.filter(t => ST_RANK(t.status) === 9);
+    const rec = maisRecente();
+    let msgs = 0, mid = 0; Object.values(cp.porCliente).forEach(r => { msgs += r.mensagens || 0; mid += r.midias || 0; });
+    let h = '<div class="cp-topo"><div class="ajd-meta">' +
+      (cp.carregando ? '<span class="ajd-spin" style="display:inline-block;vertical-align:-3px;margin-right:6px"></span>Lendo os grupos de todos os clientes…' :
+        rec ? 'Lido há ' + idade(Date.now() - rec) + ' · ' + msgs + ' mensagens' + (mid ? ' · ' + mid + ' áudios/imagens ainda não lidos' : '') : 'Ainda não li os grupos.') +
+      '</div><select class="ajd-sel" id="cpHoras">' + [[24,'24 h'],[48,'48 h'],[72,'72 h'],[168,'7 dias']].map(x => '<option value="' + x[0] + '"' + (x[0] === cp.horas ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select>' +
+      '<button class="ajd-btn sm" id="cpAtualizar"' + (cp.carregando ? ' disabled' : '') + '>Atualizar</button></div>';
+    (cp.erros || []).forEach(er => { h += '<div class="ajd-aviso">⚠ Não consegui ler ' + E(er) + '</div>'; });
+    if (!todos.length && cp.carregando) h += '<div class="ajd-load"><span class="ajd-spin"></span><span>Identificando os temas em andamento (uns 15 segundos)…</span></div>';
+    else if (!ativos.length && rec) h += '<div class="ajd-meta" style="padding:14px 2px">Nenhum assunto pendente nos grupos. 👌</div>';
+    h += ativos.map(t => cardItem(t, todos.indexOf(t))).join('');
+    if (resolv.length) h += '<details class="cp-res-lista"><summary>Resolvidos na janela (' + resolv.length + ')</summary>' + resolv.map(t => cardItem(t, todos.indexOf(t))).join('') + '</details>';
+    elCorpo.innerHTML = h;
+    document.getElementById('cpAtualizar').onclick = () => cpCarregar(true);
+    document.getElementById('cpHoras').onchange = e => { cp.horas = parseInt(e.target.value, 10); cp.porCliente = {}; cpCarregar(false); };
+    elCorpo.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
+      const t = todos[parseInt(b.dataset.i, 10)];
+      analisar({ usina: t.usina || '', cliente: cliApi(t.cliente), tema: t.titulo + ' — ' + (t.resumo || ''), pergunta: 'Tema: ' + t.titulo + '. ' + (t.o_cliente_pede || ''), horas: Math.max(cp.horas, 72) });
+    });
+  }
+  async function telaPerguntar(){
+    const usinas = await carregarUsinas(), cls = await clientesLista();
+    if (!naAba || aba !== 'perguntar') return;
+    if (!cls.includes(estado.cliente)) estado.cliente = cls[0];
     elCorpo.innerHTML =
-      '<div class="ajd-sec">Temas em andamento no grupo</div>' +
-      '<div class="ajd-row">' +
-        '<select class="ajd-sel" id="ajdCli">' + clientes.map(c => '<option' + (c === estado.cliente ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>' +
-        '<select class="ajd-sel" id="ajdHoras">' + [[24,'24 h'],[48,'48 h'],[72,'72 h'],[168,'7 dias']].map(h => '<option value="' + h[0] + '"' + (h[0] === estado.horas ? ' selected' : '') + '>' + h[1] + '</option>').join('') + '</select>' +
-        '<button class="ajd-btn" id="ajdBuscar">Buscar temas</button>' +
-      '</div><div id="ajdLista"></div>' +
-      '<div class="ajd-sec">Não achou? Descreva ou cole o que o cliente pediu</div>' +
-      '<div class="ajd-row"><input class="ajd-in" id="ajdUsina" list="ajdDl" placeholder="Usina (opcional)"><datalist id="ajdDl">' + dl + '</datalist></div>' +
-      '<textarea class="ajd-ta" id="ajdTexto" placeholder="Ex.: o cliente cobrou solução para o INV 2.3 e eu não sei o que responder..."></textarea>' +
-      '<div class="ajd-row" style="margin-top:8px"><button class="ajd-btn pri" id="ajdAnalisar">Me ajudar</button><button class="ajd-btn" id="ajdBiblio" type="button">📚 Biblioteca de equipamentos</button></div>';
-    document.getElementById('ajdBiblio').onclick = () => telaBiblioteca();
-    document.getElementById('ajdCli').onchange = e => { estado.cliente = e.target.value; estado.temas = null; renderLista(); };
-    document.getElementById('ajdHoras').onchange = e => { estado.horas = parseInt(e.target.value, 10); estado.temas = null; renderLista(); };
-    document.getElementById('ajdBuscar').onclick = () => buscarTemas(true);
+      '<div class="ajd-meta">Descreva ou cole o que o cliente pediu. Eu cruzo com o grupo, as OS, as ocorrências e os chamados da usina.</div>' +
+      '<div class="ajd-row"><select class="ajd-sel" id="ajdCli">' + cls.map(c => '<option' + (c === estado.cliente ? ' selected' : '') + '>' + E(c) + '</option>').join('') + '</select>' +
+      '<input class="ajd-in" id="ajdUsina" list="ajdDl" placeholder="Usina (opcional)"><datalist id="ajdDl">' + usinas.map(u => '<option value="' + E(u.usina) + '">').join('') + '</datalist></div>' +
+      '<textarea class="ajd-ta" id="ajdTexto" rows="6" placeholder="Ex.: o cliente cobrou solução para o INV 2.3 e eu não sei o que responder..."></textarea>' +
+      '<div class="ajd-row" style="margin-top:10px"><button class="ajd-btn pri" id="ajdAnalisar">Preparar resposta</button></div>';
+    document.getElementById('ajdCli').onchange = e => { estado.cliente = e.target.value; };
     document.getElementById('ajdAnalisar').onclick = () => {
       const usina = document.getElementById('ajdUsina').value.trim();
       const texto = document.getElementById('ajdTexto').value.trim();
       if (!usina && !texto) { (window.showToast ? showToast('Informe a usina ou descreva/cole o que o cliente pediu.', false) : null); return; }
-      analisar({ usina: usina, cliente: estado.cliente, pergunta: texto, mensagem_cliente: texto, horas: Math.max(estado.horas, 72) });
+      analisar({ usina: usina, cliente: cliApi(estado.cliente), pergunta: texto, mensagem_cliente: texto, horas: 72 });
     };
-    renderLista();
-    if (buscar && !estado.temas) buscarTemas(!!forcar);
   }
-  function renderLista(){
-    const el = document.getElementById('ajdLista'); if (!el) return;
-    if (!estado.temas) { el.innerHTML = '<div class="ajd-meta">Clique em "Buscar temas" para ler o grupo (últimas ' + estado.horas + ' h).</div>'; return; }
-    const d = estado.temas;
-    let html = '<div class="ajd-meta">' + E(d.mensagens) + ' mensagens lidas' + (d.midias ? ' · ' + E(d.midias) + ' áudios/imagens/documentos NÃO lidos' : '') +
-      (d.descartados ? ' · ' + E(d.descartados) + ' assuntos de usinas fora do seu mapeamento ignorados' : '') +
-      ((d.grupos || []).length ? '<br>Grupos: ' + E((d.grupos || []).map(g => g.nome).join(' | ')) : '') + (d.cache ? ' · (resultado recente em cache)' : '') + '</div>';
-    if (d.aviso) html += '<div class="ajd-aviso">' + E(d.aviso) + '</div>';
-    if (!(d.temas || []).length) html += '<div class="ajd-meta">Nenhum tema em andamento encontrado.</div>';
-    (d.temas || []).forEach((t, i) => {
-      html += '<div class="ajd-card"><h4>' + E(t.titulo) + '</h4><div class="ajd-badges">' +
-        (t.usina ? '<span class="ajd-b us">' + E((t.usinas && t.usinas.length > 1) ? t.usinas.join(' + ') : t.usina) + '</span>' : '<span class="ajd-b">usina não identificada</span>') +
-        '<span class="ajd-b ' + E(t.prioridade) + '">prioridade ' + E(t.prioridade || '—') + '</span><span class="ajd-b">' + E(t.status || '—') + '</span></div>' +
-        '<p>' + E(t.resumo) + '</p>' + (t.o_cliente_pede && !/^n\/a/i.test(t.o_cliente_pede) ? '<p><b>Cliente pede:</b> ' + E(t.o_cliente_pede) + '</p>' : '') +
-        (t.ultima_mensagem ? '<p><small>Última mensagem: ' + E(t.ultima_mensagem) + '</small></p>' : '') +
-        '<button class="ajd-btn pri sm" data-i="' + i + '">Me ajudar com este</button></div>';
-    });
-    el.innerHTML = html;
-    el.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
-      const t = d.temas[parseInt(b.dataset.i, 10)];
-      analisar({ usina: t.usina || '', cliente: estado.cliente, tema: t.titulo + ' — ' + (t.resumo || ''), pergunta: 'Tema: ' + t.titulo + '. ' + (t.o_cliente_pede || ''), horas: Math.max(estado.horas, 72) });
-    });
-  }
-  async function buscarTemas(forcar){
-    if (ocupado) return; ocupado = true;
-    const el = document.getElementById('ajdLista');
-    if (el) el.innerHTML = '<div class="ajd-load"><span class="ajd-spin"></span><span>Lendo o grupo e identificando os temas…</span></div>';
-    try { estado.temas = await chamar({ modo:'temas', cliente: estado.cliente, horas: estado.horas, forcar: !!forcar }); }
-    catch(e){ estado.temas = null; if (el) el.innerHTML = '<div class="ajd-err">' + E(e.message) + '</div>'; ocupado = false; return; }
-    ocupado = false; renderLista();
-  }
+  function telaTemas(){ irAba(aba); }
+  document.querySelectorAll('#cpTabs [data-aba]').forEach(b => b.onclick = () => irAba(b.dataset.aba));
 
   /* ── tela 2: análise ──────────────────────────────────────────────── */
   async function analisar(corpo){
     if (ocupado) return; ocupado = true;
-    elTitulo.textContent = 'Ajuda — ' + (corpo.usina || 'análise');
+    saiDaAba();
+    elTitulo.textContent = 'Copiloto · ' + (corpo.usina || 'análise');
     mostrarEntrada(false);
     carregando('Lendo conversas e cruzando com OS, ocorrências e chamados (até 1 min)…');
     try {
@@ -21294,20 +21403,33 @@ window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.
   elMsg.addEventListener('input', () => { elMsg.style.height = 'auto'; elMsg.style.height = Math.min(elMsg.scrollHeight, 110) + 'px'; });
 
   /* ── abertura ─────────────────────────────────────────────────────── */
+  function abrirPainel(){ elPanel.classList.add('open'); document.getElementById('ajudaBackdrop').classList.add('open'); }
+  function fecharPainel(){ elPanel.classList.remove('open'); document.getElementById('ajudaBackdrop').classList.remove('open'); }
   window.abrirAjuda = function(opts){
     if (!permitido()) return;
-    elPanel.classList.add('open');
+    abrirPainel();
     if (opts && (opts.usina || opts.tema || opts.pergunta)) {
       if (opts.cliente) estado.cliente = opts.cliente;
-      analisar({ usina: opts.usina || '', cliente: opts.cliente || estado.cliente, tema: opts.tema || '', pergunta: opts.pergunta || opts.tema || '', horas: 72 });
+      analisar({ usina: opts.usina || '', cliente: cliApi(opts.cliente || estado.cliente), tema: opts.tema || '', pergunta: opts.pergunta || opts.tema || '', horas: 72 });
       return;
     }
-    if (primeiraVez || !elCorpo.innerHTML) { primeiraVez = false; telaTemas(true); }
+    if (primeiraVez || !elCorpo.innerHTML) { primeiraVez = false; irAba('pendentes'); }
+    if (!cp.carregando && Date.now() - maisRecente() > 30 * 60000) cpCarregar(false);
   };
-  elBubble.addEventListener('click', function(){
-    if (elPanel.classList.contains('open')) elPanel.classList.remove('open'); else window.abrirAjuda();
-  });
-  document.getElementById('ajdFechar').addEventListener('click', function(){ elPanel.classList.remove('open'); });
+  window.abrirCopiloto = window.abrirAjuda;
+  const elCpBtn = document.getElementById('copilotoBtn');
+  if (elCpBtn) elCpBtn.addEventListener('click', function(){ if (elPanel.classList.contains('open')) fecharPainel(); else window.abrirAjuda(); });
+  elBubble.addEventListener('click', function(){ if (elPanel.classList.contains('open')) fecharPainel(); else window.abrirAjuda(); });
+  document.getElementById('ajdFechar').addEventListener('click', fecharPainel);
+  document.getElementById('ajudaBackdrop').addEventListener('click', fecharPainel);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && elPanel.classList.contains('open')) fecharPainel(); });
+  atualizaBadge();
+  let _cpBg = false;
+  function cpFundo(){
+    if (_cpBg || !permitido()) return; _cpBg = true;
+    setTimeout(() => { if (Date.now() - maisRecente() > 30 * 60000) cpCarregar(false); }, 8000);
+    setInterval(() => { if (permitido() && !document.hidden && Date.now() - maisRecente() > 30 * 60000) cpCarregar(false); }, 5 * 60000);
+  }
 
   if (typeof window.initDashboard === 'function') {
     const orig = window.initDashboard;
@@ -22402,9 +22524,15 @@ function _vgDetalhe(p) {
   }).join('');
   return `<div class="vg-det-in">${card}
     <div class="vg-at-lista"><div class="vg-at-tit">${p.at} atrasada${p.at !== 1 ? 's' : ''}${p.at > 10 ? ' · as 10 mais antigas' : ''}</div>${itens || '<div class="vg-sub">Nenhuma atrasada.</div>'}
-      <button class="vg-btn" style="margin-top:8px" onclick="event.stopPropagation();_vgIrUsina(${esc(JSON.stringify(p.usina))})">Abrir no Painel de Atividades →</button></div></div>`;
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="vg-btn" onclick="event.stopPropagation();_vgIrUsina(${esc(JSON.stringify(p.usina))})">Abrir no Painel de Atividades →</button>
+      <button class="vg-btn cp-ctx" onclick="event.stopPropagation();_cpSobreUsina(${esc(JSON.stringify(p.usina))})"><svg class="cp-ico" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#042F36"/><circle cx="48" cy="48" r="24" fill="none" stroke="#F2E6D3" stroke-width="8"/><path d="M48 24 A24 24 0 0 1 70.6 40" fill="none" stroke="#EA5A2A" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#EA5A2A"/></svg>Copiloto sobre esta usina</button></div></div></div>`;
 }
 
+function _cpSobreUsina(usina) {
+  let cliente = '';
+  try { const a = (ATIVIDADES || []).find(x => x.usina === usina && x.cliente); cliente = a ? a.cliente : ''; } catch (e) {}
+  if (window.abrirCopiloto) abrirCopiloto({ usina: usina, cliente: cliente, tema: 'Situação geral da usina ' + usina + ': atividades atrasadas, performance e o que o cliente está cobrando' });
+}
 // Abre Atividades filtrada pela usina (só atrasadas, em lista) com uma faixa visível para desfazer
 function _vgIrUsina(usina) {
   switchNav('atividades');
