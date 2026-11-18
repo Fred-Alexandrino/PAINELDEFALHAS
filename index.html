@@ -2542,6 +2542,17 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
   #chamadosStatusFiltro>*{flex:none!important;white-space:nowrap!important;max-width:none!important;font-size:12px!important;padding:5px 11px!important}
 }
 </style>
+<style>/* MODAIS SEM VAZAR (18/11/2026): nenhum campo empurra o modal para fora da tela */
+.ch-modal,.ch-modal *{box-sizing:border-box}
+.ch-modal{min-width:0}
+.ch-modal input,.ch-modal textarea,.ch-modal select{min-width:0;max-width:100%}
+.ch-modal ul,.ch-modal li,.ch-modal pre{min-width:0;overflow-wrap:anywhere}
+@media(max-width:768px){
+  .ch-overlay{padding:10px!important;align-items:flex-start!important;padding-top:max(10px,env(safe-area-inset-top))!important}
+  .ch-modal{max-width:100%!important;width:100%!important;max-height:calc(100dvh - 20px)!important}
+  .ch-modal .ch-body,.ch-modal .ch-head{padding-left:16px!important;padding-right:16px!important}
+}
+</style>
 </head>
 <body>
 
