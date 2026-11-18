@@ -2492,7 +2492,7 @@ body,button,input,select,textarea{font-family:'Poppins',system-ui,sans-serif}
 .vg-nx-btn.velho{border-color:var(--acao);color:var(--acao)}
 .vg-nx-btn:disabled{opacity:.6;cursor:wait}
 </style>
-<link rel="stylesheet" href="comunicacao/ui.css?v=20261118a">
+<link rel="stylesheet" href="comunicacao/ui.css?v=20261118b">
 
 <style>/* OMNI (17/11/2026): marca do app */
 .login-brand-icon.omni-ico{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;width:64px!important;height:64px!important}
@@ -16746,6 +16746,10 @@ function _renderAtivDrawer() {
       Abrir OS no Fracttal
     </a>` : ''}
 
+    ${a.numeroOS && /printwo\.fracttal\.com/.test(a.linkOS || '') && window.CentralMensagens && window.CentralMensagens.relatorioDaOS ? `<button class="nova-oc-submit" onclick="_ativTextoEnvioOS('${esc(a.id)}')" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;gap:6px;">
+      📝 Texto de envio da OS (relatório)
+    </button>` : ''}
+
     ${a.numeroOS ? `<a href="https://app.fracttal.com/tasks/wo" target="_blank" rel="noopener" class="nova-oc-submit" style="width:100%;margin-bottom:10px;background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;box-sizing:border-box;">
       <svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Abrir portal Fracttal
@@ -23025,7 +23029,16 @@ _pfRender = function () {
 <script src="comunicacao/formatWhatsApp.js?v=20261118a"></script>
 <script src="comunicacao/roteamento.js?v=20261118a"></script>
 <script src="comunicacao/validators.js?v=20261118a"></script>
-<script src="comunicacao/ui.js?v=20261118a"></script>
+<script src="comunicacao/ui.js?v=20261118b">
+/* 18/11/2026: card da OS → Central de Mensagens (envio de relatório) lendo a OS na Fracttal */
+function _ativTextoEnvioOS(id) {
+  const a = (ATIVIDADES || []).find(x => String(x.id) === String(id));
+  if (!a) return;
+  try { if (typeof fecharAtivDrawer === 'function') fecharAtivDrawer(); else if (typeof _fecharAtivDrawer === 'function') _fecharAtivDrawer(); } catch (e) {}
+  window.CentralMensagens.relatorioDaOS(a);
+}
+
+</script>
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
