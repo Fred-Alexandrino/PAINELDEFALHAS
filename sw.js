@@ -3,7 +3,7 @@
  * v2 — Push notifications + Cache offline
  */
 
-const CACHE_NAME   = 'painel-om-v5';
+const CACHE_NAME   = 'painel-om-v6';
 const CACHE_URLS   = [
   '/PAINELDEFALHAS/',
   '/PAINELDEFALHAS/index.html',
@@ -48,8 +48,14 @@ self.addEventListener('fetch', event => {
 
   if (!ehApp && !ehSheets) return;
 
+  // 17/11/2026: o próprio app (index.html e arquivos) sempre confere com o servidor (cache: no-cache),
+  // senão o celular segurava a versão antiga por até 10 min depois de cada atualização.
+  const req = (ehApp && event.request.method === 'GET')
+    ? new Request(event.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+    : event.request;
+
   event.respondWith(
-    fetch(event.request)
+    fetch(req)
       .then(response => {
         // Atualiza cache com resposta fresca
         if (response.ok) {
