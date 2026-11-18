@@ -2565,7 +2565,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
       <a href="#ocorrencias" class="sb-nav-item" data-nav="ocorrencias" data-label="Ocorrências" draggable="true">
         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Ocorrências
-        <span class="sb-nav-badge-unread" id="sbBadgeFalhas" style="display:none;"></span>
         <span class="sb-nav-badge" id="sbBadgeOc" style="display:none;" title="Ocorrências em aberto">0</span>
       </a>
       <a href="#chamados" class="sb-nav-item" data-nav="chamados" data-label="Chamados" draggable="true">
@@ -2636,23 +2635,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Controle de ponto
       </a>
-      <div class="sb-section-label-row" data-section-key="ferramentas" draggable="true">Ferramentas</div>
-      <div class="sb-nav-item" id="navFerramentasToggle" onclick="_toggleGrupoFerramentas()" draggable="true">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        Mais
-        <svg id="navFerramentasChevron" viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:auto;transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div id="grupoFerramentasSubmenu" style="display:none;">
-        <a href="#historico-log" class="sb-nav-item sb-nav-sub" data-nav="historico-log">
-          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-          Log Histórico
-          <span class="sb-nav-badge" id="sbHistoricoBadge">0</span>
-        </a>
-        <a href="#eficiencia" class="sb-nav-item sb-nav-sub" data-nav="eficiencia">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Eficiência O&amp;M
-        </a>
-      </div>
     </nav>
 
     <!-- Zona 3.5: Sketchbook — atalho direto, acima de Ações Rápidas -->
@@ -2827,17 +2809,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
           <div class="cb-list" id="cbListStatus" style="display:none;"></div>
         </div>
 
-        <span class="sb-filter-label">Sem ação há</span>
-        <select class="sb-select" id="sbSelStale">
-          <option value="">Qualquer</option>
-          <option value="7">+7 dias</option>
-          <option value="15">+15 dias</option>
-          <option value="30">+30 dias</option>
-          <option value="60">+60 dias</option>
-        </select>
-
-        <span class="sb-filter-label">Buscar</span>
-        <input class="sb-search" type="text" id="sbSearch" placeholder="equip., OS, tracker…">
       </div>
 
       <button class="sb-clear-btn" id="sbClearBtn">Limpar filtros</button>
@@ -2862,79 +2833,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content" id="mainContent">
-
-      <!-- ── SEÇÃO: PAINEL DE FALHAS ──────────────────────── -->
-      <section class="content-section" id="sec-falhas">
-
-        <!-- Banners -->
-        <div class="sla-banner" id="slaBanner">
-          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span id="slaBannerText" style="flex:1"></span>
-          <span style="font-size:13px;opacity:.7;white-space:nowrap;">clique para filtrar ↗</span>
-        </div>
-
-        <div class="deslig-banner" id="desligBanner">
-          <div class="deslig-banner-icon"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></div>
-          <div class="deslig-banner-count" id="desligCount">0</div>
-          <div class="deslig-banner-text">
-            <div class="deslig-banner-title" id="desligTitle">USINAS DESLIGADAS</div>
-            <div class="deslig-banner-sub" id="desligSub">Geração comprometida — ação imediata</div>
-          </div>
-          <span class="deslig-filter-hint">clique para filtrar ↗</span>
-        </div>
-
-        <!-- KPIs -->
-        <div class="kpis" id="kpis"></div>
-
-        <!-- Panels de breakdown -->
-        <div class="panels">
-          <div class="panel" id="panelUsina"><div class="panel-head" onclick="_togglePanel('panelUsina')"><h3>Falhas por usina</h3><div class="panel-head-right"><span class="panel-total" id="usinaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="usinaBars"></div></div>
-          <div class="panel" id="panelStatus"><div class="panel-head" onclick="_togglePanel('panelStatus')"><h3>Por status</h3><div class="panel-head-right"><span class="panel-total" id="statusTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="statusBars"></div></div>
-          <div class="panel" id="panelCausa"><div class="panel-head" onclick="_togglePanel('panelCausa')"><h3>Por causa</h3><div class="panel-head-right"><span class="panel-total" id="causaTotal"></span><svg class="panel-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="panel-bars" id="causaBars"></div></div>
-        </div>
-
-        <!-- Banner histórico -->
-        <div class="historico-banner" id="historicoBanner">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Exibindo ocorrências concluídas — <strong id="historicoCount">0</strong> registro(s)</span>
-        </div>
-
-        <!-- Barra de controles da lista — visual de cabeçalho -->
-        <div class="list-header-bar">
-          <div class="grid-controls">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div class="tabs-wrapper">
-                <button class="tab-btn active" id="tabAtivas">
-                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  Ativas <span class="tab-count" id="tabAtivasCount">0</span>
-                </button>
-                <button class="tab-btn" id="tabHistorico">
-                  <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-                  Histórico <span class="tab-count" id="tabHistoricoCount">0</span>
-                </button>
-              </div>
-              <span style="font-size:13px;color:var(--text-faint);font-family:'Poppins',monospace;" id="gridSub"></span>
-            </div>
-            <div class="view-toggle">
-              <button class="view-btn active" id="viewCards"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Cards</button>
-              <button class="view-btn" id="viewTable"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Tabela</button>
-            </div>
-          </div>
-          <div class="sort-group" id="sortGroup">
-            <span class="sort-label">Ordenar:</span>
-            <button class="sort-btn" data-sort="id">ID</button>
-            <button class="sort-btn active" data-sort="newest">Mais recentes</button>
-            <button class="sort-btn" data-sort="usina">Usina</button>
-            <button class="sort-btn" data-sort="equip">Equip.</button>
-            <button class="sort-btn" data-sort="age">Mais antigas</button>
-            <button class="sort-btn" data-sort="recent">Por data</button>
-          </div>
-        </div>
-
-        <div class="card-grid" id="cardGrid"></div>
-        <div class="table-wrap" id="tableWrap" style="display:none"></div>
-
-      </section>
 
       <!-- ── SEÇÃO: OCORRÊNCIAS (novo painel; substitui o Painel de Falhas) ── -->
       <section class="content-section" id="sec-ocorrencias">
@@ -3147,33 +3045,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
           <div id="locMapa" style="width:100%;height:520px;background:var(--panel-alt);"></div>
         </div>
         <div id="locListaWrap" class="zel-table-wrap" style="display:none;"></div>
-      </section>
-
-      <!-- ── SEÇÃO: LOG HISTÓRICO ──────────────────────────── -->
-      <section class="content-section" id="sec-historico-log">
-        <div style="margin-bottom:20px;">
-          <div style="font-family:'Poppins',monospace;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);margin-bottom:4px;">Log de mensagens</div>
-          <h2 style="font-size:16px;font-weight:700;">Histórico de Rondas</h2>
-          <p style="font-size:12.5px;color:var(--text-dim);margin-top:5px;">Últimas mensagens recebidas dos grupos monitorados. Mensagens com mais de 5 dias são removidas automaticamente.</p>
-        </div>
-        <div id="logHistoricoBody">
-          <div class="placeholder-section">
-            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-            <h2>Log histórico</h2>
-            <p>Clique em "Verificar rondas" para carregar o histórico por grupo.</p>
-            <button class="tb-btn tb-btn-refresh" id="logHistoricoBtn" style="margin-top:8px;">
-              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              Carregar histórico
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── SEÇÃO: MTTR (Tempo Ativo O&M) ─────────────────── -->
-      <!-- ── SEÇÃO: EFICIÊNCIA O&M (placeholder) ───────────── -->
-      <section class="content-section" id="sec-eficiencia">
-        <div class="kpis" style="margin-bottom:24px;" id="efKpis"></div>
-        <div class="panels" style="margin-bottom:20px;" id="efPanels"></div>
       </section>
 
       <!-- ── SEÇÃO: SKETCHBOOK / ANOTAÇÕES ───────────────────── -->
@@ -4103,19 +3974,6 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
   </div>
 </div>
 
-<!-- Modal Mensagem Expandida (Log de Mensagens) -->
-<div class="ch-overlay" id="msgOverlay">
-  <div class="ch-modal" style="max-width:620px;border-top-color:var(--teal);">
-    <div class="ch-head">
-      <div class="ch-head-row">
-        <div><div class="ch-title"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><h2 id="msgModalGrupo">Mensagem</h2></div><div class="ch-subtitle" id="msgModalMeta"></div></div>
-        <button class="modal-close-btn" id="msgModalClose">✕</button>
-      </div>
-    </div>
-    <div class="ch-body" id="msgModalBody" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text-dim);"></div>
-  </div>
-</div>
-
 <!-- Modal Reprogramações -->
 <!-- ── MODAL: enviar o visual da semana por cluster (Programação PCM) ── -->
 <div class="ch-overlay" id="ppEnvioOverlay">
@@ -4897,64 +4755,6 @@ Manutenção preventiva e corretiva.</textarea>
   </div>
 </div>
 
-<!-- Modal Rondas -->
-<div class="rondas-overlay" id="rondasOverlay">
-  <div class="rondas-modal" id="rondasModal">
-    <div class="rondas-modal-head">
-      <h3><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="rondasModalTitulo">Verificar Rondas</span></h3>
-      <button class="rondas-modal-close" id="rondasCloseBtn" title="Fechar">✕</button>
-    </div>
-    <div id="rondasResult" style="padding:20px;overflow-y:auto;flex:1;"></div>
-    <div class="rondas-body" id="rondasBodyGrupos" style="display:none;">
-      <div class="rondas-sidebar" id="rondasSidebar"></div>
-      <div class="rondas-main">
-        <div class="rondas-main-head">
-          <div><div class="rondas-main-titulo" id="rondasGrupoTitulo">Selecione um grupo</div><div class="rondas-main-sub" id="rondasGrupoSub"></div></div>
-          <button class="rondas-log-btn" onclick="verificarRondas()"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Resultado</button>
-        </div>
-        <div class="rondas-msgs-list" id="rondasMsgsList">
-          <div class="rondas-empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Selecione um grupo</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="rondas-modal-footer" id="rondasFooter">
-      <a class="rondas-log-btn" href="https://docs.google.com/spreadsheets/d/1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs/edit#gid=0" target="_blank"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ver Log</a>
-      <button class="rondas-log-btn" id="btnBuscarGrupos" style="background:var(--panel);border-color:rgba(242,169,59,.25);color:var(--text);"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Últimas rondas por grupo</button>
-    </div>
-  </div>
-</div>
-
-<!-- Drawer -->
-<div class="drawer-backdrop" id="drawerBackdrop"></div>
-<aside class="drawer" id="drawer">
-  <div class="drawer-accent" id="drawerAccent"></div>
-  <div class="drawer-head" id="drawerHead">
-    <div class="drawer-head-top">
-      <div style="flex:1;min-width:0;">
-        <div class="drawer-eyebrow" id="drawerEyebrow"></div>
-        <h2 id="drawerTitle"></h2>
-        <div class="drawer-head-meta" id="drawerMeta"></div>
-        <div id="drawerDesligToggle" style="margin-top:8px;"></div>
-      </div>
-      <div class="drawer-head-btns">
-        <div class="drawer-nav">
-          <button class="drawer-nav-btn" id="drawerPrev"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <span class="drawer-nav-counter" id="drawerCounter">1 / 1</span>
-          <button class="drawer-nav-btn" id="drawerNext"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
-        </div>
-        <button class="drawer-icon-btn close" id="drawerClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-      </div>
-    </div>
-  </div>
-  <div class="drawer-body" id="drawerBody"></div>
-  <div class="drawer-action-bar" id="drawerActionBar" style="display:none">
-    <button class="drawer-hist-btn" id="drawerHistBtn"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Histórico</button>
-    <button class="drawer-os-btn" id="drawerOsBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Solicitar OS</button>
-    <button class="drawer-os-btn" id="drawerConverterAtivBtn"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Transformar em Atividade</button>
-    <button class="drawer-save-btn" id="drawerSaveBtn"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Salvar na planilha</button>
-  </div>
-</aside>
-
 <!-- Toast -->
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" id="toastIcon"></svg><span id="toastMsg"></span></div>
 <script>
@@ -5585,99 +5385,10 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 
-const SLA_CONFIG = { WARN_DAYS:7, BREACH_DAYS:14, CLOSED_STATUSES:['concluído','concluido','resolvido','fechado','resolved','closed'] };
 
-function getResponseDate(d) {
-  const hist = (d.historico || '').trim();
-  if (!hist) return null;
-  const today = new Date(); const thisYear = today.getFullYear();
-  function parseLineDate(l) {
-    let m = l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) { const dt = new Date(+m[3],+m[2]-1,+m[1]); if (!isNaN(dt) && dt.getFullYear()>2000) return dt; }
-    m = l.match(/(\d{4})-(\d{2})-(\d{2})/); if (m) { const dt = new Date(+m[1],+m[2]-1,+m[3]); if (!isNaN(dt) && dt.getFullYear()>2000) return dt; }
-    m = l.match(/^(\d{1,2})\/(\d{1,2})\s*[-\u2013:]/); if (m) { const day=+m[1],month=+m[2]; if(day>=1&&day<=31&&month>=1&&month<=12){let dt=new Date(thisYear,month-1,day);if(dt>today)dt=new Date(thisYear-1,month-1,day);return dt;} }
-    return null;
-  }
-  const lines = hist.split(/[\r\n]+/).map(l=>l.trim()).filter(Boolean);
-  const dateDates = [];
-  for (const line of lines) { const dt = parseLineDate(line); if (dt) { const last = dateDates[dateDates.length-1]; if (!last || dt.getTime()!==last.getTime()) dateDates.push(dt); } }
-  if (dateDates.length < 2) return null;
-  return dateDates[1];
-}
-function getResponseDays(d) {
-  const statusKey = (d.status||'').toLowerCase().trim();
-  if (SLA_CONFIG.CLOSED_STATUSES.some(s=>statusKey.includes(s))) return -1;
-  const opened = getOpenDate(d); const response = getResponseDate(d);
-  if (!opened || !response) return null;
-  return Math.max(0, Math.floor((response-opened)/(1000*60*60*24)));
-}
-function isSlaBreached(d) {
-  const statusKey = (d.status||'').toLowerCase().trim();
-  if (SLA_CONFIG.CLOSED_STATUSES.some(s=>statusKey.includes(s))) return false;
-  if (getResponseDate(d)) return false;
-  const ageDays = getFaultAgeDays(d);
-  if (ageDays===null||ageDays<0) return false;
-  return ageDays >= SLA_CONFIG.BREACH_DAYS;
-}
-function isSlaWarning(d) {
-  const statusKey = (d.status||'').toLowerCase().trim();
-  if (SLA_CONFIG.CLOSED_STATUSES.some(s=>statusKey.includes(s))) return false;
-  if (getResponseDate(d)) return false;
-  const ageDays = getFaultAgeDays(d);
-  if (ageDays===null||ageDays<0) return false;
-  return ageDays >= SLA_CONFIG.WARN_DAYS && ageDays < SLA_CONFIG.BREACH_DAYS;
-}
-function getLastActivityDate(d) {
-  const hist = (d.historico||'').trim(); if (!hist) return null;
-  const today = new Date(); const thisYear = today.getFullYear();
-  function parseDateFromLine(l) {
-    let m = l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) { const dt=new Date(+m[3],+m[2]-1,+m[1]); if(!isNaN(dt)&&dt.getFullYear()>2000) return dt; }
-    m = l.match(/(\d{4})-(\d{2})-(\d{2})/); if (m) { const dt=new Date(+m[1],+m[2]-1,+m[3]); if(!isNaN(dt)&&dt.getFullYear()>2000) return dt; }
-    m = l.match(/^(\d{1,2})\/(\d{1,2})\s*[-\u2013:]/); if (m) { const day=+m[1],month=+m[2]; if(day>=1&&day<=31&&month>=1&&month<=12){let dt=new Date(thisYear,month-1,day);if(dt>today)dt=new Date(thisYear-1,month-1,day);return dt;} }
-    return null;
-  }
-  const lines = hist.split(/[\r\n]+/).map(l=>l.trim()).filter(Boolean);
-  let lastDate = null;
-  for (const line of lines) { const dt = parseDateFromLine(line); if (dt && (!lastDate||dt>lastDate)) lastDate=dt; }
-  return lastDate;
-}
-function getStaleDays(d) {
-  const statusKey = (d.status||'').toLowerCase().trim();
-  if (SLA_CONFIG.CLOSED_STATUSES.some(s=>statusKey.includes(s))) return null;
-  const last = getLastActivityDate(d); if (!last) return null;
-  return Math.floor((new Date()-last)/(1000*60*60*24));
-}
-const STALE_DAYS = 5;
-function getOpenDate(d) {
-  if (d.dataAbertura) { const parts=d.dataAbertura.split('/'); if(parts.length===3){const dt=new Date(+parts[2],+parts[1]-1,+parts[0]);if(!isNaN(dt)&&dt.getFullYear()>2000)return dt;} }
-  const hist=(d.historico||'').trim(); if (!hist) return null;
-  const today=new Date(); const thisYear=today.getFullYear();
-  const lines=hist.split(/[\r\n]+/);
-  for (const line of lines) {
-    const l=line.trim(); if (!l) continue;
-    let m=l.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m){const dt=new Date(+m[3],+m[2]-1,+m[1]);if(!isNaN(dt)&&dt.getFullYear()>2000)return dt;}
-    m=l.match(/(\d{4})-(\d{2})-(\d{2})/); if(m){const dt=new Date(+m[1],+m[2]-1,+m[3]);if(!isNaN(dt)&&dt.getFullYear()>2000)return dt;}
-    m=l.match(/^(\d{1,2})\/(\d{1,2})\s*[-–:]/); if(m){const day=+m[1],month=+m[2];if(day>=1&&day<=31&&month>=1&&month<=12){let dt=new Date(thisYear,month-1,day);if(dt>today)dt=new Date(thisYear-1,month-1,day);if(!isNaN(dt))return dt;}}
-  }
-  const mShort=hist.match(/(\d{1,2})\/(\d{1,2})\s*[-–:]/); if(mShort){const day=+mShort[1],month=+mShort[2];if(day>=1&&day<=31&&month>=1&&month<=12){let dt=new Date(thisYear,month-1,day);if(dt>today)dt=new Date(thisYear-1,month-1,day);if(!isNaN(dt))return dt;}}
-  return null;
-}
-function getFaultAgeDays(d) {
-  const statusKey=(d.status||'').toLowerCase().trim();
-  if (SLA_CONFIG.CLOSED_STATUSES.some(s=>statusKey.includes(s))) return -1;
-  const opened=getOpenDate(d); if (!opened) return null;
-  return Math.max(0,Math.floor((new Date()-opened)/(1000*60*60*24)));
-}
-function getSlaClass(days) { if(days===null||days===undefined)return 'age-none'; if(days<0)return 'age-ok'; if(days>=30)return 'age-breach'; if(days>=10)return 'age-warning'; return 'age-ok'; }
-function agePillText(days) { if(days===null)return 'Sem data'; if(days<0)return 'Concluído'; if(days===0)return 'Aberta hoje'; if(days===1)return 'Aberta há 1 dia'; return `Aberta há ${days} dias`; }
 
-/* ══ DETECÇÃO DE DESLIGAMENTO ══
-   Identifica ocorrências onde a usina está completamente desligada:
-   - Palavras "desligada", "desligamento", "desligado" na falha/ação/causa
-   - Impacto total de geração ("geração total", "geração zero", "100%")
-*/
-let activeDesligFilter = false;
-let activeInvFilter = false;
-let _desligamentoManualMapa = {}; // chave "falha:<id>" ou "atividade:<id>" -> "sim"|"nao"
+/* ══ DESLIGAMENTO — marcação manual (override) usada pelas Atividades ══ */
+let _desligamentoManualMapa = {}; // chave "atividade:<id>" -> "sim"|"nao"
 
 async function _carregarDesligamentoManual() {
   try {
@@ -5706,7 +5417,7 @@ async function _definirDesligamentoManual(origem, id, valor) {
   }
 }
 
-// Controle compartilhado (Falhas + Atividades) pra ver e alterar a
+// Controle (Atividades) pra ver e alterar a
 // classificação de desligamento de um item específico. `detectado` é o
 // resultado já calculado (isDesligamento/isDesligamentoAtividade, que já
 // leva o override em conta) — usado só pra exibir o estado atual.
@@ -5733,17 +5444,11 @@ function _renderToggleDesligamento(origem, id, containerEl, detectado) {
       e.stopPropagation();
       const valor = btn.dataset.valor;
       await _definirDesligamentoManual(origem, id, valor);
-      if (origem === 'falha') { _renderDrawer(); applyFilters(); }
-      else { _renderAtivDrawer(); renderAtividadeCards(); }
+      _renderAtivDrawer(); renderAtividadeCards();
     });
   });
 }
 
-function isInversorAberto(d) {
-  if (isConcluido(d)) return false;
-  const equip = (d.equipamento || '').toUpperCase();
-  return /\bINV\b|INV-|INV\d|INVERSOR/.test(equip);
-}
 
 /* ── Guard de negação ──
    Texto de OS costuma trazer boilerplate do tipo "A atividade NÃO envolve
@@ -5772,47 +5477,6 @@ function _matchSemNegacao(regex, texto) {
   return false;
 }
 
-function isDesligamento(d) {
-  const override = _desligamentoManualMapa[`falha:${d.id}`];
-  if (override === 'sim') return true;
-  if (override === 'nao') return false;
-
-  const statusKey = (d.status || '').toLowerCase();
-  if (['concluído','concluido','resolvido','fechado'].some(s => statusKey.includes(s))) return false;
-
-  // Analisa apenas falha e causa — não o campo ação
-  const falha = (d.falha || '').toLowerCase();
-  const causa = (d.causa || '').toLowerCase();
-  const fc = falha + ' ' + causa;
-
-  // Regra 1: usina/UFV + desligada/parada/offline (próximos, em qualquer ordem)
-  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao]|sem\s+energia|desenergizad[ao]|offline)/, fc)) return true;
-  if (_matchSemNegacao(/(?:desligad[ao]|parad[ao]|offline)\s+(?:\w+\s+){0,3}(?:usina|ufv)/, fc)) return true;
-
-  // Regra 1b: usina offline / sem possibilidade de monitoramento ou religamento remoto
-  if (_matchSemNegacao(/sem\s+possibilidade\s+de\s+(?:monitoramento|religamento)/, fc)) return true;
-
-  // Regra 1c: usina/UFV sem comunicação — tratada como desligamento a
-  // pedido do Fred (16/07/2026), mas só quando a falha menciona
-  // explicitamente "usina"/"UFV" perto de "sem comunicação". Um padrão
-  // mais genérico ("falha de comunicação" sozinho, sem exigir "usina")
-  // foi tentado antes e causou falso positivo em massa: pegava falha de
-  // comunicação de um EQUIPAMENTO específico (ex.: "Inversor com falha
-  // de comunicação") como se fosse a usina inteira desligada, inclusive
-  // reabrindo como "urgente" casos antigos (100+ dias) já em
-  // acompanhamento normal com o fabricante — corrigido no mesmo dia.
-  if (_matchSemNegacao(/(?:usina|ufv)\s+(?:\w+\s+){0,3}sem\s+comunica[çc][ãa]o/, fc)) return true;
-  if (_matchSemNegacao(/sem\s+comunica[çc][ãa]o\s+(?:\w+\s+){0,3}(?:usina|ufv)/, fc)) return true;
-
-  // Regra 2: desligamento + da usina/da UFV
-  if (_matchSemNegacao(/desligamento\s+(?:total\s+)?(?:da|de)\s+(?:usina|ufv)/, fc)) return true;
-
-  // Regra 3: transformador + da usina + desligado (o "da usina" é obrigatório)
-  if (_matchSemNegacao(/transformador\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, fc)) return true;
-  if (_matchSemNegacao(/trafo\s+(?:\w+\s+){0,3}(?:da|de)\s+(?:usina|ufv)\s+(?:\w+\s+){0,3}(?:desligad[ao]|parad[ao])/, fc)) return true;
-
-  return false;
-}
 
 /* ══ DETECÇÃO DE DESLIGAMENTO — PAINEL DE ATIVIDADES ══
    Mesma ideia do isDesligamento() do Painel de Falhas, adaptada pros
@@ -5897,12 +5561,8 @@ let _activeNav = 'atividades';
 const NAV_TITLES = {
   'ocorrencias': 'Painel de Ocorrências',
   'falhas': 'Painel de Ocorrências',
-  'rondas': 'Verificar Rondas',
   'chamados': 'Chamados',
   'processos': 'Controle de Processos',
-  'historico-log': 'Log Histórico',
-  'mttr': 'MTTR — Tempo Ativo O&M',
-  'eficiencia': 'Eficiência O&M',
   'relatorios': 'Reuniões e relatórios',
   'performance': 'Performance por contrato',
   'atividades': 'Painel de Atividades',
@@ -5915,9 +5575,9 @@ const NAV_TITLES = {
 
 function switchNav(nav) {
   if (nav === 'falhas') nav = 'ocorrencias';  // Painel de Falhas substituído pelo Painel de Ocorrências (09/10/2026)
+  if (['rondas', 'mttr', 'eficiencia', 'historico-log'].includes(nav)) nav = 'atividades';  // painéis removidos (links antigos caem em Atividades)
   if (nav === 'ocorrencias' && _currentSession && !['manager','admin','supervisor'].includes(_currentSession.role)) nav = 'atividades';
   if (_currentSession && _currentSession.role === 'supervisor' && !_SUP_NAVS_PERMITIDOS.includes(nav)) nav = 'atividades';
-  if (nav === 'eficiencia') { renderEficiencia(); }
   if (nav === 'relatorios') { relPopularClientes(); relDefinirSemana('atual'); }
   if (nav === 'atividades') { carregarAtividades(); }
   if (nav === 'programacao-pcm') { carregarProgramacaoPcm(); }
@@ -5929,11 +5589,6 @@ function switchNav(nav) {
   document.body.dataset.nav = nav;
   // Atualiza sidebar
   document.querySelectorAll('.sb-nav-item').forEach(el => el.classList.toggle('active', el.dataset.nav === nav));
-  // se o item ativo estiver dentro do grupo "Mais", abre o submenu pra
-  // ele ficar visível (senão a seleção fica escondida atrás do toggle fechado)
-  if (['rondas','historico-log','mttr','eficiencia'].includes(nav)) {
-    _toggleGrupoFerramentas(true);
-  }
   // mesma lógica pro grupo "Gestão" (recolhível no mobile) — como os itens
   // dessa seção mudam conforme o usuário arrasta a sidebar, checa por
   // posição no DOM (entre o cabeçalho "Gestão" e o próximo cabeçalho de
@@ -5957,18 +5612,8 @@ function switchNav(nav) {
   if (nav === 'chamados') { if (_seCli()) { document.body.classList.add('se-cli-mode'); _seInjetarCss(); _chSetTab('solaredge'); } else { carregarChamadosFabricante(); _seInjetarCss(); _seCarregar(true); } }
   if (nav === 'processos') openZeladoriasInline();
   if (nav === 'localizacao') carregarLocalizacoes();
-  if (nav === 'historico-log') {/* carregado via botão */}
-  if (nav === 'mttr') renderMTTR();
 }
 
-function _toggleGrupoFerramentas(forcarAberto) {
-  const submenu = document.getElementById('grupoFerramentasSubmenu');
-  const chevron = document.getElementById('navFerramentasChevron');
-  if (!submenu) return;
-  const abrir = forcarAberto !== undefined ? forcarAberto : submenu.style.display === 'none';
-  submenu.style.display = abrir ? 'block' : 'none';
-  if (chevron) chevron.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
-}
 
 // Grupo "Gestão" da sidebar — recolhível (pedido do Fred, 04/10/2026: no
 // celular a lista de itens + seção Gestão empurrava os filtros/ações
@@ -7206,16 +6851,11 @@ function initDashboard(session) {
   if (roleEl) roleEl.textContent = (session.role === 'supervisor' && _SUP_ESCOPOS[String(session.user||'').toLowerCase()]?.cargo) || roleLabels[session.role] || session.role;
 
   // Visibilidade dos itens de navegação por perfil
-  const navRondas      = document.querySelector('.sb-nav-item[data-nav="rondas"]');
   const navProcessos   = document.querySelector('.sb-nav-item[data-nav="processos"]');
-  const navHistLog     = document.querySelector('.sb-nav-item[data-nav="historico-log"]');
   const navChamados    = document.querySelector('.sb-nav-item[data-nav="chamados"]');
   const navRelatorios  = document.querySelector('.sb-nav-item[data-nav="relatorios"]');
-  const navMttr        = document.querySelector('.sb-nav-item[data-nav="mttr"]');
-  const navEficiencia  = document.querySelector('.sb-nav-item[data-nav="eficiencia"]');
   const navBoletins    = document.querySelector('.sb-nav-item[data-nav="boletins"]');
   const navProgramacaoPcm = document.querySelector('.sb-nav-item[data-nav="programacao-pcm"]');
-  const navFerramentasToggle = document.getElementById('navFerramentasToggle');
   const sbFiltersEl    = document.getElementById('sbFilters');
   const sbQuickActions = document.getElementById('sbQuickActions');
   const ativAcoesWrap  = document.getElementById('ativAcoesWrap');
@@ -7227,10 +6867,6 @@ function initDashboard(session) {
       el.style.display = ok ? '' : 'none';
       el.classList.toggle('sup-oculto', !ok);  // !important no CSS: _toggleGrupoGestao/Ferramentas não reabrem
     });
-    if (navFerramentasToggle) { navFerramentasToggle.style.display = 'none'; navFerramentasToggle.classList.add('sup-oculto'); }
-    const _grpFerr = document.getElementById('grupoFerramentasSubmenu'); if (_grpFerr) _grpFerr.style.display = 'none';
-    document.querySelectorAll('.sb-section-label-row[data-section-key="ferramentas"]').forEach(el => { el.style.display = 'none'; el.classList.add('sup-oculto'); });
-    if (_grpFerr) _grpFerr.classList.add('sup-oculto');
     // Esconde cabeçalhos de seção (Painéis/Gestão) que ficaram sem nenhum item visível.
     document.querySelectorAll('.sb-section-label-row').forEach(h => {
       let n = h.nextElementSibling, algum = false;
@@ -7247,46 +6883,31 @@ function initDashboard(session) {
     document.querySelectorAll('#sbQuickActions a[href="fv-energias.html"]').forEach(el => el.style.display = 'none');
   } else if (session.role === 'manager') {
     // Acesso completo — visão do fredalexandrino
-    if (navRondas) navRondas.style.display = '';
     if (navProcessos) navProcessos.style.display = '';
-    if (navHistLog) navHistLog.style.display = '';
     if (navChamados) navChamados.style.display = '';
     if (navRelatorios) navRelatorios.style.display = '';
-    if (navMttr) navMttr.style.display = '';
-    if (navEficiencia) navEficiencia.style.display = '';
     if (navBoletins) navBoletins.style.display = '';
     if (navProgramacaoPcm) navProgramacaoPcm.style.display = '';
-    if (navFerramentasToggle) navFerramentasToggle.style.display = '';
     if (sbFiltersEl) sbFiltersEl.style.display = '';
     if (sbQuickActions) sbQuickActions.style.display = '';
     if (ativAcoesWrap) ativAcoesWrap.style.display = '';
   } else if (session.role === 'admin') {
-    // Somente visualização — sem rondas/processos/log/relatorios/mttr/eficiencia/filtros/acoes
-    if (navRondas) navRondas.style.display = 'none';
+    // Somente visualização — sem processos/relatórios/filtros/ações
     if (navProcessos) navProcessos.style.display = 'none';
-    if (navHistLog) navHistLog.style.display = 'none';
     if (navChamados) navChamados.style.display = 'none';
     if (navRelatorios) navRelatorios.style.display = 'none';
-    if (navMttr) navMttr.style.display = 'none';
-    if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
     if (navProgramacaoPcm) navProgramacaoPcm.style.display = 'none';
-    if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
   } else {
     // Cliente: idem — nada disso deve aparecer
-    if (navRondas) navRondas.style.display = 'none';
     if (navProcessos) navProcessos.style.display = 'none';
-    if (navHistLog) navHistLog.style.display = 'none';
     if (navChamados) navChamados.style.display = (session.cliente === 'Renogrid') ? '' : 'none';  // só chamados SolarEdge, somente leitura
     if (navRelatorios) navRelatorios.style.display = 'none';
-    if (navMttr) navMttr.style.display = 'none';
-    if (navEficiencia) navEficiencia.style.display = 'none';
     if (navBoletins) navBoletins.style.display = 'none';
     if (navProgramacaoPcm) navProgramacaoPcm.style.display = 'none';
-    if (navFerramentasToggle) navFerramentasToggle.style.display = 'none';
     if (sbFiltersEl) sbFiltersEl.style.display = 'none';
     if (sbQuickActions) sbQuickActions.style.display = 'none';
     if (ativAcoesWrap) ativAcoesWrap.style.display = 'none';
@@ -7305,7 +6926,6 @@ function initDashboard(session) {
         }
         if (!algum) { h.style.display = 'none'; h.classList.add('sup-oculto'); }
       });
-      const _gf = document.getElementById('grupoFerramentasSubmenu'); if (_gf) { _gf.style.display = 'none'; _gf.classList.add('sup-oculto'); }
       try { document.getElementById('bottomNav')?.querySelectorAll('.bn-item[data-nav]').forEach(el => { if (!['atividades', 'chamados'].includes(el.dataset.nav)) el.style.display = 'none'; }); } catch (e) {}
     }
   }
@@ -7391,7 +7011,6 @@ async function _abrirDeepLinkNotificacao() {
   };
   await tentarAbrir(1);
 }
-function canEdit() { return _currentSession.role==='manager' || (_currentSession.role==='supervisor' && !(_supEscopoAtivo && _supEscopoAtivo.somenteLeitura)); }
 
 document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
   localStorage.removeItem('om_role');
@@ -7403,7 +7022,6 @@ document.getElementById('sbLogoutBtn')?.addEventListener('click', () => {
 
 /* ══ CONFIG ══ */
 const SHEET_ID = '1VLo8__wxSJVWiUIFd_JTcOnadJlUt440i1M1pC0ehTs';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbya1PLWxm1quM889etDastzC4BMUOQCy6wYVZfWTFY5jy9jLKQR32XJdco7ywPaxmVm3g/exec';
 
 
 /* ══ ESTADO ══ */
@@ -7416,11 +7034,7 @@ function _usinaForaDoMapa(u) {
   const k = String(u || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   return _USINAS_FORA_MAPA.has(k);
 }
-let DATA = []; let filtered = []; let sortKey = 'newest';
-let activeCausa = null; let activeSlaFilter = false;
-
-// ── ABAS: 'ativas' | 'historico' ──────────────────────────────────────────
-let activeTab = 'ativas';
+let DATA = [];  // dados do antigo Painel de Falhas — fica sempre vazio (17/11/2026)
 
 const STATUS_CONCLUIDO = ['concluído','concluido','resolvido','fechado','resolved','closed','convertida','cancelado','cancelada','cancelled'];
 function isConcluido(d) { const s=(d.status||'').toLowerCase(); return STATUS_CONCLUIDO.some(x=>s.includes(x)); }
@@ -7469,23 +7083,6 @@ function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;
 // qualquer aparelho). Falhas: como o Painel de Falhas usa um Apps Script
 // separado (fora do nosso controle), o estado de "lido" fica salvo no
 // navegador — funciona bem, só não sincroniza entre aparelhos diferentes.
-const _FALHAS_LIDAS_KEY = 'falhasVisualizadas';
-function _falhaVisualizada(id) {
-  try {
-    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
-    return lidas.includes(String(id));
-  } catch (e) { return false; }
-}
-function _marcarFalhaVisualizada(id) {
-  try {
-    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
-    const idStr = String(id);
-    if (!lidas.includes(idStr)) {
-      lidas.push(idStr);
-      localStorage.setItem(_FALHAS_LIDAS_KEY, JSON.stringify(lidas));
-    }
-  } catch (e) {}
-}
 
 // Conta quantos itens da Central de Notificações estão no meio da
 // animação de swipe-to-dismiss neste exato momento — usado por
@@ -7499,12 +7096,6 @@ function _atualizarBadgesNaoLidos() {
   if (badgeAtiv) {
     badgeAtiv.textContent = naoLidasAtiv.length > 99 ? '99+' : naoLidasAtiv.length;
     badgeAtiv.style.display = naoLidasAtiv.length > 0 ? '' : 'none';
-  }
-  const badgeFalhas = document.getElementById('sbBadgeFalhas');
-  const naoLidasFalhas = (typeof DATA !== 'undefined' ? DATA : []).filter(d => !_falhaVisualizada(d.id));
-  if (badgeFalhas) {
-    badgeFalhas.textContent = naoLidasFalhas.length > 99 ? '99+' : naoLidasFalhas.length;
-    badgeFalhas.style.display = naoLidasFalhas.length > 0 ? '' : 'none';
   }
   // O sino usa a mesma janela de recência da Central de Notificações (só
   // "o que é novo", não o backlog inteiro de não-lidos) — senão o número
@@ -7618,24 +7209,6 @@ function _coletarNotificacoesNaoVistas() {
       horario,
     });
   });
-  (typeof DATA !== 'undefined' ? DATA : []).forEach(d => {
-    if (_falhaVisualizada(d.id)) return;
-    const horario = _timestampUltimaLinhaHistorico(d.historico) || d.inicio || d.dataAbertura || '';
-    if (!_dentroDaJanelaNotif(horario)) return;
-    itens.push({
-      origem: 'falha',
-      id: d.id,
-      titulo: d.equipamento || d.falha || 'Ocorrência',
-      sub: d.falha || 'Descrição não informada',
-      meta: `${d.usina || 'Usina não informada'} · ${d.cliente || ''}`,
-      mudanca: _ultimaLinhaHistorico(d.historico),
-      descricao: d.falha || '',
-      tag: 'FALHA',
-      tagCor: 'var(--red,#EF4444)',
-      data: d.inicio || d.dataAbertura || '',
-      horario,
-    });
-  });
   // mais recentes primeiro (ordenação simples por string de data — os
   // formatos usados no sistema são cronologicamente comparáveis assim)
   itens.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
@@ -7674,8 +7247,7 @@ function _renderCentralNotificacoes() {
 
 // Marca só um item (não a central inteira) como lido — mesmo caminho que
 // o "Limpar" geral usa por baixo dos panos, só que pra um id só: campo
-// "visualizado" no servidor pra atividade, localStorage pra falha (o
-// Painel de Falhas roda num Apps Script à parte, fora do nosso controle).
+// "visualizado" no servidor.
 function _marcarNotifItemLida(origem, id) {
   if (origem === 'atividade') {
     const ativ = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES : []).find(a => String(a.id) === String(id));
@@ -7685,10 +7257,7 @@ function _marcarNotifItemLida(origem, id) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, field: 'visualizado', value: 'sim' }),
     }).catch(() => {});
-  } else {
-    _marcarFalhaVisualizada(id);
   }
-  document.querySelector(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`)?.remove();
   _atualizarBadgesNaoLidos();
 }
 
@@ -7769,9 +7338,6 @@ function _configurarItemNotif(el) {
     if (origem === 'atividade') {
       switchNav('atividades');
       setTimeout(() => _abrirAtivDrawer(id), 50);
-    } else {
-      switchNav('falhas');
-      setTimeout(() => openModal(id), 50);
     }
   });
 }
@@ -7791,16 +7357,6 @@ async function _limparTodasNotificacoes() {
   const btn = document.getElementById('centralNotifClearBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Limpando…'; }
 
-  // Falhas: adiciona tudo que ainda não foi visto de uma vez só no
-  // armazenamento local (resolve de vez o acúmulo de itens antigos que
-  // nasceram "não lidos" quando essa funcionalidade foi ligada, já que
-  // o Painel de Falhas não sincroniza esse estado com o servidor).
-  try {
-    const lidas = JSON.parse(localStorage.getItem(_FALHAS_LIDAS_KEY) || '[]');
-    const todosIds = new Set(lidas);
-    (typeof DATA !== 'undefined' ? DATA : []).forEach(d => todosIds.add(String(d.id)));
-    localStorage.setItem(_FALHAS_LIDAS_KEY, JSON.stringify(Array.from(todosIds)));
-  } catch (e) {}
 
   // Atividades: marca tudo que ainda estiver não-visualizado no servidor
   // (silencioso, sem travar a UI esperando cada chamada).
@@ -7897,24 +7453,7 @@ const AUTO_COLORS = [{color:'#3FC1B0',glow:'rgba(63,165,140,.55)'},{color:'#C084
 const _clientColorCache = {}; let _autoIdx = 0;
 function clientColor(cliente) { const key=(cliente||'').toUpperCase().trim(); if(CLIENT_PALETTE[key])return CLIENT_PALETTE[key]; if(!_clientColorCache[key]){_clientColorCache[key]={...AUTO_COLORS[_autoIdx%AUTO_COLORS.length],label:cliente};_autoIdx++;} return _clientColorCache[key]; }
 
-function isValidTicket(t) { const v=(t||'').trim().toUpperCase(); return v!==''&&v!=='N/A'&&v!=='NA'&&v!=='-'&&v!=='S/N'&&v!=='SN'; }
 
-function categorizeCausa(c) {
-  const v=(c||'').toLowerCase().trim(); if(!v)return 'Não informado';
-  if(v.includes('água')||v.includes('agua')||v.includes('umidade')||v.includes('rj45'))return 'Infiltração de água';
-  if(v.includes('igate')||v.includes('comunicaç')||v.includes('fieldlogger')||v.includes('sem comunicar'))return 'Falha de comunicação';
-  if(v.includes('bateria')||v.includes('tensão')||v.includes('nobreak')||v.includes('viciada'))return 'Problema de alimentação';
-  if(v.includes('motor')||v.includes('atuador'))return 'Falha no motor';
-  if(v.includes('tcu')||v.includes('controlador'))return 'Falha no TCU / controlador';
-  if(v.includes('conector')||v.includes('cabo'))return 'Problema em conector / cabo';
-  if(v.includes('sensor')||v.includes('piranô')||v.includes('pirano')||v.includes('poa'))return 'Falha em sensor / medição';
-  if(v.includes('exaustor')||v.includes('ventil'))return 'Falha mecânica';
-  if(v.includes('firmware')||v.includes('software')||v.includes('configur'))return 'Software / configuração';
-  if(v.includes('defeito')||v.includes('interno'))return 'Defeito interno';
-  if(v.includes('garantia')||v.includes('romiotto'))return 'Acionamento de garantia';
-  if(v.includes('inversor'))return 'Falha em inversor';
-  return (v.split(/\s+/).slice(0,4).join(' ')||'').replace(/^\w/,c=>c.toUpperCase());
-}
 
 function iconFor(e) {
   const v=e.toLowerCase();
@@ -7927,24 +7466,7 @@ function iconFor(e) {
   return `<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L3 18l3 3 6.1-6.1a4 4 0 0 0 5.6-5.6l-2.3 2.3-2-2z"/></svg>`;
 }
 
-function parseHistorico(text) {
-  if (!text) return [];
-  return text.trim().split(/\r\n|\r|\n/).map(line => {
-    const m = line.match(/^(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\s*-\s*([\s\S]*)$/);
-    return m ? {date:m[1],text:m[2].trim()} : {date:'',text:line.trim()};
-  }).filter(e=>e.text);
-}
 
-function parseMensagensOriginais(text) {
-  // Formato: "DD/MM HH:MM - <texto da mensagem>", entradas separadas por
-  // linha em branco (\n\n). Mensagens individuais podem ter múltiplas
-  // linhas internas (texto bruto do WhatsApp), então não split por \n simples.
-  if (!text) return [];
-  return text.trim().split(/\n\s*\n/).map(bloco => {
-    const m = bloco.match(/^(\d{2}\/\d{2}\s+\d{2}:\d{2})\s*-\s*([\s\S]*)$/);
-    return m ? {date:m[1],text:m[2].trim()} : {date:'',text:bloco.trim()};
-  }).filter(e=>e.text).reverse(); // mais recente primeiro
-}
 
 /* ══ TOAST ══ */
 function showToast(msg, ok=true) {
@@ -7980,7 +7502,7 @@ function _ativEhPreventiva(a) {
   return d.includes('PREVENTIVA MENSAL') || d.includes('PREVENTIVA SEMESTRAL') || d.includes('PREVENTIVA ANUAL');
 }
 let selStatusValue = '';         // agora single-select
-let selStaleValue = '';          // novo: "" | "7" | "15" | "30" | "60"
+// novo: "" | "7" | "15" | "30" | "60"
 
 // Fonte única de verdade: carregada do backend (mesmo catálogo que
 // reconhece OS da Fracttal), evitando a lista solta que já causou um
@@ -8056,6 +7578,13 @@ function _clientesDisponiveis() {
 // tem grafias diferentes pro mesmo cliente (ver _clientesDisponiveis).
 function _mesmoCliente(a, b) {
   return (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
+}
+
+// Usinas de um cliente no mapeamento oficial (/mapeamento-ufvs). Substitui a
+// lista que vinha da planilha do antigo Painel de Falhas (17/11/2026).
+function _usinasDoMapaPorCliente(cli) {
+  const itens = (typeof _mapUfvsCache !== 'undefined' && Array.isArray(_mapUfvsCache)) ? _mapUfvsCache : [];
+  return itens.filter(u => _mesmoCliente(u.cliente, cli)).map(u => u.usina);
 }
 
 // ── Reordenar chips de cliente por toque (tablet/celular) ──────────────
@@ -8606,66 +8135,11 @@ document.addEventListener('click', e => {
   }
 });
 
+// Reaplica os filtros da barra lateral no painel que está na tela.
+// (17/11/2026: a parte que filtrava/renderizava o antigo Painel de Falhas saiu.)
 function applyFilters() {
-  const q = document.getElementById('sbSearch')?.value.trim().toLowerCase() || '';
-  const dateFrom = document.getElementById('sbDateFrom')?.value || '';
-  const dateTo = document.getElementById('sbDateTo')?.value || '';
   selUsinaValue = selUsinaValues.size===1?[...selUsinaValues][0]:'';
   selStatusValue = selStatusValues.size===1?[...selStatusValues][0]:'';
-  selStaleValue = document.getElementById('sbSelStale')?.value || '';
-
-  const dataAtivas = DATA.filter(d => !isConcluido(d));
-  const dataHistorico = DATA.filter(d => isConcluido(d));
-  const dataBase = activeTab === 'historico' ? dataHistorico : dataAtivas;
-
-  const tA = document.getElementById('tabAtivasCount');
-  const tH = document.getElementById('tabHistoricoCount');
-  if (tA) tA.textContent = dataAtivas.length;
-  if (tH) tH.textContent = dataHistorico.length;
-
-  const sbHistBadge = document.getElementById('sbHistoricoBadge');
-  if (sbHistBadge) sbHistBadge.textContent = dataHistorico.length;
-
-  const hBanner = document.getElementById('historicoBanner');
-  const hCount = document.getElementById('historicoCount');
-  if (hBanner) {
-    if (activeTab === 'historico') {
-      hBanner.classList.add('visible');
-      if (hCount) hCount.textContent = dataHistorico.length;
-    } else {
-      hBanner.classList.remove('visible');
-    }
-  }
-
-  const usinaClusterFalhas = (typeof _ativClusterFiltro !== 'undefined' && _ativClusterFiltro && typeof _usinaClusterMap === 'function') ? _usinaClusterMap() : null;
-  filtered = dataBase.filter(d => {
-    if (selCliente.size > 0 && !selCliente.has(d.cliente)) return false;
-    if (selUsinaValues.size>0 && !selUsinaValues.has(d.usina)) return false;
-    if (selStatusValues.size>0 && !selStatusValues.has(d.status)) return false;
-    if (usinaClusterFalhas && usinaClusterFalhas[d.usina] !== _ativClusterFiltro) return false;
-    if (q) {
-      const hay = (d.equipamento+' '+d.falha+' '+d.causa+' '+d.impactados+' '+d.usina+' '+d.ticketFabricante+' '+d.numeroOS).toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (activeCausa && categorizeCausa(d.causa) !== activeCausa) return false;
-    if (activeSlaFilter && !isSlaBreached(d)) return false;
-    if (activeDesligFilter && !isDesligamento(d)) return false;
-    if (activeInvFilter && !isInversorAberto(d)) return false;
-    if (selStaleValue) {
-      const staleDays = getStaleDays(d);
-      const minDays = parseInt(selStaleValue, 10);
-      if (staleDays === null || staleDays < minDays) return false;
-    }
-    if (dateFrom || dateTo) {
-      const opened = getOpenDate(d);
-      if (!opened) return !dateFrom;
-      const op = opened.getTime();
-      if (dateFrom) { const [yf,mf,df] = dateFrom.split('-').map(Number); if (op < new Date(yf,mf-1,df).getTime()) return false; }
-      if (dateTo) { const [yt,mt,dt] = dateTo.split('-').map(Number); if (op >= new Date(yt,mt-1,dt+1).getTime()) return false; }
-    }
-    return true;
-  });
-  applySortAndRender();
   try { if (typeof _ppReaplicarSidebar === 'function') _ppReaplicarSidebar(); } catch (e) {}
   try { if (_mapUfvsCache && document.getElementById('mapTbody') && !_mapEdit) mapRender(); } catch (e) {}
   if (_activeNav === 'atividades') renderAtividadeCards();
@@ -8691,11 +8165,6 @@ function clearFilters() {
   const clusterSel = document.getElementById('ativClusterSelect');
   if (clusterSel) clusterSel.value = '';
   _renderCbDropdown('Usina'); _renderCbDropdown('Status');
-  document.getElementById('sbSelStale').value = '';
-  document.getElementById('sbSearch').value = '';
-  activeCausa = null; activeSlaFilter = false; activeDesligFilter = false; activeInvFilter = false;
-  document.getElementById('slaBanner')?.classList.remove('active-filter');
-  document.getElementById('desligBanner')?.classList.remove('active-filter');
   populateFilters();
   _renderChipsTipoEquip();
   applyFilters();
@@ -8706,474 +8175,9 @@ function clearFilters() {
 }
 
 // Filtros usina/status agora usam cb-dropdown customizado — listeners em _renderCbDropdown
-document.getElementById('sbSelStale')?.addEventListener('change', applyFilters);
-document.getElementById('sbSearch')?.addEventListener('input', applyFilters);
-document.getElementById('sbDateFrom')?.addEventListener('change', applyFilters);
-document.getElementById('sbDateTo')?.addEventListener('change', applyFilters);
 document.getElementById('sbClearBtn')?.addEventListener('click', clearFilters);
 
-/* ══ T1–T4 — DECOMPOSIÇÃO DO TEMPO ATIVO O&M ══
-   T1: abertura → 1ª ação (equipe)
-   T2: 1ª ação → encaminhamento externo (equipe)
-   T3: encaminhamento → retorno externo (fora do controle)
-   T4: retorno → normalização (equipe)
-   Tempo Ativo O&M = T1 + T2 + T4 (exclui T3)
-
-   Campos esperados na planilha (quando disponíveis):
-   d.dataPrimeiraAcao, d.dataEncaminhamento, d.dataRetornoExterno
-   Se ausentes, os cálculos retornam null e a UI trata graciosamente.
-══════════════════════════════════════════════════════════ */
-function _parseDateBR(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-
-  // Formato gviz do Google Sheets para células de Data: "Date(2026,5,30)"
-  // Nota: o mês no gviz é 0-based (5 = junho), igual ao construtor nativo de Date do JS.
-  const mGviz = s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
-  if (mGviz) {
-    const dt = new Date(+mGviz[1], +mGviz[2], +mGviz[3], +(mGviz[4]||0), +(mGviz[5]||0), +(mGviz[6]||0));
-    return isNaN(dt) ? null : dt;
-  }
-
-  // Formato brasileiro: DD/MM/AAAA (com ou sem horário)
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (!m) return null;
-  const dt = new Date(+m[3], +m[2]-1, +m[1]);
-  return isNaN(dt) ? null : dt;
-}
-
-// Formata qualquer valor de data (gviz "Date(...)" ou já em DD/MM/AAAA) para
-// exibição legível nos campos de input do drawer. Usado para nunca mostrar
-// o texto bruto do protocolo gviz na tela.
-function _fmtDateForInput(str) {
-  if (!str) return '';
-  const dt = _parseDateBR(str);
-  if (!dt) return String(str); // não reconhecido — mostra como veio, não quebra
-  const dd = String(dt.getDate()).padStart(2,'0');
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const yyyy = dt.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-function getT1Days(d) {
-  const abertura = getOpenDate(d);
-  const primeiraAcao = _parseDateBR(d.dataPrimeiraAcao);
-  if (!abertura || !primeiraAcao) return null;
-  return Math.max(0, Math.round((primeiraAcao - abertura) / 86400000));
-}
-function getT2Days(d) {
-  const primeiraAcao = _parseDateBR(d.dataPrimeiraAcao);
-  const encaminhamento = _parseDateBR(d.dataEncaminhamento);
-  if (!primeiraAcao || !encaminhamento) return null;
-  return Math.max(0, Math.round((encaminhamento - primeiraAcao) / 86400000));
-}
-function getT3Days(d) {
-  const encaminhamento = _parseDateBR(d.dataEncaminhamento);
-  const retorno = _parseDateBR(d.dataRetornoExterno);
-  if (!encaminhamento || !retorno) return null;
-  return Math.max(0, Math.round((retorno - encaminhamento) / 86400000));
-}
-function getT4Days(d) {
-  const retorno = _parseDateBR(d.dataRetornoExterno);
-  const fechamento = isConcluido(d) ? _parseFechamentoDate(d) : null;
-  if (!retorno || !fechamento) return null;
-  return Math.max(0, Math.round((fechamento - retorno) / 86400000));
-}
-function _parseFechamentoDate(d) {
-  // Prioriza o campo real gravado pelo app.py (coluna U) na normalização.
-  const real = _parseDateBR(d.dataFechamento);
-  if (real) return real;
-  // Fallback: falhas concluídas antes da coluna U existir — infere pela
-  // última data mencionada no histórico.
-  const last = getLastActivityDate(d);
-  return last || null;
-}
-function getTempoAtivoOM(d) {
-  // T1+T2+T4 — exclui T3 (fora do controle da equipe)
-  const t1 = getT1Days(d) ?? 0;
-  const t2 = getT2Days(d) ?? 0;
-  const t4 = getT4Days(d) ?? 0;
-  const temAlgumDado = (getT1Days(d) !== null) || (getT2Days(d) !== null) || (getT4Days(d) !== null);
-  if (!temAlgumDado) {
-    // Fallback: usa idade total da falha (sem decomposição) como aproximação
-    const age = getFaultAgeDays(d);
-    return age !== null && age >= 0 ? age : null;
-  }
-  return t1 + t2 + t4;
-}
-function getMTTR(falhasResolvidas) {
-  // Média de Tempo Ativo O&M para falhas já concluídas
-  const validos = falhasResolvidas.map(d => getTempoAtivoOM(d)).filter(v => v !== null);
-  if (validos.length === 0) return null;
-  return validos.reduce((a,b) => a+b, 0) / validos.length;
-}
-
-/* ══ TELA MTTR — KPIs, gráfico de evolução, lista filtrável ══ */
-let _mttrChartMode = 'agg'; // 'agg' | 'split'
-let _mttrPage = 1;
-const MTTR_PAGE_SIZE = 10;
-
-function _mttrPopulateFilters() {
-  const clientes = _clientesDisponiveis();
-  const usinas   = [...new Set([...DATA.map(d => d.usina), ...(typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.map(a => a.usina) : [])].filter(Boolean))].sort();
-  const selC = document.getElementById('mttrCliente');
-  const selU = document.getElementById('mttrUsina');
-  if (selC) {
-    const cur = selC.value;
-    selC.innerHTML = '<option value="">Todos os clientes</option>' + clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    if (clientes.includes(cur)) selC.value = cur;
-  }
-  if (selU) {
-    const cur = selU.value;
-    selU.innerHTML = '<option value="">Todas as usinas</option>' + usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-    if (usinas.includes(cur)) selU.value = cur;
-  }
-}
-
-function _mttrGetFiltered() {
-  const cliente = document.getElementById('mttrCliente')?.value || '';
-  const usina   = document.getElementById('mttrUsina')?.value || '';
-  const periodo = parseInt(document.getElementById('mttrPeriodo')?.value || '90', 10);
-
-  let base = DATA.slice();
-  if (cliente) base = base.filter(d => d.cliente === cliente);
-  if (usina)   base = base.filter(d => d.usina === usina);
-
-  if (periodo > 0) {
-    const limite = new Date(Date.now() - periodo * 86400000);
-    base = base.filter(d => {
-      const abertura = getOpenDate(d);
-      return abertura && abertura >= limite;
-    });
-  }
-  return base;
-}
-
-function renderMTTR() {
-  _mttrPopulateFilters();
-  _mttrPage = 1;
-  _mttrRenderAll();
-}
-
-function _mttrRenderAll() {
-  const dados = _mttrGetFiltered();
-  _mttrRenderKPIs(dados);
-  _mttrRenderChart(dados);
-  _mttrRenderList(dados);
-}
-
-function _mttrRenderKPIs(dados) {
-  const concluidas = dados.filter(isConcluido);
-  const comT1 = concluidas.map(d=>getT1Days(d)).filter(v=>v!==null);
-  const comT2 = concluidas.map(d=>getT2Days(d)).filter(v=>v!==null);
-  const comT3 = dados.map(d=>getT3Days(d)).filter(v=>v!==null);
-  const comT4 = concluidas.map(d=>getT4Days(d)).filter(v=>v!==null);
-
-  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
-  const t1Avg = avg(comT1), t2Avg = avg(comT2), t3Avg = avg(comT3), t4Avg = avg(comT4);
-  const tempoAtivoAvg = getMTTR(concluidas);
-
-  const comAlgumT1T4 = dados.filter(d => getT1Days(d)!==null || getT2Days(d)!==null || getT4Days(d)!==null);
-  const semT3 = comAlgumT1T4.filter(d => getT3Days(d)===null);
-  const pctSemT3 = comAlgumT1T4.length ? (semT3.length/comAlgumT1T4.length*100) : null;
-
-  const t3Total = comT3.reduce((a,b)=>a+b,0);
-
-  const fmtD = v => v===null ? '—' : (v<1 ? `${Math.round(v*24)}h` : `${v.toFixed(1)}d`);
-
-  const kpisData = [
-    {num:fmtD(t1Avg), label:'Tempo médio de resposta (T1)', sub:'abertura → 1ª ação', color:'var(--text-dim)', glow:'transparent'},
-    {num:fmtD(t2Avg), label:'Tempo médio de diagnóstico (T2)', sub:'1ª ação → encaminhamento', color:'var(--text-dim)', glow:'transparent'},
-    {num:fmtD(t4Avg), label:'Tempo de execução (T4)', sub:'retorno → fechamento', color:'var(--text-dim)', glow:'transparent'},
-    {num:tempoAtivoAvg!==null?fmtD(tempoAtivoAvg):'—', label:'Tempo ativo O&M (T1+T2+T4)', sub:'só o que é controlável', color:'var(--teal)', glow:'rgba(63,165,140,.1)'},
-    {num:comT3.length?`${t3Total.toFixed(0)}d`:'—', label:'Espera externa acumulada (T3)', sub:'fora do controle da equipe', color:'var(--red)', glow:'rgba(226,84,61,.1)'},
-    {num:pctSemT3!==null?`${pctSemT3.toFixed(0)}%`:'—', label:'% falhas sem T3', sub:'resolvidas só internamente', color:'var(--text-dim)', glow:'transparent'},
-  ];
-
-  const el = document.getElementById('mttrKpis');
-  if (el) el.innerHTML = kpisData.map(k =>
-    `<div class="kpi" style="--kpi-color:${k.color};--kpi-glow:${k.glow}">
-      <div class="num">${k.num}</div>
-      <div class="label">${esc(k.label)}</div>
-      <div class="sub-label">${esc(k.sub)}</div>
-    </div>`
-  ).join('');
-}
-
-function _mttrMonthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-}
-function _mttrMonthLabel(key) {
-  const [y,m] = key.split('-');
-  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  return `${meses[parseInt(m,10)-1]}/${y.slice(2)}`;
-}
-
-function _mttrRenderChart(dados) {
-  const container = document.getElementById('mttrChart');
-  if (!container) return;
-
-  // Agrupa falhas concluídas por mês de fechamento (últimos 12 meses com dado)
-  const concluidas = dados.filter(isConcluido).map(d => {
-    const fech = _parseFechamentoDate(d);
-    return fech ? { d, fech } : null;
-  }).filter(Boolean);
-
-  if (concluidas.length === 0) {
-    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-faint);font-size:12px;">Sem falhas concluídas com datas suficientes no período.</div>`;
-    return;
-  }
-
-  const porMes = {};
-  concluidas.forEach(({d, fech}) => {
-    const key = _mttrMonthKey(fech);
-    if (!porMes[key]) porMes[key] = [];
-    porMes[key].push(d);
-  });
-  const meses = Object.keys(porMes).sort().slice(-12);
-
-  if (_mttrChartMode === 'agg') {
-    const valores = meses.map(k => getMTTR(porMes[k]));
-    _mttrDrawBarChart(container, meses.map(_mttrMonthLabel), [
-      {label:'Tempo Ativo O&M', color:'var(--teal)', values:valores},
-    ]);
-  } else {
-    const t1 = meses.map(k => { const v=porMes[k].map(d=>getT1Days(d)).filter(x=>x!==null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; });
-    const t2 = meses.map(k => { const v=porMes[k].map(d=>getT2Days(d)).filter(x=>x!==null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; });
-    const t3 = meses.map(k => { const v=porMes[k].map(d=>getT3Days(d)).filter(x=>x!==null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; });
-    const t4 = meses.map(k => { const v=porMes[k].map(d=>getT4Days(d)).filter(x=>x!==null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; });
-    _mttrDrawBarChart(container, meses.map(_mttrMonthLabel), [
-      {label:'T1', color:'#5B9BD5', values:t1},
-      {label:'T2', color:'#EAB308', values:t2},
-      {label:'T3', color:'#E2543D', values:t3},
-      {label:'T4', color:'#22C55E', values:t4},
-    ]);
-  }
-}
-
-function _mttrDrawBarChart(container, labels, series) {
-  const allVals = series.flatMap(s => s.values).filter(v => v !== null);
-  const maxVal = Math.max(1, ...allVals);
-  const w = 700, h = 220, padL = 32, padB = 28, padT = 10, padR = 10;
-  const chartW = w - padL - padR, chartH = h - padT - padB;
-  const groupW = chartW / labels.length;
-  const barGap = 4;
-  const barW = Math.max(4, (groupW - barGap*(series.length+1)) / series.length);
-
-  let bars = '';
-  labels.forEach((label, i) => {
-    const gx = padL + i*groupW;
-    series.forEach((s, si) => {
-      const val = s.values[i];
-      if (val === null) return;
-      const bh = (val/maxVal) * chartH;
-      const bx = gx + barGap + si*(barW+barGap);
-      const by = padT + chartH - bh;
-      bars += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${s.color}" rx="2"><title>${esc(s.label)} · ${label}: ${val.toFixed(1)}d</title></rect>`;
-    });
-    bars += `<text x="${(gx+groupW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="9.5" fill="var(--text-faint)" font-family="'Poppins',monospace">${esc(label)}</text>`;
-  });
-
-  const gridLines = [0, 0.5, 1].map(f => {
-    const y = padT + chartH - f*chartH;
-    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,3"/>
-      <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-faint)" font-family="'Poppins',monospace">${(f*maxVal).toFixed(0)}d</text>`;
-  }).join('');
-
-  const legend = series.length > 1 ? `<div style="display:flex;gap:14px;justify-content:center;margin-top:6px;flex-wrap:wrap;">${series.map(s=>`<div style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-dim);"><span style="width:8px;height:8px;border-radius:2px;background:${s.color};"></span>${esc(s.label)}</div>`).join('')}</div>` : '';
-
-  container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h-20}px;">${gridLines}${bars}</svg>${legend}`;
-}
-
-function _mttrRenderList(dados) {
-  // Lista falhas com pelo menos um dado de T1-T4 (concluídas + abertas)
-  const comDados = dados.filter(d =>
-    getT1Days(d)!==null || getT2Days(d)!==null || getT3Days(d)!==null || getT4Days(d)!==null
-  ).sort((a,b) => {
-    const t3a = getT3Days(a) ?? -1, t3b = getT3Days(b) ?? -1;
-    return t3b - t3a; // maior espera externa primeiro
-  });
-
-  const total = comDados.length;
-  const totalLabel = document.getElementById('mttrListTotal');
-  if (totalLabel) totalLabel.textContent = `${total} falha${total!==1?'s':''}`;
-
-  const totalPages = Math.max(1, Math.ceil(total / MTTR_PAGE_SIZE));
-  if (_mttrPage > totalPages) _mttrPage = totalPages;
-  const start = (_mttrPage-1) * MTTR_PAGE_SIZE;
-  const pageItems = comDados.slice(start, start + MTTR_PAGE_SIZE);
-
-  const listEl = document.getElementById('mttrList');
-  if (listEl) {
-    if (total === 0) {
-      listEl.innerHTML = `<div style="font-size:12.5px;color:var(--text-faint);padding:20px 0;text-align:center;">Nenhuma falha com datas de T1–T4 registradas no período/filtro selecionado.</div>`;
-    } else {
-      listEl.innerHTML = pageItems.map(d => {
-        const cc = clientColor(d.cliente);
-        const concluido = isConcluido(d);
-        const totalDias = (getT1Days(d)??0)+(getT2Days(d)??0)+(getT3Days(d)??0)+(getT4Days(d)??0);
-        return `<div class="panel" style="margin-bottom:10px;cursor:pointer;" data-mttr-id="${esc(d.id)}">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:4px;">
-            <div>
-              <span style="font-weight:700;font-size:13px;">${esc(d.equipamento)}</span>
-              <span style="color:${cc.color};font-size:13px;margin-left:6px;">${esc(d.usina)} · ${esc(d.cliente)}</span>
-            </div>
-            <span style="font-size:13px;color:var(--text-faint);font-family:'Poppins',monospace;">${totalDias.toFixed(0)}d totais ${concluido?'':'· Em Andamento'}</span>
-          </div>
-          ${renderTimelineT1T4(d)}
-        </div>`;
-      }).join('');
-      listEl.querySelectorAll('[data-mttr-id]').forEach(el => {
-        el.addEventListener('click', () => openModal(el.dataset.mttrId));
-      });
-    }
-  }
-
-  const pagEl = document.getElementById('mttrPagination');
-  if (pagEl) {
-    if (totalPages <= 1) { pagEl.innerHTML = ''; }
-    else {
-      let html = '';
-      for (let p=1; p<=totalPages; p++) {
-        html += `<button class="sort-btn ${p===_mttrPage?'active':''}" data-page="${p}" style="min-width:28px;">${p}</button>`;
-      }
-      pagEl.innerHTML = html;
-      pagEl.querySelectorAll('[data-page]').forEach(btn => {
-        btn.addEventListener('click', () => { _mttrPage = parseInt(btn.dataset.page,10); _mttrRenderList(_mttrGetFiltered()); });
-      });
-    }
-  }
-}
-
-document.getElementById('mttrCliente')?.addEventListener('change', () => { _mttrPage=1; _mttrRenderAll(); });
-document.getElementById('mttrUsina')?.addEventListener('change', () => { _mttrPage=1; _mttrRenderAll(); });
-document.getElementById('mttrPeriodo')?.addEventListener('change', () => { _mttrPage=1; _mttrRenderAll(); });
-document.getElementById('mttrClearBtn')?.addEventListener('click', () => {
-  const c=document.getElementById('mttrCliente'), u=document.getElementById('mttrUsina'), p=document.getElementById('mttrPeriodo');
-  if(c) c.value=''; if(u) u.value=''; if(p) p.value='90';
-  _mttrPage=1; _mttrRenderAll();
-});
-document.getElementById('mttrChartModeAgg')?.addEventListener('click', () => {
-  _mttrChartMode='agg';
-  document.getElementById('mttrChartModeAgg').classList.add('active');
-  document.getElementById('mttrChartModeSplit').classList.remove('active');
-  _mttrRenderChart(_mttrGetFiltered());
-});
-document.getElementById('mttrChartModeSplit')?.addEventListener('click', () => {
-  _mttrChartMode='split';
-  document.getElementById('mttrChartModeSplit').classList.add('active');
-  document.getElementById('mttrChartModeAgg').classList.remove('active');
-  _mttrRenderChart(_mttrGetFiltered());
-});
-
-/* ══ SORT & RENDER ══ */
-function applySortAndRender() {
-  const sorted=[...filtered].sort((a,b)=>{
-    const aDeslig=isDesligamento(a)?1:0, bDeslig=isDesligamento(b)?1:0;
-    if(aDeslig!==bDeslig) return bDeslig-aDeslig;
-    if(sortKey==='id')return +a.id-+b.id;
-    if(sortKey==='newest')return +b.id-+a.id;
-    if(sortKey==='usina')return a.usina.localeCompare(b.usina);
-    if(sortKey==='equip')return a.equipamento.localeCompare(b.equipamento);
-    if(sortKey==='age'){const da=getFaultAgeDays(a)??-999;const db=getFaultAgeDays(b)??-999;return db-da;}
-    if(sortKey==='recent'){const da2=getOpenDate(a);const db2=getOpenDate(b);const ta=da2?da2.getTime():0;const tb=db2?db2.getTime():0;return tb-ta;}
-    return 0;
-  });
-  document.getElementById('totalBadge').textContent=`${DATA.length} registros`;
-  const breachList=filtered.filter(d=>isSlaBreached(d));
-  const slaBanner=document.getElementById('slaBanner');
-  if(breachList.length>0){slaBanner.classList.add('visible');document.getElementById('slaBannerText').textContent=activeSlaFilter?`Filtrando ${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido · clique para limpar`:`${breachList.length} falha${breachList.length>1?'s':''} com SLA vencido — abertas há mais de ${SLA_CONFIG.BREACH_DAYS} dias sem resposta`;}
-  else{slaBanner.classList.remove('visible');if(activeSlaFilter){activeSlaFilter=false;slaBanner.classList.remove('active-filter');}}
-
-  renderKPIs();renderBreakdowns();
-  _lastSorted=sorted;
-  if(viewMode==='table'){document.getElementById('cardGrid').style.display='none';document.getElementById('tableWrap').style.display='';renderTable(sorted);}
-  else{document.getElementById('cardGrid').style.display='';document.getElementById('tableWrap').style.display='none';renderCards(sorted);}
-}
-
-/* ══ KPIs — 6 CARDS ══ */
-function renderKPIs() {
-  const tot=filtered.length;
-  const abertos=filtered.filter(d=>d.status.toLowerCase().includes('aberto')).length;
-  const slaBreach=filtered.filter(d=>isSlaBreached(d)).length;
-  const desligCount=filtered.filter(d=>isDesligamento(d)).length;
-  const invCount=filtered.filter(d=>isInversorAberto(d)).length;
-
-  // Tempo Ativo O&M: média (T1+T2+T4) das falhas concluídas nos últimos 90 dias
-  const hoje = new Date();
-  const limite90 = new Date(hoje.getTime() - 90*86400000);
-  const concluidasRecentes = DATA.filter(d => {
-    if (!isConcluido(d)) return false;
-    const fech = _parseFechamentoDate(d);
-    return fech && fech >= limite90;
-  });
-  const tempoAtivoMedia = getMTTR(concluidasRecentes);
-
-  // Resolvidas (7 dias) com MTTR
-  const limite7 = new Date(hoje.getTime() - 7*86400000);
-  const resolvidas7d = DATA.filter(d => {
-    if (!isConcluido(d)) return false;
-    const fech = _parseFechamentoDate(d);
-    return fech && fech >= limite7;
-  });
-  const mttr7d = getMTTR(resolvidas7d);
-
-  const kpisData = [
-    {num:tot,       label:'Ocorrências ativas',  color:'var(--text-dim)', glow:'transparent', icon:`<svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, cls:''},
-    {num:abertos,   label:'Ocorrências em aberto',         color:'var(--amber)',   glow:'rgba(242,169,59,.08)',  icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`, cls:''},
-    {num:invCount, label:'Inversores com ocorrências', color:'var(--text-dim)', glow:'transparent', icon:`<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="6" y1="11" x2="6" y2="13"/><line x1="10" y1="11" x2="10" y2="13"/><line x1="14" y1="11" x2="18" y2="13"/><line x1="18" y1="11" x2="14" y2="13"/></svg>`, cls:'kpi-invfilter'+(activeInvFilter?' active-filter':''), id:'kpiInvFilter', title:'Clique para filtrar inversores com ocorrências em aberto'},
-    {num:desligCount,label:'Usinas desligadas', color:'var(--red)',     glow:'rgba(226,84,61,.12)',  icon:`<svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`, cls:'kpi-deslig kpi-alert', id:'kpiDeslig', title:'Clique para filtrar desligamentos'},
-    {num: tempoAtivoMedia !== null ? Math.round(tempoAtivoMedia) : '—', label:'Tempo ativo O&M', sub: tempoAtivoMedia !== null ? 'média 90d · dias (T1+T2+T4)' : 'sem dados suficientes', color:'var(--teal)', glow:'rgba(63,165,140,.1)', icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, cls:''},
-    {num: resolvidas7d.length, label:'Resolvidas (7d)', sub: mttr7d !== null ? `MTTR ${mttr7d.toFixed(1)}d` : 'sem dados', color:'var(--sla-ok)', glow:'rgba(34,197,94,.1)', icon:`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`, cls:''},
-  ];
-
-  document.getElementById('kpis').innerHTML = kpisData.map(k =>
-    `<div class="kpi ${k.cls}" style="--kpi-color:${k.color};--kpi-glow:${k.glow}" ${k.id?`id="${k.id}" title="${k.title||'Clique para filtrar'}"`:''}>
-      <div class="num">${typeof k.num==='number'?String(k.num).padStart(2,'0'):k.num}</div>
-      <div class="label">${k.label}</div>
-      ${k.sub?`<div class="sub-label">${esc(k.sub)}</div>`:''}
-      <div class="kicon">${k.icon}</div>
-    </div>`
-  ).join('');
-
-  const banner = document.getElementById('desligBanner');
-  const desligamentos = filtered.filter(d=>isDesligamento(d));
-  if (desligamentos.length > 0) {
-    banner.classList.add('visible');
-    document.getElementById('desligCount').textContent = desligamentos.length;
-    const usinas = [...new Set(desligamentos.map(d=>d.usina))];
-    document.getElementById('desligTitle').textContent =
-      desligamentos.length === 1
-        ? `⚡ ${usinas[0].toUpperCase()} — DESLIGADA`
-        : `⚡ ${desligamentos.length} USINAS DESLIGADAS`;
-    document.getElementById('desligSub').textContent =
-      usinas.slice(0,3).join(' · ') + (usinas.length > 3 ? ` +${usinas.length-3}` : '');
-  } else {
-    banner.classList.remove('visible');
-    if (activeDesligFilter) { activeDesligFilter = false; banner.classList.remove('active-filter'); }
-  }
-
-  const kpiDeslig = document.getElementById('kpiDeslig');
-  if (kpiDeslig) kpiDeslig.addEventListener('click', toggleDesligFilter);
-
-  const kpiInvFilter = document.getElementById('kpiInvFilter');
-  if (kpiInvFilter) kpiInvFilter.addEventListener('click', toggleInvFilter);
-}
-
-function toggleInvFilter() {
-  activeInvFilter = !activeInvFilter;
-  if (activeInvFilter) document.getElementById('mainContent')?.scrollTo({top:0, behavior:'smooth'});
-  applyFilters();
-}
-
-function toggleDesligFilter() {
-  activeDesligFilter = !activeDesligFilter;
-  const banner = document.getElementById('desligBanner');
-  banner.classList.toggle('active-filter', activeDesligFilter);
-  if (activeDesligFilter) document.getElementById('mainContent')?.scrollTo({top:0, behavior:'smooth'});
-  applyFilters();
-}
-
-/* ══ BREAKDOWNS ══ */
+/* ══ BARRAS (usado pelos painéis recolhíveis de Atividades) ══ */
 function makeBar(id, entries, totalId) {
   const max=Math.max(1,...entries.map(e=>e[1]));
   document.getElementById(totalId).textContent=`${entries.length} tipo${entries.length!==1?'s':''}`;
@@ -9189,346 +8193,10 @@ function makeBar(id, entries, totalId) {
     </div>`;
   }).join('');
 }
-function renderBreakdowns() {
-  const uMap={},sMap={},cMap={},usinaClient={};
-  const filteredAtivas = activeTab === 'historico'
-    ? DATA.filter(d => !isConcluido(d))
-    : filtered;
-  filteredAtivas.forEach(d=>{uMap[d.usina]=(uMap[d.usina]||0)+1;usinaClient[d.usina]=d.cliente;});
-  filtered.forEach(d=>{sMap[d.status]=(sMap[d.status]||0)+1;const c=categorizeCausa(d.causa);cMap[c]=(cMap[c]||0)+1;});
-  makeBar('usinaBars',Object.entries(uMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.18)']),'usinaTotal');
-  makeBar('statusBars',Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
-    const pal = getStatusPalette(k);
-    // cor do status mas com 70% de opacidade — diferencia sem gritar
-    return [k, v, pal.color + 'BB', pal.pulse || false];
-  }),'statusTotal');
-  makeBar('causaBars',Object.entries(cMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,'rgba(255,255,255,0.14)']),'causaTotal');
 
-  // ── Barras como filtros ────────────────────────────────────────────────
-  // Usina: toggle — clica para filtrar, clica de novo para limpar
-  document.querySelectorAll('#usinaBars .bar-row').forEach(r => r.addEventListener('click', () => {
-    const v = r.dataset.group;
-    if (selUsinaValues.has(v) && selUsinaValues.size === 1) {
-      selUsinaValues.clear(); // clicou no único selecionado — limpa
-    } else {
-      selUsinaValues.clear();
-      selUsinaValues.add(v); // seleciona só esta usina
-    }
-    _updateCbLabel('Usina');
-    _renderCbDropdown('Usina');
-    applyFilters();
-  }));
-
-  // Status: toggle igual
-  document.querySelectorAll('#statusBars .bar-row').forEach(r => r.addEventListener('click', () => {
-    const v = r.dataset.group;
-    if (selStatusValues.has(v) && selStatusValues.size === 1) {
-      selStatusValues.clear();
-    } else {
-      selStatusValues.clear();
-      selStatusValues.add(v);
-    }
-    _updateCbLabel('Status');
-    _renderCbDropdown('Status');
-    applyFilters();
-  }));
-
-  // Causa: toggle (variável activeCausa)
-  document.querySelectorAll('#causaBars .bar-row').forEach(r => r.addEventListener('click', () => {
-    activeCausa = activeCausa === r.dataset.group ? null : r.dataset.group;
-    applyFilters();
-  }));
-
-  // Highlight das barras selecionadas
-  document.querySelectorAll('#usinaBars .bar-row').forEach(r => r.classList.toggle('selected', selUsinaValues.has(r.dataset.group)));
-  document.querySelectorAll('#statusBars .bar-row').forEach(r => r.classList.toggle('selected', selStatusValues.has(r.dataset.group)));
-  document.querySelectorAll('#causaBars .bar-row').forEach(r => r.classList.toggle('selected', r.dataset.group === activeCausa));
-
-  _aplicarEstadoPaineis(['panelUsina', 'panelStatus', 'panelCausa']);
-}
-
-/* ══ CARDS — com barra de envelhecimento (200d max) ══ */
-function renderCards(sorted) {
-  document.getElementById('gridSub').textContent=`${sorted.length} de ${DATA.length} · ${sorted.length} ativo${sorted.length!==1?'s':''}`;
-  const grid=document.getElementById('cardGrid');
-  if(sorted.length===0){grid.innerHTML=`<div class="empty-state"><strong>Nenhum ativo encontrado</strong>Não há registros para os filtros selecionados.<br><button class="reset-link" id="emptyReset">Limpar filtros</button></div>`;document.getElementById('emptyReset')?.addEventListener('click',clearFilters);return;}
-  grid.innerHTML=sorted.map(d=>{
-    const cc=clientColor(d.cliente);const sc=statusColor(d.status);const isOpen=d.status.toLowerCase().includes('aberto');
-    const ageDays=getFaultAgeDays(d);const slaClass=getSlaClass(ageDays);const ageText=agePillText(ageDays);
-    let cardSlaClass='';
-    const isDeslig = isDesligamento(d);
-    if(isSlaBreached(d))cardSlaClass='sla-breach';
-    else if(isSlaWarning(d)||ageDays!==null&&ageDays>=10)cardSlaClass='sla-warning';
-    const cardDesligClass = isDeslig ? 'card-desligamento' : '';
-    const ageIcon=slaClass==='age-breach'?`<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-    const staleDays=getStaleDays(d);const isStale=staleDays!==null&&staleDays>=STALE_DAYS;
-    const staleClass=isStale&&!cardSlaClass?'card-stale':'';
-    const stalePillHtml=isStale?`<span class="stale-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Parado há ${staleDays} dia${staleDays!==1?'s':''}</span>`:'';
-
-    // Barra de envelhecimento — proporcional a 200 dias max, verde→amarelo→vermelho
-    let ageBarHtml = '';
-    if (ageDays !== null && ageDays >= 0) {
-      const pct = Math.min(100, (ageDays / 200) * 100);
-      const ageColor = ageDays >= 90 ? 'var(--sla-breach)' : ageDays >= 14 ? 'var(--sla-warn)' : 'var(--sla-ok)';
-      ageBarHtml = `<div class="age-bar-wrap"><div class="age-bar-track"><div class="age-bar-fill" style="width:${pct}%;background:${ageColor}"></div></div></div>`;
-    }
-
-    return `<div class="card ${cardSlaClass} ${staleClass} ${cardDesligClass}" tabindex="0" role="button" aria-label="${esc(d.equipamento)} — ${esc(d.usina)}" data-id="${esc(d.id)}">
-      ${!_falhaVisualizada(d.id) ? '<span class="card-unread-dot"></span>' : ''}
-      <div class="card-top">
-        <div>
-          <div class="usina-name">${esc(d.usina)} <span style="color:var(--border-strong);margin:0 3px;">·</span> ${esc(d.cliente)}</div>
-        </div>
-        <span class="sla-badge-card">SLA</span>
-      </div>
-      <p class="equip">${esc(isDeslig ? 'DESLIGAMENTO' : (d.equipamento || d.falha))}</p><p class="falha">${esc(d.falha)}</p>
-      ${ageBarHtml}
-      <div class="age-row"><span class="age-pill ${slaClass}">${ageIcon}${esc(ageText)}</span>${stalePillHtml}${isDeslig ? `<span class="deslig-badge"><svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>DESLIGADA</span>` : ''}</div>
-      <div class="card-foot"><span class="status-chip" style="background:${statusBg(d.status)};border-color:${statusBorder(d.status)};color:${sc}">${esc(d.status)}</span><span class="see-more">histórico <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></div>
-    </div>`;
-  }).join('');
-  grid.querySelectorAll('.card').forEach(c=>{c.addEventListener('click',()=>openModal(c.dataset.id));c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openModal(c.dataset.id);}});});
-  _atualizarBadgesNaoLidos();
-}
-
-/* ══ DRAWER ══ */
-let _drawerList=[]; let _drawerIndex=-1;
-function openModal(id) { _drawerList=_lastSorted.length?_lastSorted:filtered; _drawerIndex=_drawerList.findIndex(x=>x.id===id); if(_drawerIndex<0){const d=DATA.find(x=>x.id===id);if(d){_drawerList=[d];_drawerIndex=0;}else return;} _renderDrawer();_openDrawerPanel(); _marcarFalhaVisualizada(id); _atualizarBadgesNaoLidos(); document.querySelector(`.card[data-id="${CSS.escape(String(id))}"] .card-unread-dot`)?.remove(); }
-function _openDrawerPanel() { document.getElementById('drawer').classList.add('open');document.getElementById('drawerBackdrop').classList.add('open');document.getElementById('drawerBody').scrollTop=0; document.body.classList.add('drawer-open'); }
-function closeModal() { document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBackdrop').classList.remove('open');document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active')); document.body.classList.remove('drawer-open'); }
-function _navigateDrawer(delta) { const next=_drawerIndex+delta; if(next<0||next>=_drawerList.length)return; _drawerIndex=next;_renderDrawer();document.getElementById('drawerBody').scrollTop=0; }
+/* ══ STATUS (Atividades) ══ */
 const ALL_STATUSES=['Concluído','Cancelado','Em Aberto','Pausado','Aguardando Cliente','Aguardando Fabricante','Aguardando Equipamento','Em Andamento','Corrigir Ronda - COS','Abrir Chamado','Solicitar OS','OS Solicitada','Convertida em Ocorrência','Análise de Performance','Análise Engenharia'];
 
-/* Linha do tempo visual T1-T4 */
-function renderTimelineT1T4(d) {
-  const t1 = getT1Days(d), t2 = getT2Days(d), t3 = getT3Days(d), t4 = getT4Days(d);
-  const temDados = t1 !== null || t2 !== null || t3 !== null || t4 !== null;
-  if (!temDados) {
-    return `<div style="font-size:13px;color:var(--text-faint);font-family:'Poppins',monospace;padding:8px 0;">Sem datas de T1–T4 registradas ainda.</div>`;
-  }
-  const segs = [
-    {label:'T1', days:t1, color:'#5B9BD5', desc:'Abertura → 1ª ação'},
-    {label:'T2', days:t2, color:'#EAB308', desc:'1ª ação → encaminhamento'},
-    {label:'T3', days:t3, color:'#E2543D', desc:'Encaminhamento → retorno'},
-    {label:'T4', days:t4, color:'#22C55E', desc:'Retorno → normalização'},
-  ];
-  const total = segs.reduce((sum,s) => sum + (s.days||0), 0) || 1;
-  const barHtml = segs.map(s => {
-    const pct = s.days !== null ? Math.max(2, (s.days/total)*100) : 0;
-    return s.days !== null ? `<div style="width:${pct}%;background:${s.color};height:100%;" title="${s.label}: ${s.days}d"></div>` : '';
-  }).join('');
-  const legendHtml = segs.map(s =>
-    `<div style="display:flex;align-items:center;gap:6px;font-size:13px;">
-      <span style="width:8px;height:8px;border-radius:2px;background:${s.color};flex:none;"></span>
-      <span style="color:var(--text-dim);font-weight:600;">${s.label}</span>
-      <span style="color:var(--text-faint);font-family:'Poppins',monospace;">${s.days!==null?s.days+'d':'—'}</span>
-    </div>`
-  ).join('');
-  return `
-    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--panel-alt);margin-bottom:10px;">${barHtml}</div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;">${legendHtml}</div>
-  `;
-}
-
-function _renderDrawer() {
-  const d=_drawerList[_drawerIndex]; if(!d)return;
-  document.querySelectorAll('.drawer-active').forEach(el=>el.classList.remove('drawer-active'));
-  const cardEl=document.querySelector(`.card[data-id="${CSS.escape(d.id)}"]`);
-  const rowEl=document.querySelector(`tr[data-id="${CSS.escape(d.id)}"]`);
-  if(cardEl){cardEl.classList.add('drawer-active');cardEl.scrollIntoView({behavior:'smooth',block:'nearest'});}
-  if(rowEl){rowEl.classList.add('drawer-active');rowEl.scrollIntoView({behavior:'smooth',block:'nearest'});}
-  const color=statusColor(d.status);const cc=clientColor(d.cliente);
-  const ageDays=getFaultAgeDays(d);const slaClass=getSlaClass(ageDays);const opened=getOpenDate(d);
-  const ageColor=slaClass==='age-breach'?'var(--red)':slaClass==='age-warning'?'var(--sla-warn)':'var(--teal)';
-  const editing=canEdit();
-  document.getElementById('drawerAccent').style.background=color;
-  document.getElementById('drawer').style.setProperty('--drawer-color',color);
-  document.getElementById('drawerEyebrow').innerHTML=`<span style="color:${cc.color}">${esc(d.cliente)}</span>`;
-  document.getElementById('drawerTitle').textContent=d.equipamento;
-  document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${color}">${esc(d.status)}</span>`;
-  _renderToggleDesligamento('falha', d.id, document.getElementById('drawerDesligToggle'), isDesligamento(d));
-  const total=_drawerList.length;
-  document.getElementById('drawerCounter').textContent=`${_drawerIndex+1} / ${total}`;
-  document.getElementById('drawerPrev').disabled=_drawerIndex===0;
-  document.getElementById('drawerNext').disabled=_drawerIndex===total-1;
-  document.getElementById('drawerActionBar').style.display=editing?'flex':'none';
-
-  let ageHtml='';
-  if(ageDays!==null&&ageDays>=0){
-    const responseDate=getResponseDate(d);const responseDays=getResponseDays(d);
-    const staleDaysD=getStaleDays(d);const lastActivity=getLastActivityDate(d);
-    const openedLabel=opened?`Aberta em ${opened.toLocaleDateString('pt-BR')}`:'Data estimada';
-    let slaLabel;
-    if(isSlaBreached(d))slaLabel=`⚠ SLA VENCIDO — sem resposta da equipe há ${ageDays} dias`;
-    else if(isSlaWarning(d))slaLabel=`· atenção — ${ageDays} dias sem resposta (prazo: ${SLA_CONFIG.BREACH_DAYS}d)`;
-    else if(responseDate)slaLabel=`· equipe respondeu em ${responseDays} dia${responseDays!==1?'s':''} (${responseDate.toLocaleDateString('pt-BR')})`;
-    else slaLabel=ageDays>=10?'· aguardando primeira resposta da equipe':'· recente';
-    const staleHtml=(staleDaysD!==null&&staleDaysD>=STALE_DAYS)?`<div style="display:flex;align-items:center;gap:10px;background:rgba(83,96,112,.08);border:1px solid rgba(83,96,112,.25);border-radius:8px;padding:10px 13px;margin-top:10px;"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#8FA0AE;fill:none;stroke-width:2;flex:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><div style="font-family:'Poppins',monospace;font-size:13px;font-weight:700;color:#8FA0AE;">Sem movimentação há ${staleDaysD} dia${staleDaysD!==1?'s':''}</div><div style="font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);margin-top:2px;">Última entrada: ${lastActivity?lastActivity.toLocaleDateString('pt-BR'):'desconhecida'}</div></div></div>`:'';
-    ageHtml=`<div class="drawer-age-block"><svg viewBox="0 0 24 24" style="stroke:${ageColor}"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div style="flex:1;"><div class="age-num" style="color:${ageColor}">${ageDays} dia${ageDays!==1?'s':''} em aberto</div><div class="age-sub">${esc(openedLabel)} ${esc(slaLabel)}</div>${staleHtml}</div></div>`;
-  }
-
-  const entries=parseHistorico(d.historico);
-  const tlHtml=entries.map(en=>`<div class="d-tl-item"><div class="d-tl-dot"></div>${en.date?`<div class="d-tl-date">${esc(en.date)}</div>`:''}<div class="d-tl-text">${esc(en.text)}</div></div>`).join('')||`<div class="d-tl-text" style="color:var(--text-faint)">Sem histórico.</div>`;
-
-  // Mensagens originais do WhatsApp — texto bruto que originou cada registro/atualização
-  const msgEntries = parseMensagensOriginais(d.mensagensOriginais);
-  const msgHtml = msgEntries.length ? msgEntries.map(en => `
-    <div style="background:var(--panel-alt);border:1px solid var(--border-soft);border-left:3px solid var(--teal);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-      ${en.date?`<div style="font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);margin-bottom:5px;">${esc(en.date)}</div>`:''}
-      <div style="font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;line-height:1.5;">${esc(en.text)}</div>
-    </div>`).join('') : `<div style="font-size:12px;color:var(--text-faint);">Nenhuma mensagem original registrada ainda.</div>`;
-  const msgSectionHtml = `<div class="d-section"><div class="d-label">Mensagens originais (WhatsApp)</div><div style="margin-top:8px;">${msgHtml}</div></div>`;
-
-  // Linha do tempo T1-T4 (visualização, sempre mostrada)
-  const timelineHtml = `<div class="d-section"><div class="d-label">Tempo Ativo O&amp;M — T1+T2+T4</div>${renderTimelineT1T4(d)}</div>`;
-
-  if(editing){
-    const statusListCompleta = ALL_STATUSES.includes(d.status) ? ALL_STATUSES : [...ALL_STATUSES.slice(0,-3), d.status, ...ALL_STATUSES.slice(-3)];
-    const statusOpts=statusListCompleta.map(s=>`<option value="${esc(s)}" ${d.status===s?'selected':''}>${esc(s)}</option>`).join('');
-
-    // Campos editáveis T1-T4
-    const t1t4Fields = `<div class="d-edit-field"><div class="d-edit-label">Datas — Tempo Ativo O&amp;M</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div><label style="font-size:13px;color:var(--text-faint);display:block;margin-bottom:4px;">Abertura</label><input class="d-edit-input" id="edit_data_abertura" type="text" placeholder="DD/MM/AAAA HH:MM" value="${esc(_fmtDateForInput(d.dataAbertura))}"></div>
-        <div><label style="font-size:13px;color:var(--text-faint);display:block;margin-bottom:4px;">1ª ação</label><input class="d-edit-input" id="edit_data_primeira_acao" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataPrimeiraAcao))}"></div>
-        <div><label style="font-size:13px;color:var(--text-faint);display:block;margin-bottom:4px;">Encaminhamento (OS)</label><input class="d-edit-input" id="edit_data_encaminhamento" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataEncaminhamento))}"></div>
-        <div><label style="font-size:13px;color:var(--text-faint);display:block;margin-bottom:4px;">Retorno fabricante</label><input class="d-edit-input" id="edit_data_retorno_externo" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataRetornoExterno))}"></div>
-        <div><label style="font-size:13px;color:var(--text-faint);display:block;margin-bottom:4px;">Fechamento</label><input class="d-edit-input" id="edit_data_fechamento" type="text" placeholder="DD/MM/AAAA" value="${esc(_fmtDateForInput(d.dataFechamento))}"></div>
-      </div>
-      <div style="font-size:13px;color:var(--text-faint);margin-top:6px;">Preenchimento manual sempre prevalece sobre detecção automática.</div>
-    </div>`;
-
-    document.getElementById('drawerBody').innerHTML=`${ageHtml}${timelineHtml}<div class="edit-mode-banner"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modo edição — alterações são salvas diretamente na planilha</div><div class="d-edit-field"><div class="d-edit-label">Status</div><select class="d-edit-select" id="edit_status">${statusOpts}</select><div class="d-status-preview" id="statusPreview"></div></div><div class="d-edit-field"><div class="d-edit-label">Falha</div><textarea class="d-edit-textarea" id="edit_falha" rows="2">${esc(d.falha)}</textarea></div><div class="d-edit-field"><div class="d-edit-label">Causa</div><textarea class="d-edit-textarea" id="edit_causa" rows="2">${esc(d.causa)}</textarea></div><div class="d-edit-field"><div class="d-edit-label">Equipamentos impactados</div><input class="d-edit-input" id="edit_impactados" type="text" value="${esc(d.impactados)}"></div><div class="d-edit-field"><div class="d-edit-label">Ações Realizadas</div><textarea class="d-edit-textarea" id="edit_acao" rows="4">${esc(d.acao)}</textarea></div><div class="d-edit-field" style="display:flex;gap:10px;flex-wrap:wrap;"><div style="flex:1;min-width:130px;"><div class="d-edit-label">Ticket Fabricante</div><input class="d-edit-input" id="edit_ticket" type="text" value="${esc(d.ticketFabricante)}" placeholder="Ex: SOL-12345"></div><div style="flex:1;min-width:130px;"><div class="d-edit-label">Nº OS</div><input class="d-edit-input" id="edit_os" type="text" value="${esc(d.numeroOS)}" placeholder="Ex: 1596"></div></div>${t1t4Fields}<div class="d-edit-field"><div class="d-edit-label">Histórico cronológico</div><div class="d-timeline" style="margin-top:4px;margin-bottom:4px;">${tlHtml}</div></div>${msgSectionHtml}`;
-    const statusSel=document.getElementById('edit_status');
-    function updateStatusPreview(){const sc=statusColor(statusSel.value);document.getElementById('statusPreview').innerHTML=`<span class="d-status-dot" style="background:${sc}"></span><span style="font-size:13px;font-family:'Poppins',monospace;color:${sc};font-weight:600;">${esc(statusSel.value)}</span>`;}
-    statusSel.addEventListener('change',updateStatusPreview);updateStatusPreview();
-  } else {
-    const chipsHtml=d.impactados?d.impactados.split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="chip" style="font-size:12px;background:var(--panel-alt);border:1px solid var(--border-soft);border-radius:6px;padding:4px 10px;color:var(--text-dim);">${esc(s)}</span>`).join(''):`<span style="color:var(--text-faint);font-size:12px;">Não informado</span>`;
-    document.getElementById('drawerBody').innerHTML=`${ageHtml}${timelineHtml}<div class="d-section"><div class="d-label">Falha</div><div class="d-value">${esc(d.falha)}</div></div><div class="d-section"><div class="d-label">Causa</div><div class="d-value">${esc(d.causa)}</div></div><div class="d-section"><div class="d-label">Equipamentos impactados</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;">${chipsHtml}</div></div><div class="d-section"><div class="d-label">Ações Realizadas</div><div class="d-action-box">${esc(d.acao).replace(/\r\n|\r|\n/g,'<br>')}</div></div><div class="d-section"><div class="d-label">Ticket &amp; OS</div><div class="d-ticket-row"><div style="flex:1;min-width:130px;"><div class="d-ticket-label">Ticket Fabricante</div><div class="d-ticket-box ${d.ticketFabricante?'t-blue':'t-empty'}"><svg viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>${d.ticketFabricante||'Não informado'}</div></div><div style="flex:1;min-width:130px;"><div class="d-ticket-label">Nº OS</div><div class="d-ticket-box ${d.numeroOS?'t-teal':'t-empty'}"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${d.numeroOS||'Não informado'}</div></div></div></div><div class="d-section"><div class="d-label">Histórico cronológico</div><div class="d-timeline" style="margin-top:8px;">${tlHtml}</div></div>${msgSectionHtml}`;
-  }
-}
-
-let _isSaving = false; // trava global — evita duplo envio
-
-async function _saveDrawerToSheet() {
-  if(_isSaving) return; // ignora clique se já estiver salvando
-  const d=_drawerList[_drawerIndex]; if(!d||!canEdit())return;
-  if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
-  _isSaving = true;
-  const btn=document.getElementById('drawerSaveBtn');
-  if(btn){btn.disabled=true;btn.innerHTML=`<span class="save-spinner"></span> Salvando…`;}
-  const fields={status:document.getElementById('edit_status')?.value,falha:document.getElementById('edit_falha')?.value,causa:document.getElementById('edit_causa')?.value,impactados:document.getElementById('edit_impactados')?.value,acao:document.getElementById('edit_acao')?.value,ticketFabricante:document.getElementById('edit_ticket')?.value,numeroOS:document.getElementById('edit_os')?.value,dataAbertura:document.getElementById('edit_data_abertura')?.value,dataPrimeiraAcao:document.getElementById('edit_data_primeira_acao')?.value,dataEncaminhamento:document.getElementById('edit_data_encaminhamento')?.value,dataRetornoExterno:document.getElementById('edit_data_retorno_externo')?.value,dataFechamento:document.getElementById('edit_data_fechamento')?.value};
-  const editor=_currentSession.user||_currentSession.role||'dashboard';
-  const changed=[];
-  const dateFieldsSet=new Set(['dataAbertura','dataPrimeiraAcao','dataEncaminhamento','dataRetornoExterno','dataFechamento']);
-  for(const[field,value]of Object.entries(fields)){
-    if(value===undefined)continue;
-    const originalRaw=d[field]||'';
-    // Campos de data: normaliza ambos os lados para DD/MM/AAAA antes de comparar,
-    // já que o valor original pode vir cru do gviz (ex: "Date(2026,5,30)").
-    const original=dateFieldsSet.has(field)?_fmtDateForInput(originalRaw):originalRaw;
-    if(value.trim()===String(original).trim())continue;
-    changed.push({field,value:value.trim()});
-  }
-  if(changed.length===0){_isSaving=false;showToast('Nenhuma alteração detectada.',true);if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}return;}
-  const errors=[];
-  const SAVE_URL = 'https://api.168.138.232.237.sslip.io/atualizar-campo';
-
-  async function _fetchWithTimeout(url, opts, ms=12000) {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), ms);
-    try { return await fetch(url, {...opts, signal: ctrl.signal}); }
-    finally { clearTimeout(tid); }
-  }
-
-  for(const{field,value}of changed){
-    try{
-      console.log('[Salvar] Enviando:', {id:d.id, field, value: value.slice(0,40)});
-      const resp = await _fetchWithTimeout(SAVE_URL, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id:d.id,field,value,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''})
-      });
-      const result = await resp.json();
-      console.log('[Salvar] Resposta:', resp.status, result);
-      if(!result.ok) throw new Error(result.error||'Erro desconhecido');
-      d[field]=value;
-    }catch(err){
-      console.warn('[Salvar] Render falhou, tentando Apps Script:', err.message);
-      // Fallback: Apps Script
-      try {
-        const payload = JSON.stringify({id:d.id,field,value,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''});
-        navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([payload],{type:'text/plain'}));
-        d[field]=value; // otimista
-        console.log('[Salvar] Fallback Apps Script enviado');
-      } catch(e2) {
-        console.error('[Salvar] Falha total:', e2);
-        errors.push(field);
-      }
-    }
-  }
-  const newColor=statusColor(d.status);
-  document.getElementById('drawerAccent').style.background=newColor;
-  document.getElementById('drawerMeta').innerHTML=`${esc(d.usina)} &nbsp;·&nbsp; <span style="color:${newColor}">${esc(d.status)}</span>`;
-  _isSaving = false;
-  if(btn){btn.disabled=false;btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salvar na planilha`;}
-  if(errors.length===0){showToast(`${changed.length} campo${changed.length>1?'s':''} salvo${changed.length>1?'s':''}!`,true);_renderDrawer();applySortAndRender();}
-  else{_isSaving=false;showToast(`Erro ao salvar: ${errors.join(', ')}`,false);}
-}
-
-let _isAddingHist = false;
-
-async function _addHistoryEntry() {
-  if(_isAddingHist) return; // evita duplo envio
-  const d=_drawerList[_drawerIndex]; if(!d||!canEdit())return;
-  if(!APPS_SCRIPT_URL){showToast('Cole a URL do Apps Script em APPS_SCRIPT_URL no código.',false);return;}
-  const entry=prompt('Nova entrada no histórico:');if(!entry||!entry.trim())return;
-
-  // Deduplicação: não envia se a última entrada já contém o mesmo texto
-  const lastHist = (d.historico||'').split('\n').pop()||'';
-  if(lastHist.includes(entry.trim())){
-    showToast('Entrada já existe no histórico.',false);return;
-  }
-
-  _isAddingHist = true;
-  const editor=_currentSession.user||_currentSession.role||'dashboard';
-  const hCtrl = new AbortController();
-  const hTid = setTimeout(() => hCtrl.abort(), 12000);
-  try{
-    let hSaved = false;
-    try {
-      const hResp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''}),
-        signal: hCtrl.signal
-      });
-      clearTimeout(hTid);
-      const hResult = await hResp.json();
-      if(hResult.ok || hResult.dedup) hSaved = true;
-    } catch(e) {
-      clearTimeout(hTid);
-      // Fallback: Apps Script
-      const hPayload = JSON.stringify({id:d.id,field:'historico',value:entry.trim(),append:true,editor,equipamento:d.equipamento||'',numeroOS:d.numeroOS||''});
-      navigator.sendBeacon(APPS_SCRIPT_URL, new Blob([hPayload],{type:'text/plain'}));
-      hSaved = true; // otimista
-    }
-    if(hSaved) {
-      const now=new Date();
-      const dateStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      d.historico=d.historico?`${d.historico}\n${dateStr} - ${entry.trim()}`:`${dateStr} - ${entry.trim()}`;
-      showToast('Entrada adicionada ao histórico!',true);
-      _renderDrawer();
-    }
-  }catch(err){
-    clearTimeout(hTid);
-    showToast('Erro ao adicionar ao histórico.',false);
-  }finally{
-    _isAddingHist = false;
-  }
-}
-
-/* ══ SOLICITAR OS — gera texto de abertura de OS via IA, contextualizado ══ */
 // ══ TEMPLATES DE OS — baseado nos padrões reais usados em campo ══════════
 // Limpa o texto usado como "equipamento" nos títulos do gerador local.
 // No "Solicitar OS rápida" o campo equipamento recebe o texto livre inteiro
@@ -10329,38 +8997,6 @@ Comentários:
 * Caso a intervenção exija desligamento do inversor, da usina, de um SKID ou da Cabine de Medição Primária, obter autorização do COS antes de iniciar e comunicar a conclusão ao final.`;
 }
 
-async function _converterOcorrenciaEmAtividade() {
-  const d = _drawerList[_drawerIndex]; if (!d) return;
-  const confirmar = confirm(
-    `Transformar esta ocorrência em atividade?\n\n` +
-    `${d.equipamento} — ${d.falha}\n\n` +
-    `O histórico completo será transferido para a nova atividade, e esta ocorrência ` +
-    `será marcada como "Convertida em Atividade".`
-  );
-  if (!confirmar) return;
-
-  const btn = document.getElementById('drawerConverterAtivBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Convertendo…'; }
-  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
-
-  try {
-    const resp = await fetch('https://api.168.138.232.237.sslip.io/converter-ocorrencia-em-atividade', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ id: d.id, editor })
-    });
-    const result = await resp.json();
-    if (!result.ok) throw new Error(result.error || 'Erro ao converter');
-
-    showToast(`Convertida! Nova atividade #${result.novaAtividadeId} criada.`, true);
-    document.getElementById('drawer')?.classList.remove('open');
-    document.getElementById('drawerBackdrop')?.classList.remove('open');
-    if (typeof carregarAtividades === 'function') carregarAtividades();
-  } catch (e) {
-    showToast('Erro ao converter ocorrência: ' + (e.message||''), false);
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Transformar em Atividade'; }
-  }
-}
 
 // Converte o texto antigo "Título: ...\nComentários:\n\n• ..." (formato do
 // gerador local de fallback, usado só quando a IA falha) nos 3 campos da
@@ -10615,424 +9251,16 @@ function _wireCopiaCamposOS(container) {
   });
 }
 
-async function _solicitarOS() {
-  const d=_drawerList[_drawerIndex]; if(!d)return;
-
-  const overlay=document.getElementById('osOverlay');
-  const loading=document.getElementById('osModalLoading');
-  const result=document.getElementById('osModalResult');
-  const errorBox=document.getElementById('osModalError');
-  overlay.style.display='flex';
-  loading.style.display='flex';
-  result.style.display='none';
-  errorBox.style.display='none';
-
-  let osList;
-  try {
-    osList = await _gerarTextosOSComIA(d);
-  } catch (errIA) {
-    console.error('[Gemini] Falhou, usando fallback local:', errIA);
-    showToast('IA indisponível (' + (errIA.message||'erro desconhecido') + ') — usando modelo padrão.', false);
-    try {
-      osList = [_dividirTextoOSAntigo(_gerarTextoOS(d))]; // fallback: gerador local baseado em regras
-    } catch (err) {
-      loading.style.display='none';
-      errorBox.style.display='block';
-      errorBox.textContent = 'Erro ao gerar texto: ' + (err.message||'');
-      return;
-    }
-  }
-  const container = document.getElementById('osModalCamposContainer');
-  container.innerHTML = _htmlCamposOS(osList);
-  _wireCopiaCamposOS(container);
-  loading.style.display='none';
-  result.style.display='block';
-}
 
 document.getElementById('osModalClose')?.addEventListener('click', () => { document.getElementById('osOverlay').style.display='none'; });
 document.getElementById('osOverlay')?.addEventListener('click', e => { if(e.target.id==='osOverlay') document.getElementById('osOverlay').style.display='none'; });
 
 
-/* ══ VERIFICAR RONDAS ══
-   ⚠ URL CORRIGIDA: whatsapp-painel-falhas.onrender.com
-   (o nome real do serviço Python no Render)
-══ */
-const RONDAS_URL = 'https://api.168.138.232.237.sslip.io';
-
-async function verificarRondas() {
-  const btn=document.getElementById('rondasInlineBtn');
-  if(btn){btn.disabled=true;btn.classList.add('loading');btn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Buscando…`;}
-  try {
-    const res=await fetch(`${RONDAS_URL}/rondas`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({horas:6})});
-    if(!res.ok)throw new Error(`Servidor retornou ${res.status}`);
-    const data=await res.json();
-    if(!data.ok)throw new Error(data.error||'Erro desconhecido');
-    const novos=(data.novos||[]);const atualizados=(data.atualizados||[]);const normalizados=(data.normalizados||[]);const ignorados=data.ignorados||0;
-    const totalAcoes=novos.length+atualizados.length+normalizados.length;
-
-    // Monta chips clicáveis para cada grupo de ocorrências
-    function makeChips(lista, cor) {
-      if(!lista||lista.length===0) return '';
-      return `<div class="rondas-item-list open">`+
-        lista.map(item=>{
-          const usina=typeof item==='object'?item.usina:item;
-          const id=typeof item==='object'?item.id:'';
-          return `<span class="rondas-item-chip" data-usina="${esc(usina||'')}" data-id="${esc(String(id||''))}" style="border-color:${cor}33;color:${cor};">
-            <svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5;"><polyline points="9 18 15 12 9 6"/></svg>
-            ${esc(usina||'')}${id?' · #'+id:''}
-          </span>`;
-        }).join('')+`</div>`;
-    }
-
-    // Reseta para modo resultado (esconde 2 colunas se estava aberto)
-    document.getElementById('rondasBodyGrupos').style.display = 'none';
-    document.getElementById('rondasResult').style.display = '';
-    document.getElementById('rondasModalTitulo').textContent = 'Verificar Rondas';
-
-    document.getElementById('rondasResult').innerHTML=`
-      <div class="rondas-result-row clickable" id="rr-novos">
-        <span style="color:var(--text-dim)">Novas ocorrências criadas</span>
-        <span class="rondas-result-num" style="color:var(--amber)">${novos.length}</span>
-      </div>
-      ${makeChips(novos,'var(--amber)')}
-      <div class="rondas-result-row clickable" id="rr-atualizados">
-        <span style="color:var(--text-dim)">Ocorrências atualizadas</span>
-        <span class="rondas-result-num" style="color:var(--teal)">${atualizados.length}</span>
-      </div>
-      ${makeChips(atualizados,'var(--teal)')}
-      <div class="rondas-result-row clickable" id="rr-normalizados">
-        <span style="color:var(--text-dim)">Normalizadas / Concluídas</span>
-        <span class="rondas-result-num" style="color:var(--sla-ok)">${normalizados.length}</span>
-      </div>
-      ${makeChips(normalizados,'var(--sla-ok)')}
-      <div class="rondas-result-row">
-        <span style="color:var(--text-faint)">Sem dados relevantes</span>
-        <span class="rondas-result-num" style="color:var(--text-faint)">${ignorados}</span>
-      </div>
-      ${totalAcoes>0
-        ?`<div style="margin-top:12px;padding:10px 12px;background:rgba(63,165,140,.08);border:1px solid rgba(63,165,140,.25);border-radius:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--teal);">Planilha atualizada.</div>`
-        :`<div style="margin-top:12px;padding:10px 12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);">Nenhuma ronda nova encontrada nas últimas 6h</div>`
-      }
-      <div style="margin-top:8px;font-family:'Poppins',monospace;font-size:13px;color:var(--text-faint);">Informações duplicadas são ignoradas automaticamente.</div>
-    `;
-
-    // Chips clicáveis — abre drawer do card correspondente
-    document.querySelectorAll('.rondas-item-chip').forEach(chip=>{
-      chip.addEventListener('click', ()=>{
-        const id=chip.dataset.id;
-        const usina=chip.dataset.usina;
-        document.getElementById('rondasOverlay').classList.remove('open');
-        // Tenta abrir pelo ID primeiro, depois pela usina
-        if(id){
-          setTimeout(()=>openModal(id), 200);
-        } else if(usina){
-          const d=DATA.find(x=>x.usina===usina);
-          if(d) setTimeout(()=>openModal(d.id), 200);
-        }
-      });
-    });
-
-    // Botão buscar rondas por grupo
-    const btnGrupos=document.getElementById('btnBuscarGrupos');
-    if(btnGrupos) btnGrupos.addEventListener('click', buscarRondasPorGrupo);
-
-    document.getElementById('rondasOverlay').classList.add('open');
-  } catch(err) {
-    showToast(`Erro ao verificar rondas: ${err.message}`,false);console.error('[Rondas]',err);
-  } finally {
-    if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=`<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Verificar rondas agora`;}
-  }
-}
-
-/* ══ BUSCAR RONDAS POR GRUPO ══ */
-const GRUPOS_NOMES = {
-  '120363423233716775@g.us': '[O&M] Renogrid',
-  '120363423427343356@g.us': '[O&M] Thopen',
-  '120363402559504115@g.us': '[O&M] 2C',
-  '120363426381032089@g.us': '[O&M] Alves Lima',
-  '120363423844956611@g.us': '[O&M] GD Energy',
-  '120363421162420788@g.us': 'COS Centro-Oeste',
-  '120363425837962709@g.us': 'COS Sul',
-  '120363402176878100@g.us': 'COS Nordeste',
-  '120363423533840348@g.us': 'COS Sudeste',
-  '120363421052607450@g.us': 'COS Norte',
-};
-
-/* Estado dos grupos carregados */
-let _rondasGruposData = [];
-let _rondasGrupoAtivo = null;
-
-async function buscarRondasPorGrupo() {
-  const btn = document.getElementById('btnBuscarGrupos');
-  if(btn){ btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;animation:spin .7s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Buscando…`; btn.style.opacity='.6'; btn.disabled=true; }
-
-  try {
-    const res = await fetch(`${RONDAS_URL}/rondas/grupos`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({horas: 24})
-    });
-    if(!res.ok) throw new Error(`Servidor retornou ${res.status}`);
-    const data = await res.json();
-    _rondasGruposData = data.grupos || [];
-
-    // Mostra layout de 2 colunas
-    document.getElementById('rondasResult').style.display = 'none';
-    document.getElementById('rondasBodyGrupos').style.display = 'flex';
-    document.getElementById('rondasModalTitulo').textContent = 'Rondas — Últimas 24h';
-
-    // Monta sidebar
-    renderRondasSidebar();
-
-    // Seleciona o primeiro grupo com mensagens automaticamente
-    const comMsgs = _rondasGruposData.find(g => g.total > 0);
-    if(comMsgs) selecionarGrupoRonda(comMsgs.id);
-    else selecionarGrupoRonda(_rondasGruposData[0]?.id);
-
-  } catch(err) {
-    showToast('Erro ao buscar grupos: ' + err.message, false);
-  } finally {
-    if(btn){
-      btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Últimas rondas por grupo`;
-      btn.style.opacity='1'; btn.disabled=false;
-    }
-  }
-}
-
-function renderRondasSidebar() {
-  const sidebar = document.getElementById('rondasSidebar');
-  if(!sidebar) return;
-
-  sidebar.innerHTML = _rondasGruposData.map(g => {
-    const nome = GRUPOS_NOMES[g.id] || g.id;
-    const temMsgs = (g.total||0) > 0;
-    const temPendente = (g.mensagens||[]).some(m => !m.processado);
-    const dotCls = temPendente ? 'has-pendentes' : temMsgs ? 'has-msgs' : '';
-    return `<div class="rondas-grupo-item" data-gid="${esc(g.id)}" title="${esc(nome)}">
-      <div class="rg-dot ${dotCls}"></div>
-      <div class="rg-info">
-        <div class="rg-nome">${esc(nome)}</div>
-        <div class="rg-count">${g.total||0} msgs</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  sidebar.querySelectorAll('.rondas-grupo-item').forEach(el => {
-    el.addEventListener('click', () => selecionarGrupoRonda(el.dataset.gid));
-  });
-}
-
-function selecionarGrupoRonda(gid) {
-  if(!gid) return;
-  _rondasGrupoAtivo = gid;
-
-  // Atualiza sidebar
-  document.querySelectorAll('.rondas-grupo-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.gid === gid);
-  });
-
-  const grupo = _rondasGruposData.find(g => g.id === gid);
-  if(!grupo) return;
-
-  const nome = GRUPOS_NOMES[gid] || gid;
-  document.getElementById('rondasGrupoTitulo').textContent = nome;
-  document.getElementById('rondasGrupoSub').textContent =
-    `${grupo.total||0} mensagem(s) nas últimas 24h`;
-
-  const lista = document.getElementById('rondasMsgsList');
-  if(!lista) return;
-
-  const msgs = grupo.mensagens || [];
-  if(msgs.length === 0) {
-    lista.innerHTML = `<div class="rondas-empty">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Nenhuma mensagem nas últimas 24h</span>
-    </div>`;
-    return;
-  }
-
-  // Renderiza cards de mensagem
-  // O backend retorna do mais antigo para o mais novo → último índice = mais recente
-  const ultimoIdx = msgs.length - 1;
-  lista.innerHTML = msgs.map((m, mi) => {
-    const isLatest = mi === ultimoIdx;
-    const procBadge = m.processado
-      ? `<span class="ronda-msg-badge proc">✅ processado</span>`
-      : `<span class="ronda-msg-badge pend">⏳ pendente</span>`;
-    const ts = m.timestamp
-      ? `<span class="ronda-msg-ts">${esc(m.timestamp)}</span>`
-      : '';
-    const texto = esc(m.texto || '');
-    // Card mais recente: aberto por padrão. Antigos: fechados por padrão
-    const bodyOpen = isLatest ? 'open' : '';
-    const iconOpen = isLatest ? 'open' : '';
-    const latestClass = isLatest ? 'latest' : '';
-    const latestLabel = isLatest
-      ? `<span style="font-family:'Poppins',monospace;font-size:13px;color:var(--teal);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-left:4px;">↑ mais recente</span>`
-      : '';
-    return `<div class="ronda-msg-card ${latestClass}">
-      <div class="ronda-msg-card-head" data-card="${gid}-${mi}">
-        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-          ${ts}${latestLabel}
-        </div>
-        ${procBadge}
-        <button class="ronda-msg-toggle-icon ${iconOpen}" data-card="${gid}-${mi}" title="${isLatest?'Recolher':'Expandir'}">
-          <svg viewBox="0 0 24 24"><polyline points="${isLatest?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg>
-        </button>
-      </div>
-      <div class="ronda-msg-body ${bodyOpen}" id="rmb-${gid.replace(/[^a-z0-9]/gi,'-')}-${mi}">${texto}</div>
-    </div>`;
-  }).join('');
-
-  // Toggle de cada card
-  lista.querySelectorAll('.ronda-msg-card-head').forEach(head => {
-    head.addEventListener('click', () => {
-      const [gidPart, miPart] = head.dataset.card.split(/(?<=\D)(?=\d+$)/);
-      // reconstrói o id do body: rmb-{gid_safe}-{mi}
-      const card = head.closest('.ronda-msg-card');
-      const body = card?.querySelector('.ronda-msg-body');
-      const icon = head.querySelector('.ronda-msg-toggle-icon');
-      if(!body) return;
-      const isOpen = body.classList.toggle('open');
-      icon?.classList.toggle('open', isOpen);
-      if(icon) {
-        icon.title = isOpen ? 'Recolher' : 'Expandir';
-        icon.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="${isOpen?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/></svg>`;
-      }
-    });
-  });
-
-  // Scroll para o topo
-  lista.scrollTop = 0;
-}
-
-try {
-  document.getElementById('rondasInlineBtn')?.addEventListener('click', verificarRondas);
-  document.getElementById('rondasCloseBtn')?.addEventListener('click',()=>document.getElementById('rondasOverlay').classList.remove('open'));
-  document.getElementById('rondasOverlay')?.addEventListener('click',e=>{if(e.target.id==='rondasOverlay')document.getElementById('rondasOverlay').classList.remove('open');});
-  document.getElementById('logHistoricoBtn')?.addEventListener('click', () => {
-    // Carrega rondas e direciona a visualização para a seção Log Histórico
-    buscarRondasPorGrupoInline();
-  });
-} catch(e){}
-
-/* Versão inline do "buscar rondas por grupo" — usada na seção Log Histórico */
-let _logMsgsCache = []; // cache plano de {grupo, texto, data} para o modal abrir pelo índice
-
-async function buscarRondasPorGrupoInline() {
-  const body = document.getElementById('logHistoricoBody');
-  if (!body) return;
-  body.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-faint);font-family:'Poppins',monospace;font-size:12px;">Carregando…</div>`;
-  try {
-    const res = await fetch(`${RONDAS_URL}/rondas/grupos`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({horas:24}) });
-    if (!res.ok) throw new Error(`Servidor retornou ${res.status}`);
-    const data = await res.json();
-    const grupos = data.grupos || [];
-    _logMsgsCache = [];
-
-    body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;">` +
-      grupos.map(g => {
-        const nome = GRUPOS_NOMES[g.id] || g.id;
-        const msgs = (g.mensagens||[]).slice(-5); // até 5 mensagens mais recentes por grupo
-        const msgsHtml = msgs.length ? msgs.map(m => {
-          const texto = m.texto || '';
-          const idx = _logMsgsCache.length;
-          _logMsgsCache.push({ grupo: nome, texto, data: m.data || m.timestamp || '' });
-          const precisaExpandir = texto.length > 320;
-          return `<div class="log-msg-card" data-msg-idx="${idx}" title="Clique para expandir">
-            <div class="log-msg-text">${esc(texto.slice(0,320))}${precisaExpandir?'…':''}</div>
-            ${precisaExpandir?'<div class="log-msg-expand">Ver mensagem completa →</div>':''}
-          </div>`;
-        }).join('') : `<div style="font-size:13px;color:var(--text-faint);padding:8px 0;">Sem mensagens</div>`;
-        return `<div class="panel" style="display:flex;flex-direction:column;max-height:420px;">
-          <div class="panel-head" style="flex:none;"><h3>${esc(nome)}</h3><span class="panel-total">${g.total||0} msgs</span></div>
-          <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;padding-right:4px;">${msgsHtml}</div>
-        </div>`;
-      }).join('') + `</div>`;
-
-    body.querySelectorAll('[data-msg-idx]').forEach(el => {
-      el.addEventListener('click', () => _openMsgModal(parseInt(el.dataset.msgIdx,10)));
-    });
-  } catch(err) {
-    body.innerHTML = `<div class="empty-state"><strong>Erro ao carregar</strong>${esc(err.message)}</div>`;
-  }
-}
-
-function _openMsgModal(idx) {
-  const m = _logMsgsCache[idx];
-  if (!m) return;
-  document.getElementById('msgModalGrupo').textContent = m.grupo;
-  document.getElementById('msgModalMeta').textContent = m.data || '';
-  document.getElementById('msgModalBody').textContent = m.texto;
-  document.getElementById('msgOverlay').style.display = 'flex';
-}
-document.getElementById('msgModalClose')?.addEventListener('click', () => { document.getElementById('msgOverlay').style.display='none'; });
-document.getElementById('msgOverlay')?.addEventListener('click', e => { if(e.target.id==='msgOverlay') document.getElementById('msgOverlay').style.display='none'; });
 
 
 
-try { document.getElementById('drawerClose').addEventListener('click',closeModal); } catch(e){}
-document.getElementById('drawerBackdrop').addEventListener('click',closeModal);
-document.getElementById('drawerPrev').addEventListener('click',()=>_navigateDrawer(-1));
-document.getElementById('drawerNext').addEventListener('click',()=>_navigateDrawer(1));
-document.getElementById('drawerSaveBtn').addEventListener('click',_saveDrawerToSheet);
-document.getElementById('drawerHistBtn').addEventListener('click',_addHistoryEntry);
-document.getElementById('drawerOsBtn').addEventListener('click',_solicitarOS);
-document.getElementById('drawerConverterAtivBtn')?.addEventListener('click',_converterOcorrenciaEmAtividade);
-document.addEventListener('keydown',e=>{const drawerOpen=document.getElementById('drawer').classList.contains('open');if(e.key==='Escape'){closeModal();closeChamados();}if(!drawerOpen)return;if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();_navigateDrawer(-1);}if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();_navigateDrawer(1);}});
-
-/* ══ VIEW MODE ══ */
-let viewMode='cards';let tablePage=1;let tablePageSize=20;let tableSortKey='id';let tableSortDir=1;let _lastSorted=[];
-document.getElementById('viewCards').addEventListener('click',()=>setViewMode('cards'));
-document.getElementById('viewTable').addEventListener('click',()=>setViewMode('table'));
-function setViewMode(mode){viewMode=mode;document.getElementById('viewCards').classList.toggle('active',mode==='cards');document.getElementById('viewTable').classList.toggle('active',mode==='table');document.getElementById('sortGroup').style.display=mode==='cards'?'flex':'none';if(mode==='cards'){document.getElementById('cardGrid').style.display='';document.getElementById('tableWrap').style.display='none';renderCards(_lastSorted);}else{document.getElementById('cardGrid').style.display='none';document.getElementById('tableWrap').style.display='';tablePage=1;renderTable(_lastSorted);}}
-
-
-/* ══ TABELA ══ */
-const TABLE_COLS=[{key:'id',label:'ID',sortable:true,width:'56px'},{key:'usina',label:'Cliente / Usina',sortable:true,width:'155px'},{key:'equip',label:'Equipamento',sortable:true,width:'165px'},{key:'falha',label:'Falha',sortable:false,width:''},{key:'status',label:'Status',sortable:true,width:'140px'},{key:'age',label:'Idade',sortable:true,width:'130px'},{key:'ticket',label:'Ticket',sortable:false,width:'110px'},{key:'det',label:'',sortable:false,width:'72px'}];
-function sortTableData(data){return[...data].sort(function(a,b){var va,vb;if(tableSortKey==='id'){va=+a.id;vb=+b.id;}else if(tableSortKey==='newest'){return +b.id-+a.id;}else if(tableSortKey==='usina'){va=a.usina;vb=b.usina;}else if(tableSortKey==='equip'){va=a.equipamento;vb=b.equipamento;}else if(tableSortKey==='status'){va=a.status;vb=b.status;}else if(tableSortKey==='age'){va=getFaultAgeDays(a);if(va===null)va=-999;vb=getFaultAgeDays(b);if(vb===null)vb=-999;}else return 0;if(typeof va==='string')return va.localeCompare(vb)*tableSortDir;return(va-vb)*tableSortDir;});}
-function renderTable(data){
-  var wrap=document.getElementById('tableWrap');
-  if(!data||data.length===0){wrap.innerHTML='<div class="empty-state" style="grid-column:unset"><strong>Nenhum ativo encontrado</strong>Não há registros para os filtros selecionados.<br><button class="reset-link" id="emptyReset2">Limpar filtros</button></div>';var er=document.getElementById('emptyReset2');if(er)er.addEventListener('click',clearFilters);return;}
-  var sorted=sortTableData(data);var total=sorted.length;var pages=Math.ceil(total/tablePageSize);if(tablePage>pages)tablePage=pages;var start=(tablePage-1)*tablePageSize;var pageData=sorted.slice(start,start+tablePageSize);
-  var thCells=TABLE_COLS.map(function(col){var isSorted=col.sortable&&tableSortKey===col.key;var arrowUp='<svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>';var arrowDown='<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';var arrow=tableSortDir===1?arrowUp:arrowDown;var sortIcon=col.sortable?'<span class="th-sort-icon">'+(isSorted?arrow:arrowUp)+'</span>':'';var cls=(col.sortable?'sortable':'')+(isSorted?' th-sorted':'');var wstyle=col.width?' style="width:'+col.width+';min-width:'+col.width+'"':'';var dcol=col.sortable?' data-col="'+col.key+'"':'';return'<th class="'+cls+'"'+wstyle+dcol+'>'+col.label+sortIcon+'</th>';}).join('');
-  var rows=pageData.map(function(d){var cc=clientColor(d.cliente);var sc=statusColor(d.status);var ageDays=getFaultAgeDays(d);var slaClass=getSlaClass(ageDays);var ageText=agePillText(ageDays);var trClass=isSlaBreached(d)?'tr-breach':(isSlaWarning(d)||(ageDays!==null&&ageDays>=10))?'tr-warning':'';var ageIcon=(slaClass==='age-breach')?'<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>':'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';var ticketHTML=isValidTicket(d.ticketFabricante)?esc(d.ticketFabricante):'—';var ticketCls=isValidTicket(d.ticketFabricante)?'td-ticket':'td-ticket empty';var staleDays2=getStaleDays(d);var stalePillTd=(staleDays2!==null&&staleDays2>=STALE_DAYS)?'<span class="td-stale-pill" style="margin-left:5px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+staleDays2+'d parado</span>':'';
-  return'<tr class="'+trClass+'" data-id="'+esc(d.id)+'" tabindex="0">'+'<td class="td-id">#'+d.id.padStart(2,'0')+'</td>'+'<td class="td-usina"><span class="td-client-tag" style="background:'+cc.color+'22;color:'+cc.color+';border:1px solid '+cc.color+'44;">'+esc(d.cliente)+'</span><div class="td-usina-name">'+esc(d.usina)+'</div></td>'+'<td class="td-equip">'+esc(d.equipamento)+'</td>'+'<td class="td-falha"><div class="td-falha-text" title="'+esc(d.falha)+'">'+esc(d.falha)+'</div></td>'+'<td class="td-status"><span class="td-status-chip" style="background:'+statusBg(d.status)+';border-color:'+statusBorder(d.status)+';color:'+sc+'">'+esc(d.status)+'</span></td>'+'<td class="td-age"><span class="td-age-pill '+slaClass+'">'+ageIcon+esc(ageText)+'</span>'+stalePillTd+'</td>'+'<td class="'+ticketCls+'">'+ticketHTML+'</td>'+'<td class="td-action"><button class="td-see-btn" data-id="'+esc(d.id)+'">Ver <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></td>'+'</tr>';}).join('');
-  var pageBtns='';if(pages>1){var maxBtns=5;var sp=Math.max(1,tablePage-Math.floor(maxBtns/2));var ep=Math.min(pages,sp+maxBtns-1);if(ep-sp<maxBtns-1)sp=Math.max(1,ep-maxBtns+1);if(sp>1)pageBtns+='<button class="page-btn" data-p="1">1</button>'+(sp>2?'<span style="color:var(--text-faint);padding:0 4px">…</span>':'');for(var p=sp;p<=ep;p++)pageBtns+='<button class="page-btn'+(p===tablePage?' active':'')+'" data-p="'+p+'">'+p+'</button>';if(ep<pages)pageBtns+=(ep<pages-1?'<span style="color:var(--text-faint);padding:0 4px">…</span>':'')+'<button class="page-btn" data-p="'+pages+'">'+pages+'</button>';}
-  var rowOpts=[10,20,50,100].map(function(n){return'<option value="'+n+'"'+(tablePageSize===n?' selected':'')+'>'+n+'</option>';}).join('');
-  wrap.innerHTML='<table class="fault-table"><thead><tr>'+thCells+'</tr></thead><tbody>'+rows+'</tbody></table><div class="table-pagination"><div class="page-info">Exibindo '+(start+1)+'–'+Math.min(start+tablePageSize,total)+' de '+total+' registros</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:13px;color:var(--text-faint);font-family:\'IBM Plex Mono\',monospace;">linhas:</span><select class="rows-select" id="rowsSelect">'+rowOpts+'</select></div><div class="page-btns"><button class="page-btn" data-p="'+(tablePage-1)+'"'+(tablePage===1?' disabled':'')+'>‹</button>'+pageBtns+'<button class="page-btn" data-p="'+(tablePage+1)+'"'+(tablePage===pages?' disabled':'')+'>›</button></div></div></div>';
-  wrap.querySelectorAll('th.sortable').forEach(function(th){th.addEventListener('click',function(){var col=th.dataset.col;if(tableSortKey===col)tableSortDir*=-1;else{tableSortKey=col;tableSortDir=1;}renderTable(data);});});
-  wrap.querySelectorAll('tbody tr').forEach(function(tr){tr.addEventListener('click',function(){openModal(tr.dataset.id);});tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openModal(tr.dataset.id);}});});
-  wrap.querySelectorAll('.td-see-btn').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();openModal(btn.dataset.id);});});
-  wrap.querySelectorAll('.page-btn:not([disabled])').forEach(function(btn){btn.addEventListener('click',function(){tablePage=parseInt(btn.dataset.p);renderTable(data);});});
-  var rowsSel=wrap.querySelector('#rowsSelect');if(rowsSel)rowsSel.addEventListener('change',function(){tablePageSize=parseInt(rowsSel.value);tablePage=1;renderTable(data);});
-}
-
-/* ══ SORT BUTTONS ══ */
-document.querySelectorAll('.sort-btn').forEach(btn=>{btn.addEventListener('click',()=>{sortKey=btn.dataset.sort;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applySortAndRender();});});
 
 /* ══ LISTENERS ══ */
-// Abas Ativas / Histórico
-document.getElementById('tabAtivas').addEventListener('click', () => {
-  activeTab = 'ativas';
-  document.getElementById('tabAtivas').classList.add('active');
-  document.getElementById('tabHistorico').classList.remove('active');
-  // Reseta filtros de SLA, desligamento e inversores ao trocar aba
-  activeSlaFilter = false; activeDesligFilter = false; activeInvFilter = false;
-  document.getElementById('slaBanner').classList.remove('active-filter');
-  document.getElementById('desligBanner').classList.remove('active-filter');
-  applyFilters();
-});
-document.getElementById('tabHistorico').addEventListener('click', () => {
-  activeTab = 'historico';
-  document.getElementById('tabHistorico').classList.add('active');
-  document.getElementById('tabAtivas').classList.remove('active');
-  activeSlaFilter = false; activeDesligFilter = false; activeInvFilter = false;
-  document.getElementById('slaBanner').classList.remove('active-filter');
-  document.getElementById('desligBanner').classList.remove('active-filter');
-  applyFilters();
-});
-
 // Busca por número de OS no cabeçalho central — procura primeiro em
 // Atividades, depois em Falhas/Ocorrências, e abre o card certo trocando
 // de seção automaticamente (mesmo padrão usado no deep-link de push:
@@ -11115,8 +9343,6 @@ document.getElementById('updateBtn').addEventListener('click', () => {
   if (_activeNav === 'visao-geral') { ATIVIDADES = []; _vgEntrar(); return; }
   carregarAtividades();
 });
-document.getElementById('slaBanner').addEventListener('click',()=>{activeSlaFilter=!activeSlaFilter;document.getElementById('slaBanner').classList.toggle('active-filter',activeSlaFilter);if(activeSlaFilter)document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});applyFilters();});
-document.getElementById('desligBanner').addEventListener('click', toggleDesligFilter);
 
 /* ══ SKETCHBOOK / ANOTAÇÕES ══ */
 let ANOTACOES = [];
@@ -12925,7 +11151,7 @@ const ZEL_GID='987654321';
 
 function zelNormalizeStatus(raw){const v=(raw||'').toLowerCase().trim();if(v.includes('andamento')||v.includes('execuc')||v.includes('progress'))return 'Em Andamento';if(v.includes('conclu')||v.includes('realiz')||v.includes('done')||v.includes('feito'))return 'Concluído';if(v.includes('atras')||v.includes('vencid')||v.includes('overdue'))return 'Atrasado';if(v.includes('agend')||v.includes('program')||v.includes('scheduled'))return 'Agendado';if(v===''||v.includes('pend')||v.includes('aguard'))return 'Pendente';return raw||'Pendente';}
 function zelFormatDate(raw){if(!raw||raw==='—'||raw==='-')return '';if(/^\d{2}\/\d{2}\/\d{4}$/.test(raw))return raw;if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(raw)){const[m,d,y]=raw.split('/');return`${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;}if(/^\d{4}-\d{2}-\d{2}/.test(raw)){const[y,m,d]=raw.substring(0,10).split('-');return`${d}/${m}/${y}`;}return raw;}
-function zelEmptyFromData(){const usinas=[...new Map(DATA.map(d=>[d.usina,{cliente:d.cliente,usina:d.usina}])).values()];function makeEmpty(list){return list.map((u,i)=>({id:`${u.usina}_empty_${i}`,cliente:u.cliente,usina:u.usina,status:'Pendente',previsto:'',realizado:'',prox:'',qtd:'',obs:''}));}return{limpeza:makeEmpty(usinas),supressao:makeEmpty(usinas),poda:makeEmpty(usinas)};}
+function zelEmptyFromData(){const usinas=[...new Map(((typeof _mapUfvsCache!=='undefined'&&Array.isArray(_mapUfvsCache))?_mapUfvsCache:[]).map(d=>[d.usina,{cliente:d.cliente,usina:d.usina}])).values()];function makeEmpty(list){return list.map((u,i)=>({id:`${u.usina}_empty_${i}`,cliente:u.cliente,usina:u.usina,status:'Pendente',previsto:'',realizado:'',prox:'',qtd:'',obs:''}));}return{limpeza:makeEmpty(usinas),supressao:makeEmpty(usinas),poda:makeEmpty(usinas)};}
 function zelMergeEdits(novo){try{const saved=localStorage.getItem('om_zeladorias_edits');if(!saved)return;const edits=JSON.parse(saved);Object.keys(novo).forEach(tipo=>{novo[tipo].forEach(row=>{const key=row.usina+'_'+tipo;if(edits[key]){if(edits[key].status!==undefined)row.status=edits[key].status;if(edits[key].obs!==undefined)row.obs=edits[key].obs;}});});}catch(e){}}
 function zelSaveEdit(usina,tipo,field,value){try{const saved=localStorage.getItem('om_zeladorias_edits');const edits=saved?JSON.parse(saved):{};const key=usina+'_'+tipo;if(!edits[key])edits[key]={};edits[key][field]=value;localStorage.setItem('om_zeladorias_edits',JSON.stringify(edits));}catch(e){}}
 function zelSave(showBadge){if(!_zelFromSheet)localStorage.setItem('om_zeladorias',JSON.stringify(zelData));if(showBadge!==false){const badge=document.getElementById('zelSaveBadge');if(badge){badge.classList.add('show');clearTimeout(_zelTimer);_zelTimer=setTimeout(()=>badge.classList.remove('show'),2200);}}}
@@ -14596,9 +12822,9 @@ function _openNovaOcorrencia() {
     selCli.innerHTML = clientes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
     selCli.onchange = () => {
       const cli = selCli.value;
-      const usinasFalhas = DATA.filter(d => d.cliente===cli).map(d => d.usina);
+      const usinasMapa = _usinasDoMapaPorCliente(cli);
       const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => a.cliente===cli).map(a => a.usina) : []);
-      const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
+      const usinas = [...new Set([...usinasMapa, ...usinasAtiv].filter(Boolean))].sort();
       const selU = document.getElementById('novaOcUsina');
       if (selU) selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
@@ -18885,9 +17111,9 @@ function _openNovaAtividade() {
         selU.innerHTML = `<option value="${esc(cli)}">${esc(cli)}</option>`;
         return;
       }
-      const usinasFalhas = DATA.filter(d => d.cliente===cli).map(d => d.usina);
+      const usinasMapa = _usinasDoMapaPorCliente(cli);
       const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => a.cliente===cli).map(a => a.usina) : []);
-      const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
+      const usinas = [...new Set([...usinasMapa, ...usinasAtiv].filter(Boolean))].sort();
       usinas.push('Geral', 'Administrativo');
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
@@ -19191,132 +17417,6 @@ async function _submeterNovaOcorrencia() {
   }
 }
 
-/* ══ EFICIÊNCIA O&M ══ */
-function renderEficiencia() {
-  const kpisEl  = document.getElementById('efKpis');
-  const panelsEl = document.getElementById('efPanels');
-  if (!kpisEl || !panelsEl) return;
-
-  const agora = new Date();
-  const seteDias = new Date(agora - 7*24*3600*1000);
-
-  // ── Métricas globais ──────────────────────────────────────────────────
-  const todas = DATA; // inclui ativas e histórico
-  const ativas = todas.filter(d => !isConcluido(d));
-  const concluidas = todas.filter(d => isConcluido(d));
-
-  // MTTR: média T1+T2+T4 das ocorrências concluídas (mesma lógica da tela Falhas)
-  const mttrVal = getMTTR(concluidas);
-  const mttr = mttrVal !== null ? mttrVal.toFixed(1) : '—';
-  const countT = concluidas.filter(d => getTempoAtivoOM(d) !== null).length;
-
-  // T3 médio (tempo aguardando fabricante)
-  let somaT3 = 0, countT3 = 0;
-  todas.forEach(d => {
-    const t3 = getT3Days(d);
-    if (t3 !== null) { somaT3 += t3; countT3++; }
-  });
-  const avgT3 = countT3 > 0 ? (somaT3/countT3).toFixed(1) : '—';
-
-  // Backlog: ocorrências abertas há mais de 30 dias
-  const backlog = ativas.filter(d => {
-    const ab = getOpenDate(d);
-    return ab && (agora - ab) > 30*24*3600*1000;
-  }).length;
-
-  // Resolvidas (7d): fechadas nos últimos 7 dias (mesma lógica da tela Falhas)
-  const resol7d = concluidas.filter(d => {
-    const fech = _parseFechamentoDate(d);
-    return fech && fech >= seteDias;
-  }).length;
-
-  // Distribuição T1 (tempo resposta equipe) por faixa
-  const t1Dist = {'< 1d':0,'1–3d':0,'3–7d':0,'> 7d':0};
-  todas.forEach(d => {
-    const t1 = getT1Days(d);
-    if (t1 === null) return;
-    if (t1 < 1) t1Dist['< 1d']++;
-    else if (t1 <= 3) t1Dist['1–3d']++;
-    else if (t1 <= 7) t1Dist['3–7d']++;
-    else t1Dist['> 7d']++;
-  });
-
-  // Distribuição por categoria de falha
-  const catMap = {};
-  todas.forEach(d => {
-    const cat = d.causa || 'Não informado';
-    catMap[cat] = (catMap[cat]||0) + 1;
-  });
-
-  // ── KPIs ──────────────────────────────────────────────────────────────
-  kpisEl.innerHTML = [
-    {num: mttr === '—' ? '—' : `${mttr}d`, label: 'MTTR Médio', sub: 'T1+T2+T4'},
-    {num: avgT3 === '—' ? '—' : `${avgT3}d`, label: 'Espera Fabricante', sub: 'T3 médio'},
-    {num: ativas.length, label: 'Ocorrências Ativas', sub: 'Em aberto'},
-    {num: backlog, label: 'Backlog +30d', sub: 'Abertas há mais de 30 dias'},
-    {num: resol7d, label: 'Resolvidas (7d)', sub: 'Últimos 7 dias'},
-    {num: countT, label: 'Com dados T1-T4', sub: 'Base de cálculo'},
-  ].map(k => `<div class="kpi">
-    <div class="num">${k.num}</div>
-    <div class="label">${k.label}</div>
-    <div class="sub-label">${k.sub}</div>
-  </div>`).join('');
-
-  // ── Painéis ────────────────────────────────────────────────────────────
-  const maxT1 = Math.max(...Object.values(t1Dist), 1);
-  const t1BarsHtml = Object.entries(t1Dist).map(([k, v]) => `
-    <div class="bar-row">
-      <span class="bar-label">${k}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxT1*100).toFixed(0)}%;background:rgba(255,255,255,0.3)"></div></div>
-      <span class="bar-count">${v}</span>
-    </div>`).join('');
-
-  const catSorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const maxCat = catSorted[0]?.[1] || 1;
-  const catBarsHtml = catSorted.map(([k,v]) => `
-    <div class="bar-row">
-      <span class="bar-label">${k.length>22?k.slice(0,20)+'…':k}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxCat*100).toFixed(0)}%;background:rgba(255,255,255,0.2)"></div></div>
-      <span class="bar-count">${v}</span>
-    </div>`).join('');
-
-  // T1-T4 decomposição média em barras (sobre ocorrências concluídas)
-  const t1s = concluidas.map(d=>getT1Days(d)).filter(v=>v!==null);
-  const t2s = concluidas.map(d=>getT2Days(d)).filter(v=>v!==null);
-  const t4s = concluidas.map(d=>getT4Days(d)).filter(v=>v!==null);
-  const t1avg = t1s.length ? (t1s.reduce((a,b)=>a+b,0)/t1s.length).toFixed(1) : 0;
-  const t2avg = t2s.length ? (t2s.reduce((a,b)=>a+b,0)/t2s.length).toFixed(1) : 0;
-  const t3avg = countT3 > 0 ? avgT3 : 0;
-  const t4avg = t4s.length ? (t4s.reduce((a,b)=>a+b,0)/t4s.length).toFixed(1) : 0;
-  const tMax = Math.max(t1avg, t2avg, t3avg, t4avg, 1);
-  const decomp = [
-    {label:'T1 · Resposta equipe', val:t1avg, color:'#60A5FA'},
-    {label:'T2 · Resolução interna', val:t2avg, color:'#F59E0B'},
-    {label:'T3 · Aguardando fabricante', val:t3avg, color:'#EF4444'},
-    {label:'T4 · Retorno ao normal', val:t4avg, color:'#22C55E'},
-  ].map(t => `
-    <div class="bar-row">
-      <span class="bar-label" style="color:${t.color}">${t.label}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(t.val/tMax*100).toFixed(0)}%;background:${t.color}88"></div></div>
-      <span class="bar-count" style="color:${t.color}">${t.val}d</span>
-    </div>`).join('');
-
-  panelsEl.innerHTML = `
-    <div class="panel">
-      <div class="panel-head"><h3>Decomposição T1–T4 (média)</h3></div>
-      <div class="panel-bars">${decomp}</div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Tempo de 1ª resposta (T1)</h3></div>
-      <div class="panel-bars">${t1BarsHtml}</div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Por causa / categoria</h3></div>
-      <div class="panel-bars">${catBarsHtml}</div>
-    </div>`;
-}
-
-
 /* LAYOUT v6 (12/11/2026): abas de Comunicados viram painéis; sem OS Elaboradas, Rondas e Indicadores */
 /* LAYOUT v9 (12/11/2026): Seguir Programação PCM envia imagem por cluster */
 /* ══ LAYOUT v5 (11/11/2026) — menu em grupos, sub-abas, botão Novo, filtros no topo ══
@@ -19372,7 +17472,6 @@ function _lvSync() {
 }
 const _lvSwitchNavBase = switchNav;
 switchNav = function (nav) {
-  if (nav === 'rondas' || nav === 'mttr') nav = 'atividades';  // painéis excluídos (12/11/2026)
   const g = LV_GRUPOS[nav];
   if (g && g[0].com) {
     if (!_lvVisivel(_lvItem(nav))) _lvSwitchNavBase('atividades');
@@ -20446,9 +18545,9 @@ function _abrirRelatorioOcorrencia() {
     selCli.onchange = () => {
       const cli = selCli.value;
       if (!selU) return;
-      const usinasFalhas = DATA.filter(d => d.cliente === cli).map(d => d.usina);
+      const usinasMapa = _usinasDoMapaPorCliente(cli);
       const usinasAtiv = (typeof ATIVIDADES !== 'undefined' ? ATIVIDADES.filter(a => _mesmoCliente(a.cliente, cli)).map(a => a.usina) : []);
-      const usinas = [...new Set([...usinasFalhas, ...usinasAtiv].filter(Boolean))].sort();
+      const usinas = [...new Set([...usinasMapa, ...usinasAtiv].filter(Boolean))].sort();
       selU.innerHTML = usinas.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     };
     selCli.dispatchEvent(new Event('change'));
@@ -23546,9 +21645,7 @@ _lvSync = function () {
 };
 
 
-/* LAYOUT v13 */
-const _v13Switch = switchNav;
-switchNav = function (nav) { if (nav === 'historico-log' || nav === 'eficiencia') nav = 'atividades'; return _v13Switch.call(this, nav); };
+
 
 /* ══ LAYOUT v14 (12/11/2026): Performance — diagnóstico por usina ══ */
 let _pfOrdV = 'gap';
