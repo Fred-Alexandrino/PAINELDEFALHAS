@@ -2515,6 +2515,18 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
 .content-section button[style*="background:transparent;border:1px solid var(--border-strong)"],
 #sobreavisoUploadBox,#pontoDropZone{background:var(--panel)!important}
 </style>
+<style id="mob1711css">
+/* 17/11/2026 — ajustes do celular: cartões de Chamados Fabricante, selos dos cases SolarEdge e lista de equipes do Sobreaviso */
+@media (max-width:700px){
+  .ch-item{flex-wrap:wrap;gap:8px 12px}
+  .ch-item>.ch-info{flex:1 1 0;min-width:0}
+  .ch-item>.ch-status{flex:1 1 100%;flex-direction:row!important;flex-wrap:wrap;align-items:flex-start!important;justify-content:flex-start}
+  .se-top{flex-wrap:wrap}
+  .se-badge,.ds-pill{white-space:normal!important;max-width:100%}
+  #sobreavisoListaGrupos>label{flex-wrap:wrap}
+  #sobreavisoListaGrupos>label>span:last-child{white-space:normal!important;flex-basis:100%;padding-left:26px}
+}
+</style>
 </head>
 <body>
 
@@ -10018,18 +10030,27 @@ function _seSyncAgora() {
   const say = (t, erro) => { if (msg) { msg.innerHTML = t || ''; msg.style.color = erro ? 'var(--acao)' : 'var(--text-dim)'; } };
   const fim = () => { clearInterval(_seSyncPoll); if (btn) { btn.disabled = false; btn.textContent = 'Atualizar da SolarEdge'; } };
   const antes = _SE.ultima || '';
+  // 17/11/2026: no celular (Firefox) não há a extensão do Chrome; o script "Grid Sync SolarEdge (Tampermonkey)"
+  // marca a página e a Central abre o Service Center com #central-sync, onde o script lê e envia os cases.
+  const viaUS = document.documentElement.getAttribute('data-grid-se-us') === '1';
+  if (viaUS) { try { window.open(_SE_SITE + '#central-sync', 'seSync'); } catch (e) {} }
   window._seExt = false;
   window.postMessage({ tipo: 'GRID_SE_PING' }, '*');
   if (btn) { btn.disabled = true; btn.textContent = 'Procurando a extensão…'; }
   setTimeout(() => {
-    if (!window._seExt) {
+    if (!window._seExt && viaUS) {
+      if (btn) btn.textContent = 'Aguardando a SolarEdge…';
+      say('Abri o Service Center da SolarEdge em outra aba (precisa estar logado). A leitura roda lá sozinha; volte para cá que a lista atualiza quando os dados chegarem.');
+    } else if (!window._seExt) {
       fim();
       say('A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R).', true);
       return;
     }
-    window.postMessage({ tipo: 'GRID_SE_SYNC' }, '*');
-    if (btn) btn.textContent = 'Aguardando a SolarEdge…';
-    say('Lendo os cases no site da SolarEdge em segundo plano. A lista atualiza sozinha quando os dados chegarem (costuma levar ~1 min).');
+    if (window._seExt) {
+      window.postMessage({ tipo: 'GRID_SE_SYNC' }, '*');
+      if (btn) btn.textContent = 'Aguardando a SolarEdge…';
+      say('Lendo os cases no site da SolarEdge em segundo plano. A lista atualiza sozinha quando os dados chegarem (costuma levar ~1 min).');
+    }
     let n = 0;
     clearInterval(_seSyncPoll);
     _seSyncPoll = setInterval(async () => {
