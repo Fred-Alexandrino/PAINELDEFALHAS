@@ -10727,14 +10727,22 @@ async function _nexusAtualizarChamados() {
   const msg = document.getElementById('chamadosNexusMsg'), btn = document.getElementById('chamadosNexusBtn');
   const say = (t, erro) => { if (!msg) return; msg.textContent = t || ''; msg.style.color = erro ? 'var(--red,#EF4444)' : 'var(--text-faint)'; msg.style.display = t ? 'block' : 'none'; };
   if (window._supFetchInstalado) { say('A atualização pelo Nexus é feita só pelo acesso principal.', true); return; }
+  // 17/11/2026: igual ao "Atualizar do Nexus" da performance — abre Chamados › Garantias do Nexus na hora do clique;
+  // o script "Grid OS → Nexus" lê a tabela lá e a Central envia assim que a leitura nova chegar (PC e celular).
+  const t0 = Date.now();
+  try { window.open('https://app.gridco.com.br/os/chamados/acompanhamento', 'nexusChamados'); } catch (e) {}
   if (btn) btn.disabled = true;
-  say('Procurando a leitura do Nexus…');
+  say('Abri Chamados › Garantias no Nexus. Espere aparecer lá "Painel O&M: N chamados lidos" e volte para cá — o envio é automático.');
   try {
-    const snap = await _nexusPedirChamados();
-    if (!snap) { say('O script do Tampermonkey não respondeu. Instale a versão 1.3 do script "Grid OS → Nexus" e recarregue o painel (Ctrl+Shift+R).', true); return; }
-    if (snap.vazio || !Array.isArray(snap.rows) || !snap.rows.length) { say('Ainda não há leitura do Nexus. Abra Chamados › Garantias no Nexus (logado), espere a tabela carregar e clique de novo aqui.', true); return; }
+    let snap = await _nexusPedirChamados();
+    if (!snap) { say('O script do Tampermonkey "Grid OS → Nexus" não respondeu neste navegador. Confira se ele está instalado e ativo e recarregue o painel.', true); return; }
+    const limite = Date.now() + 4 * 60000;
+    while (!(snap && !snap.vazio && Array.isArray(snap.rows) && snap.rows.length && (snap.ts || 0) >= t0 - 5000)) {
+      if (Date.now() > limite) { say('O Nexus não enviou a leitura em 4 minutos. Confira se você está logado no Nexus e se a tabela de Chamados › Garantias carregou; depois clique de novo.', true); return; }
+      await new Promise(r => setTimeout(r, 3000));
+      snap = await _nexusPedirChamados();
+    }
     const idade = Math.max(0, Math.round((Date.now() - (snap.ts || 0)) / 60000));
-    if (idade > 240 && !confirm('A última leitura do Nexus foi há ' + idade + ' min. Enviar mesmo assim?\n(Para uma leitura nova, abra Chamados › Garantias no Nexus.)')) { say(''); return; }
     say('Enviando ' + snap.rows.length + ' chamados (lidos há ' + idade + ' min' + (snap.lidoEm ? '; Nexus: ' + snap.lidoEm : '') + ')…');
     const r = await fetch(_MAP_API + '/chamados-nexus/importar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: snap.rows, snapshotCompleto: true, lidoEm: snap.lidoEm || '' }) });
     const j = await r.json();
