@@ -2535,6 +2535,11 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
   section button,section .chip,section [class*="pill"],section [class*="badge"]{max-width:100%;white-space:normal}
   section input[style*="min-width"],section select[style*="min-width"]{min-width:0!important;max-width:100%}
   #chamadosBusca{flex:1 1 100%}
+  /* filtros de status dos Chamados: uma faixa só, arrastável para o lado, em vez de 8 botões empilhados */
+  #chamadosStatusFiltro{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:6px!important;margin:0 -2px 12px!important;padding:2px 2px 4px;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  #chamadosStatusFiltro::-webkit-scrollbar{display:none}
+  #chamadosStatusFiltro>*{flex:none!important;white-space:nowrap!important;max-width:none!important;font-size:12px!important;padding:5px 11px!important}
 }
 </style>
 </head>
