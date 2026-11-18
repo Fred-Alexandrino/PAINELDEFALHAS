@@ -2525,6 +2525,16 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
   .se-badge,.ds-pill{white-space:normal!important;max-width:100%}
   #sobreavisoListaGrupos>label{flex-wrap:wrap}
   #sobreavisoListaGrupos>label>span:last-child{white-space:normal!important;flex-basis:100%;padding-left:26px}
+  /* Firefox do Android aumenta o texto (ajuste de fonte do celular) sem aumentar as caixas: linhas de botões e
+     filtros escritas com display:flex passam a quebrar em vez de sair da tela */
+  section [style*="display:flex"],section [style*="display: flex"]{flex-wrap:wrap}
+  section [style*="display:flex"]>*,section [style*="display: flex"]>*{min-width:0;max-width:100%}
+  section label{white-space:normal!important;max-width:100%}
+  section label[style*="display:flex"]:not(#sobreavisoListaGrupos>label){display:block!important}
+  section label[style*="display:flex"]:not(#sobreavisoListaGrupos>label)>input{vertical-align:middle;margin-right:6px}
+  section button,section .chip,section [class*="pill"],section [class*="badge"]{max-width:100%;white-space:normal}
+  section input[style*="min-width"],section select[style*="min-width"]{min-width:0!important;max-width:100%}
+  #chamadosBusca{flex:1 1 100%}
 }
 </style>
 </head>
@@ -10032,7 +10042,7 @@ function _seSyncAgora() {
   const antes = _SE.ultima || '';
   // 17/11/2026: no celular (Firefox) não há a extensão do Chrome; o script "Grid Sync SolarEdge (Tampermonkey)"
   // marca a página e a Central abre o Service Center com #central-sync, onde o script lê e envia os cases.
-  const viaUS = document.documentElement.getAttribute('data-grid-se-us') === '1';
+  const viaUS = document.documentElement.getAttribute('data-grid-se-us') === '1' || window.__gridSeUS === true;
   if (viaUS) { try { window.open(_SE_SITE + '#central-sync', 'seSync'); } catch (e) {} }
   window._seExt = false;
   window.postMessage({ tipo: 'GRID_SE_PING' }, '*');
@@ -10043,7 +10053,9 @@ function _seSyncAgora() {
       say('Abri o Service Center da SolarEdge em outra aba (precisa estar logado). A leitura roda lá sozinha; volte para cá que a lista atualiza quando os dados chegarem.');
     } else if (!window._seExt) {
       fim();
-      say('A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R).', true);
+      say(/Android|iPhone|Mobile/i.test(navigator.userAgent)
+        ? 'No celular: instale no Firefox o script <b>Grid Sync SolarEdge (Tampermonkey)</b> — <a href="https://api.168-138-232-237.nip.io/userscripts/grid-sync-solaredge.user.js" target="_blank" rel="noopener" style="color:var(--teal)">abrir link de instalação</a> — e depois feche e abra a Central de novo.'
+        : 'A extensão <b>Grid Sync SolarEdge</b> não respondeu neste navegador. Confira em chrome://extensions se ela está instalada e ativa, e recarregue a Central (Ctrl+Shift+R).', true);
       return;
     }
     if (window._seExt) {
