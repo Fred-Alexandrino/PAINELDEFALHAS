@@ -15,6 +15,13 @@
 > 7. **Usinas juntas** (mesmo local): Canarana I e II; União I e II; Nova Londrina I e II; Pharmas II, III e IV; Coração I e II; Guatambu I–IV; Aparecida do Taboado I e II (campo `conjunto` de `/mapeamento-ufvs`).
 > 8. **Prints**: a Central aceita até 4 prints por mensagem; a IA lê o conteúdo sem citar a origem.
 > 9. **Implementação (Fase 1)**: página **Central de Mensagens** no grupo Comunicação; módulo em JavaScript (`comunicacao/*.js`, sem TypeScript/React no projeto) e backend em `comunicacao_mensagens.py` (repo `painel-falhas`), IA via Gemini.
+>
+> **Decisões do Fred em 18/11/2026 (a partir do e-mail real de compra de switches de Nova Xavantina, comparando rascunho × sugestão × enviado):**
+> 10. **E-mail termina em "Atenciosamente,"**: a assinatura vem do Outlook (imagem). Nome/cargo/empresa em texto ficam fora (validador avisa). Substitui a "assinatura completa" da seção 6.
+> 11. **Pessoa verbal do rascunho**: se o Fred escreve "solicito", o texto fica na 1ª pessoa do singular.
+> 12. **Prints entram no texto**: valor total, quantidades, prazos e condições lidos da proposta anexada (ex.: "- Valor: R$ 3.474,00").
+> 13. **Condições comerciais em lista "- "** no e-mail; frete só com a modalidade (CIF/FOB; "SIF" = CIF), sem explicação entre parênteses nem acréscimos que o rascunho não traz.
+> 14. **Pedido de aprovação** fecha ligando a espera ao próximo passo ("Fico no aguardo para seguir com o retorno ao cliente.").
 
 Sugestão de lugar no repositório: `docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md`. Se o projeto usa Claude Code, referencie este arquivo no `CLAUDE.md` (ex.: "Antes de mexer em qualquer gerador de texto ou relatório, leia `docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md`").
 
@@ -294,14 +301,8 @@ Regras de sanitização (implementar em `formatWhatsApp()`):
 - Mais formal que o WhatsApp.
 - Campos: **Assunto:** objetivo e com a usina (ex.: `UFV Tupi Paulista I — Condição crítica da via de acesso`).
 - Corpo estruturado na mesma ordem do item 3.7.
-- Fecha com **assinatura completa**:
-  ```
-  Atenciosamente,
-
-  Fred Alexandrino
-  Supervisor de O&M
-  Grid Co.
-  ```
+- Fecha com **"Atenciosamente,"** e para aí: a assinatura (nome, cargo, Grid Co.) é a imagem do Outlook (decisão 10).
+- Condições/itens em linhas com "- "; pessoa verbal igual à do rascunho (decisão 11).
 - Anexos sempre citados e explicados no corpo.
 - Ao formalizar ocorrência por e-mail: **omitir análise interna** e qualquer especulação de causa/culpa não confirmada; lembrar de alinhar com a coordenação antes do envio.
 

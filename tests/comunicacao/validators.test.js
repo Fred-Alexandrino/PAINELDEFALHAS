@@ -46,8 +46,20 @@ test('numeral romano conta: "UFV Colíder III" não existe', () => {
 test('usina sem negrito no WhatsApp é aviso; no e-mail não', () => {
   const t = 'Falha no inversor da UFV Sarandi.\n\nSeguimos à disposição.';
   assert.deepEqual(codigos(validarSaida(msgs(t), ctx('cliente')).avisos), ['usina_sem_negrito']);
-  const e = validarSaida(msgs({ assunto: 'UFV Sarandi — Falha', texto: t + '\n\nAtenciosamente,\n\nFred Alexandrino\nSupervisor de O&M\nGrid Co.' }), ctx('email'));
+  const e = validarSaida(msgs({ assunto: 'UFV Sarandi — Falha', texto: t + '\n\nAtenciosamente,' }), ctx('email'));
   assert.deepEqual(e.avisos, []);
+});
+
+test('e-mail real de compra (18/11) passa limpo', () => limpo(validarSaida(msgs(ex.exEmailCompra), ctx('email')), 'email'));
+
+test('bloco de assinatura em texto no e-mail é aviso (o Outlook já assina)', () => {
+  const r = validarSaida(msgs({ assunto: 'UFV Sarandi — Falha', texto: 'Falha na UFV Sarandi.\n\nSeguimos à disposição.\n\nAtenciosamente,\n\nFred Alexandrino\nSupervisor de O&M\nGrid Co.' }), ctx('email'));
+  assert.deepEqual(codigos(r.avisos), ['email_assinatura_duplicada']);
+});
+
+test('lista com "-" no e-mail não é aviso', () => {
+  const r = validarSaida(msgs({ assunto: 'UFV Sarandi — Compra', texto: 'Condições:\n\n- Valor: R$ 10,00\n- Frete: CIF\n\nFico no aguardo.\n\nAtenciosamente,' }), ctx('email'));
+  assert.deepEqual(r.avisos, []);
 });
 
 test('bullet "-" é aviso', () => {

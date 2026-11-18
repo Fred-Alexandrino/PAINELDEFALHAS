@@ -90,13 +90,26 @@ Solicitamos o posicionamento da 2C Energia quanto à recuperação do acesso, co
 
 Seguimos à disposição.
 
-Atenciosamente,
+Atenciosamente,`,
+};
 
-Fred Alexandrino
-Supervisor de O&M
-Grid Co.`,
+// e-mail real enviado pelo Fred em 18/11/2026 (pedido de aprovação interno)
+const exEmailCompra = {
+  assunto: 'Solicitação de compra — CFTV — UFV Nova Xavantina I e II',
+  texto: `Conforme solicitado pelo cliente Renogrid, solicito a aprovação para a compra de 6 switchs, para a normalização do sistema de CFTV das *UFV Nova Xavantina I* e *UFV Nova Xavantina II*, conforme proposta em anexo.
+
+O custo total será incluído no BM da Renogrid com envio previsto para o dia 25/11/2026. As condições comerciais para esta aquisição são:
+
+- Valor: R$ 3.474,00
+- Pagamento: 03x no boleto (30/60/90 dias).
+- Prazo de entrega: postagem em até 3 dias úteis.
+- Frete: CIF
+
+Fico no aguardo para seguir com o retorno ao cliente.
+
+Atenciosamente,`,
 };
 
 const ENVIO_DIA_UTIL_MANHA = '2026-11-17T09:00:00-03:00';
 
-module.exports = { ex1, ex2a, ex2b, ex3, ex4, ex46, exEnvio, exEmail, ENVIO_DIA_UTIL_MANHA };
+module.exports = { ex1, ex2a, ex2b, ex3, ex4, ex46, exEnvio, exEmail, exEmailCompra, ENVIO_DIA_UTIL_MANHA };

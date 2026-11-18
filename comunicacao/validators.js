@@ -119,6 +119,11 @@
     const i = texto.search(/\n\s*atenciosamente\b/i);
     return i >= 0 ? texto.slice(0, i) : texto;
   }
+  // texto até a linha "Atenciosamente," (inclusive), ignorando o que vier depois
+  function _corpoAteAtenciosamente(texto) {
+    const m = /\n\s*atenciosamente\s*,?/i.exec(texto);
+    return (m ? texto.slice(0, m.index + m[0].length) : texto).trim();
+  }
   function _ultimasLinhas(texto, n) {
     return texto.split('\n').map(l => l.trim()).filter(Boolean).slice(-n).join(' ');
   }
@@ -211,7 +216,8 @@
         const assunto = String((m && m.assunto) || '').trim();
         if (i === 0 && !assunto) A('email_assunto', 'E-mail sem assunto.', i);
         else if (i === 0 && !/\bUFV\b/.test(assunto) && citadas.length) A('email_assunto', 'O assunto deveria trazer a usina (ex.: "UFV Tupi Paulista I — ...").', i);
-        if (i === msgs.length - 1 && !/fred alexandrino/i.test(texto)) A('email_assinatura', 'E-mail sem a assinatura completa (Atenciosamente, Fred Alexandrino, Supervisor de O&M, Grid Co.).', i);
+        if (i === msgs.length - 1 && !/(^|\n)\s*atenciosamente\s*,?\s*$/i.test(_corpoAteAtenciosamente(texto))) A('email_assinatura', 'E-mail deve terminar em "Atenciosamente," (a assinatura do Outlook entra depois).', i);
+        if (/\n\s*fred alexandrino\s*\n\s*supervisor/i.test(texto)) A('email_assinatura_duplicada', 'Apague o bloco "Fred Alexandrino / Supervisor de O&M / Grid Co.": o Outlook já coloca a assinatura.', i);
       }
     });
 
