@@ -16,7 +16,7 @@
   const NAV = 'central-mensagens';
   const LS_KEY = 'cmEstado_v1';
   const TIPOS = [
-    ['cliente', 'Cliente'], ['tecnico', 'Campo'], ['email', 'E-mail'], ['envio_relatorio', 'Envio de relatório'],
+    ['cliente', 'Cliente'], ['tecnico', 'Campo'], ['email', 'E-mail'], ['envio_relatorio', 'Relatório'],
   ];
   // O que cada tipo muda na tela (lista, textos, destinatário e botão)
   const INFO = {
@@ -42,16 +42,18 @@
       botao: 'Gerar e-mail', lista: 'cliente',
     },
     envio_relatorio: {
-      desc: 'Texto que acompanha um relatório enviado ao cliente: explica o que está no anexo e o que se pede. Anexe o PDF do relatório (ou da OS) e a IA lê o documento.',
+      desc: 'Gera o RELATÓRIO em PDF no modelo Grid (capa, objetivo, cronologia, condições e riscos, ações, evidências fotográficas, ponto de atenção e conclusão) a partir do relato, das fotos e do PDF da OS — e o texto de envio que acompanha.',
       dest: 'Escolha o cliente. Se quiser, diga para quem é no campo "Para quem".',
-      rotulo: 'Sobre o relatório anexado',
-      ph: 'Ex.: Relatório de Ocorrência da via de acesso, vistoria de 16/11, com cronologia, riscos, fotos e recomendações; pedir posicionamento sobre a recuperação. Com o PDF anexado, pode deixar só o que pedir ao cliente.',
-      botao: 'Gerar texto de envio', lista: 'cliente',
+      rotulo: 'Relato da ocorrência / atividade',
+      ph: 'Ex.: Vistoria do acesso da UFV Tupi Paulista I em 16/11 às 17h23 com o João Salles: erosão profunda na subida, cratera na lateral, sem drenagem; risco à equipe. Pedir posicionamento da 2C sobre a recuperação. Anexe as fotos (viram as evidências) ou o PDF da OS.',
+      botao: '💬 Só o texto de envio', lista: 'cliente',
     },
   };
 
   const MAX_PRINTS = 4;
-  const MAX_PDFS = 2, MAX_PDF_BYTES = 40 * 1024 * 1024;   // 18/11/2026: PDF só no envio de relatório
+  const MAX_PDFS = 2, MAX_PDF_BYTES = 40 * 1024 * 1024;
+  const MAX_FOTOS_REL = 12;   // 18/11/2026: o relatório em PDF usa até 12 fotos (evidências)
+  const maxImgs = () => st.tipo === 'envio_relatorio' ? MAX_FOTOS_REL : MAX_PRINTS;   // 18/11/2026: PDF só no envio de relatório
   const ehPdf = p => p && p.mimeType === 'application/pdf';
   // Usinas juntas (mesmo local): vêm do mapeamento (campo "conjunto" de /mapeamento-ufvs,
   // USINAS_JUNTAS no app.py). Esta lista só vale se o backend ainda não mandar o campo.
@@ -86,6 +88,7 @@
     tipo: 'cliente', cliente: '', para: '', filtroCliente: '', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
     prints: [], // [{base64, mimeType, url}] — só na memória (não vai para o localStorage); PDF: {base64, mimeType:'application/pdf', nome}
     docs: [],   // [{nome, texto}] — OS lida da Fracttal (só na memória)
+    relatorio: null, // 18/11/2026: relatório em PDF gerado {id,url,nome,paginas,kb,observacoes,resumo,gerando,erro,ajusteAberto}
     resultados: [], // [{grupo, versoes:[{n, saida, ajuste}], atual, gerando, erro, ajusteAberto}]
   };
 
@@ -168,7 +171,9 @@
       cliente: grupo.cliente || '',
       dataHoraEnvio: envioBR(st.envio),
       rascunho: st.rascunho,
-      prints: st.prints.filter(p => !ehPdf(p) || grupo.tipo === 'envio_relatorio').map(p => ({ base64: p.base64, mimeType: p.mimeType })),
+      prints: st.prints.filter(p => ehPdf(p) ? grupo.tipo === 'envio_relatorio' : true)
+        .filter((p, k, arr) => ehPdf(p) || arr.slice(0, k + 1).filter(x => !ehPdf(x)).length <= MAX_PRINTS)
+        .map(p => ({ base64: p.base64, mimeType: p.mimeType })),
       documentos: st.docs.map(d => ({ nome: d.nome, texto: d.texto })),
       pessoas: pessoasComCargo(),
     }, extra || {});
@@ -198,6 +203,73 @@
       salvar();
       render();
     }
+  }
+
+  // ── 18/11/2026: RELATÓRIO em PDF (modelo Relatório de Ocorrência Grid) ──
+  async function gerarRelatorio(ajuste) {
+    const r0 = st.relatorio;
+    if (ajuste !== undefined) {
+      if (!r0 || !r0.id) return;
+      if (!String(ajuste || '').trim()) return toast('Descreva o ajuste do relatório.', false);
+    } else {
+      if (!st.rascunho.trim() && !st.prints.length && !st.docs.length) return toast('Escreva o relato ou anexe fotos/PDF antes de gerar o relatório.', false);
+      if (!st.cliente) return toast('Escolha o cliente.', false);
+    }
+    const ufvs = st.ufvs.map(n => G.buscarUfv(st.mapa || [], n)).filter(Boolean);
+    const body = ajuste !== undefined ? { id: r0.id, ajuste, dataHoraEnvio: envioBR(st.envio) } : {
+      cliente: st.cliente,
+      ufvs: ufvs.map(u => ({ ufv: u.usina || u.ufv, cidadeUf: u.cidade_uf || u.cidadeUf || '', cliente: u.cliente })),
+      dataHoraEnvio: envioBR(st.envio),
+      rascunho: st.rascunho,
+      prints: st.prints.map(p => ({ base64: p.base64, mimeType: p.mimeType, nome: p.nome })),
+      documentos: st.docs.map(d => ({ nome: d.nome, texto: d.texto })),
+      pessoas: pessoasComCargo(),
+    };
+    st.relatorio = Object.assign({}, ajuste !== undefined ? r0 : {}, { gerando: true, erro: '' });
+    render();
+    try {
+      const r = await fetch(API + '/comunicacao/relatorio', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(200000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      st.relatorio = { id: d.id, url: API + d.url, nome: d.nome, paginas: d.paginas, kb: d.kb, observacoes: d.observacoes || [],
+        resumo: d.resumo, revisao: (d.dados || {}).revisao || '01', gerando: false, erro: '', ajusteAberto: false };
+      render();
+      return true;
+    } catch (e) {
+      st.relatorio = Object.assign({}, r0 || {}, { gerando: false, erro: e.message });
+      render();
+      return false;
+    }
+  }
+  // texto de envio a partir do relatório gerado (o conteúdo do PDF vai como documento)
+  async function textoDoRelatorio() {
+    const r = st.relatorio;
+    if (!r || !r.resumo) return;
+    st.docs = [{ nome: 'Relatório em PDF — ' + r.nome, texto: r.resumo }];
+    await gerar();
+  }
+  function renderRelatorio() {
+    const r = st.relatorio;
+    if (!r || st.tipo !== 'envio_relatorio') return '';
+    if (r.gerando && !r.id) return `<div class="cm-bloco cm-rel"><div class="cm-dica">⏳ Montando o relatório (lendo o material, escolhendo as fotos e desenhando o PDF)… leva de 20 s a 1 min.</div></div>`;
+    if (!r.id) return r.erro ? `<div class="cm-bloco cm-rel"><div class="cm-erro">Não consegui gerar o relatório: ${h(r.erro)}</div></div>` : '';
+    return `<div class="cm-bloco cm-rel">
+      <div class="cm-res-h"><div><span class="cm-rot">Relatório</span> <b>${h(r.nome)}</b>
+        <small>Revisão ${h(r.revisao || '01')} · ${r.paginas || '?'} página(s) · ${r.kb || '?'} KB</small></div></div>
+      ${r.gerando ? '<div class="cm-dica">⏳ Aplicando o ajuste e gerando nova revisão…</div>' : ''}
+      ${r.erro ? `<div class="cm-erro">${h(r.erro)}</div>` : ''}
+      ${(r.observacoes || []).length ? `<div class="cm-dica"><b>Conferir:</b> ${r.observacoes.map(h).join(' · ')}</div>` : ''}
+      <div class="cm-rel-acoes">
+        <a class="cm-btn pri" href="${h(r.url)}" target="_blank" rel="noopener">📄 Abrir PDF</a>
+        <a class="cm-btn" href="${h(r.url)}?baixar=1" target="_blank" rel="noopener">⬇ Baixar</a>
+        <button type="button" class="cm-btn" data-acao="rel-abrir-ajuste" ${r.gerando ? 'disabled' : ''}>✏️ Ajustar relatório</button>
+        <button type="button" class="cm-btn" data-acao="rel-texto" ${r.gerando || st.resultados.some(x => x.gerando) ? 'disabled' : ''}>💬 Gerar texto de envio</button>
+      </div>
+      ${r.ajusteAberto ? `<div class="cm-ajuste"><textarea class="cm-input cm-ta" rows="3" id="cmRelAjuste" placeholder="O que mudar no relatório? Ex.: trocar a criticidade da drenagem para Médio; incluir que o João acompanhou; tirar a foto 3. Sai uma nova revisão."></textarea>
+        <button type="button" class="cm-btn pri" data-acao="rel-ajustar">Gerar nova revisão</button></div>` : ''}
+    </div>`;
   }
 
   async function novaVersao(i, ajuste, dividir) {
@@ -260,7 +332,7 @@
       try { st.prints.push(await lerPdf(f)); } catch (e) { toast('PDF ignorado: ' + e.message, false); }
     }
     for (const f of lista) {
-      if (st.prints.filter(p => !ehPdf(p)).length >= MAX_PRINTS) { toast(`No máximo ${MAX_PRINTS} prints por mensagem.`, false); break; }
+      if (st.prints.filter(p => !ehPdf(p)).length >= maxImgs()) { toast(`No máximo ${maxImgs()} fotos/prints.`, false); break; }
       try { st.prints.push(await lerPrint(f)); } catch (e) { toast('Print ignorado: ' + e.message, false); }
     }
     render();
@@ -278,15 +350,15 @@
     st.cliente = (u && u.cliente) || a.cliente || '';
     st.ufvs = u ? [u.usina] : [];
     st.para = '';
-    st.prints = []; st.docs = []; st.resultados = [];
-    st.rascunho = `Relatório da OS ${a.numeroOS} — ${a.descricao || ''}${a.usina ? ' (UFV ' + a.usina + ')' : ''}. ` +
-      'Explicar o que foi feito, o resultado do checklist e as pendências/recomendações, se houver.';
+    st.prints = []; st.docs = []; st.resultados = []; st.relatorio = null;
+    st.rascunho = `Relatório da OS ${a.numeroOS} — ${a.descricao || ''}${a.usina ? ' (UFV ' + a.usina + ')' : ''}` +
+      (a.responsavel ? `. Executada por ${a.responsavel}` : '') + '. Registrar o que foi feito, o resultado e as pendências/recomendações, se houver.';
     st.lendoOS = 'Lendo a OS ' + a.numeroOS + ' na Fracttal…';
     salvar(); render();
     try {
       const r = await fetch(API + '/comunicacao/os-anexo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ link: a.linkOS, numeroOS: a.numeroOS, maxFotos: 3 }), signal: AbortSignal.timeout(90000),
+        body: JSON.stringify({ link: a.linkOS, numeroOS: a.numeroOS, maxFotos: 8 }), signal: AbortSignal.timeout(90000),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status));
@@ -294,7 +366,8 @@
       st.prints = (d.fotos || []).map(f => ({ base64: f.base64, mimeType: f.mimeType, url: 'data:' + f.mimeType + ';base64,' + f.base64 }));
       st.lendoOS = '';
       render();
-      await gerar();
+      // 18/11/2026: primeiro o RELATÓRIO em PDF (modelo Grid); depois o texto de envio a partir dele
+      if (await gerarRelatorio()) await textoDoRelatorio();
     } catch (e) {
       st.lendoOS = '';
       render();
@@ -413,15 +486,16 @@
             <label class="cm-rot" for="cmRascunho">${h(info.rotulo)}</label>
             <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
             <div class="cm-prints">
-              <button type="button" class="cm-btn" data-acao="anexar-print" ${nImg >= MAX_PRINTS && (!rel || nPdf >= MAX_PDFS) ? 'disabled' : ''}>📎 ${rel ? 'Anexar PDF ou print' : 'Anexar print'}</button>
-              <span class="cm-dica">${rel ? `PDF do relatório/OS (até ${MAX_PDFS}, 40 MB; acima de 10 MB a IA lê só o texto) ou prints (até ${MAX_PRINTS})` : `ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo`}</span>
+              <button type="button" class="cm-btn" data-acao="anexar-print" ${nImg >= maxImgs() && (!rel || nPdf >= MAX_PDFS) ? 'disabled' : ''}>📎 ${rel ? 'Anexar fotos ou PDF' : 'Anexar print'}</button>
+              <span class="cm-dica">${rel ? `fotos de campo (até ${MAX_FOTOS_REL} — viram as evidências do relatório) e PDF da OS/relatório (até ${MAX_PDFS}, 40 MB)` : `ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo`}</span>
               <input type="file" id="cmPrintInput" accept="${rel ? 'image/*,application/pdf,.pdf' : 'image/*'}" multiple hidden data-acao="print-input">
               ${st.lendoOS ? `<div class="cm-dica">⏳ ${h(st.lendoOS)}</div>` : ''}
               ${prints ? `<div class="cm-print-lista">${prints}</div>` : ''}
             </div>
             <div class="cm-linha">
               <label><span class="cm-rot">Data/hora de envio</span><input class="cm-input" type="datetime-local" value="${h(st.envio)}" data-acao="envio"></label>
-              <button type="button" class="cm-btn pri" data-acao="gerar" ${st.resultados.some(x => x.gerando) ? 'disabled' : ''}>${h(info.botao)}</button>
+              ${rel ? `<button type="button" class="cm-btn pri" data-acao="gerar-relatorio" ${(st.relatorio && st.relatorio.gerando) ? 'disabled' : ''}>📄 Gerar relatório (PDF)</button>` : ''}
+              <button type="button" class="cm-btn ${rel ? '' : 'pri'}" data-acao="gerar" ${st.resultados.some(x => x.gerando) ? 'disabled' : ''}>${h(info.botao)}</button>
             </div>
           </div>
         </div>
@@ -486,6 +560,7 @@
       <div class="cm-topo"><div><div class="cm-olho">Comunicação</div><h1 class="cm-h1">Central de Mensagens</h1>
         <p class="cm-sub">Texto no padrão Grid para cliente, técnico ou e-mail. A saudação fica com você.</p></div></div>
       ${renderForm()}
+      ${renderRelatorio()}
       ${st.resultados.length ? `<div class="cm-resultados">${st.resultados.map(renderResultado).join('')}</div>` : ''}`;
     if (foco) {
       const alvo = foco.id ? document.getElementById(foco.id) : el.querySelector(`[data-acao="${foco.acao}"]`);
@@ -520,6 +595,10 @@
       }
       else if (a === 'limpar-ufvs') { st.ufvs = []; salvar(); render(); }
       else if (a === 'gerar') gerar();
+      else if (a === 'gerar-relatorio') gerarRelatorio();
+      else if (a === 'rel-abrir-ajuste') { st.relatorio.ajusteAberto = !st.relatorio.ajusteAberto; render(); const t = document.getElementById('cmRelAjuste'); if (t) t.focus(); }
+      else if (a === 'rel-ajustar') gerarRelatorio((document.getElementById('cmRelAjuste') || {}).value || '');
+      else if (a === 'rel-texto') textoDoRelatorio();
       else if (a === 'abrir-ajuste') { st.resultados[i].ajusteAberto = !st.resultados[i].ajusteAberto; render(); const t = document.getElementById('cmAjuste' + i); if (t) t.focus(); }
       else if (a === 'ajustar') novaVersao(i, (document.getElementById('cmAjuste' + i) || {}).value, false);
       else if (a === 'dividir') novaVersao(i, '', true);

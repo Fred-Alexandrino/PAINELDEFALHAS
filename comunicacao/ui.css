@@ -101,3 +101,9 @@
 #sec-central-mensagens .cm-para{margin-bottom:14px}
 #sec-central-mensagens .cm-sub2{color:var(--vg-mudo);font-size:12px;font-weight:400}
 #sec-central-mensagens .cm-email{font-family:Calibri,Arial,sans-serif;font-size:14px;white-space:normal}
+/* 18/11/2026: relatório em PDF */
+#sec-central-mensagens .cm-rel{margin-top:16px;border-left:4px solid #8DC63F}
+#sec-central-mensagens .cm-rel-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#sec-central-mensagens a.cm-btn{text-decoration:none}
+#sec-central-mensagens .cm-rel .cm-dica{margin:6px 0}
+#sec-central-mensagens .cm-rel .cm-res-h>div{min-width:0}#sec-central-mensagens .cm-rel .cm-res-h b{word-break:break-all}
