@@ -20756,21 +20756,28 @@ function _pontoCopiarComunicado(id, btn) {
     document.getElementById('ocRelOverlay')?.remove();
     await carregarBase();
     const cnt = (f) => { const m = {}; ITS.forEach(x => { const k = f(x); m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); };
-    const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'ocRelOverlay'; ov.style.zIndex = 10001;
+    const ov = document.createElement('div'); ov.className = 'ocrel-ov'; ov.id = 'ocRelOverlay';
     ov.onclick = e => { if (e.target === ov) ov.remove(); };
-    ov.innerHTML = `<style>.ocrel-op{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:3px 12px 3px 0;cursor:pointer}.ocrel-op small{color:var(--text-faint)}.ocrel-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:12px 0 4px}</style>
-      <div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Gerar relatório — Ocorrências em aberto</h3><button class="se-btn" onclick="document.getElementById('ocRelOverlay').remove()">Fechar</button></div>
-      <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 6px;">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada ocorrência com o último registro e os próximos passos). Sem selecionar nada, entram todas as ocorrências em aberto. Anotações internas nunca entram.</div>
+    ov.innerHTML = `<style>.ocrel-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px;-webkit-overflow-scrolling:touch}
+      .ocrel-m{background:var(--panel);border:1px solid var(--border-strong);border-radius:14px;width:100%;max-width:640px;padding:18px 20px;color:var(--text);font-family:'Poppins',sans-serif;box-sizing:border-box}
+      .ocrel-m h3{font-size:16px;margin:0;line-height:1.3}.ocrel-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+      .ocrel-d{font-size:12.5px;color:var(--text-dim);margin:6px 0}.ocrel-op{display:inline-flex;align-items:center;gap:7px;font-size:13px;margin:4px 14px 4px 0;cursor:pointer}.ocrel-op input{width:18px;height:18px;margin:0;accent-color:var(--teal)}.ocrel-op small{color:var(--text-faint)}
+      .ocrel-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 4px}
+      .ocrel-b{background:transparent;border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:9px 14px;font:600 13px 'Poppins',sans-serif;cursor:pointer;min-height:40px}.ocrel-b.pri{background:var(--teal);border-color:var(--teal);color:#fff}.ocrel-b:disabled{opacity:.6}
+      .ocrel-t{width:100%;box-sizing:border-box;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font:12.5px 'Poppins',sans-serif}
+      @media(max-width:600px){.ocrel-ov{padding:0}.ocrel-m{border-radius:0;min-height:100%;max-width:none;padding:16px 16px 90px}}</style>
+      <div class="ocrel-m"><div class="ocrel-top"><h3>Gerar relatório — Ocorrências em aberto</h3><button class="ocrel-b" onclick="document.getElementById('ocRelOverlay').remove()">Fechar</button></div>
+      <div class="ocrel-d">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada ocorrência com o último registro e os próximos passos). Sem selecionar nada, entram todas as ocorrências em aberto. Anotações internas nunca entram.</div>
       <div class="ocrel-h">Cliente</div><div>${cnt(clienteDe).map(([k, n]) => chk('ocrel-cli', k, n)).join('')}</div>
       <div class="ocrel-h">Cluster</div><div>${cnt(clusterDe).map(([k, n]) => chk('ocrel-clu', k, n)).join('')}</div>
       <div class="ocrel-h">Opções</div>
       <label class="ocrel-op"><input type="checkbox" id="ocRelPlano" checked> Incluir próximos passos (plano de ação)</label>
       <label class="ocrel-op"><input type="checkbox" id="ocRelPaus" checked> Incluir pausadas</label>
-      <div style="margin-top:12px;"><button class="se-btn pri" id="ocRelBtn">Gerar PDF</button> <span id="ocRelMsg" style="font-size:12.5px;color:var(--text-dim);margin-left:8px;"></span></div>
+      <div style="margin-top:12px;"><button class="ocrel-b pri" id="ocRelBtn">Gerar PDF</button><div id="ocRelMsg" class="ocrel-d" style="margin-top:8px"></div></div>
       <div id="ocRelEnvio" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
         <div class="ocrel-h" style="margin-top:0">Texto de envio</div>
-        <textarea id="ocRelEnvioTxt" class="se-in" rows="5" style="font-family:'Poppins',monospace;font-size:12.5px;"></textarea>
-        <button class="se-btn pri" style="margin-top:8px;" id="ocRelCopiar">Copiar</button></div></div>`;
+        <textarea id="ocRelEnvioTxt" class="ocrel-t" rows="6"></textarea>
+        <button class="ocrel-b pri" style="margin-top:8px;" id="ocRelCopiar">Copiar</button></div></div>`;
     document.body.appendChild(ov);
     document.getElementById('ocRelBtn').onclick = gerar;
     document.getElementById('ocRelCopiar').onclick = () => navigator.clipboard.writeText(document.getElementById('ocRelEnvioTxt').value).then(() => showToast('Texto copiado.', true)).catch(() => showToast('Não consegui copiar.', false));
