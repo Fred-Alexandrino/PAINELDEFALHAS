@@ -22637,8 +22637,10 @@ function _vgRender(mapa) {
   const info = a => porUsina[norm(a.usina)] || {};
 
   const abertas = ATIVIDADES.filter(a => !_ativIsConcluida(a));
-  const atrasadas = ATIVIDADES.filter(_ativAtrasada);
   const verif = abertas.filter(a => _ativEmVerificacao(a)).length;
+  // 18/11/2026 (Fred): atraso conta só OS em processo (com o técnico); em verificação o campo já atuou
+  const emProc = abertas.filter(a => !_ativEmVerificacao(a));
+  const atrasadas = emProc.filter(_ativAtrasada);
   const altas = abertas.filter(a => (a.prioridade || '').toLowerCase() === 'alta').length;
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 
@@ -22666,7 +22668,7 @@ function _vgRender(mapa) {
 
   // focar primeiro: por usina
   const pu = {};
-  abertas.forEach(a => {
+  emProc.forEach(a => {
     const k = a.usina || '—';
     const p = pu[k] || (pu[k] = { usina: k, cliente: a.cliente, ab: 0, at: 0, a30: 0, lista: [] });
     p.ab++;
@@ -22677,7 +22679,7 @@ function _vgRender(mapa) {
 
   // clusters
   const pc = {};
-  abertas.forEach(a => {
+  emProc.forEach(a => {
     const c = info(a).cluster || 'Sem cluster';
     const p = pc[c] || (pc[c] = { c, ab: 0, at: 0 });
     p.ab++; if (_ativAtrasada(a)) p.at++;
@@ -22729,7 +22731,7 @@ function _vgRender(mapa) {
 
   <section class="vg-kpis">
     <button class="vg-kpi" onclick="switchNav('atividades')"><div class="vg-rot">Em aberto</div><div class="vg-v vg-num">${_vgFmt(abertas.length)}</div><div class="vg-ref">${_vgFmt(abertas.length - verif)} em processo · ${_vgFmt(verif)} em verificação</div></button>
-    <button class="vg-kpi ruim" onclick="switchNav('atividades');if(!_ativFiltroAtrasada)_ativToggleFiltroAtrasada()"><div class="vg-rot">Atrasadas</div><div class="vg-v vg-num">${_vgFmt(atrasadas.length)}</div><div class="vg-ref"><span class="vg-tag ruim">${pct(atrasadas.length, abertas.length)}% das abertas</span> ${_vgFmt(mais30)} há mais de 30 dias</div></button>
+    <button class="vg-kpi ruim" onclick="switchNav('atividades');if(!_ativFiltroAtrasada)_ativToggleFiltroAtrasada()"><div class="vg-rot">Atrasadas</div><div class="vg-v vg-num">${_vgFmt(atrasadas.length)}</div><div class="vg-ref"><span class="vg-tag ruim">${pct(atrasadas.length, emProc.length)}% das em processo</span> ${_vgFmt(mais30)} há mais de 30 dias</div></button>
     <button class="vg-kpi" onclick="switchNav('atividades');if(!_ativFiltroPrioridadeAlta)_ativToggleFiltroPrioridadeAlta()"><div class="vg-rot">Prioridade alta</div><div class="vg-v vg-num">${_vgFmt(altas)}</div><div class="vg-ref">${pct(altas, abertas.length)}% das abertas</div></button>
     <button class="vg-kpi${saldo > 0 ? ' ruim' : ''}" onclick="switchNav('atividades')"><div class="vg-rot">Fila na semana passada</div><div class="vg-v vg-num">${saldo > 0 ? '+' : ''}${_vgFmt(saldo)}</div><div class="vg-ref">${_vgFmt(ult[1])} criadas · ${_vgFmt(ult[2])} concluídas <span class="vg-tag ${saldo > 0 ? 'ruim' : 'bom'}">${saldo > 0 ? 'fila cresceu' : 'fila diminuiu'}</span></div></button>
   </section>
@@ -22751,7 +22753,7 @@ function _vgRender(mapa) {
 
   <section class="vg-bloco" style="margin-top:14px">
     <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <div><h3>Focar primeiro</h3><p class="vg-sub">Usinas com mais atividades atrasadas há mais de 30 dias, com a geração do mês. Clique numa usina para ver o detalhe.</p></div>
+      <div><h3>Focar primeiro</h3><p class="vg-sub">Usinas com mais OS em processo atrasadas há mais de 30 dias, com a geração do mês. Clique numa usina para ver o detalhe.</p></div>
       <div class="vg-leg" style="margin-left:auto"><span><i style="background:var(--vg-focar)"></i>Atrasada +30 dias</span><span><i style="background:var(--vg-acompanhar)"></i>Atrasada até 30 dias</span><span><i style="background:var(--vg-emdia)"></i>No prazo</span></div>
     </div>
     <table class="vg-tab"><thead><tr><th>Usina</th><th class="vg-col-cli">Cliente</th><th class="vg-col-tec">Responsável</th><th>Abertas</th><th>Geração do mês</th><th></th></tr></thead><tbody>
@@ -22771,7 +22773,7 @@ function _vgRender(mapa) {
 
   <section class="vg-bloco" style="margin-top:14px">
     <h3>Por cluster</h3>
-    <p class="vg-sub">Abertas e o quanto delas está atrasado</p>
+    <p class="vg-sub">OS em processo e o quanto delas está atrasado</p>
     <div class="vg-clusters">${clusters.map(c => `<div class="vg-cl"><b>${esc(c.c)}</b><div class="vg-lin"><span class="vg-num">${c.ab}</span><small>${c.at} atrasadas</small></div><div class="vg-mini"><i style="width:${pct(c.at, c.ab)}%"></i></div></div>`).join('')}</div>
   </section>
   <p class="vg-rodape">Só leitura. Clique num número para abrir as atividades filtradas.</p>`;
@@ -22832,6 +22834,7 @@ function _vgIrUsina(usina) {
     selUsinaValues.clear(); selUsinaValues.add(usina);
     _updateCbLabel('Usina'); _renderCbDropdown('Usina');
     if (_ativViewMode !== 'lista') _ativSetViewMode('lista');
+    if (_ativTab !== 'ativas') _ativMudarTab('ativas');   // 18/11: só em processo, como na Visão geral
     if (!_ativFiltroAtrasada) _ativToggleFiltroAtrasada();
     applyFilters();
     _vgFaixa(usina);
