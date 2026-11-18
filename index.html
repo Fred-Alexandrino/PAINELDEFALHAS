@@ -14526,15 +14526,21 @@ function _abrirComunicarAtividade() {
   const a = _ativDrawerList[_ativDrawerIndex];
   if (!a) return;
   const idSeguro = 'ativ_' + a.id;
+  // Tom de alinhamento, não de cobrança (pedido do Fred em 18/11/2026: os técnicos
+  // reclamaram do "priorizar a execução dentro do prazo").
   const linhas = [
-    '📋 *Necessidade de execução*',
+    '📋 *Atividade programada*',
     '',
-    `🏭 Usina: ${a.usina || '—'}${a.cliente ? ' ('+a.cliente+')' : ''}`,
+    `🏭 Usina: ${a.usina ? '*'+a.usina+'*' : '—'}${a.cliente ? ' ('+a.cliente+')' : ''}`,
     `🔧 Atividade: ${a.descricao || '—'}`,
   ];
   if (a.numeroOS) linhas.push(`📄 OS: ${a.numeroOS}`);
-  linhas.push(`📅 Prazo: ${a.prazo || 'não definido'}`);
-  linhas.push('', 'Favor priorizar a execução dentro do prazo.');
+  if (a.prazo) linhas.push(`📅 Data prevista: ${a.prazo}`);
+  const _mPrazo = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(a.prazo || ''));
+  const _passou = _mPrazo && new Date(+_mPrazo[3], +_mPrazo[2] - 1, +_mPrazo[1], 23, 59) < new Date();
+  linhas.push('', _passou
+    ? 'Se já foi realizada, é só nos avisar para atualizarmos o sistema. Se ainda não, por favor nos passem a nova previsão.'
+    : 'Quando puderem, nos confirmem a previsão de execução. Se precisarem de algum apoio, é só avisar.');
   const texto = linhas.join('\n');
   _comunicadoTextoCache[idSeguro] = texto;
 
