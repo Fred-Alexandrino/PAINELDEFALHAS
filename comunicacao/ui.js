@@ -51,7 +51,7 @@
   };
 
   const MAX_PRINTS = 4;
-  const MAX_PDFS = 2, MAX_PDF_BYTES = 10 * 1024 * 1024;   // 18/11/2026: PDF só no envio de relatório
+  const MAX_PDFS = 2, MAX_PDF_BYTES = 40 * 1024 * 1024;   // 18/11/2026: PDF só no envio de relatório
   const ehPdf = p => p && p.mimeType === 'application/pdf';
   // Usinas juntas (mesmo local): vêm do mapeamento (campo "conjunto" de /mapeamento-ufvs,
   // USINAS_JUNTAS no app.py). Esta lista só vale se o backend ainda não mandar o campo.
@@ -242,7 +242,7 @@
   }
   function lerPdf(file) {
     return new Promise((ok, falha) => {
-      if (file.size > MAX_PDF_BYTES) return falha(new Error('PDF maior que 10 MB'));
+      if (file.size > MAX_PDF_BYTES) return falha(new Error('PDF maior que 40 MB — para OS da Fracttal use o botão "Texto de envio da OS" no card da atividade'));
       const fr = new FileReader();
       fr.onerror = () => falha(new Error('não consegui ler o PDF'));
       fr.onload = () => ok({ base64: String(fr.result).split(',')[1], mimeType: 'application/pdf', nome: file.name || 'documento.pdf', kb: Math.round(file.size / 1024) });
@@ -414,7 +414,7 @@
             <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
             <div class="cm-prints">
               <button type="button" class="cm-btn" data-acao="anexar-print" ${nImg >= MAX_PRINTS && (!rel || nPdf >= MAX_PDFS) ? 'disabled' : ''}>📎 ${rel ? 'Anexar PDF ou print' : 'Anexar print'}</button>
-              <span class="cm-dica">${rel ? `PDF do relatório/OS (até ${MAX_PDFS}, 10 MB) ou prints (até ${MAX_PRINTS}) · a IA lê o conteúdo` : `ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo`}</span>
+              <span class="cm-dica">${rel ? `PDF do relatório/OS (até ${MAX_PDFS}, 40 MB; acima de 10 MB a IA lê só o texto) ou prints (até ${MAX_PRINTS})` : `ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo`}</span>
               <input type="file" id="cmPrintInput" accept="${rel ? 'image/*,application/pdf,.pdf' : 'image/*'}" multiple hidden data-acao="print-input">
               ${st.lendoOS ? `<div class="cm-dica">⏳ ${h(st.lendoOS)}</div>` : ''}
               ${prints ? `<div class="cm-print-lista">${prints}</div>` : ''}
