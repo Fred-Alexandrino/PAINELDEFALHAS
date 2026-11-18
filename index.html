@@ -23026,10 +23026,7 @@ _pfRender = function () {
 </script>
 
 <!-- Central de Mensagens (docs/PADRAO_COMUNICACAO_RELATORIOS_GRID.md) -->
-<script src="comunicacao/formatWhatsApp.js?v=20261118a"></script>
-<script src="comunicacao/roteamento.js?v=20261118a"></script>
-<script src="comunicacao/validators.js?v=20261118a"></script>
-<script src="comunicacao/ui.js?v=20261118b">
+<script>
 /* 18/11/2026: card da OS → Central de Mensagens (envio de relatório) lendo a OS na Fracttal */
 function _ativTextoEnvioOS(id) {
   const a = (ATIVIDADES || []).find(x => String(x.id) === String(id));
@@ -23037,6 +23034,11 @@ function _ativTextoEnvioOS(id) {
   try { if (typeof fecharAtivDrawer === 'function') fecharAtivDrawer(); else if (typeof _fecharAtivDrawer === 'function') _fecharAtivDrawer(); } catch (e) {}
   window.CentralMensagens.relatorioDaOS(a);
 }
+</script>
+<script src="comunicacao/formatWhatsApp.js?v=20261118a"></script>
+<script src="comunicacao/roteamento.js?v=20261118a"></script>
+<script src="comunicacao/validators.js?v=20261118a"></script>
+<script src="comunicacao/ui.js?v=20261118b">
 
 </script>
 </body>
