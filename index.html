@@ -20654,6 +20654,7 @@ function _pontoCopiarComunicado(id, btn) {
   const dBR = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
   const COR = { alta: '#C62828', media: '#B26A00', baixa: '#2E7D32', sem: '#777777' };
   let MAPA = [], ITS = [], PLANOS = {};
+  let ULT = null;
 
   function achar(u) {
     const n = nrm(u);
@@ -20794,10 +20795,16 @@ function _pontoCopiarComunicado(id, btn) {
       if (!d._n) throw new Error('não há ocorrências em aberto para este filtro');
       const r = await fetch(API + '/relatorios/chamados-solaredge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
       if (!r.ok) { let er = 'HTTP ' + r.status; try { er = (await r.json()).error || er; } catch (e) {} throw new Error(er); }
-      const blob = await r.blob(), url = URL.createObjectURL(blob), a = document.createElement('a');
-      a.href = url; a.download = d.arquivo; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-      msg.textContent = '✓ ' + d.arquivo + ' baixado.';
+      const blob = await r.blob(); if (ULT) URL.revokeObjectURL(ULT.url);
+      const arq = new File([blob], d.arquivo, { type: 'application/pdf' }); ULT = { url: URL.createObjectURL(blob), arq };
+      const pode = !!(navigator.canShare && navigator.canShare({ files: [arq] }));
+      msg.style.color = 'var(--text-dim)';
+      msg.innerHTML = '✓ PDF pronto: ' + esc(d.arquivo) + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+        (pode ? '<button type="button" class="ocrel-b pri" id="ocRelShare">Compartilhar</button>' : '') +
+        '<a class="ocrel-b' + (pode ? '' : ' pri') + '" style="text-decoration:none;display:inline-flex;align-items:center" target="_blank" rel="noopener" href="' + ULT.url + '">Abrir PDF</a>' +
+        '<a class="ocrel-b" style="text-decoration:none;display:inline-flex;align-items:center" download="' + esc(d.arquivo) + '" href="' + ULT.url + '">Baixar</a></div>';
+      const sh = document.getElementById('ocRelShare');
+      if (sh) sh.onclick = () => navigator.share({ files: [ULT.arq], title: d.arquivo }).catch(() => {});
       document.getElementById('ocRelEnvioTxt').value = `Segue em anexo a posição das ocorrências em aberto${op.clusters.length || op.clientes.length ? ' (*' + d._destaque + '*)' : ''}, de *${d._dataBR}*: *${d._n}* ${d._n === 1 ? 'ocorrência' : 'ocorrências'}${d._alta ? `, sendo *${d._alta}* de criticidade alta ou grave` : ''}.\n\nPeço que sigam os próximos passos de cada ocorrência, registrem o retorno no histórico e me avisem sobre qualquer bloqueio.`;
       document.getElementById('ocRelEnvio').style.display = 'block';
     } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
