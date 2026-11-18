@@ -2553,6 +2553,15 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
   .ch-modal .ch-body,.ch-modal .ch-head{padding-left:16px!important;padding-right:16px!important}
 }
 </style>
+<style>/* CHIPS DE CLIENTE (18/11/2026): selecionado bem diferente do não selecionado */
+.filterbar .sb-chip{border-width:1.5px!important;border-style:solid;transition:background .15s,color .15s,border-color .15s;cursor:pointer;user-select:none}
+.filterbar .sb-chip.on{font-weight:700;box-shadow:0 2px 6px -2px rgba(0,0,0,.35)}
+.filterbar .sb-chip.off{font-weight:500;opacity:.85}
+.filterbar .sb-chip.off:hover{opacity:1;border-color:var(--text-dim)!important}
+.filterbar .sb-chip.cli-todos.on{background:var(--sel-bg,#044A44);color:var(--sel-tx,#F2E6D3);border-color:var(--sel-bg,#044A44)!important}
+.filterbar .sb-chip.cli-todos.off{background:transparent;color:var(--text-dim);border-color:var(--border-strong)!important}
+@media(max-width:768px){.filterbar .sb-chip{min-height:36px;display:inline-flex;align-items:center}}
+</style>
 </head>
 <body>
 
@@ -7643,11 +7652,11 @@ function _initClienteChipsTouchReorder(wrap) {
   function limparTimer() { clearTimeout(timer); timer = null; }
   function chipSobToque(x, y) {
     const alvo = document.elementFromPoint(x, y);
-    return alvo && alvo.closest ? alvo.closest('.sb-chip') : null;
+    return alvo && alvo.closest ? alvo.closest('.sb-chip[data-cliente]') : null;
   }
 
   wrap.addEventListener('touchstart', (e) => {
-    const chip = e.target.closest ? e.target.closest('.sb-chip') : null;
+    const chip = e.target.closest ? e.target.closest('.sb-chip[data-cliente]') : null;
     if (!chip || e.touches.length !== 1) return;
     const t = e.touches[0];
     startX = t.clientX; startY = t.clientY; moved = false;
@@ -7682,7 +7691,7 @@ function _initClienteChipsTouchReorder(wrap) {
     if (overEl && overEl !== dragEl) {
       const irDepois = [...wrap.children].indexOf(dragEl) < [...wrap.children].indexOf(overEl);
       wrap.insertBefore(dragEl, irDepois ? overEl.nextSibling : overEl);
-      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip')].map(el => el.dataset.cliente));
+      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip[data-cliente]')].map(el => el.dataset.cliente));
     }
     dragEl = null;
   }, { passive: true });
@@ -7700,13 +7709,24 @@ function renderClienteChips() {
   const clientes = _clientesDisponiveis();
   const todosAtivos = clientes.length > 0 && clientes.every(c => selCliente.has(c));
 
-  wrap.innerHTML = clientes.map(c => {
+  // 18/11/2026: estado bem visível — selecionado = preenchido na cor do cliente com ✓;
+  // fora do filtro = contorno apagado; sem nenhum selecionado, o chip "Todos" fica ativo.
+  const _txtSobre = hex => { try { const h = hex.replace('#', ''); const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16); return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#14201E' : '#FFFFFF'; } catch (e) { return '#FFFFFF'; } };
+  const nenhum = selCliente.size === 0;
+  wrap.innerHTML = `<span class="sb-chip cli-todos ${nenhum ? 'on' : 'off'}" data-todos="1" role="button" aria-pressed="${nenhum}">${nenhum ? '✓ ' : ''}Todos</span>` + clientes.map(c => {
     const cc = clientColor(c);
     const isSel = selCliente.has(c);
-    return `<span class="sb-chip" data-cliente="${esc(c)}" draggable="true" style="color:${cc.color};background:${cc.color}${isSel?'30':'12'};border-color:${cc.color}${isSel?'70':'30'};">${esc(c)}</span>`;
+    const st = isSel
+      ? `color:${_txtSobre(cc.color)};background:${cc.color};border-color:${cc.color};`
+      : nenhum
+        ? `color:color-mix(in srgb, ${cc.color} 70%, var(--text));background:${cc.color}18;border-color:${cc.color}66;`
+        : `color:var(--text-dim);background:transparent;border-color:var(--border-strong);`;
+    return `<span class="sb-chip ${isSel ? 'on' : (nenhum ? 'neutro' : 'off')}" data-cliente="${esc(c)}" draggable="true" role="button" aria-pressed="${isSel}" style="${st}">${isSel ? '✓ ' : ''}${esc(c)}</span>`;
   }).join('');
+  const _todos = wrap.querySelector('[data-todos]');
+  if (_todos) _todos.addEventListener('click', () => { selCliente.clear(); populateFilters(); applyFilters(); });
 
-  wrap.querySelectorAll('.sb-chip').forEach(chip => {
+  wrap.querySelectorAll('.sb-chip[data-cliente]').forEach(chip => {
     chip.addEventListener('click', () => {
       const c = chip.dataset.cliente;
       selCliente.has(c) ? selCliente.delete(c) : selCliente.add(c);
@@ -7738,7 +7758,7 @@ function renderClienteChips() {
       if (!draggedEl) return;
       const irDepois = [...wrap.children].indexOf(draggedEl) < [...wrap.children].indexOf(chip);
       wrap.insertBefore(draggedEl, irDepois ? chip.nextSibling : chip);
-      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip')].map(el => el.dataset.cliente));
+      _cliChipSalvarOrdem([...wrap.querySelectorAll('.sb-chip[data-cliente]')].map(el => el.dataset.cliente));
     });
   });
 
