@@ -22733,6 +22733,34 @@ _pfRender = function () {
 <script src="comunicacao/roteamento.js?v=20261117f"></script>
 <script src="comunicacao/validators.js?v=20261117f"></script>
 <script src="comunicacao/ui.js?v=20261117f"></script>
+<script>
+/* 17/11/2026 — aviso de versão nova: o GitHub Pages manda o navegador guardar a página por 10 min e o
+   celular não tem "recarregar". A cada 3 min (e ao voltar para o app) confere o ETag da página no servidor;
+   se mudou, mostra uma faixa "Versão nova do Omni — Atualizar" que recarrega sem usar a cópia guardada. */
+(function () {
+  let etag0 = null, avisado = false;
+  async function conferir() {
+    try {
+      const r = await fetch(location.pathname + '?_vchk=' + Date.now(), { cache: 'no-store', method: 'GET' });
+      const et = r.headers.get('etag') || r.headers.get('last-modified');
+      if (!et) return;
+      if (etag0 === null) { etag0 = et; return; }
+      if (et !== etag0 && !avisado) { avisado = true; mostrar(); }
+    } catch (e) {}
+  }
+  function mostrar() {
+    const d = document.createElement('div');
+    d.id = 'omniVersaoNova';
+    d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:13000;background:#0f766e;color:#fff;border-radius:10px;padding:10px 14px;font:600 14px Poppins,system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;max-width:calc(100vw - 24px)';
+    d.innerHTML = '<span>Versão nova do Omni disponível</span><button type="button" style="background:#fff;color:#0f766e;border:0;border-radius:7px;padding:6px 12px;font:700 13px Poppins,system-ui,sans-serif;cursor:pointer">Atualizar</button>';
+    d.querySelector('button').onclick = () => { location.replace(location.pathname + '?v=' + Date.now() + location.hash); };
+    document.body.appendChild(d);
+  }
+  conferir();
+  setInterval(conferir, 3 * 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) conferir(); });
+})();
+</script>
 </body>
 </html>
 <!-- rebuild 20261005T202807Z -->
