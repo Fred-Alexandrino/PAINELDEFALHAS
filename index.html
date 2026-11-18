@@ -20644,6 +20644,173 @@ function _pontoCopiarComunicado(id, btn) {
   };
 })();
 
+/* ── Gerar relatório de ocorrências em aberto (18/11/2026) — mesmo gerador de PDF dos chamados SolarEdge ── */
+(function () {
+  const API = 'https://api.168.138.232.237.sslip.io';
+  const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const nrm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const lista = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1];
+  const pl = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+  const dBR = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
+  const COR = { alta: '#C62828', media: '#B26A00', baixa: '#2E7D32', sem: '#777777' };
+  let MAPA = [], ITS = [], PLANOS = {};
+
+  function achar(u) {
+    const n = nrm(u);
+    let m = MAPA.find(x => nrm(x.usina) === n || (x.aliases || []).some(a => nrm(a) === n));
+    if (m) return m;
+    const base = n.replace(/\b(i{1,3}|iv|v|\d+|e)\b/g, ' ').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+    return base ? (MAPA.find(x => nrm(x.usina).startsWith(base)) || null) : null;
+  }
+  const clusterDe = x => (achar(x.usina) || {}).cluster || 'Sem cluster';
+  const clienteDe = x => x.cliente || (achar(x.usina) || {}).cliente || 'Sem cliente';
+  const supDe = x => (achar(x.usina) || {}).supervisor_campo || (achar(x.usina) || {}).responsavel || '—';
+  const parado = x => x.parado != null ? x.parado : Math.max(0, Math.floor((Date.now() - new Date((x.ult || x.inicio || '') + 'T12:00:00')) / 864e5)) || 0;
+  const nivel = x => (x.grave || x.crit === 'Muito Alta') ? 'muito' : x.crit === 'Alta' ? 'alta' : x.crit === 'Média' ? 'media' : x.crit === 'Baixa' ? 'baixa' : 'sem';
+  const GRUPO = { muito: ['Grave / criticidade muito alta', COR.alta], alta: ['Criticidade alta', COR.alta], media: ['Criticidade média', COR.media], baixa: ['Criticidade baixa', COR.baixa], sem: ['Sem criticidade definida', COR.sem] };
+
+  function proximos(acao) {
+    let t = String(acao || '');
+    const i = t.search(/PLANO DE A[ÇC][ÃA]O:?/i);
+    if (i >= 0) t = t.slice(i).replace(/^PLANO DE A[ÇC][ÃA]O:?\s*/i, '');
+    t = t.replace(/\n{2,}/g, '\n').trim();
+    return t.length > 700 ? t.slice(0, 700).replace(/\s+\S*$/, '') + '…' : t;
+  }
+
+  function itemPdf(x, comPlano) {
+    const h = (x.hist || []).slice().sort((a, b) => (a.d || '').localeCompare(b.d || '')).filter(m => (m.t || '').trim());
+    const u = h[h.length - 1];
+    const nv = nivel(x), dias = x.inicio ? Math.max(0, Math.floor((Date.now() - new Date(x.inicio + 'T12:00:00')) / 864e5)) : '';
+    const eq = [x.equip, (x.nequip || '').split('\n')[0]].filter(Boolean).join(' ');
+    const p = comPlano ? proximos((PLANOS[x.id] || {}).acao) : '';
+    return {
+      case: x.id, usina: x.usina, equipamento: eq, assunto: x.titulo || x.causa || '',
+      status: x.status + (x.crit ? ' · ' + x.crit : '') + (x.grave ? ' · Grave' : ''), statusCor: GRUPO[nv][1],
+      aberto: dBR(x.inicio), dias, os: x.os || '', serial: x.sn || '',
+      extra: [x.chamado ? 'Chamado ' + x.chamado : '', parado(x) >= 7 ? `${parado(x)} dias sem atualização` : ''].filter(Boolean).join(' · '),
+      atualizacao: u ? { rotulo: 'Último registro', data: dBR(u.d), texto: String(u.t).replace(/\s+/g, ' ').trim().slice(0, 420) } : null,
+      plano: p, _dias: dias || 0,
+    };
+  }
+
+  function montarDados(sel, op) {
+    const ab = ITS.filter(x => (op.pausadas || x.status !== 'Pausado') && sel(x));
+    const por = { muito: [], alta: [], media: [], baixa: [], sem: [] };
+    ab.forEach(x => por[nivel(x)].push(x));
+    const hoje = new Date(), dd = String(hoje.getDate()).padStart(2, '0'), mm = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dataBR = `${dd}/${mm}/${hoje.getFullYear()}`, iso = `${hoje.getFullYear()}-${mm}-${dd}`;
+    const mes = MESES[hoje.getMonth()], ext = `${hoje.getDate()} de ${mes} de ${hoje.getFullYear()}`;
+    const n = ab.length, usinas = [...new Set(ab.map(x => x.usina))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const clusters = [...new Set(ab.map(clusterDe))].sort(), clientes = [...new Set(ab.map(clienteDe))].sort();
+    const nAlta = por.muito.length + por.alta.length, nPar = ab.filter(x => parado(x) >= 7).length, nSemOs = ab.filter(x => !x.os).length;
+    const nPaus = ab.filter(x => x.status === 'Pausado').length;
+    const destaque = op.clusters.length ? lista(op.clusters) : (op.clientes.length ? lista(op.clientes) : 'Todas as usinas');
+    const porUsina = usinas.map(u => {
+      const l = ab.filter(x => x.usina === u), z = v => v ? String(v) : '—', f = l[0];
+      return [u, clusterDe(f) + ' · ' + supDe(f), String(l.length), z(l.filter(x => ['muito', 'alta'].includes(nivel(x))).length), z(l.filter(x => parado(x) >= 7).length)];
+    });
+    const ordem = a => a.map(x => itemPdf(x, op.plano)).sort((p, q) => q._dias - p._dias);
+    const grupos = ['muito', 'alta', 'media', 'baixa', 'sem'].map(k => ({ titulo: GRUPO[k][0], itens: ordem(por[k]) }));
+    const prox = [
+      nAlta && `Priorizar ${pl(nAlta, 'ocorrência de criticidade alta ou grave', 'ocorrências de criticidade alta ou grave')}.`,
+      nPar && `Atualizar o histórico de ${pl(nPar, 'ocorrência parada', 'ocorrências paradas')} há 7 dias ou mais, com o próximo passo e a data combinada.`,
+      nSemOs && `Verificar a OS de ${pl(nSemOs, 'ocorrência sem OS vinculada', 'ocorrências sem OS vinculada')} (vincular a existente ou solicitar a abertura).`,
+      nPaus && `Rever o motivo e a data de retomada de ${pl(nPaus, 'ocorrência pausada', 'ocorrências pausadas')}.`,
+    ].filter(Boolean);
+    const sup = [...new Set(ab.map(supDe))].filter(s => s && s !== '—');
+    return {
+      arquivo: `Relatorio_Ocorrencias_Em_Aberto_${nrm(destaque).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${iso}_R01.pdf`,
+      tituloPdf: `Ocorrências em aberto — ${destaque}`,
+      rotuloCapa: 'RELATÓRIO DE OCORRÊNCIAS', tituloCapa: 'Ocorrências em Aberto —', destaqueCapa: destaque,
+      subtituloCapa: `Posição do Painel de Ocorrências · ${pl(usinas.length, 'usina', 'usinas')}`,
+      fraseResumo: `${pl(n, 'ocorrência em aberto', 'ocorrências em aberto')}${nAlta ? ', ' + nAlta + ' de criticidade alta ou grave' : ''}.`,
+      dataCapa: `Posição de ${dataBR}`, cliente: lista(clientes), usinasTexto: lista(usinas), dataExtenso: ext,
+      responsavelTecnico: 'Fred Alexandrino — Supervisor de O&M',
+      cabecalho: `RELATÓRIO DE OCORRÊNCIAS  |  Ocorrências em aberto — ${destaque}`,
+      rodape: `Grid Co.  |  ${destaque}  |  Revisão 01  |  ${mes} ${hoje.getFullYear()}`,
+      introducao: [`Segue a posição das ocorrências em aberto${clusters.length ? ' dos clusters ' + lista(clusters) : ''}: ${pl(n, 'ocorrência', 'ocorrências')} em ${pl(usinas.length, 'usina', 'usinas')}${sup.length ? ', sob a supervisão de campo de ' + lista(sup) : ''}. Cada ocorrência traz a situação, o último registro do histórico${op.plano ? ' e os próximos passos definidos' : ''}.`],
+      kpis: [{ valor: n, rotulo: 'ocorrências em aberto', cor: '#1C1F3B' }, { valor: nAlta, rotulo: 'criticidade alta ou grave', cor: COR.alta },
+        { valor: nPar, rotulo: 'sem atualização há 7 dias ou mais', cor: COR.media }, { valor: nSemOs, rotulo: 'sem OS vinculada', cor: COR.sem }],
+      enquadramento: `Dados do Painel de Ocorrências da Grid Co. em ${dataBR}. A criticidade segue o registro de cada ocorrência.`,
+      porUsinaCab: ['Usina', 'Cluster · supervisor de campo', 'Total', 'Alta/Grave', 'Paradas ≥7 d'],
+      porUsinaLarguras: [0.24, 0.36, 0.1, 0.15, 0.15],
+      porUsina, porUsinaTotal: ['Total', '', String(n), String(nAlta || '—'), String(nPar || '—')],
+      grupos, proximos: prox,
+      conclusao: ['Em caso de dúvida, a supervisão de O&M da Grid Co. está à disposição.'], localData: ext + '.',
+      _n: n, _alta: nAlta, _dataBR: dataBR, _destaque: destaque,
+    };
+  }
+
+  async function carregarBase() {
+    ITS = (window.OC && OC.itens ? OC.itens() : []).filter(x => x.status !== 'Finalizado');
+    try { MAPA = (await _mapUfvsCarregar()) || []; } catch (e) { MAPA = []; }
+    PLANOS = {};
+    try {
+      const r = await fetch(API + '/ocorrencias/plano'); const j = await r.json();
+      (j.itens || []).forEach(p => { PLANOS[p.ocorrencia] = p; });
+    } catch (e) {}
+  }
+
+  const chk = (cls, v, n) => `<label class="ocrel-op"><input type="checkbox" class="${cls}" value="${esc(v)}"> ${esc(v)} <small>(${n})</small></label>`;
+  async function abrir() {
+    document.getElementById('ocRelOverlay')?.remove();
+    await carregarBase();
+    const cnt = (f) => { const m = {}; ITS.forEach(x => { const k = f(x); m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); };
+    const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'ocRelOverlay'; ov.style.zIndex = 10001;
+    ov.onclick = e => { if (e.target === ov) ov.remove(); };
+    ov.innerHTML = `<style>.ocrel-op{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:3px 12px 3px 0;cursor:pointer}.ocrel-op small{color:var(--text-faint)}.ocrel-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:12px 0 4px}</style>
+      <div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Gerar relatório — Ocorrências em aberto</h3><button class="se-btn" onclick="document.getElementById('ocRelOverlay').remove()">Fechar</button></div>
+      <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 6px;">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada ocorrência com o último registro e os próximos passos). Sem selecionar nada, entram todas as ocorrências em aberto. Anotações internas nunca entram.</div>
+      <div class="ocrel-h">Cliente</div><div>${cnt(clienteDe).map(([k, n]) => chk('ocrel-cli', k, n)).join('')}</div>
+      <div class="ocrel-h">Cluster</div><div>${cnt(clusterDe).map(([k, n]) => chk('ocrel-clu', k, n)).join('')}</div>
+      <div class="ocrel-h">Opções</div>
+      <label class="ocrel-op"><input type="checkbox" id="ocRelPlano" checked> Incluir próximos passos (plano de ação)</label>
+      <label class="ocrel-op"><input type="checkbox" id="ocRelPaus" checked> Incluir pausadas</label>
+      <div style="margin-top:12px;"><button class="se-btn pri" id="ocRelBtn">Gerar PDF</button> <span id="ocRelMsg" style="font-size:12.5px;color:var(--text-dim);margin-left:8px;"></span></div>
+      <div id="ocRelEnvio" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div class="ocrel-h" style="margin-top:0">Texto de envio</div>
+        <textarea id="ocRelEnvioTxt" class="se-in" rows="5" style="font-family:'Poppins',monospace;font-size:12.5px;"></textarea>
+        <button class="se-btn pri" style="margin-top:8px;" id="ocRelCopiar">Copiar</button></div></div>`;
+    document.body.appendChild(ov);
+    document.getElementById('ocRelBtn').onclick = gerar;
+    document.getElementById('ocRelCopiar').onclick = () => navigator.clipboard.writeText(document.getElementById('ocRelEnvioTxt').value).then(() => showToast('Texto copiado.', true)).catch(() => showToast('Não consegui copiar.', false));
+  }
+
+  async function gerar() {
+    const btn = document.getElementById('ocRelBtn'), msg = document.getElementById('ocRelMsg');
+    const val = c => [...document.querySelectorAll('.' + c + ':checked')].map(i => i.value);
+    const op = { clientes: val('ocrel-cli'), clusters: val('ocrel-clu'), plano: document.getElementById('ocRelPlano').checked, pausadas: document.getElementById('ocRelPaus').checked };
+    const sel = x => (!op.clientes.length || op.clientes.includes(clienteDe(x))) && (!op.clusters.length || op.clusters.includes(clusterDe(x)));
+    btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…';
+    try {
+      const d = montarDados(sel, op);
+      if (!d._n) throw new Error('não há ocorrências em aberto para este filtro');
+      const r = await fetch(API + '/relatorios/chamados-solaredge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
+      if (!r.ok) { let er = 'HTTP ' + r.status; try { er = (await r.json()).error || er; } catch (e) {} throw new Error(er); }
+      const blob = await r.blob(), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = d.arquivo; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      msg.textContent = '✓ ' + d.arquivo + ' baixado.';
+      document.getElementById('ocRelEnvioTxt').value = `Segue em anexo a posição das ocorrências em aberto${op.clusters.length || op.clientes.length ? ' (*' + d._destaque + '*)' : ''}, de *${d._dataBR}*: *${d._n}* ${d._n === 1 ? 'ocorrência' : 'ocorrências'}${d._alta ? `, sendo *${d._alta}* de criticidade alta ou grave` : ''}.\n\nPeço que sigam os próximos passos de cada ocorrência, registrem o retorno no histórico e me avisem sobre qualquer bloqueio.`;
+      document.getElementById('ocRelEnvio').style.display = 'block';
+    } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
+    btn.disabled = false;
+  }
+
+  function montarBotao() {
+    if (document.getElementById('ocRelBtnBar')) return true;
+    const bar = document.querySelector('#ocRoot .oc-bar'), ref = document.getElementById('ocExp');
+    if (!bar || !ref) return false;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'oc-btn'; b.id = 'ocRelBtnBar';
+    b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>Gerar relatório';
+    b.addEventListener('click', abrir);
+    bar.insertBefore(b, ref);
+    return true;
+  }
+  if (!montarBotao()) document.addEventListener('DOMContentLoaded', montarBotao);
+})();
+
 /* Atalho 'Nova Ocorrência' da sidebar agora abre o formulário do novo painel */
 window._openNovaOcorrencia = function () { switchNav('ocorrencias'); if (window.OC) OC.novo(); };
 </script>
