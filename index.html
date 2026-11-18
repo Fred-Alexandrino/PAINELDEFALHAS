@@ -10584,7 +10584,9 @@ async function _enviarAoNexus(json) {
   try { window.postMessage({ gridosNexus: pacote }, location.origin); } catch (e) {}
   const txt = 'GRIDOS_NEXUS::' + JSON.stringify(pacote);
   const resumo = [usina || 'usina não identificada', pacote.equipamento, tecnico && ('técnico ' + tecnico)].filter(Boolean).join(' · ');
-  const ok = () => showToast('Pacote pronto (' + resumo + '). No Nexus, clique em "Preencher do dashboard".', true);
+  const ok = () => showToast('Pacote pronto (' + resumo + '). ' + (window._nexusAbaAberta === false
+    ? 'O navegador bloqueou a nova aba: abra app.gridco.com.br/os/solicitacao e clique em "Preencher do dashboard".'
+    : 'Na aba do Nexus que abriu, clique em "Preencher do dashboard".'), true);
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(ok); else ok();
 }
 
@@ -10596,7 +10598,15 @@ function _wireCopiaCamposOS(container) {
   container._osCopyWired = true;
   container.addEventListener('click', (e) => {
     const nx = e.target.closest('[data-nexus]');
-    if (nx) { _enviarAoNexus(nx.dataset.nexus); return; }
+    if (nx) {
+      // 17/11/2026: abre a Solicitação de OS do Nexus na hora do clique (como o "Atualizar do Nexus");
+      // o script "Grid OS → Nexus" guarda o pacote e você só clica em "Preencher do dashboard".
+      let aba = null;
+      try { aba = window.open('https://app.gridco.com.br/os/solicitacao', 'nexusSolicitacao'); } catch (e2) {}
+      window._nexusAbaAberta = !!aba;
+      _enviarAoNexus(nx.dataset.nexus);
+      return;
+    }
     const btn = e.target.closest('[data-copy]');
     if (!btn) return;
     const txt = btn.dataset.copy || '';
