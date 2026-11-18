@@ -20807,18 +20807,21 @@ function _pontoCopiarComunicado(id, btn) {
       const d = montarDados(sel, op);
       if (!d._n) throw new Error('não há ocorrências em aberto para este filtro');
       const semRes = op.resumo ? d.grupos.reduce((n, g) => n + g.itens.filter(i => !i.resumo).length, 0) : 0;
-      const r = await fetch(API + '/relatorios/chamados-solaredge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
-      if (!r.ok) { let er = 'HTTP ' + r.status; try { er = (await r.json()).error || er; } catch (e) {} throw new Error(er); }
-      const blob = await r.blob(); if (ULT) URL.revokeObjectURL(ULT.url);
-      const arq = new File([blob], d.arquivo, { type: 'application/pdf' }); ULT = { url: URL.createObjectURL(blob), arq };
-      const pode = !!(navigator.canShare && navigator.canShare({ files: [arq] }));
+      const r = await fetch(API + '/relatorios/gerar-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d), signal: AbortSignal.timeout(90000) });
+      let jr = {}; try { jr = await r.json(); } catch (e) {}
+      if (!r.ok || !jr.ok) throw new Error(jr.error || ('HTTP ' + r.status));
+      let base = API; try { if (localStorage.getItem('apiAlt') === '1') base = 'https://api.168-138-232-237.nip.io'; } catch (e) {}
+      const url = base + '/relatorios/arquivo/' + jr.id + '/' + encodeURIComponent(jr.nome);
+      ULT = { url, nome: jr.nome, arq: null };
+      try { const bl = await (await fetch(url)).blob(); ULT.arq = new File([bl], jr.nome, { type: 'application/pdf' }); } catch (e) {}
+      const pode = !!(ULT.arq && navigator.canShare && navigator.canShare({ files: [ULT.arq] }));
       msg.style.color = 'var(--text-dim)';
       msg.innerHTML = '✓ PDF pronto: ' + esc(d.arquivo) + (semRes ? '<div style="color:var(--acao);margin-top:4px">Atenção: ' + semRes + ' ocorrência(s) saíram sem o resumo por IA (falha momentânea). Gere de novo para completar.</div>' : '') + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
         (pode ? '<button type="button" class="ocrel-b pri" id="ocRelShare">Compartilhar</button>' : '') +
         '<a class="ocrel-b' + (pode ? '' : ' pri') + '" style="text-decoration:none;display:inline-flex;align-items:center" target="_blank" rel="noopener" href="' + ULT.url + '">Abrir PDF</a>' +
-        '<a class="ocrel-b" style="text-decoration:none;display:inline-flex;align-items:center" download="' + esc(d.arquivo) + '" href="' + ULT.url + '">Baixar</a></div>';
+        '<a class="ocrel-b" style="text-decoration:none;display:inline-flex;align-items:center" href="' + ULT.url + '?baixar=1">Baixar</a></div>';
       const sh = document.getElementById('ocRelShare');
-      if (sh) sh.onclick = () => navigator.share({ files: [ULT.arq], title: d.arquivo }).catch(() => {});
+      if (sh) sh.onclick = () => navigator.share({ files: [ULT.arq], title: ULT.nome }).catch(() => {});
       document.getElementById('ocRelEnvioTxt').value = `Segue em anexo a posição das ocorrências em aberto${op.clusters.length || op.clientes.length ? ' (*' + d._destaque + '*)' : ''}, de *${d._dataBR}*: *${d._n}* ${d._n === 1 ? 'ocorrência' : 'ocorrências'}${d._alta ? `, sendo *${d._alta}* de criticidade alta ou grave` : ''}.\n\nPeço que sigam os próximos passos de cada ocorrência, registrem o retorno no histórico e me avisem sobre qualquer bloqueio.`;
       document.getElementById('ocRelEnvio').style.display = 'block';
     } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
