@@ -42,15 +42,17 @@
       botao: 'Gerar e-mail', lista: 'cliente',
     },
     envio_relatorio: {
-      desc: 'Texto que acompanha um relatório enviado ao cliente: explica o que está no anexo e o que se pede.',
+      desc: 'Texto que acompanha um relatório enviado ao cliente: explica o que está no anexo e o que se pede. Anexe o PDF do relatório (ou da OS) e a IA lê o documento.',
       dest: 'Escolha o cliente. Se quiser, diga para quem é no campo "Para quem".',
       rotulo: 'Sobre o relatório anexado',
-      ph: 'Ex.: Relatório de Ocorrência da via de acesso, vistoria de 16/11, com cronologia, riscos, fotos e recomendações; pedir posicionamento sobre a recuperação.',
+      ph: 'Ex.: Relatório de Ocorrência da via de acesso, vistoria de 16/11, com cronologia, riscos, fotos e recomendações; pedir posicionamento sobre a recuperação. Com o PDF anexado, pode deixar só o que pedir ao cliente.',
       botao: 'Gerar texto de envio', lista: 'cliente',
     },
   };
 
   const MAX_PRINTS = 4;
+  const MAX_PDFS = 2, MAX_PDF_BYTES = 10 * 1024 * 1024;   // 18/11/2026: PDF só no envio de relatório
+  const ehPdf = p => p && p.mimeType === 'application/pdf';
   // Usinas juntas (mesmo local): vêm do mapeamento (campo "conjunto" de /mapeamento-ufvs,
   // USINAS_JUNTAS no app.py). Esta lista só vale se o backend ainda não mandar o campo.
   const JUNTAS_PADRAO = [['Canarana I', 'Canarana II'], ['União I', 'União II'], ['Nova Londrina I', 'Nova Londrina II'],
@@ -82,7 +84,8 @@
   }
   const st = {
     tipo: 'cliente', cliente: '', para: '', filtroCliente: '', ufvs: [], filtro: '', rascunho: '', envio: '', mapa: null, carregandoMapa: false,
-    prints: [], // [{base64, mimeType, url}] — só na memória (não vai para o localStorage)
+    prints: [], // [{base64, mimeType, url}] — só na memória (não vai para o localStorage); PDF: {base64, mimeType:'application/pdf', nome}
+    docs: [],   // [{nome, texto}] — OS lida da Fracttal (só na memória)
     resultados: [], // [{grupo, versoes:[{n, saida, ajuste}], atual, gerando, erro, ajusteAberto}]
   };
 
@@ -165,7 +168,8 @@
       cliente: grupo.cliente || '',
       dataHoraEnvio: envioBR(st.envio),
       rascunho: st.rascunho,
-      prints: st.prints.map(p => ({ base64: p.base64, mimeType: p.mimeType })),
+      prints: st.prints.filter(p => !ehPdf(p) || grupo.tipo === 'envio_relatorio').map(p => ({ base64: p.base64, mimeType: p.mimeType })),
+      documentos: st.docs.map(d => ({ nome: d.nome, texto: d.texto })),
       pessoas: pessoasComCargo(),
     }, extra || {});
     const r = await fetch(API + '/comunicacao/gerar', {
@@ -178,7 +182,7 @@
   }
 
   async function gerar() {
-    if (!st.rascunho.trim() && !st.prints.length) return toast('Escreva o rascunho ou anexe um print antes de gerar.', false);
+    if (!st.rascunho.trim() && !st.prints.length && !st.docs.length) return toast('Escreva o rascunho ou anexe um print antes de gerar.', false);
     const { grupos } = rotas();
     if (!grupos.length) return toast(porCliente() ? 'Escolha o cliente.' : 'Selecione ao menos uma UFV do mapeamento.', false);
     if (grupos.length > 1 && !confirm(`Vão sair ${grupos.length} mensagens separadas (uma por ${st.tipo === 'tecnico' ? 'técnico' : 'cliente'}). Gerar todas?`)) return;
@@ -236,14 +240,66 @@
       fr.readAsDataURL(file);
     });
   }
+  function lerPdf(file) {
+    return new Promise((ok, falha) => {
+      if (file.size > MAX_PDF_BYTES) return falha(new Error('PDF maior que 10 MB'));
+      const fr = new FileReader();
+      fr.onerror = () => falha(new Error('não consegui ler o PDF'));
+      fr.onload = () => ok({ base64: String(fr.result).split(',')[1], mimeType: 'application/pdf', nome: file.name || 'documento.pdf', kb: Math.round(file.size / 1024) });
+      fr.readAsDataURL(file);
+    });
+  }
+  const ehArqPdf = f => f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''));
   async function adicionarPrints(files) {
-    const lista = [...(files || [])].filter(f => /^image\//.test(f.type));
-    if (!lista.length) return;
+    const todos = [...(files || [])];
+    const pdfs = todos.filter(ehArqPdf);
+    const lista = todos.filter(f => /^image\//.test(f.type));
+    if (pdfs.length && st.tipo !== 'envio_relatorio') toast('PDF só no "Envio de relatório".', false);
+    else for (const f of pdfs) {
+      if (st.prints.filter(ehPdf).length >= MAX_PDFS) { toast(`No máximo ${MAX_PDFS} PDFs por mensagem.`, false); break; }
+      try { st.prints.push(await lerPdf(f)); } catch (e) { toast('PDF ignorado: ' + e.message, false); }
+    }
     for (const f of lista) {
-      if (st.prints.length >= MAX_PRINTS) { toast(`No máximo ${MAX_PRINTS} prints por mensagem.`, false); break; }
+      if (st.prints.filter(p => !ehPdf(p)).length >= MAX_PRINTS) { toast(`No máximo ${MAX_PRINTS} prints por mensagem.`, false); break; }
       try { st.prints.push(await lerPrint(f)); } catch (e) { toast('Print ignorado: ' + e.message, false); }
     }
     render();
+  }
+
+  // 18/11/2026: "Texto de envio da OS" no card da atividade → lê a OS na Fracttal (o mesmo conteúdo
+  // do PDF de impressão: checklist, observações, fotos), preenche o envio de relatório e já gera.
+  async function relatorioDaOS(a) {
+    if (!a) return;
+    if (!permitido()) return toast('A Central de Mensagens é só para gestor.', false);
+    window.switchNav(NAV);
+    await carregarMapa();
+    const u = G.buscarUfv ? G.buscarUfv(st.mapa || [], a.usina) : null;
+    st.tipo = 'envio_relatorio';
+    st.cliente = (u && u.cliente) || a.cliente || '';
+    st.ufvs = u ? [u.usina] : [];
+    st.para = '';
+    st.prints = []; st.docs = []; st.resultados = [];
+    st.rascunho = `Relatório da OS ${a.numeroOS} — ${a.descricao || ''}${a.usina ? ' (UFV ' + a.usina + ')' : ''}. ` +
+      'Explicar o que foi feito, o resultado do checklist e as pendências/recomendações, se houver.';
+    st.lendoOS = 'Lendo a OS ' + a.numeroOS + ' na Fracttal…';
+    salvar(); render();
+    try {
+      const r = await fetch(API + '/comunicacao/os-anexo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link: a.linkOS, numeroOS: a.numeroOS, maxFotos: 3 }), signal: AbortSignal.timeout(90000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      st.docs = [{ nome: d.nome, texto: d.texto }];
+      st.prints = (d.fotos || []).map(f => ({ base64: f.base64, mimeType: f.mimeType, url: 'data:' + f.mimeType + ';base64,' + f.base64 }));
+      st.lendoOS = '';
+      render();
+      await gerar();
+    } catch (e) {
+      st.lendoOS = '';
+      render();
+      toast('Não consegui ler a OS: ' + e.message + ' — anexe o PDF da OS e clique em gerar.', false);
+    }
   }
 
   // Cargos conhecidos (mapeamento): supervisores de campo e técnicos de cada usina
@@ -319,7 +375,12 @@
       </div>`).join('') || `<div class="cm-vazio">${!st.mapa ? 'Carregando o mapeamento…' : cliMode && !st.cliente ? 'Escolha o cliente acima.' : 'Nenhuma UFV encontrada.'}</div>`;
     const listaClientes = [...new Set(mapa.map(u => u.cliente).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const clientes = listaClientes.map(c => `<button type="button" class="cm-tipo cm-cli-btn${st.cliente === c ? ' on' : ''}" data-acao="cliente" data-cliente="${h(c)}">${h(c)}</button>`).join('');
-    const prints = st.prints.map((p, k) => `<div class="cm-print"><img src="${p.url}" alt="print ${k + 1}"><button type="button" data-acao="rm-print" data-k="${k}" title="Remover">×</button></div>`).join('');
+    const prints = st.prints.map((p, k) => ehPdf(p)
+      ? `<div class="cm-print cm-pdf" title="${h(p.nome)}"><span>📄</span><small>${h(p.nome)}${p.kb ? ' · ' + p.kb + ' KB' : ''}</small><button type="button" data-acao="rm-print" data-k="${k}" title="Remover">×</button></div>`
+      : `<div class="cm-print"><img src="${p.url}" alt="print ${k + 1}"><button type="button" data-acao="rm-print" data-k="${k}" title="Remover">×</button></div>`).join('')
+      + st.docs.map((d, k) => `<div class="cm-print cm-pdf" title="Conteúdo da OS lido na Fracttal: dados, checklist, observações"><span>📋</span><small>${h(d.nome)}</small><button type="button" data-acao="rm-doc" data-k="${k}" title="Remover">×</button></div>`).join('');
+    const rel = st.tipo === 'envio_relatorio';
+    const nImg = st.prints.filter(p => !ehPdf(p)).length, nPdf = st.prints.filter(ehPdf).length;
 
     const r = rotas();
     const rotaHtml = r.grupos.length ? r.grupos.map(g => `
@@ -352,9 +413,10 @@
             <label class="cm-rot" for="cmRascunho">${h(info.rotulo)}</label>
             <textarea id="cmRascunho" class="cm-input cm-ta" rows="9" placeholder="${h(info.ph)} A saudação é sua: o texto sai começando pelo corpo." data-acao="rascunho">${h(st.rascunho)}</textarea>
             <div class="cm-prints">
-              <button type="button" class="cm-btn" data-acao="anexar-print" ${st.prints.length >= MAX_PRINTS ? 'disabled' : ''}>📎 Anexar print</button>
-              <span class="cm-dica">ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo</span>
-              <input type="file" id="cmPrintInput" accept="image/*" multiple hidden data-acao="print-input">
+              <button type="button" class="cm-btn" data-acao="anexar-print" ${nImg >= MAX_PRINTS && (!rel || nPdf >= MAX_PDFS) ? 'disabled' : ''}>📎 ${rel ? 'Anexar PDF ou print' : 'Anexar print'}</button>
+              <span class="cm-dica">${rel ? `PDF do relatório/OS (até ${MAX_PDFS}, 10 MB) ou prints (até ${MAX_PRINTS}) · a IA lê o conteúdo` : `ou cole com Ctrl+V · até ${MAX_PRINTS} · a IA lê o conteúdo`}</span>
+              <input type="file" id="cmPrintInput" accept="${rel ? 'image/*,application/pdf,.pdf' : 'image/*'}" multiple hidden data-acao="print-input">
+              ${st.lendoOS ? `<div class="cm-dica">⏳ ${h(st.lendoOS)}</div>` : ''}
               ${prints ? `<div class="cm-print-lista">${prints}</div>` : ''}
             </div>
             <div class="cm-linha">
@@ -449,6 +511,7 @@
       else if (a === 'filtro-cliente') { st.filtroCliente = b.dataset.cliente; render(); }
       else if (a === 'anexar-print') { const inp = document.getElementById('cmPrintInput'); if (inp) inp.click(); }
       else if (a === 'rm-print') { st.prints.splice(+b.dataset.k, 1); render(); }
+      else if (a === 'rm-doc') { st.docs.splice(+b.dataset.k, 1); render(); }
       else if (a === 'todas') {
         const k = b.dataset.grupo, porTec = INFO[st.tipo].lista === 'tecnico';
         (st.mapa || []).filter(u => (porTec ? (u.supervisor_campo || 'Sem supervisor de campo') : (u.cliente || '—')) === k)
@@ -529,5 +592,5 @@
   let tentativas = 0;
   const t = setInterval(() => { aplicarAcesso(); if (permitido() || ++tentativas > 120) clearInterval(t); }, 1000);
   aplicarAcesso();
-  window.CentralMensagens = { entrar, render, estado: st };
+  window.CentralMensagens = { entrar, render, estado: st, relatorioDaOS };
 })();
