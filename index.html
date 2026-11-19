@@ -3747,10 +3747,13 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
 
         <!-- ── ABA: SOBREAVISOS ── -->
         <div id="comTabPainelSobreaviso" style="display:none;">
-          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escolha o período e gere os comunicados por equipe — prontos pra copiar ou disparar direto no grupo. A escala é atualizada quando você envia o link do "Sobreaviso Grid" pro Claude.</div>
+          <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">Escolha o período e gere os comunicados por equipe — prontos pra copiar ou disparar direto no grupo. Para atualizar a escala, arraste aqui o HTML do "Sobreaviso Grid" (ou clique para escolher, ou copie o código e use "Colar HTML").</div>
 
-          <div id="sobreavisoUploadBox" style="border:1px solid var(--border-strong);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
-            <span id="sobreavisoUploadStatus" style="font-size:12.5px;color:var(--text-faint);">Nenhuma escala carregada ainda.</span>
+          <div id="sobreavisoUploadBox" ondragover="event.preventDefault();this.style.borderColor='var(--teal)';" ondragleave="this.style.borderColor='';" ondrop="_sobreavisoDrop(event)" style="border:1px dashed var(--border-strong);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span id="sobreavisoUploadStatus" style="font-size:12.5px;color:var(--text-faint);flex:1;min-width:220px;">Nenhuma escala carregada ainda.</span>
+            <input type="file" id="sobreavisoArquivoInput" accept=".html,.htm,text/html" style="display:none;" onchange="if(this.files[0]) _sobreavisoEnviarArquivo(this.files[0]); this.value='';">
+            <button type="button" onclick="document.getElementById('sobreavisoArquivoInput').click()" style="background:var(--teal);border:none;color:var(--ink,#042F36);border-radius:6px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">Enviar HTML da escala</button>
+            <button type="button" onclick="_sobreavisoColarHtml()" style="background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);border-radius:6px;padding:7px 12px;font-size:12.5px;cursor:pointer;">Colar HTML</button>
           </div>
 
           <div id="sobreavisoConteudo" style="display:none;">
@@ -14707,6 +14710,49 @@ async function _sobreavisoRefresh() {
   await _sobreavisoCarregarBlocos();
 }
 
+function _sobreavisoDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('sobreavisoUploadBox').style.borderColor = '';
+  const f = ev.dataTransfer?.files?.[0];
+  if (f) { _sobreavisoEnviarArquivo(f); return; }
+  const txt = ev.dataTransfer?.getData('text/plain') || ev.dataTransfer?.getData('text/html');
+  if (txt) _sobreavisoEnviarArquivo(new File([txt], 'Sobreaviso_Grid_colado.html', { type: 'text/html' }));
+}
+
+async function _sobreavisoColarHtml() {
+  let txt = '';
+  try { txt = await navigator.clipboard.readText(); } catch (e) { /* sem permissão: cai no prompt */ }
+  if (!txt || !txt.includes('estado')) {
+    txt = prompt('Cole aqui o HTML do "Sobreaviso Grid" (Ctrl+V) e confirme:') || '';
+  }
+  if (!txt.trim()) return;
+  if (!txt.includes('estado')) { showToast('Esse texto não parece o HTML da escala (não achei o bloco "estado").', false); return; }
+  _sobreavisoEnviarArquivo(new File([txt], 'Sobreaviso_Grid_colado.html', { type: 'text/html' }));
+}
+
+async function _sobreavisoEnviarArquivo(arquivo) {
+  const statusEl = document.getElementById('sobreavisoUploadStatus');
+  const geradoAntes = _sobreavisoBlocosCache?.gerado || null;
+  statusEl.textContent = `Enviando ${arquivo.name}…`;
+  try {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo, arquivo.name);
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/sobreaviso-upload', { method: 'POST', body: fd, signal: AbortSignal.timeout(60000) });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'erro ao processar o arquivo');
+    await _sobreavisoCarregarBlocos();
+    const geradoDepois = _sobreavisoBlocosCache?.gerado || null;
+    if (geradoAntes && geradoDepois && geradoAntes === geradoDepois) {
+      showToast(`Escala recarregada — mas a data de geração é a mesma de antes (${geradoDepois}). Confira se o link foi republicado.`, true);
+    } else {
+      showToast(`Escala atualizada${geradoDepois ? ' (gerada em ' + geradoDepois + ')' : ''}.`, true);
+    }
+  } catch (e) {
+    statusEl.textContent = 'Erro ao enviar a escala: ' + e.message;
+    showToast('Erro ao enviar a escala: ' + e.message, false);
+  }
+}
+
 async function _sobreavisoCarregarBlocos() {
   const statusEl = document.getElementById('sobreavisoUploadStatus');
   try {
@@ -14714,7 +14760,7 @@ async function _sobreavisoCarregarBlocos() {
     const data = await resp.json();
     if (!data.ok) {
       document.getElementById('sobreavisoConteudo').style.display = 'none';
-      statusEl.textContent = 'Nenhuma escala carregada ainda — envie o link do Sobreaviso Grid pro Claude.';
+      statusEl.textContent = 'Nenhuma escala carregada ainda — envie o HTML do Sobreaviso Grid.';
       return;
     }
     _sobreavisoBlocosCache = data;
