@@ -7919,6 +7919,20 @@ async function _mapUfvsCarregar(force) {
   return _mapUfvsCache;
 }
 function _mapUfvsSituacao(i) { return i.temporaria ? 'temporaria' : (i.transicao ? 'transicao' : 'normal'); }
+// Situação da usina = status na intranet (Fred, 24/11/2026)
+function _mapStatusIntranet(i) {
+  const s = String(i?.status_intranet || i?.etiqueta || '').trim();
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+function _mapCorStatusIntranet(s) {
+  const v = s.toLowerCase();
+  if (v.startsWith('opera')) return '#22c55e';
+  if (v.includes('mobilizar')) return '#22d3ee';
+  if (v.includes('aguardando')) return '#f59e0b';
+  if (v.includes('finaliz')) return '#94a3b8';
+  return '#a78bfa';
+}
 
 // ── Painel Mapeamento: filtros múltiplos, filtros da sidebar e edição inline ──
 const _mapSel = { cluster: new Set(), cliente: new Set() };   // filtros próprios (multi-seleção)
@@ -7992,22 +8006,31 @@ function mapRender() {
   const fs = document.getElementById('mapFiltroSituacao')?.value || '';
   _mapMsRender('cluster', 'Todos os clusters', [...new Set(itens.map(i => i.cluster))].sort((a, b) => a.localeCompare(b, 'pt-BR')));
   _mapMsRender('cliente', 'Todos os clientes', [...new Set(itens.map(i => i.cliente))].sort((a, b) => a.localeCompare(b, 'pt-BR')));
+  const selSit = document.getElementById('mapFiltroSituacao');
+  if (selSit) {
+    const sts = [...new Set(itens.map(_mapStatusIntranet).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const atual = selSit.value;
+    selSit.innerHTML = '<option value="">Todas as situações</option>'
+      + sts.map(v => `<option value="intranet:${esc(v)}">${esc(v)} (intranet)</option>`).join('')
+      + '<option value="temporaria">Temporárias</option><option value="transicao">Em transição</option>';
+    selSit.value = [...selSit.options].some(o => o.value === atual) ? atual : '';
+  }
   const sb = _mapFiltrosSidebar();
   const rs = document.getElementById('mapSidebarInfo'); if (rs) rs.textContent = _mapResumoSidebar();
-  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Alternativo','Grupo WhatsApp','Situação',''];
+  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Supervisor de campo','Grupo WhatsApp','Situação',''];
   const th = document.getElementById('mapThead');
   if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);white-space:nowrap;">${c}</th>`).join('');
   const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
     if (_mapSel.cluster.size && !_mapSel.cluster.has(i.cluster)) return false;
     if (_mapSel.cliente.size && !_mapSel.cliente.has(i.cliente)) return false;
-    if (fs && _mapUfvsSituacao(i) !== fs) return false;
+    if (fs && (fs.startsWith('intranet:') ? _mapStatusIntranet(i) !== fs.slice(9) : _mapUfvsSituacao(i) !== fs)) return false;
     if (sb) {
       if (sb.clientes.size && !sb.clientes.has(_mapNorm(i.cliente))) return false;
       if (sb.usinas.size && !sb.usinas.has(_mapNorm(i.usina))) return false;
       if (sb.cluster && _mapNorm(i.cluster) !== sb.cluster) return false;
     }
     if (q) {
-      const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo, i.grupo_nome || ''].join(' ').toLowerCase();
+      const txt = [i.usina, i.cluster, i.cliente, i.cidade_uf, i.responsavel, i.funcao, (i.membros || []).join(' '), i.alternativo, i.supervisor_campo || '', i.grupo_nome || '', i.status_intranet || ''].join(' ').toLowerCase();
       if (!txt.includes(q)) return false;
     }
     return true;
@@ -8017,12 +8040,15 @@ function mapRender() {
   const tb = document.getElementById('mapTbody');
   if (tb) tb.innerHTML = linhas.map(({ i, n }) => {
     if (_mapEdit === i.usina) return _mapLinhaEdicao(i, n, cols.length);
-    const sit = i.temporaria
-      ? '<span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Temporária</span>'
-      : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>'
-      : (i.etiqueta ? '<span style="background:#22d3ee22;color:#22d3ee;border:1px solid #22d3ee55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">' + esc(i.etiqueta) + '</span>' : '<span style="color:var(--text-faint);">—</span>'));
+    const pill = (txt, cor) => '<span style="background:' + cor + '22;color:' + cor + ';border:1px solid ' + cor + '55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;display:inline-block;margin:0 4px 3px 0;">' + esc(txt) + '</span>';
+    const stI = _mapStatusIntranet(i);
+    const sit = [
+      stI ? pill(stI, _mapCorStatusIntranet(stI)) : '',
+      i.temporaria ? pill('Temporária', '#f59e0b') : '',
+      i.transicao ? pill('Em transição', '#60a5fa') : '',
+    ].join('') || '<span style="color:var(--text-faint);">—</span>';
     const nome = (i.usina || '').replace(/'/g, "\\'");
-    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>' + ed(i))}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}${td(`<button class="modal-close-btn" style="width:auto;padding:0 10px;height:28px;font-size:12px;" onclick="mapEditar('${nome}')">✎ Editar</button>`)}</tr>`;
+    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>' + ed(i))}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.supervisor_campo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}${td(`<button class="modal-close-btn" style="width:auto;padding:0 10px;height:28px;font-size:12px;" onclick="mapEditar('${nome}')">✎ Editar</button>`)}</tr>`;
   }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
   const st = document.getElementById('mapStatus');
   if (st && !st.dataset.fixo) st.textContent = `${linhas.length} de ${itens.length} usinas`;
@@ -19364,6 +19390,7 @@ function _gerMudarTab(tab) {
   } else if (tab === 'mapeamento') {
     tabMap.classList.add('active'); painelMap.style.display = '';
     mapCarregar(false);
+    try { setTimeout(() => { if (typeof _fbAtualizar === 'function') _fbAtualizar(); }, 0); } catch (e) {}
   } else {
     tabBol.classList.add('active'); painelBol.style.display = '';
   }
@@ -23168,7 +23195,9 @@ function _fbAtualizar() {
     const fb = document.getElementById('filterBar'), fbtn = document.getElementById('lvFiltrosBtn'), sf = document.getElementById('sbFilters');
     if (!fb) return;
     const nav = document.body.dataset.nav || (typeof _activeNav !== 'undefined' ? _activeNav : '');
-    const tela = _FB_TELAS.includes(nav) || (nav === 'comunicados' && typeof _comTabAtual !== 'undefined' && _comTabAtual === 'tecnicos');
+    const pMap = document.getElementById('gerPainelMapeamento');
+    const tela = _FB_TELAS.includes(nav) || (nav === 'comunicados' && typeof _comTabAtual !== 'undefined' && _comTabAtual === 'tecnicos')
+      || (pMap && pMap.style.display !== 'none' && pMap.offsetParent !== null);  // Mapeamento (Fred, 24/11/2026)
     const perfil = !sf || sf.style.display !== 'none';
     const esconder = !(tela && perfil && (nav !== 'performance' || (typeof _pfPermitido !== 'function' || _pfPermitido())));
     if (fb.hidden !== esconder) fb.hidden = esconder;
