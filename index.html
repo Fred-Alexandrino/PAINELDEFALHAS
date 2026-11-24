@@ -2611,6 +2611,9 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
 .os-passos li.ok i{border-color:var(--teal,#0E8A6E);background:var(--teal,#0E8A6E)}
 .os-passos li.ok i::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .os-passos li.falhou{color:var(--acao)}
+.os-passos{max-width:min(420px,92vw)}
+.os-passos li span{min-width:0;overflow-wrap:anywhere;line-height:1.3}
+.os-passos li.falhou i::after{content:"!";position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--acao)}
 .os-passos li.falhou i{border-color:var(--acao)}
 .os-lento{position:relative;z-index:1;margin-top:22px;font-size:13px;color:var(--text-dim);text-align:center;max-width:320px}
 .os-lento button{display:block;margin:10px auto 0;font:inherit;font-weight:600;font-size:13.5px;padding:9px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--panel);color:var(--text);cursor:pointer}
@@ -17977,13 +17980,59 @@ const _OS = { inicio: 0, feito: {}, timer: null, ocPedido: false, pfPedido: fals
   envolver('carregarChamadosFabricante', 'chamados');
 })();
 function _osPassos(role) {
-  if (role === 'manager' || role === 'admin') return ['visao', 'atividades', 'ocorrencias', 'chamados'];
+  if (role === 'manager') return ['visao', 'atividades', 'ocorrencias', 'chamados', 'sync_performance', 'sync_chamados', 'sync_solaredge'];
+  if (role === 'admin') return ['visao', 'atividades', 'ocorrencias', 'chamados'];
   if (role === 'supervisor') return ['atividades', 'ocorrencias', 'chamados'];
   return ['atividades'];
 }
-const _OS_NOMES = { visao: 'Visão geral', atividades: 'Atividades', ocorrencias: 'Ocorrências', chamados: 'Chamados' };
+const _OS_NOMES = { visao: 'Visão geral', atividades: 'Atividades', ocorrencias: 'Ocorrências', chamados: 'Chamados',
+  sync_performance: 'Nexus · performance', sync_chamados: 'Nexus · chamados', sync_solaredge: 'SolarEdge · cases' };
+/* 24/11/2026: ao abrir, o script do Tampermonkey "Grid Omni — atualizar ao abrir" lê Nexus (performance e chamados)
+   e SolarEdge sem abrir abas; a cada etapa concluída a Central recarrega o dado correspondente. */
+const _osSync = { recarregado: {}, recarregando: {}, semScript: false };
+function _osSyncEstado() {
+  try { const el = document.getElementById('omni-sync-estado'); return el ? JSON.parse(el.textContent || 'null') : null; } catch (e) { return null; }
+}
+function _osSyncRecarregar(k) {
+  if (_osSync.recarregado[k] || _osSync.recarregando[k]) return;
+  _osSync.recarregando[k] = true;
+  const fim = () => { _osSync.recarregado[k] = true; _osSync.recarregando[k] = false; };
+  let p = Promise.resolve();
+  try {
+    if (k === 'performance' && typeof _pfCarregar === 'function') {
+      _pfDados = null;
+      p = _pfCarregar().then(() => { try { if (_activeNav === 'visao-geral') _vgEntrar(); else if (_activeNav === 'performance') _pfRender && _pfRender(); } catch (e) {} });
+    } else if (k === 'chamados') p = carregarChamadosFabricante();
+    else if (k === 'solaredge' && typeof _seCarregar === 'function') { _SE.carregando = false; p = _seCarregar(true); }
+  } catch (e) {}
+  Promise.resolve(p).catch(() => {}).finally(fim);
+}
+function _osSyncPasso(k) {
+  if (_osSync.semScript) return { ok: true, msg: 'script não instalado' };
+  const est = _osSyncEstado();
+  const passou = (Date.now() - _OS.inicio) > 4000;
+  if (!est) { if (passou && document.documentElement.getAttribute('data-omni-sync') !== '1') { _osSync.semScript = true; return { ok: true, msg: 'script não instalado' }; } return { ok: false, msg: '' }; }
+  const e = (est.etapas || {})[k];
+  if (!e) return { ok: false, msg: '' };
+  if (e.st === 'ok') { _osSyncRecarregar(k); return { ok: !!_osSync.recarregado[k], msg: e.msg }; }
+  if (e.st === 'pulado') return { ok: true, msg: e.msg };
+  if (e.st === 'erro') return { ok: true, erro: true, msg: e.msg };
+  return { ok: false, msg: e.msg };
+}
+document.addEventListener('omni-sync', () => {
+  // depois que o Omni já abriu, a etapa que terminar ainda recarrega o painel dela
+  if (!_OS.aberto) return;
+  const est = _osSyncEstado(); if (!est) return;
+  Object.entries(est.etapas || {}).forEach(([k, e]) => {
+    if (e.st === 'ok' && !_osSync.recarregado[k] && !_osSync.recarregando[k]) {
+      _osSyncRecarregar(k);
+      if (typeof showToast === 'function') showToast(_OS_NOMES['sync_' + k] + ' atualizado: ' + e.msg, true);
+    }
+  });
+});
 function _osPronto(k) {
   try {
+    if (k.startsWith('sync_')) return _osSyncPasso(k.slice(5)).ok;
     if (k === 'atividades') return !!_OS.feito.atividades || (Array.isArray(ATIVIDADES) && ATIVIDADES.length > 0);
     if (k === 'chamados') return (CHAMADOS_FABRICANTE.length > 0) || (!!_OS.feito.chamados && !window._chTentativaErro);
     if (k === 'ocorrencias') {
@@ -18014,7 +18063,15 @@ function _osIniciar(session) {
     for (const k of passos) {
       const ok = _osPronto(k);
       const li = ul.querySelector(`[data-k="${k}"]`);
-      if (li) { li.classList.toggle('ok', ok); li.classList.toggle('carregando', !ok); }
+      if (li) {
+        let erro = false;
+        if (k.startsWith('sync_')) {
+          const d = _osSyncPasso(k.slice(5)); erro = !!d.erro;
+          const nome = _OS_NOMES[k] + (d.msg ? ' — ' + d.msg : '');
+          if (li.dataset.t !== nome) { li.dataset.t = nome; li.innerHTML = '<i></i><span>' + esc(nome) + '</span>'; }
+        }
+        li.classList.toggle('falhou', erro); li.classList.toggle('ok', ok && !erro); li.classList.toggle('carregando', !ok);
+      }
       if (!ok) todos = false;
     }
     const seg = (Date.now() - _OS.inicio) / 1000;
@@ -18023,7 +18080,7 @@ function _osIniciar(session) {
       lento.hidden = false;
       lento.innerHTML = 'O servidor está demorando mais que o normal. Continuo esperando…<button type="button" onclick="_osAbrir(true)">Abrir mesmo assim</button>';
     }
-    if (seg > 60) return _osAbrir(true);
+    if (seg > (passos.some(p => p.startsWith('sync_')) ? 150 : 60)) return _osAbrir(true);
   };
   _OS.timer = setInterval(tick, 250);
   tick();
@@ -18034,7 +18091,9 @@ function _osAbrir(incompleto) {
   clearInterval(_OS.timer);
   const el = document.getElementById('omniSplash');
   if (!el) return;
-  const falta = [...document.querySelectorAll('#osPassos li.carregando')].map(li => li.textContent.trim());
+  const falta = [...document.querySelectorAll('#osPassos li.carregando')].map(li => (li.dataset.t || li.textContent).split(' — ')[0].trim());
+  const falhas = [...document.querySelectorAll('#osPassos li.falhou')].map(li => (li.dataset.t || li.textContent).trim());
+  if (falhas.length && typeof showToast === 'function') setTimeout(() => showToast('Não atualizou: ' + falhas.join(' · '), false), 600);
   el.classList.add('saindo');
   setTimeout(() => el.classList.add('hidden'), 380);
   if (incompleto && falta.length && typeof showToast === 'function') showToast('Ainda carregando: ' + falta.join(', ') + '. Aparece sozinho quando chegar.', false);
