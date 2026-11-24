@@ -461,8 +461,16 @@
       + (notas.length || notasParcial.length ? `<p style="margin:8px 0 10px 0;font-size:10pt">${[...notasParcial, ...notas].map(esc).join('<br>')}</p>` : '<p style="margin:0 0 10px 0"></p>')
       + (condTxt ? p(esc(condTxt)) : '') + p(esc(fecho)) + p('Atenciosamente,') + '</div>';
     const plain = [saud, 'Tudo bem?', '', intro.replace(/<[^>]+>/g, ''), '',
-      ...linhas.map(l => `- ${l.ufv} | ${l.periodo} | Mensalidade ${F(l.men)} | Custos ${F(l.custos)}${l.mk && (l.custos || l.desc) ? l.mk : ''}${temDesc ? ' | Descontos ' + F(l.desc) : ''} | Total ${F(l.total)}`),
-      `- Total: ${F(tot.total)}`, '', ...notasParcial, ...notas, ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
+      ...linhas.map(l => {
+        const per = periodos.length > 1 && l.periodo !== '—' ? ` (${l.periodo})` : '';
+        const partes = [];
+        if (l.custos) partes.push(`${F(l.custos)} de custos adicionais${l.mk}`);
+        if (l.desc) partes.push(`${F(Math.abs(l.desc))} de desconto${l.custos ? '' : l.mk}`);
+        return partes.length
+          ? `• ${l.ufv}${per}: mensalidade de ${F(l.men)} ${l.custos ? '+' : '−'} ${partes.join(' − ')} = ${F(l.total)}`
+          : `• ${l.ufv}${per}: ${F(l.total)}`;
+      }),
+      '', `Total dos boletins: ${F(tot.total)}`, '', ...notasParcial, ...notas, ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
     const ufvsAssunto = linhas.filter(l => !/monitoramento remoto/.test(l.ufv)).map(l => l.ufv.replace(/\/[A-Z]{2}$/, '')).join(' / ');
     const subst = s => String(s || '').replace(/\{CLIENTE\}/g, snap.cliente.nome.toUpperCase()).replace(/\{MES_PERIODO\}/g, cap(mesPer || mesRef))
       .replace(/\{MES_REF\}/g, cap(mesRef)).replace(/\{MES_REF_CURTO\}/g, cap(MLcurto(snap.competencia))).replace(/\{UFVS\}/g, ufvsAssunto)
@@ -472,6 +480,15 @@
   }
 
   async function copiarRico(html, plain) {
+    // 1º: copia o e-mail renderizado como seleção (igual a Ctrl+C na tela) — é o que o Outlook cola com a tabela
+    try {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;left:-99999px;top:0;background:#fff;color:#000';
+      box.innerHTML = html; document.body.appendChild(box);
+      const sel = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(box); sel.removeAllRanges(); sel.addRange(rg);
+      const ok = document.execCommand('copy'); sel.removeAllRanges(); box.remove();
+      if (ok) { toast('E-mail copiado com a tabela. Cole no corpo do Outlook (Ctrl+V).'); return; }
+    } catch (e) {}
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })]);
       toast('E-mail copiado. Cole no Outlook (Ctrl+V).');
@@ -1081,7 +1098,7 @@
           ${em && em.status === 'gerado' ? `<div class="bm-note">Versão congelada em ${dtHora(em.criado)}. Depois de enviar o e-mail no Outlook, clique em <b>Marcar como enviado</b>.</div>` : ''}
           ${mail ? `<h4>E-mail</h4>
           <div class="bm-f"><label>Assunto</label><input id="ovAss" value="${esc(mail.assunto)}" style="background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:6px 8px"></div>
-          <div class="ov-row"><button class="bm-btn sm" id="ovCpAss">Copiar assunto</button>${mail.para ? '<button class="bm-btn sm" id="ovCpPara">Copiar Para</button>' : ''}${mail.cc ? '<button class="bm-btn sm" id="ovCpCc">Copiar Cc</button>' : ''}<button class="bm-btn sm pri" id="ovCpMail">Copiar e-mail</button><button class="bm-btn sm" id="ovMailto">Abrir no Outlook</button></div>
+          <div class="ov-row"><button class="bm-btn sm" id="ovCpAss">Copiar assunto</button>${mail.para ? '<button class="bm-btn sm" id="ovCpPara">Copiar Para</button>' : ''}${mail.cc ? '<button class="bm-btn sm" id="ovCpCc">Copiar Cc</button>' : ''}<button class="bm-btn sm pri" id="ovCpMail">Copiar e-mail (com tabela)</button><button class="bm-btn sm" id="ovCpTxt">Copiar texto simples</button><button class="bm-btn sm" id="ovMailto">Abrir no Outlook</button></div>
           <div class="ov-mail" id="ovMail">${mail.html}</div>
           <div class="mut" style="font-size:11px;margin-top:4px">"Copiar e-mail" leva a tabela formatada; cole no corpo do Outlook. Os PDFs vão anexos à mão. A assinatura é a do Outlook.</div>` : ''}
           ${em ? `<h4>Situação</h4><div style="font-size:12.5px">${esc(st)}${em.enviadoEm ? ' · enviado ' + dtHora(em.enviadoEm) : ''}${em.aprovadoEm ? ' · aprovado ' + dtHora(em.aprovadoEm) : ''}${em.nfEm ? ' · NF ' + dtHora(em.nfEm) : ''}</div>
@@ -1100,6 +1117,7 @@
         if (q('ovCpPara')) q('ovCpPara').onclick = () => copiar(mail.para, 'Para');
         if (q('ovCpCc')) q('ovCpCc').onclick = () => copiar(mail.cc, 'Cc');
         q('ovCpMail').onclick = () => copiarRico(mail.html, mail.plain);
+        q('ovCpTxt').onclick = () => copiar(mail.plain, 'Texto simples');
         q('ovMailto').onclick = () => { const p = new URLSearchParams(); if (mail.cc) p.set('cc', mail.cc.replace(/[;\n]+/g, ',')); p.set('subject', q('ovAss').value); p.set('body', mail.plain); location.href = 'mailto:' + encodeURIComponent(mail.para.replace(/[;\n]+/g, ',')).replace(/%2C/g, ',').replace(/%40/g, '@') + '?' + p.toString().replace(/\+/g, '%20'); };
       }
       if (q('ovEnviado')) q('ovEnviado').onclick = () => modalData('Marcar como enviado', 'Enviado em', async (data, obs) => { em = await mudarStatus(em.id, 'enviado', data, { assunto: q('ovAss') ? q('ovAss').value : '', para: mail ? mail.para : '', cc: mail ? mail.cc : '', obs }); desenhar(); });
