@@ -135,11 +135,14 @@
         + '<th>Data da Medição</th><th>Período de Medição</th><th class="num">Valor do contrato</th><th class="num">Dias faturados</th><th class="num">Mensalidade</th></tr></thead><tbody>';
       ufvs.forEach(u => {
         const per = periodoParaUsina(u, dI, dF, oI, oF);
-        h += `<tr><td>${esc(u.nome)}</td><td>${esc(u.uf)}</td><td class="num">${(u.mwp || 0).toFixed(3)}</td>
-     <td>${dt(u.mob)}</td><td class="mut">${per || '—'}</td><td class="num mut">${F(u.valor)}</td>
-     <td class="num">${u.dias || u.dm || 30}/${u.dm || 30}</td><td class="num"><b>${F(u.men)}</b></td></tr>`;
+        const pc = u.parcial;
+        h += `<tr><td>${esc(u.nome)}${pc ? `<div class="mut" style="font-size:10.5px">Faturamento parcial — ${esc(pc.motivo || '')}${pc.desc ? ': ' + esc(pc.desc) : ''}</div>` : ''}</td><td>${esc(u.uf)}</td><td class="num">${(u.mwp || 0).toFixed(3)}</td>
+     <td>${dt(u.mob)}</td><td class="mut">${pc && pc.tipo === 'dias' && pc.ini && pc.fim ? dt(pc.ini) + ' a ' + dt(pc.fim) : (per || '—')}</td><td class="num mut">${F(u.valor)}</td>
+     <td class="num">${pc && pc.tipo === 'percentual' ? String(pc.pct).replace('.', ',') + '%' : pc && pc.tipo === 'valor' ? 'acordo' : (u.dias || u.dm || 30) + '/' + (u.dm || 30)}</td><td class="num"><b>${F(u.men)}</b></td></tr>`;
       });
       h += `<tr class="tot"><td colspan="7">Total mensalidades — ${ufvs.length} usina${ufvs.length === 1 ? '' : 's'}</td><td class="num">${F(sM)}</td></tr></tbody></table>`;
+      const parc = ufvs.filter(u => u.parcial);
+      if (parc.length) h += `<div class="note"><b>Faturamento parcial neste mês:</b> ` + parc.map(u => `${esc(u.nome)} — ${esc(u.parcial.motivo || '')}${u.parcial.desc ? ' (' + esc(u.parcial.desc) + ')' : ''}: ${esc(descParcial(u.parcial))} do valor de ${F(u.valor)} = ${F(u.men)}.`).join(' ') + `</div>`;
     }
     h += '<h2>Custos adicionais</h2>';
     if (custosAdd.length) {
@@ -158,7 +161,7 @@
       h += `<tr class="tot"><td colspan="8">Total custos adicionais</td><td class="num">${F(sC)}</td></tr></tbody></table>`;
     } else h += '<div class="note">Nenhum custo adicional lançado neste mês. O valor do BM corresponde às mensalidades contratuais.</div>';
     if (descontos.length) {
-      h += '<h2>Descontos</h2><div class="note">Descontos aplicados por descumprimento de obrigação contratual ou abatimento acordado com o cliente. Os valores abaixo são <b>subtraídos</b> do total deste Boletim.</div>';
+      h += '<h2>Descontos</h2><div class="note">Descontos por descumprimento de obrigação contratual, abatimento acordado com o cliente ou reembolso de custo da Grid Co. pago pelo cliente. Os valores abaixo são <b>subtraídos</b> do total deste Boletim.</div>';
       h += '<table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Motivo</th><th>A que se refere</th><th>Cláusula / obrigação</th><th>Data</th><th>OS / ref.</th><th class="num">Valor do desconto</th></tr></thead><tbody>';
       descontos.forEach(c => {
         h += `<tr><td>${esc(c.ufv)}</td><td class="mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
@@ -313,7 +316,20 @@
   /* ─────────────── dados derivados ─────────────── */
   const cli = id => S.clientes.find(c => c.id === id);
   const cur = () => cli(S.curId);
-  const lancsDe = (c, comp) => S.lancamentos.filter(l => l.clienteId === c.id && (!comp || l.competencia === comp));
+  const lancsTodos = (c, comp) => S.lancamentos.filter(l => l.clienteId === c.id && (!comp || l.competencia === comp));
+  const lancsDe = (c, comp) => lancsTodos(c, comp).filter(l => l.tipo !== 'parcial');
+  const parcialDe = (c, comp, ufv) => lancsTodos(c, comp).find(l => l.tipo === 'parcial' && l.ufv === ufv) || null;
+  const MOTIVOS_PARCIAL = ['Mobilização', 'Desmobilização / fim de contrato', 'Suspensão ou parada da usina', 'Escopo parcial no mês', 'Acordo comercial', 'Outro'];
+  /* Faturamento parcial do mês: vale só para a competência lançada (não mexe no cadastro). */
+  function aplicarParcial(u, p) {
+    if (!p) return u;
+    const base = +u.valor || 0, x = { ...u, parcial: { tipo: p.pTipo, motivo: p.cat, desc: p.desc, pct: p.pct, dias: p.dias, dm: p.dm, ini: p.ini, fim: p.fim } };
+    if (p.pTipo === 'dias') { x.dias = +p.dias || 0; x.dm = +p.dm || 30; x.men = r2(base * x.dias / x.dm); }
+    else if (p.pTipo === 'percentual') { x.men = r2(base * (+p.pct || 0) / 100); x.dias = x.dm = 30; }
+    else if (p.pTipo === 'valor') { x.men = r2(+p.valorFixo || 0); x.dias = x.dm = 30; }
+    return x;
+  }
+  const descParcial = pc => !pc ? '' : pc.tipo === 'dias' ? `${pc.dias} de ${pc.dm} dias${pc.ini && pc.fim ? ` (${dt(pc.ini)} a ${dt(pc.fim)})` : ''}` : pc.tipo === 'percentual' ? `${String(pc.pct).replace('.', ',')}% da mensalidade` : 'valor acordado';
   const anexosDe = dono => S.anexos.filter(a => a.dono === dono);
   const emissoesDe = (c, comp) => S.emissoes.filter(e => e.clienteId === c.id && (!comp || e.competencia === comp));
   const FASE = { gerado: 1, enviado: 2, aprovado: 3, nf: 4 };
@@ -361,7 +377,7 @@
   /* ─────────────── montagem do D (igual ao buildDFromCliente original) ─────────────── */
   function montarD(c, usinas, comp) {
     const sel = new Set(usinas);
-    const ufvs = (c.ufvs || []).filter(u => sel.has(u.nome)).map(u => ({ ...u }));
+    const ufvs = (c.ufvs || []).filter(u => sel.has(u.nome)).map(u => aplicarParcial({ ...u }, parcialDe(c, comp, u.nome)));
     const custos = lancsDe(c, comp).filter(l => sel.has(l.ufv)).map(l => lancComTotais(c, l));
     const todas = (c.ufvs || []).length === ufvs.length;
     return {
@@ -391,7 +407,7 @@
 
   function montarEmail(snap, emissao) {
     const em = snap.cliente.email || {};
-    const linhas = [], notas = [], cond = [];
+    const linhas = [], notas = [], cond = [], notasParcial = [];
     let marca = 0;
     snap.docs.forEach(doc => {
       const D = doc.D;
@@ -406,7 +422,12 @@
           const itens = [...adds, ...descs].map(x => `${x.tipo === 'desconto' ? 'desconto — ' : ''}${x.desc}${x.os ? ' (OS ' + x.os + ')' : ''}${x.clausula ? ', ' + x.clausula : ''}: ${F(x.total)}${pctDe(x) ? ` (inclui ${(x.rotuloAcr || 'encargos').replace(/^Encargos$/, 'encargos').replace(/^Impostos$/, 'impostos')} de ${pctDe(x)}%)` : ''}`);
           notas.push(`${mk} ${nomeCurtoUfv(u)}: ${itens.join('; ')}.`);
         }
-        linhas.push({ ufv: nomeCurtoUfv(u), periodo: periodoCurto(periodoParaUsina(u, D.diaIni, D.diaFim, D.offsetIniMeses, D.offsetFimMeses)), men: u.men || 0, custos: sC, desc: sD, total: (u.men || 0) + sC + sD, mk });
+        let perU = periodoCurto(periodoParaUsina(u, D.diaIni, D.diaFim, D.offsetIniMeses, D.offsetFimMeses));
+        if (u.parcial) {
+          if (u.parcial.tipo === 'dias' && u.parcial.ini && u.parcial.fim) perU = periodoCurto(dt(u.parcial.ini) + ' a ' + dt(u.parcial.fim));
+          notasParcial.push(`${nomeCurtoUfv(u)}: faturamento parcial — ${u.parcial.motivo || ''}${u.parcial.desc ? ' (' + u.parcial.desc + ')' : ''}: ${descParcial(u.parcial)} do valor mensal de ${F(u.valor)}, total de ${F(u.men)}.`);
+        }
+        linhas.push({ ufv: nomeCurtoUfv(u), periodo: perU, men: u.men || 0, custos: sC, desc: sD, total: (u.men || 0) + sC + sD, mk });
       });
       (D.cos || []).forEach(m => linhas.push({ ufv: m.nome + ' (monitoramento remoto)', periodo: '—', men: m.v || 0, custos: 0, desc: 0, total: m.v || 0, mk: '' }));
     });
@@ -437,11 +458,11 @@
     const fecho = em.fechamento || (plural ? 'Assim que possível, peço a validação dos boletins, para que possamos seguir com o trâmite e emissão das Notas Fiscais Grid.' : 'Assim que possível, peço a validação do boletim, para que possamos seguir com o trâmite e emissão da Nota Fiscal Grid.');
     const p = t => `<p style="margin:0 0 10px 0">${t}</p>`;
     const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">${p(esc(saud) + '<br>Tudo bem?')}${p(intro)}${tabela}`
-      + (notas.length ? `<p style="margin:8px 0 10px 0;font-size:10pt">${notas.map(esc).join('<br>')}</p>` : '<p style="margin:0 0 10px 0"></p>')
+      + (notas.length || notasParcial.length ? `<p style="margin:8px 0 10px 0;font-size:10pt">${[...notasParcial, ...notas].map(esc).join('<br>')}</p>` : '<p style="margin:0 0 10px 0"></p>')
       + (condTxt ? p(esc(condTxt)) : '') + p(esc(fecho)) + p('Atenciosamente,') + '</div>';
     const plain = [saud, 'Tudo bem?', '', intro.replace(/<[^>]+>/g, ''), '',
       ...linhas.map(l => `- ${l.ufv} | ${l.periodo} | Mensalidade ${F(l.men)} | Custos ${F(l.custos)}${l.mk && (l.custos || l.desc) ? l.mk : ''}${temDesc ? ' | Descontos ' + F(l.desc) : ''} | Total ${F(l.total)}`),
-      `- Total: ${F(tot.total)}`, '', ...notas, ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
+      `- Total: ${F(tot.total)}`, '', ...notasParcial, ...notas, ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
     const ufvsAssunto = linhas.filter(l => !/monitoramento remoto/.test(l.ufv)).map(l => l.ufv.replace(/\/[A-Z]{2}$/, '')).join(' / ');
     const subst = s => String(s || '').replace(/\{CLIENTE\}/g, snap.cliente.nome.toUpperCase()).replace(/\{MES_PERIODO\}/g, cap(mesPer || mesRef))
       .replace(/\{MES_REF\}/g, cap(mesRef)).replace(/\{MES_REF_CURTO\}/g, cap(MLcurto(snap.competencia))).replace(/\{UFVS\}/g, ufvsAssunto)
@@ -681,14 +702,15 @@
     const a = alerta(c, comp);
     const rows = (c.ufvs || []).map((u, i) => {
       const cs = porU(u.nome), sc = cs.filter(x => x.tipo !== 'desconto').reduce((s, x) => s + x.total, 0), sd = cs.filter(x => x.tipo === 'desconto').reduce((s, x) => s + x.total, 0);
-      const men = u.men != null ? u.men : u.valor; tot.men += +men || 0; tot.c += sc; tot.d += sd;
+      const pl = parcialDe(c, comp, u.nome), uu = aplicarParcial({ ...u }, pl);
+      const men = uu.men != null ? uu.men : uu.valor; tot.men += +men || 0; tot.c += sc; tot.d += sd;
       const f = a.porUsina ? a.porUsina[u.nome] : 0;
       return `<tr><td>${esc(u.nome)}</td><td>${esc(u.uf)}</td><td class="num">${(+u.mwp || 0).toFixed(3)}</td><td>${dt(u.mob)}</td>
         <td class="mut">${esc(periodoCli(c, u) || '—')}${u.periodoCustom ? ' <span class="bm-pill">próprio</span>' : ''}</td>
-        <td class="num">${F(u.valor)}</td><td class="num"><b>${F(men)}</b>${u.dm && u.dias < u.dm ? `<div class="mut" style="font-size:10.5px">${u.dias}/${u.dm} dias</div>` : ''}</td>
+        <td class="num">${F(u.valor)}</td><td class="num"><b>${F(men)}</b>${pl ? `<div style="font-size:10.5px;color:var(--amber)">parcial: ${esc(descParcial(uu.parcial))}</div>` : u.dm && u.dias < u.dm ? `<div class="mut" style="font-size:10.5px">${u.dias}/${u.dm} dias (cadastro)</div>` : ''}</td>
         <td class="num">${sc ? F(sc) : '—'}</td><td class="num" style="color:var(--red)">${sd ? F(sd) : '—'}</td><td class="num"><b>${F((+men || 0) + sc + sd)}</b></td>
         <td><span class="bm-pill s${f || 0}">${FASE_TXT[f || 0]}</span></td>
-        <td class="num"><button class="bm-btn sm" data-acao="usina" data-arg="${i}">Editar</button> <button class="bm-btn sm ghost" data-acao="usinaDel" data-arg="${i}">Excluir</button></td></tr>`;
+        <td class="num"><button class="bm-btn sm" data-acao="parcial" data-arg="${i}">${pl ? 'Parcial ✎' : 'Parcial'}</button> <button class="bm-btn sm" data-acao="usina" data-arg="${i}">Editar</button> <button class="bm-btn sm ghost" data-acao="usinaDel" data-arg="${i}">Excluir</button></td></tr>`;
     }).join('');
     return `<div class="bm-note">${esc(hintPeriodo(c.diaIni ?? 26, c.diaFim ?? 25, c.offsetIniMeses ?? -1, c.offsetFimMeses ?? 0))} NF: ${esc(descNf(c.nf))}${a.nf ? ' → <b>' + fmtD(a.nf) + '</b>' : ''}. Envio do BM: ${esc(descEnvio(c.envio))}${a.env ? ' → <b>' + fmtD(a.env) + '</b>' : ''}.</div>
       <div style="display:flex;justify-content:flex-end;margin:6px 0"><button class="bm-btn" data-acao="usina">+ Usina</button></div>
@@ -807,6 +829,7 @@
   async function acao(c, a, arg) {
     try {
       if (a === 'usina') return dlgUsina(c, arg === undefined || arg === '' ? null : +arg);
+      if (a === 'parcial') return dlgParcial(c, c.ufvs[+arg]);
       if (a === 'usinaDel') { const u = c.ufvs[+arg]; if (!confirm(`Excluir ${u.nome} do cadastro? (BMs já emitidos continuam no histórico)`)) return; const c2 = JSON.parse(JSON.stringify(c)); c2.ufvs.splice(+arg, 1); await salvarCliente(c2); return render(); }
       if (a === 'lanc') return dlgLanc(c, arg ? S.lancamentos.find(l => l.id === arg) : null, null);
       if (a === 'desc') return dlgLanc(c, null, 'desconto');
@@ -862,14 +885,56 @@
         const c2 = JSON.parse(JSON.stringify(c)); c2.ufvs = c2.ufvs || [];
         if (idx != null) {
           const antigo = c2.ufvs[idx].nome; c2.ufvs[idx] = novo;
-          if (antigo !== nome) for (const l of lancsDe(c).filter(l => l.ufv === antigo)) { await api('/bm/lancamento', { method: 'POST', body: { lancamento: { ...l, ufv: nome } } }); l.ufv = nome; }
+          if (antigo !== nome) for (const l of lancsTodos(c).filter(l => l.ufv === antigo)) { await api('/bm/lancamento', { method: 'POST', body: { lancamento: { ...l, ufv: nome } } }); l.ufv = nome; }
         } else { novo._id = uid(); c2.ufvs.push(novo); }
         await salvarCliente(c2); toast('Usina salva.'); render();
       } }]);
   }
 
+  function dlgParcial(c, u) {
+    const comp = c.ref, ex = parcialDe(c, comp, u.nome) || {};
+    const per = periodoCli(c, u) || '';
+    const m = /(\d{2})\/(\d{2})\/(\d{4}) a (\d{2})\/(\d{2})\/(\d{4})/.exec(per);
+    const pIni = m ? `${m[3]}-${m[2]}-${m[1]}` : '', pFim = m ? `${m[6]}-${m[5]}-${m[4]}` : '';
+    const diasPer = m ? Math.round((Date.UTC(+m[6], +m[5] - 1, +m[4]) - Date.UTC(+m[3], +m[2] - 1, +m[1])) / 86400000) + 1 : 30;
+    const ov = modal(`Faturamento parcial — ${u.nome} — ${ML(comp)}`, `<div class="bm-note">Vale só para o BM de <b>${ML(comp)}</b>; o cadastro da usina não muda. Período normal: ${esc(per || '—')}. Valor mensal: ${F(u.valor)}.</div><div class="bm-grid">
+      <div class="bm-f"><label>Como calcular</label><select id="pTipo">${opts([['dias', 'Dias faturados (pro rata)'], ['percentual', 'Percentual da mensalidade'], ['valor', 'Valor acordado']], ex.pTipo || 'dias')}</select></div>
+      <div class="bm-f"><label>Motivo</label><select id="pMot">${opts([...MOTIVOS_PARCIAL, ...(ex.cat && !MOTIVOS_PARCIAL.includes(ex.cat) ? [ex.cat] : [])].map(t => [t, t]), ex.cat || MOTIVOS_PARCIAL[0])}</select></div>
+      <div class="bm-f pd"><label>Faturar de</label><input id="pIni" type="date" value="${esc(ex.ini || pIni)}"></div>
+      <div class="bm-f pd"><label>até</label><input id="pFim" type="date" value="${esc(ex.fim || pFim)}"></div>
+      <div class="bm-f pd"><label>Dias faturados</label><input id="pDias" type="number" min="0" value="${esc(ex.dias ?? diasPer)}"></div>
+      <div class="bm-f pd"><label>Dias do período (base)</label><input id="pDm" type="number" min="1" value="${esc(ex.dm ?? diasPer)}"></div>
+      <div class="bm-f pp"><label>Percentual (%)</label><input id="pPct" type="number" step="0.01" min="0" value="${esc(ex.pct ?? 100)}"></div>
+      <div class="bm-f pv"><label>Valor a faturar</label><input id="pVal" type="number" step="0.01" min="0" value="${esc(ex.valorFixo ?? '')}"></div>
+      <div class="bm-f w"><label>Descrição (sai no BM e no e-mail)</label><input id="pDesc" value="${esc(ex.desc || '')}" placeholder="Ex.: início das atividades em 16/11/2026"></div>
+      <div class="bm-f w"><label>Mensalidade deste mês</label><div id="pTot" style="font-weight:700;font-size:15px"></div></div></div>`,
+      [...(ex.id ? [{ t: 'Remover parcial', cls: 'ghost', fn: async () => { await api('/bm/lancamento/excluir', { method: 'POST', body: { id: ex.id } }); S.lancamentos = S.lancamentos.filter(l => l.id !== ex.id); toast('Parcial removido: volta o mês cheio.'); render(); } }] : []),
+       { t: 'Cancelar', cls: 'ghost' }, { t: 'Salvar', cls: 'pri', fn: async ov => {
+        const tipo = val(ov, 'pTipo');
+        const doc = { id: ex.id, clienteId: c.id, competencia: comp, tipo: 'parcial', ufv: u.nome, pTipo: tipo, cat: val(ov, 'pMot'), desc: val(ov, 'pDesc').trim(),
+          dias: tipo === 'dias' ? +val(ov, 'pDias') || 0 : null, dm: tipo === 'dias' ? +val(ov, 'pDm') || 30 : null, ini: tipo === 'dias' ? val(ov, 'pIni') : '', fim: tipo === 'dias' ? val(ov, 'pFim') : '',
+          pct: tipo === 'percentual' ? +val(ov, 'pPct') || 0 : null, valorFixo: tipo === 'valor' ? +val(ov, 'pVal') || 0 : null };
+        if (tipo === 'dias' && (!doc.dias || doc.dias > doc.dm)) { toast('Dias faturados inválidos.', false); return false; }
+        const j = await api('/bm/lancamento', { method: 'POST', body: { lancamento: doc } });
+        doc.id = j.id; S.lancamentos = S.lancamentos.filter(l => l.id !== j.id).concat([doc]);
+        toast(j.aviso || 'Faturamento parcial salvo.', !j.aviso); render();
+      } }]);
+    const atual = () => {
+      const t = val(ov, 'pTipo');
+      ov.querySelectorAll('.pd').forEach(e => e.style.display = t === 'dias' ? '' : 'none');
+      ov.querySelectorAll('.pp').forEach(e => e.style.display = t === 'percentual' ? '' : 'none');
+      ov.querySelectorAll('.pv').forEach(e => e.style.display = t === 'valor' ? '' : 'none');
+      const x = aplicarParcial({ ...u }, { pTipo: t, dias: val(ov, 'pDias'), dm: val(ov, 'pDm'), pct: val(ov, 'pPct'), valorFixo: val(ov, 'pVal') });
+      ov.querySelector('#pTot').textContent = F(x.men);
+    };
+    const recDias = () => { const a = val(ov, 'pIni'), b = val(ov, 'pFim'); if (a && b && b >= a) { ov.querySelector('#pDias').value = Math.round((Date.parse(b) - Date.parse(a)) / 86400000) + 1; } atual(); };
+    ['pTipo', 'pDias', 'pDm', 'pPct', 'pVal'].forEach(id => ov.querySelector('#' + id).addEventListener('input', atual));
+    ['pIni', 'pFim'].forEach(id => ov.querySelector('#' + id).addEventListener('input', recDias));
+    atual();
+  }
+
   const CATS_CUSTO = ['Materiais e Insumos', 'Hora Extra', 'Horas extras (HH)', 'Religamento', 'Deslocamento/Viagem', 'Serviço de terceiro', 'Infraestrutura AWS', 'Outro'];
-  const CATS_DESC = ['Descumprimento de obrigação contratual', 'Descumprimento de SLA / disponibilidade', 'Atraso na execução ou entrega', 'Indisponibilidade de usina / equipamento', 'Falha de monitoramento', 'Glosa de serviço', 'Abatimento comercial', 'Outro'];
+  const CATS_DESC = ['Custo da Grid pago pelo cliente (reembolso)', 'Descumprimento de obrigação contratual', 'Descumprimento de SLA / disponibilidade', 'Atraso na execução ou entrega', 'Indisponibilidade de usina / equipamento', 'Falha de monitoramento', 'Glosa de serviço', 'Abatimento comercial', 'Outro'];
 
   function dlgLanc(c, l, tipoNovo) {
     const ehDesc = l ? l.tipo === 'desconto' : tipoNovo === 'desconto';
@@ -882,7 +947,8 @@
       <div class="bm-f"><label>${ehDesc ? 'Motivo' : 'Categoria'}</label><select id="lCat">${opts([...cats, ...(x.cat && !cats.includes(x.cat) ? [x.cat] : [])].map(t => [t, t]), x.cat)}</select></div>
       <div class="bm-f"><label>Data</label><input id="lData" type="date" value="${esc(x.data || '')}"></div>
       <div class="bm-f w"><label>${ehDesc ? 'A que se refere' : 'Descrição'} (sai no BM e no e-mail)</label><input id="lDesc" value="${esc(x.desc || '')}"></div>
-      ${ehDesc ? `<div class="bm-f w"><label>Cláusula / obrigação (opcional)</label><input id="lClaus" value="${esc(x.clausula || '')}"></div>` : ''}
+      ${ehDesc ? `<div class="bm-f w"><label>Cláusula / obrigação (opcional)</label><input id="lClaus" value="${esc(x.clausula || '')}"></div>
+      <div class="bm-note w" style="grid-column:1/-1">Cliente pagou algo que era custo da Grid (peça, serviço, deslocamento)? Use o motivo <b>Custo da Grid pago pelo cliente (reembolso)</b>, informe o valor que ele pagou e anexe a NF ou o comprovante dele. O valor sai como desconto no total do BM.</div>` : ''}
       <div class="bm-f"><label>${ehDesc ? 'Valor do desconto (positivo)' : 'Valor base (custo bruto)'}</label><input id="lUnit" type="number" step="0.01" min="0" value="${x.unit != null && x.unit !== '' ? Math.abs(x.unit) : ''}"></div>
       <div class="bm-f"><label>Acréscimo (%)</label><input id="lPct" type="number" step="0.01" min="0" value="${esc(pctDe(x))}"></div>
       <div class="bm-f"><label>Rótulo do acréscimo</label><select id="lRot">${opts([['Encargos', 'Encargos'], ['BDI', 'BDI'], ['Impostos', 'Impostos']], x.rotuloAcr || c.rotuloAcrPadrao || 'Encargos')}</select></div>
