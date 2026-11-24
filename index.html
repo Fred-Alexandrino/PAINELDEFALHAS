@@ -11805,12 +11805,14 @@ function _osRapidaTextoComunicado(osList, it) {
   const FIXAS = /^(registro fotogr|ficou alguma pend)/i;
   const tirarUsina = t => String(t || '').replace(/\s*-\s*UFV\s+.+$/i, '').trim();
   const L = [];
+  const alvo = usina ? ` para a *UFV ${usina}*` : '';
+  const pv = nome ? 'você já se programar' : 'vocês já se programarem';
   L.push(nome ? `Olá, ${nome}, tudo bem?` : 'Olá, pessoal, tudo bem?');
   L.push('');
   if (osList.length === 1) {
-    L.push(`Solicitamos uma OS para a *UFV ${usina || '—'}*: _${tirarUsina(osList[0].titulo)}_. Ela deve aparecer no app Grid em breve. Seguem os procedimentos para você já se programar:`);
+    L.push(`Solicitamos uma OS${alvo}: _${tirarUsina(osList[0].titulo)}_. Ela deve aparecer no app Grid em breve. Seguem os procedimentos para ${pv}:`);
   } else {
-    L.push(`Solicitamos *${osList.length} OS* para a *UFV ${usina || '—'}*. Elas devem aparecer no app Grid em breve. Seguem os procedimentos de cada uma para você já se programar:`);
+    L.push(`Solicitamos *${osList.length} OS*${alvo}. Elas devem aparecer no app Grid em breve. Seguem os procedimentos de cada uma para ${pv}:`);
   }
   osList.forEach((o, i) => {
     L.push('');
@@ -11828,13 +11830,30 @@ function _osRapidaRenderComunicado(osList, it) {
   const destino = it ? `Grupo da equipe da UFV ${esc(it.usina)}${it.cluster ? ' (' + esc(it.cluster) + ')' : ''}${it.responsavel ? ' · ' + esc(it.responsavel) : ''}` : '';
   box.innerHTML = `
     <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:4px;">Comunicado ao técnico</div>
-    <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:10px;">${it ? 'Destino: ' + destino : '<span style="color:var(--amber,#F59E0B);">⚠️ Usina não identificada: escolha a usina no seletor e gere de novo para poder enviar (copiar funciona).</span>'}</div>
+    <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:10px;">${it ? 'Destino: ' + destino : '<span style="color:var(--amber,#F59E0B);">⚠️ Usina não identificada: escolha abaixo para montar o comunicado e liberar o envio.</span>'}</div>
+    ${it ? '' : '<select id="osRapidaComUsina" style="width:100%;margin-bottom:10px;background:var(--panel-alt);border:1px solid var(--amber,#F59E0B);border-radius:8px;padding:9px 10px;color:var(--text);font-size:12.5px;font-family:\'Poppins\',sans-serif;"><option value="">Escolha a usina…</option></select>'}
     <textarea id="osRapidaComTexto" rows="16" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12.5px;line-height:1.55;font-family:'Poppins',sans-serif;resize:vertical;min-height:46vh;"></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;">
       <button id="osRapidaComCopiar" style="flex:0 0 auto;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">Copiar</button>
       <button id="osRapidaComEnviar" ${it ? '' : 'disabled'} style="flex:1;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:${it ? 'pointer' : 'not-allowed'};opacity:${it ? 1 : .5};font-family:'Poppins',sans-serif;">Enviar ao grupo da equipe</button>
     </div>`;
   box.querySelector('#osRapidaComTexto').value = texto;
+  // 24/11/2026 (opção B): sem usina, escolhe aqui mesmo — refaz o texto e libera o envio.
+  // Vale só para o comunicado; o pacote do "Enviar ao Nexus" segue com o que foi detectado na geração.
+  const selU = box.querySelector('#osRapidaComUsina');
+  if (selU) {
+    (async () => {
+      const mapa = await _mapUfvsCarregar().catch(() => null);
+      (mapa || []).slice().sort((a, b) => String(a.usina).localeCompare(String(b.usina), 'pt'))
+        .forEach(i => { const o = document.createElement('option'); o.value = i.cliente + '|' + i.usina; o.textContent = i.usina + ' · ' + i.cliente; selU.appendChild(o); });
+      selU.onchange = () => {
+        if (!selU.value) return;
+        const [c, u] = selU.value.split('|');
+        const novo = (mapa || []).find(i => i.cliente === c && i.usina === u);
+        if (novo) _osRapidaRenderComunicado(osList, novo);
+      };
+    })();
+  }
   box.querySelector('#osRapidaComCopiar').onclick = () => {
     navigator.clipboard?.writeText(box.querySelector('#osRapidaComTexto').value)
       .then(() => showToast('Copiado!', true)).catch(() => showToast('Não consegui copiar automaticamente.', false));
