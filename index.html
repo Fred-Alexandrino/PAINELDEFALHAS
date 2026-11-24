@@ -9503,6 +9503,14 @@ document.getElementById('chamadosBusca')?.addEventListener('input', (e) => {
 let _chamadosBuscaTexto = '';
 
 document.getElementById('updateBtn').addEventListener('click', () => {
+  // 24/11/2026: com o script "Grid Omni — atualizar ao abrir", Atualizar passa pelo Nexus e pela SolarEdge e recarrega tudo
+  try {
+    if (document.documentElement.getAttribute('data-omni-sync') && _currentSession && _currentSession.role === 'manager') {
+      localStorage.setItem('omniSyncForcar', String(Date.now()));
+      location.reload();
+      return;
+    }
+  } catch (e) {}
   if (_activeNav === 'ocorrencias' && window.OC) { OC.recarregar().then(() => showToast('Ocorrências atualizadas.', true)); return; }
   if (_activeNav === 'visao-geral') { ATIVIDADES = []; _vgEntrar(); return; }
   carregarAtividades();
