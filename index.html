@@ -3466,8 +3466,33 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
             </div>
             <div id="mapSidebarInfo" style="font-size:11.5px;color:var(--text-faint);margin:-6px 0 12px;"></div>
             <style>.map-ms{position:relative}.map-ms-btn{width:auto!important;min-width:150px;text-align:left;cursor:pointer}.map-ms-list{position:absolute;z-index:50;top:100%;left:0;margin-top:4px;min-width:230px;max-height:300px;overflow:auto;background:var(--bg-card,var(--bg,#fff));border:1px solid var(--border-strong);border-radius:8px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.25)}.map-ms-item{display:flex;gap:8px;align-items:center;padding:5px 8px;font-size:12.5px;cursor:pointer;border-radius:6px;white-space:nowrap}.map-ms-item:hover{background:rgba(127,127,127,.15)}</style>
-            <div style="overflow-x:auto;border:1px solid var(--border-strong);border-radius:10px;">
-              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:1200px;">
+            <style>
+              /* 24/11/2026: tabela cabe na tela (sem cortar Grupo WhatsApp) e vira cartões no celular */
+              #mapTabelaWrap{overflow:auto;max-height:calc(100vh - 230px);border:1px solid var(--border-strong);border-radius:10px;}
+              #mapTabela thead th{position:sticky;top:0;z-index:2;background:var(--bg-card,var(--bg,#fff));}
+              #mapTabela td{word-break:normal;overflow-wrap:normal;}
+              #mapTabela td.map-cl{min-width:92px;max-width:180px;}
+              #mapTabela td.map-ufv{min-width:96px;}
+              #mapTabela td.map-acao{white-space:nowrap;}
+              @media (min-width:761px){.map-acao-txt{display:none;}}
+              #mapTabela td.map-grupo{min-width:136px;max-width:230px;}
+              .map-grupo-cl{font-weight:600;white-space:nowrap;}
+              .map-grupo-us{color:var(--text-dim);font-size:11.5px;}
+              @media (max-width:760px){
+                #mapTabelaWrap{max-height:none;border:none;overflow:visible;}
+                #mapTabela,#mapTabela tbody,#mapTabela tr,#mapTabela td{display:block;width:100%;}
+                #mapTabela thead{display:none;}
+                #mapTabela tbody tr{border:1px solid var(--border-strong);border-radius:10px;margin-bottom:10px;padding:6px 4px;}
+                #mapTabela td{border-bottom:none!important;padding:4px 10px!important;display:flex;gap:10px;max-width:none!important;min-width:0!important;}
+                #mapTabela td[data-l]::before{content:attr(data-l);flex:0 0 104px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);padding-top:2px;}
+                #mapTabela td.map-num{display:none;}
+                #mapTabela td.map-ufv{font-size:14px;}
+                #mapTabela td[colspan]{display:block;}
+                #mapTabela td[colspan] > div{width:100%!important;}
+              }
+            </style>
+            <div id="mapTabelaWrap">
+              <table id="mapTabela" style="width:100%;border-collapse:collapse;font-size:12.5px;">
                 <thead><tr id="mapThead"></tr></thead>
                 <tbody id="mapTbody"></tbody>
               </table>
@@ -8032,9 +8057,9 @@ function mapRender() {
   }
   const sb = _mapFiltrosSidebar();
   const rs = document.getElementById('mapSidebarInfo'); if (rs) rs.textContent = _mapResumoSidebar();
-  const cols = ['#','Cluster','Cliente','UFV','Cidade/UF','Responsável','Função','Demais membros','Supervisor de campo','Grupo WhatsApp','Situação',''];
+  const cols = ['Cluster','Cliente','UFV','Cidade/UF','Responsável / função','Demais membros','Supervisor de campo','Grupo WhatsApp','Situação',''];
   const th = document.getElementById('mapThead');
-  if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);white-space:nowrap;">${c}</th>`).join('');
+  if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 7px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);vertical-align:bottom;">${c}</th>`).join('');
   const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
     if (_mapSel.cluster.size && !_mapSel.cluster.has(i.cluster)) return false;
     if (_mapSel.cliente.size && !_mapSel.cliente.has(i.cliente)) return false;
@@ -8050,7 +8075,12 @@ function mapRender() {
     }
     return true;
   });
-  const td = (v, extra) => `<td style="padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;${extra || ''}">${v}</td>`;
+  const td = (v, extra, l, cls) => `<td${l ? ` data-l="${l}"` : ''}${cls ? ` class="${cls}"` : ''} style="padding:8px 7px;border-bottom:1px solid var(--border);vertical-align:top;${extra || ''}">${v}</td>`;
+  const grp = i => {
+    if (!i.grupo_nome) return '<span style="color:var(--text-faint);">—</span>';
+    const [cl, ...us] = String(i.grupo_nome).split('|');
+    return us.length ? `<div class="map-grupo-cl">${esc(cl.trim())}</div><div class="map-grupo-us">${esc(us.join('|').trim())}</div>` : esc(i.grupo_nome);
+  };
   const ed = i => (i.editados || []).length ? ' <span title="Editado no painel: ' + esc(i.editados.join(', ')) + '" style="font-size:10px;color:#a78bfa;border:1px solid #a78bfa55;border-radius:999px;padding:1px 6px;">editado</span>' : '';
   const tb = document.getElementById('mapTbody');
   if (tb) tb.innerHTML = linhas.map(({ i, n }) => {
@@ -8063,7 +8093,7 @@ function mapRender() {
       i.transicao ? pill('Em transição', '#60a5fa') : '',
     ].join('') || '<span style="color:var(--text-faint);">—</span>';
     const nome = (i.usina || '').replace(/'/g, "\\'");
-    return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>' + ed(i))}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.supervisor_campo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}${td(`<button class="modal-close-btn" style="width:auto;padding:0 10px;height:28px;font-size:12px;" onclick="mapEditar('${nome}')">✎ Editar</button>`)}</tr>`;
+    return `<tr>${td(esc(i.cluster), '', 'Cluster', 'map-cl')}${td(esc(i.cliente), '', 'Cliente')}${td('<b>' + esc(i.usina) + '</b>' + ed(i), '', '', 'map-ufv')}${td(esc(i.cidade_uf || '').replace(/\//g, '/<wbr>'), '', 'Cidade/UF')}${td(esc(i.responsavel) + (i.funcao ? '<div style="color:var(--text-dim);font-size:11.5px;">' + esc(i.funcao) + '</div>' : ''), '', 'Responsável')}${td(esc((i.membros || []).join(', ') || '—'), '', 'Demais membros')}${td(esc(i.supervisor_campo || '—'), '', 'Supervisor')}${td(grp(i), '', 'Grupo WhatsApp', 'map-grupo')}${td(sit, '', 'Situação')}${td(`<button class="modal-close-btn" style="width:auto;padding:0 8px;height:28px;font-size:12px;" title="Editar" onclick="mapEditar('${nome}')">✎<span class="map-acao-txt"> Editar</span></button>`, '', '', 'map-acao')}</tr>`;
   }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
   const st = document.getElementById('mapStatus');
   if (st && !st.dataset.fixo) st.textContent = `${linhas.length} de ${itens.length} usinas`;
