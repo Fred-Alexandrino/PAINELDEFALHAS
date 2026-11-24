@@ -122,27 +122,27 @@
     const sCond = custos.filter(c => c.cond).reduce((s, c) => s + (c.total || 0), 0);
     const sK = cos.reduce((s, c) => s + (c.v || 0), 0);
     const sub = 'Mês de referência: ' + ML(D.ref) + ' · ' + ufvs.length + ' usina' + (ufvs.length === 1 ? '' : 's') + ' faturada' + (ufvs.length === 1 ? '' : 's') + (D.revisao ? ' · Revisão R' + String(D.revisao).padStart(2, '0') : '');
-    const kpis = `<div class="kpi"><div class="l">Mensalidades Full O&amp;M</div><div class="v">${F(sM)}</div></div>`
-      + `<div class="kpi"><div class="l">Custos adicionais</div><div class="v">${F(sC)}</div></div>`
-      + (sD ? `<div class="kpi"><div class="l">Descontos</div><div class="v" style="color:var(--er)">${F(sD)}</div></div>` : '')
-      + (sK ? `<div class="kpi"><div class="l">Monitoramento Remoto</div><div class="v">${F(sK)}</div></div>` : '')
-      + `<div class="kpi big"><div class="l">Total do BM</div><div class="v">${F(sM + sC + sD + sK)}</div></div>`
-      + (sCond ? `<div class="kpi"><div class="l">Sujeito a aprovação (fora do total)</div><div class="v">${F(sCond)}</div></div>` : '');
+    const kpis = `<div class="bmx-kpi"><div class="bmx-l">Mensalidades Full O&amp;M</div><div class="bmx-v">${F(sM)}</div></div>`
+      + `<div class="bmx-kpi"><div class="bmx-l">Custos adicionais</div><div class="bmx-v">${F(sC)}</div></div>`
+      + (sD ? `<div class="bmx-kpi"><div class="bmx-l">Descontos</div><div class="bmx-v" style="color:var(--er)">${F(sD)}</div></div>` : '')
+      + (sK ? `<div class="bmx-kpi"><div class="bmx-l">Monitoramento Remoto</div><div class="bmx-v">${F(sK)}</div></div>` : '')
+      + `<div class="bmx-kpi bmx-big"><div class="bmx-l">Total do BM</div><div class="bmx-v">${F(sM + sC + sD + sK)}</div></div>`
+      + (sCond ? `<div class="bmx-kpi"><div class="bmx-l">Sujeito a aprovação (fora do total)</div><div class="bmx-v">${F(sCond)}</div></div>` : '');
     const dI = D.diaIni != null ? D.diaIni : 26, dF = D.diaFim != null ? D.diaFim : 25, oI = D.offsetIniMeses != null ? D.offsetIniMeses : -1, oF = D.offsetFimMeses != null ? D.offsetFimMeses : 0;
     let h = '';
     if (ufvs.length) {
-      h += '<h2>Mensalidades — Full O&M</h2><table><thead><tr><th>UFV</th><th>UF</th><th class="num">MWp</th>'
-        + '<th>Data da Medição</th><th>Período de Medição</th><th class="num">Valor do contrato</th><th class="num">Dias faturados</th><th class="num">Mensalidade</th></tr></thead><tbody>';
+      h += '<h2>Mensalidades — Full O&M</h2><table><thead><tr><th>UFV</th><th>UF</th><th class="bmx-num">MWp</th>'
+        + '<th>Data da Medição</th><th>Período de Medição</th><th class="bmx-num">Valor do contrato</th><th class="bmx-num">Dias faturados</th><th class="bmx-num">Mensalidade</th></tr></thead><tbody>';
       ufvs.forEach(u => {
         const per = periodoParaUsina(u, dI, dF, oI, oF);
         const pc = u.parcial;
-        h += `<tr><td>${esc(u.nome)}${pc ? `<div class="mut" style="font-size:10.5px">Faturamento parcial — ${esc(pc.motivo || '')}${pc.desc ? ': ' + esc(pc.desc) : ''}</div>` : ''}</td><td>${esc(u.uf)}</td><td class="num">${(u.mwp || 0).toFixed(3)}</td>
-     <td>${dt(u.mob)}</td><td class="mut">${pc && pc.tipo === 'dias' && pc.ini && pc.fim ? dt(pc.ini) + ' a ' + dt(pc.fim) : (per || '—')}</td><td class="num mut">${F(u.valor)}</td>
-     <td class="num">${pc && pc.tipo === 'percentual' ? String(pc.pct).replace('.', ',') + '%' : pc && pc.tipo === 'valor' ? 'acordo' : (u.dias || u.dm || 30) + '/' + (u.dm || 30)}</td><td class="num"><b>${F(u.men)}</b></td></tr>`;
+        h += `<tr><td>${esc(u.nome)}${pc ? `<div class="bmx-mut" style="font-size:10.5px">Faturamento parcial — ${esc(pc.motivo || '')}${pc.desc ? ': ' + esc(pc.desc) : ''}</div>` : ''}</td><td>${esc(u.uf)}</td><td class="bmx-num">${(u.mwp || 0).toFixed(3)}</td>
+     <td>${dt(u.mob)}</td><td class="bmx-mut">${pc && pc.tipo === 'dias' && pc.ini && pc.fim ? dt(pc.ini) + ' a ' + dt(pc.fim) : (per || '—')}</td><td class="bmx-num bmx-mut">${F(u.valor)}</td>
+     <td class="bmx-num">${pc && pc.tipo === 'percentual' ? String(pc.pct).replace('.', ',') + '%' : pc && pc.tipo === 'valor' ? 'acordo' : (u.dias || u.dm || 30) + '/' + (u.dm || 30)}</td><td class="bmx-num"><b>${F(u.men)}</b></td></tr>`;
       });
-      h += `<tr class="tot"><td colspan="7">Total mensalidades — ${ufvs.length} usina${ufvs.length === 1 ? '' : 's'}</td><td class="num">${F(sM)}</td></tr></tbody></table>`;
+      h += `<tr class="bmx-tot"><td colspan="7">Total mensalidades — ${ufvs.length} usina${ufvs.length === 1 ? '' : 's'}</td><td class="bmx-num">${F(sM)}</td></tr></tbody></table>`;
       const parc = ufvs.filter(u => u.parcial);
-      if (parc.length) h += `<div class="note"><b>Faturamento parcial neste mês:</b> ` + parc.map(u => `${esc(u.nome)} — ${esc(u.parcial.motivo || '')}${u.parcial.desc ? ' (' + esc(u.parcial.desc) + ')' : ''}: ${esc(descParcial(u.parcial))} do valor de ${F(u.valor)} = ${F(u.men)}.`).join(' ') + `</div>`;
+      if (parc.length) h += `<div class="bmx-note"><b>Faturamento parcial neste mês:</b> ` + parc.map(u => `${esc(u.nome)} — ${esc(u.parcial.motivo || '')}${u.parcial.desc ? ' (' + esc(u.parcial.desc) + ')' : ''}: ${esc(descParcial(u.parcial))} do valor de ${F(u.valor)} = ${F(u.men)}.`).join(' ') + `</div>`;
     }
     h += '<h2>Custos adicionais</h2>';
     if (custosAdd.length) {
@@ -150,38 +150,38 @@
       const legado = pcts.length === 1 && (pcts[0] === 20 || pcts[0] === 0);
       const colAcr = legado ? 'Imposto 20%' : 'Acréscimo';
       h += '<table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Categoria</th><th>Descrição</th><th>Data</th><th>OS</th>'
-        + `<th class="num">Valor base</th><th class="num">${colAcr}</th><th class="num">Total</th></tr></thead><tbody>`;
+        + `<th class="bmx-num">Valor base</th><th class="bmx-num">${colAcr}</th><th class="bmx-num">Total</th></tr></thead><tbody>`;
       custosAdd.slice().sort((a, b) => (a.ufv || '').localeCompare(b.ufv || '', 'pt-BR', { numeric: true, sensitivity: 'base' }) || String(a.data || '').localeCompare(String(b.data || ''))).forEach(c => {
         const p = pctDe(c), acr = (c.total || 0) - (c.unit || 0);
-        h += `<tr><td>${esc(c.ufv)}</td><td class="mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
-    <td>${esc(c.desc)}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td><td class="num ${c.unit < 0 ? 'neg' : ''}">${F(c.unit)}</td>
-    <td class="num">${p ? F(acr) + (legado ? '' : `<div class="mut" style="font-size:10px">${esc(c.rotuloAcr || 'Encargos')} ${p}%</div>`) : '<span class="mut">—</span>'}</td>
-    <td class="num ${c.total < 0 ? 'neg' : ''}"><b>${F(c.total)}</b></td></tr>`;
+        h += `<tr><td>${esc(c.ufv)}</td><td class="bmx-mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
+    <td>${esc(c.desc)}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td><td class="bmx-num ${c.unit < 0 ? 'bmx-neg' : ''}">${F(c.unit)}</td>
+    <td class="bmx-num">${p ? F(acr) + (legado ? '' : `<div class="bmx-mut" style="font-size:10px">${esc(c.rotuloAcr || 'Encargos')} ${p}%</div>`) : '<span class="bmx-mut">—</span>'}</td>
+    <td class="bmx-num ${c.total < 0 ? 'bmx-neg' : ''}"><b>${F(c.total)}</b></td></tr>`;
       });
-      h += `<tr class="tot"><td colspan="8">Total custos adicionais</td><td class="num">${F(sC)}</td></tr></tbody></table>`;
-    } else h += '<div class="note">Nenhum custo adicional lançado neste mês. O valor do BM corresponde às mensalidades contratuais.</div>';
+      h += `<tr class="bmx-tot"><td colspan="8">Total custos adicionais</td><td class="bmx-num">${F(sC)}</td></tr></tbody></table>`;
+    } else h += '<div class="bmx-note">Nenhum custo adicional lançado neste mês. O valor do BM corresponde às mensalidades contratuais.</div>';
     if (descontos.length) {
-      h += '<h2>Descontos</h2><div class="note">Descontos por descumprimento de obrigação contratual, abatimento acordado com o cliente ou reembolso de custo da Grid Co. pago pelo cliente. Os valores abaixo são <b>subtraídos</b> do total deste Boletim.</div>';
-      h += '<table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Motivo</th><th>A que se refere</th><th>Cláusula / obrigação</th><th>Data</th><th>OS / ref.</th><th class="num">Valor do desconto</th></tr></thead><tbody>';
+      h += '<h2>Descontos</h2><div class="bmx-note">Descontos por descumprimento de obrigação contratual, abatimento acordado com o cliente ou reembolso de custo da Grid Co. pago pelo cliente. Os valores abaixo são <b>subtraídos</b> do total deste Boletim.</div>';
+      h += '<table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Motivo</th><th>A que se refere</th><th>Cláusula / obrigação</th><th>Data</th><th>OS / ref.</th><th class="bmx-num">Valor do desconto</th></tr></thead><tbody>';
       descontos.forEach(c => {
-        h += `<tr><td>${esc(c.ufv)}</td><td class="mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
-    <td>${esc(c.desc)}</td><td>${esc(c.clausula || '—')}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td><td class="num neg"><b>${F(c.total)}</b></td></tr>`;
+        h += `<tr><td>${esc(c.ufv)}</td><td class="bmx-mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
+    <td>${esc(c.desc)}</td><td>${esc(c.clausula || '—')}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td><td class="bmx-num bmx-neg"><b>${F(c.total)}</b></td></tr>`;
       });
-      h += `<tr class="tot"><td colspan="7">Total descontos</td><td class="num neg">${F(sD)}</td></tr></tbody></table>`;
+      h += `<tr class="bmx-tot"><td colspan="7">Total descontos</td><td class="bmx-num bmx-neg">${F(sD)}</td></tr></tbody></table>`;
     }
     if (cos.length) {
       h += '<h2>Monitoramento Remoto</h2>';
-      if (reaj && reaj.pct) h += `<div class="note">Contratos reajustados em ${((reaj.pct || 0) * 100).toFixed(2).replace('.', ',')}% — ${esc(reaj.desc || '')}.</div>`;
-      h += '<table><thead><tr><th>UFV</th><th>UF</th><th class="num">MWp</th><th>SPE / CNPJ</th><th>Modalidade</th><th class="num">Valor do contrato</th><th class="num">Dias monitorados</th><th class="num">Mensalidade</th></tr></thead><tbody>';
+      if (reaj && reaj.pct) h += `<div class="bmx-note">Contratos reajustados em ${((reaj.pct || 0) * 100).toFixed(2).replace('.', ',')}% — ${esc(reaj.desc || '')}.</div>`;
+      h += '<table><thead><tr><th>UFV</th><th>UF</th><th class="bmx-num">MWp</th><th>SPE / CNPJ</th><th>Modalidade</th><th class="bmx-num">Valor do contrato</th><th class="bmx-num">Dias monitorados</th><th class="bmx-num">Mensalidade</th></tr></thead><tbody>';
       const pm = {};
       cos.forEach(c => {
         pm[c.status] = (pm[c.status] || 0) + (c.v || 0);
-        h += `<tr><td>${esc(c.nome)}${c.obs ? `<div class="mut" style="font-size:10.5px">${esc(c.obs)}</div>` : ''}</td><td>${esc(c.uf)}</td><td class="num">${(c.mwp || 0).toFixed(3)}</td>
-    <td class="mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td class="mut">${esc(c.status)}</td><td class="num mut">${F(c.valor)}</td>
-    <td class="num ${c.cred ? 'neg' : ''}">${c.d ?? '—'}</td><td class="num ${c.v < 0 ? 'neg' : ''}"><b>${F(c.v)}</b></td></tr>`;
+        h += `<tr><td>${esc(c.nome)}${c.obs ? `<div class="bmx-mut" style="font-size:10.5px">${esc(c.obs)}</div>` : ''}</td><td>${esc(c.uf)}</td><td class="bmx-num">${(c.mwp || 0).toFixed(3)}</td>
+    <td class="bmx-mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td class="bmx-mut">${esc(c.status)}</td><td class="bmx-num bmx-mut">${F(c.valor)}</td>
+    <td class="bmx-num ${c.cred ? 'bmx-neg' : ''}">${c.d ?? '—'}</td><td class="bmx-num ${c.v < 0 ? 'bmx-neg' : ''}"><b>${F(c.v)}</b></td></tr>`;
       });
-      h += Object.entries(pm).map(([m, v]) => `<tr><td colspan="7" class="mut" style="padding-left:18px">subtotal — ${esc(m)}</td><td class="num">${F(v)}</td></tr>`).join('')
-        + `<tr class="tot"><td colspan="7">Total Monitoramento Remoto</td><td class="num">${F(sK)}</td></tr></tbody></table>`;
+      h += Object.entries(pm).map(([m, v]) => `<tr><td colspan="7" class="bmx-mut" style="padding-left:18px">subtotal — ${esc(m)}</td><td class="bmx-num">${F(v)}</td></tr>`).join('')
+        + `<tr class="bmx-tot"><td colspan="7">Total Monitoramento Remoto</td><td class="bmx-num">${F(sK)}</td></tr></tbody></table>`;
     }
     { // faturamento por SPE/CNPJ
       const porU = {};
@@ -195,24 +195,24 @@
       });
       const ks = Object.keys(g).sort((a, b) => (g[a].spe || '').localeCompare(g[b].spe || ''));
       if (ks.length > 1 || (ks.length === 1 && sem.length)) {
-        h += `<h2>Faturamento por SPE e CNPJ — ${ks.length} nota(s) fiscal(is)</h2><table><thead><tr><th>SPE</th><th>CNPJ</th><th>UFVs</th><th class="num">Mensalidades</th><th class="num">Custos adicionais / descontos</th><th class="num">Valor da NF</th></tr></thead><tbody>`;
+        h += `<h2>Faturamento por SPE e CNPJ — ${ks.length} nota(s) fiscal(is)</h2><table><thead><tr><th>SPE</th><th>CNPJ</th><th>UFVs</th><th class="bmx-num">Mensalidades</th><th class="bmx-num">Custos adicionais / descontos</th><th class="bmx-num">Valor da NF</th></tr></thead><tbody>`;
         let tm = 0, ta = 0;
-        ks.forEach(cn => { const x = g[cn]; tm += x.men; ta += x.add; h += `<tr><td>${esc(x.spe || '—')}</td><td class="mut">${esc(cn)}</td><td style="font-size:11.5px">${esc(x.ufvs.join(', '))}</td><td class="num">${F(x.men)}</td><td class="num ${x.add < 0 ? 'neg' : ''}">${x.add ? F(x.add) : '—'}</td><td class="num"><b>${F(x.men + x.add)}</b></td></tr>`; });
-        h += `<tr class="tot"><td colspan="3">TOTAL — ${ks.length} NFs</td><td class="num">${F(tm)}</td><td class="num ${ta < 0 ? 'neg' : ''}">${F(ta)}</td><td class="num">${F(tm + ta)}</td></tr></tbody></table>`;
-        if (sem.length) h += `<div class="note"><b>Sem CNPJ cadastrado:</b> ` + sem.map(x => `${esc(x.nome)} (${F(x.v)})`).join(' · ') + `.</div>`;
+        ks.forEach(cn => { const x = g[cn]; tm += x.men; ta += x.add; h += `<tr><td>${esc(x.spe || '—')}</td><td class="bmx-mut">${esc(cn)}</td><td style="font-size:11.5px">${esc(x.ufvs.join(', '))}</td><td class="bmx-num">${F(x.men)}</td><td class="bmx-num ${x.add < 0 ? 'bmx-neg' : ''}">${x.add ? F(x.add) : '—'}</td><td class="bmx-num"><b>${F(x.men + x.add)}</b></td></tr>`; });
+        h += `<tr class="bmx-tot"><td colspan="3">TOTAL — ${ks.length} NFs</td><td class="bmx-num">${F(tm)}</td><td class="bmx-num ${ta < 0 ? 'bmx-neg' : ''}">${F(ta)}</td><td class="bmx-num">${F(tm + ta)}</td></tr></tbody></table>`;
+        if (sem.length) h += `<div class="bmx-note"><b>Sem CNPJ cadastrado:</b> ` + sem.map(x => `${esc(x.nome)} (${F(x.v)})`).join(' · ') + `.</div>`;
       }
     }
     { const cs = custos.filter(c => c.cond); if (cs.length) {
       const t = cs.reduce((s, c) => s + (c.total || 0), 0);
-      h += `<h2>Sujeito a aprovação — fora do total deste BM</h2><div class="note">Os itens abaixo <b>não estão somados</b> no total do Boletim. Dependem de confirmação do cliente quanto à forma de faturamento. Aprovados, entram no BM seguinte.</div>
-     <table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Descrição</th><th>Período</th><th class="num">Valor</th></tr></thead><tbody>`
-        + cs.map(c => `<tr><td>${esc(c.ufv)}</td><td class="mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${c.tipo === 'desconto' ? '<b>[Desconto]</b> ' : ''}${esc(c.desc)}</td><td>${dt(c.data)}</td><td class="num"><b>${F(c.total)}</b></td></tr>`).join('')
-        + `<tr class="tot"><td colspan="4">Total sujeito a aprovação</td><td class="num">${F(t)}</td></tr></tbody></table>`;
+      h += `<h2>Sujeito a aprovação — fora do total deste BM</h2><div class="bmx-note">Os itens abaixo <b>não estão somados</b> no total do Boletim. Dependem de confirmação do cliente quanto à forma de faturamento. Aprovados, entram no BM seguinte.</div>
+     <table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Descrição</th><th>Período</th><th class="bmx-num">Valor</th></tr></thead><tbody>`
+        + cs.map(c => `<tr><td>${esc(c.ufv)}</td><td class="bmx-mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${c.tipo === 'desconto' ? '<b>[Desconto]</b> ' : ''}${esc(c.desc)}</td><td>${dt(c.data)}</td><td class="bmx-num"><b>${F(c.total)}</b></td></tr>`).join('')
+        + `<tr class="bmx-tot"><td colspan="4">Total sujeito a aprovação</td><td class="bmx-num">${F(t)}</td></tr></tbody></table>`;
     } }
-    h += `<h2>Resumo</h2><table><tbody><tr><td>Mensalidades Full O&amp;M</td><td class="num">${F(sM)}</td></tr><tr><td>Custos adicionais</td><td class="num ${sC < 0 ? 'neg' : ''}">${F(sC)}</td></tr>`
-      + (sD ? `<tr><td>Descontos</td><td class="num neg">${F(sD)}</td></tr>` : '') + (sK ? `<tr><td>Monitoramento Remoto</td><td class="num">${F(sK)}</td></tr>` : '')
-      + `<tr class="tot"><td>TOTAL DO BM — ${ML(D.ref)}</td><td class="num">${F(sM + sC + sD + sK)}</td></tr>`
-      + (sCond ? `<tr><td class="mut">Sujeito a aprovação, fora do total</td><td class="num mut">${F(sCond)}</td></tr>` : '') + `</tbody></table>`;
+    h += `<h2>Resumo</h2><table><tbody><tr><td>Mensalidades Full O&amp;M</td><td class="bmx-num">${F(sM)}</td></tr><tr><td>Custos adicionais</td><td class="bmx-num ${sC < 0 ? 'bmx-neg' : ''}">${F(sC)}</td></tr>`
+      + (sD ? `<tr><td>Descontos</td><td class="bmx-num bmx-neg">${F(sD)}</td></tr>` : '') + (sK ? `<tr><td>Monitoramento Remoto</td><td class="bmx-num">${F(sK)}</td></tr>` : '')
+      + `<tr class="bmx-tot"><td>TOTAL DO BM — ${ML(D.ref)}</td><td class="bmx-num">${F(sM + sC + sD + sK)}</td></tr>`
+      + (sCond ? `<tr><td class="bmx-mut">Sujeito a aprovação, fora do total</td><td class="bmx-num bmx-mut">${F(sCond)}</td></tr>` : '') + `</tbody></table>`;
     return { sub, kpis, body: h, titulo: 'Boletim de Medição — ' + (titulo || ''), total: r2(sM + sC + sD + sK), sM, sC, sD, sK, sCond };
   }
   const RODAPE_PADRAO = 'Grid Co. — Operação & Manutenção · documento gerado para validação do Boletim de Medição. Valores em reais.';
@@ -222,18 +222,18 @@
 #bmPreview{all:initial;display:block;background:#fff;color:#000;font:11pt/1.45 Calibri,"Segoe UI",Arial,sans-serif;position:relative;
   --navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E}
 #bmPreview *{box-sizing:border-box}
-#bmPreview .wrap{max-width:1060px;margin:0 auto;padding:24px;position:relative;z-index:1}
-#bmPreview .cab{border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:6px}
-#bmPreview .marca{font-size:12pt;font-weight:700;color:var(--navy);letter-spacing:.14em;text-transform:uppercase}
+#bmPreview .bmx-wrap{max-width:1060px;margin:0 auto;padding:24px;position:relative;z-index:1}
+#bmPreview .bmx-cab{border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:6px}
+#bmPreview .bmx-marca{font-size:12pt;font-weight:700;color:var(--navy);letter-spacing:.14em;text-transform:uppercase}
 #bmPreview h1{font-size:19pt;margin:6px 0 2px;color:var(--navy);font-weight:700}
-#bmPreview .faixa{height:4px;background:var(--lime);width:120px;margin:8px 0 10px;border-radius:2px}
-#bmPreview .sub{color:var(--sec);font-size:10.5pt;margin-bottom:20px}
-#bmPreview .kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-#bmPreview .kpi,#pdfRoot .kpi{background:var(--zebra);border:1px solid var(--bd);border-left:3px solid var(--lime);border-radius:4px;padding:10px 15px;min-width:172px}
-#bmPreview .kpi .l,#pdfRoot .kpi .l{font-size:8.5pt;text-transform:uppercase;color:var(--sec);letter-spacing:.06em}
-#bmPreview .kpi .v,#pdfRoot .kpi .v{font-size:15pt;font-weight:700;color:var(--navy)}
-#bmPreview .kpi.big,#pdfRoot .kpi.big{background:var(--navy);border-color:var(--navy);border-left-color:var(--lime)}
-#bmPreview .kpi.big .l,#pdfRoot .kpi.big .l{color:#C9C6D4}#bmPreview .kpi.big .v,#pdfRoot .kpi.big .v{color:#fff}
+#bmPreview .bmx-faixa{height:4px;background:var(--lime);width:120px;margin:8px 0 10px;border-radius:2px}
+#bmPreview .bmx-sub{color:var(--sec);font-size:10.5pt;margin-bottom:20px}
+#bmPreview .bmx-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+#bmPreview .bmx-kpi,#pdfRoot .bmx-kpi{background:var(--zebra);border:1px solid var(--bd);border-left:3px solid var(--lime);border-radius:4px;padding:10px 15px;min-width:172px}
+#bmPreview .bmx-kpi .bmx-l,#pdfRoot .bmx-kpi .bmx-l{font-size:8.5pt;text-transform:uppercase;color:var(--sec);letter-spacing:.06em}
+#bmPreview .bmx-kpi .bmx-v,#pdfRoot .bmx-kpi .bmx-v{font-size:15pt;font-weight:700;color:var(--navy)}
+#bmPreview .bmx-kpi.bmx-big,#pdfRoot .bmx-kpi.bmx-big{background:var(--navy);border-color:var(--navy);border-left-color:var(--lime)}
+#bmPreview .bmx-kpi.bmx-big .bmx-l,#pdfRoot .bmx-kpi.bmx-big .bmx-l{color:#C9C6D4}#bmPreview .bmx-kpi.bmx-big .bmx-v,#pdfRoot .bmx-kpi.bmx-big .bmx-v{color:#fff}
 #bmPreview h2,#pdfRoot h2{font-size:10.5pt;margin:24px 0 4px;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;font-weight:700;display:block}
 #bmPreview h2::after,#pdfRoot h2::after{content:"";display:block;height:3px;width:54px;background:var(--lime);margin-top:5px;border-radius:2px}
 #bmPreview table,#pdfRoot table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:8px;display:table}
@@ -241,20 +241,20 @@
 #bmPreview td{padding:6px 9px;border:1px solid var(--bd);vertical-align:top}
 #pdfRoot td{padding:6px 9px;border-bottom:.5pt solid var(--bd);vertical-align:top}
 #bmPreview tbody tr:nth-child(even) td{background:var(--zebra)}
-#bmPreview .num,#pdfRoot .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-#bmPreview .mut,#pdfRoot .mut{color:var(--sec)}#bmPreview .neg,#pdfRoot .neg{color:var(--er)}
-#bmPreview .tot td,#pdfRoot .tot td{font-weight:700;background:#E4E6EC;border-top:2px solid var(--navy);color:var(--navy)}
-#bmPreview .note,#pdfRoot .note{background:#FBFCF5;border:1px solid var(--bd);border-left:3px solid var(--lime);border-radius:3px;padding:9px 13px;font-size:9.5pt;margin:10px 0;color:var(--sec)}
-#bmPreview .foot{margin-top:30px;padding-top:10px;border-top:1px solid var(--bd);color:var(--sec);font-size:8.5pt;font-style:italic}
-#bmPreview .cabPag{text-align:right;padding:24px 24px 0}#bmPreview .cabPag img{width:150px;display:inline-block}
+#bmPreview .bmx-num,#pdfRoot .bmx-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#bmPreview .bmx-mut,#pdfRoot .bmx-mut{color:var(--sec)}#bmPreview .bmx-neg,#pdfRoot .bmx-neg{color:var(--er)}
+#bmPreview .bmx-tot td,#pdfRoot .bmx-tot td{font-weight:700;background:#E4E6EC;border-top:2px solid var(--navy);color:var(--navy)}
+#bmPreview .bmx-note,#pdfRoot .bmx-note{background:#FBFCF5;border:1px solid var(--bd);border-left:3px solid var(--lime);border-radius:3px;padding:9px 13px;font-size:9.5pt;margin:10px 0;color:var(--sec)}
+#bmPreview .bmx-foot{margin-top:30px;padding-top:10px;border-top:1px solid var(--bd);color:var(--sec);font-size:8.5pt;font-style:italic}
+#bmPreview .bmx-cabPag{text-align:right;padding:24px 24px 0}#bmPreview .bmx-cabPag img{width:150px;display:inline-block}
 #bmPreview #bmMarcaAgua{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;z-index:0;pointer-events:none}
 #pdfRoot tr{break-inside:avoid}`;
 
   function htmlBoletim(D, titulo, rodape) {
     const b = renderBoletim(D, titulo);
-    return { b, html: `<div id="bmPreview"><img id="bmMarcaAgua" alt="" src="${ASSETS().marca}"><div class="cabPag"><img alt="Grid Co." src="${ASSETS().logo}"></div>
-      <div class="wrap"><div class="cab"><div class="marca">Operação &amp; Manutenção</div><h1>${esc(b.titulo)}</h1><div class="faixa"></div></div>
-      <div class="sub">${b.sub}</div><div class="kpis">${b.kpis}</div><div>${b.body}</div><div class="foot">${esc(rodape || RODAPE_PADRAO)}</div></div></div>` };
+    return { b, html: `<div id="bmPreview"><img id="bmMarcaAgua" alt="" src="${ASSETS().marca}"><div class="bmx-cabPag"><img alt="Grid Co." src="${ASSETS().logo}"></div>
+      <div class="bmx-wrap"><div class="bmx-cab"><div class="bmx-marca">Operação &amp; Manutenção</div><h1>${esc(b.titulo)}</h1><div class="bmx-faixa"></div></div>
+      <div class="bmx-sub">${b.sub}</div><div class="bmx-kpis">${b.kpis}</div><div>${b.body}</div><div class="bmx-foot">${esc(rodape || RODAPE_PADRAO)}</div></div></div>` };
   }
 
   function htmlCompleto(D, titulo, rodape) {
@@ -391,7 +391,7 @@
     const docs = c.modo === 'multi'
       ? [{ usina: '*', titulo: c.nome, D: montarD(c, usinas, comp) }]
       : usinas.map(n => ({ usina: n, titulo: c.nome + ' — ' + n, D: montarD(c, [n], comp) }));
-    return { versao: 1, cliente: { id: c.id, nome: c.nome, modo: c.modo, email: c.email || {}, rodape: c.rodape || '' }, competencia: comp, usinas, docs, geradoEm: new Date().toISOString() };
+    return { versao: 1, cliente: { id: c.id, nome: c.nome, modo: c.modo, email: c.email || {}, rodape: c.rodape || '' }, competencia: comp, usinas, docs };
   }
 
   /* ─────────────── texto do e-mail (padrão dos e-mails de BM do Fred) ─────────────── */
@@ -1067,8 +1067,23 @@
   }
 
   /* ─────────────── gerar BM: escolher usinas → overlay ─────────────── */
-  function escolherUsinasEGerar(c) {
+  async function abrirEmissao(c, id) {
+    const j = await api('/bm/emissao/' + id);
+    abrirOverlay(c, j.emissao.snapshot, j.emissao);
+  }
+  const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).filter(k => v[k] !== undefined && k[0] !== '_').sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v);
+  const docsCanon = sn => canon((sn.docs || []).map(d => d.D));
+  function escolherUsinasEGerar(c, forcarNovo) {
     if (!(c.ufvs || []).length) return toast('Cadastre as usinas primeiro.', false);
+    // Já existe BM congelado e ainda não enviado deste mês? Abre ele (marcar enviado / baixar PDFs de novo).
+    const pend = forcarNovo ? [] : emissoesDe(c, c.ref).filter(e => e.status === 'gerado' && e.origem !== 'historico');
+    if (pend.length) {
+      const e = pend.sort((a, b) => String(b.criado).localeCompare(String(a.criado)))[0];
+      return modal(`${c.nome} — ${ML(c.ref)}`, `<div class="bm-note">Já existe um BM congelado deste mês, ainda não marcado como enviado: <b>R${String(e.revisao || 0).padStart(2, '0')}</b>, ${e.usinas.length} usina(s), ${e.total != null ? F(e.total) : ''}, congelado em ${dtHora(e.criado)}.</div>
+        <div style="font-size:12.5px;color:var(--text-dim)">Abra esse BM para marcar como enviado, copiar o e-mail ou baixar os PDFs de novo, sem criar revisão. Use "Gerar com os dados atuais" só se mudou algo (custo, valor, usina).</div>`,
+        [{ t: 'Gerar com os dados atuais', cls: 'ghost', fn: async () => { escolherUsinasEGerar(c, true); } },
+         { t: 'Abrir o BM congelado ▸', cls: 'pri', fn: async () => { await abrirEmissao(c, e.id); } }]);
+    }
     const sit = situacao(c, c.ref);
     if (c.modo === 'multi') return abrirOverlay(c, montarLote(c, c.ufvs.map(u => u.nome), c.ref), null);
     modal(`Gerar BM — ${c.nome} — ${ML(c.ref)}`, `<div class="bm-note">Marque as usinas que vão neste e-mail. Cada uma gera o seu PDF.</div>
@@ -1088,6 +1103,8 @@
     const tituloDoc = d => d.titulo + (em && em.revisao ? ' — R' + String(em.revisao).padStart(2, '0') : '');
     const nomeArq = d => `BM_GridCo_${slug(d.titulo)}_${snap.competencia}${em && em.revisao ? '_R' + String(em.revisao).padStart(2, '0') : ''}.pdf`;
     const pdfsEm = () => em ? S.anexos.filter(a => a.dono === em.id && a.tipo === 'pdf_emissao') : [];
+    let mudou = false;
+    try { if (em && em.status === 'gerado' && snap.docs && snap.docs.length && c.ref === snap.competencia) mudou = docsCanon(montarLote(c, snap.usinas, snap.competencia)) !== docsCanon(snap); } catch (e) {}
 
     function desenhar() {
       const docs = docsComRev(), d = docs[idxDoc] || docs[0];
@@ -1096,13 +1113,14 @@
       const st = em ? (em.status === 'cancelado' ? 'Cancelado' : FASE_TXT[FASE[em.status] || 0]) : 'Rascunho (ainda não congelado)';
       ov.innerHTML = `<div class="ov-bar"><button class="bm-btn" id="ovVoltar">◂ Voltar</button>
         <div style="flex:1;font-size:13px"><b>${esc(snap.cliente.nome)}</b> · BM ${ML(snap.competencia)}${em ? ' · R' + String(em.revisao || 0).padStart(2, '0') : ''} · ${docs.length} documento(s) · ${F(totalLote)} · <span style="color:#A9DB21">${esc(st)}</span></div>
-        ${docs.length ? `<button class="bm-btn" id="ovHtml">Baixar HTML</button><button class="bm-btn pri" id="ovPdf">${leitura() ? 'Baixar PDF(s)' : 'Congelar e baixar PDF(s)'}</button>` : ''}</div>
+        ${docs.length ? `<button class="bm-btn" id="ovHtml">Baixar HTML</button><button class="bm-btn pri" id="ovPdf">${em ? 'Baixar PDF(s)' : 'Congelar e baixar PDF(s)'}</button>` : ''}</div>
         <div class="ov-body"><div class="ov-docs">
           ${docs.length > 1 ? `<div class="ov-tabs">${docs.map((x, i) => `<span class="ov-tab ${i === idxDoc ? 'on' : ''}" data-doc="${i}">${esc(x.usina === '*' ? 'Todas' : x.usina)}</span>`).join('')}</div>` : ''}
           ${d ? `<div class="ov-doc">${htmlBoletim(d.D, tituloDoc(d), snap.cliente.rodape).html}</div>` : '<div class="bm-note">Registro manual, sem documento.</div>'}
         </div>
         <div class="ov-side">
           ${!em ? `<div class="bm-note">Confira o boletim. <b>Congelar e baixar PDF(s)</b> grava esta versão no histórico (com o PDF) e libera o registro de envio.</div>` : ''}
+          ${em && em.status === 'gerado' && mudou ? `<div class="bm-warn">Os dados deste mês mudaram depois do congelamento (custo, valor ou usina). Este BM mostra a versão congelada. Para mandar os dados novos, volte e use "Gerar com os dados atuais".</div>` : ''}
           ${em && em.status === 'gerado' ? `<div class="bm-note">Versão congelada em ${dtHora(em.criado)}. Depois de enviar o e-mail no Outlook, clique em <b>Marcar como enviado</b>.</div>` : ''}
           ${mail ? `<h4>E-mail</h4>
           <div class="bm-f"><label>Assunto</label><input id="ovAss" value="${esc(mail.assunto)}" style="background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:6px 8px"></div>
@@ -1136,7 +1154,7 @@
     async function congelarEBaixar(btn) {
       btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Gerando…';
       try {
-        if (!leitura()) {
+        if (!em) {
           const docs0 = snap.docs.map(d => ({ ...d, D: { ...d.D } }));
           const total = r2(docs0.reduce((s, x) => s + renderBoletim(x.D, '').total, 0));
           const j = await api('/bm/emissao/gerar', { method: 'POST', body: { clienteId: snap.cliente.id, competencia: snap.competencia, usinas: snap.usinas, snapshot: snap, total, titulo: snap.cliente.nome } });
@@ -1147,7 +1165,7 @@
         for (const d of docs) {
           const blob = await pdfBlob(d.D, tituloDoc(d), snap.cliente.rodape);
           baixar(blob, nomeArq(d));
-          if (!leitura() || !pdfsEm().some(a => a.rotulo === d.usina)) {
+          if (em.status === 'gerado' || !pdfsEm().some(a => a.rotulo === d.usina)) {
             const fd = new FormData(); fd.append('usina', d.usina); fd.append('arquivo', new File([blob], nomeArq(d), { type: 'application/pdf' }));
             const r = await api('/bm/emissao/' + em.id + '/pdf', { method: 'POST', form: fd }); S.anexos.push(r.anexo);
           }
@@ -1167,5 +1185,5 @@
       [{ t: 'Cancelar', cls: 'ghost' }, { t: 'Salvar', cls: 'pri', fn: async ov => { await fn(val(ov, 'mdData'), val(ov, 'mdObs').trim(), comNf ? val(ov, 'mdNf').trim() : ''); } }]);
   }
 
-  window.BM = { entrar, _S: S, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados };
+  window.BM = { entrar, _S: S, _pdfBlob: pdfBlob, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados };
 })();
