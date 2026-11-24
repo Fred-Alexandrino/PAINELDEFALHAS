@@ -419,8 +419,12 @@
         let mk = '';
         if (adds.length || descs.length) {
           marca++; mk = '*'.repeat(marca);
-          const itens = [...adds, ...descs].map(x => `${x.tipo === 'desconto' ? 'desconto — ' : ''}${x.desc}${x.os ? ' (OS ' + x.os + ')' : ''}${x.clausula ? ', ' + x.clausula : ''}: ${F(x.total)}${pctDe(x) ? ` (inclui ${(x.rotuloAcr || 'encargos').replace(/^Encargos$/, 'encargos').replace(/^Impostos$/, 'impostos')} de ${pctDe(x)}%)` : ''}`);
-          notas.push(`${mk} ${nomeCurtoUfv(u)}: ${itens.join('; ')}.`);
+          // Padrão do Fred (24/11/2026): nota só com o valor por usina, sem descrever item nem BDI/encargos;
+          // a descrição dos custos fica no boletim anexado.
+          const partes = [];
+          if (sC) partes.push(`${F(sC)} de custos adicionais`);
+          if (sD) partes.push(`${F(Math.abs(sD))} de desconto`);
+          notas.push(`• ${nomeCurtoUfv(u)}: ${partes.join(' e ')}`);
         }
         let perU = periodoCurto(periodoParaUsina(u, D.diaIni, D.diaFim, D.offsetIniMeses, D.offsetFimMeses));
         if (u.parcial) {
@@ -454,23 +458,27 @@
       + `<td style="${th}">UFV</td><td style="${th}">Período</td><td style="${th}text-align:right">Mensalidade Full O&amp;M</td><td style="${th}text-align:right">Custos adicionais</td>${temDesc ? `<td style="${th}text-align:right">Descontos</td>` : ''}<td style="${th}text-align:right">Total do BM</td></tr>`
       + linhas.map(l => `<tr><td style="${td}">${esc(l.ufv)}</td><td style="${td}">${esc(l.periodo)}</td><td style="${td}text-align:right">${F(l.men)}</td><td style="${td}text-align:right">${F(l.custos)}${l.mk && l.custos ? l.mk : ''}</td>${temDesc ? `<td style="${td}text-align:right">${F(l.desc)}${l.mk && l.desc && !l.custos ? l.mk : ''}</td>` : ''}<td style="${td}text-align:right">${F(l.total)}</td></tr>`).join('')
       + `<tr><td style="background:#F2F2F4;padding:4px 10px"><b>Total</b></td><td style="background:#F2F2F4"></td><td style="background:#F2F2F4;padding:4px 10px;text-align:right"><b>${F(tot.men)}</b></td><td style="background:#F2F2F4;padding:4px 10px;text-align:right"><b>${F(tot.custos)}</b></td>${temDesc ? `<td style="background:#F2F2F4;padding:4px 10px;text-align:right"><b>${F(tot.desc)}</b></td>` : ''}<td style="background:#F2F2F4;padding:4px 10px;text-align:right"><b>${F(tot.total)}</b></td></tr></table>`;
+    const nArq = snap.docs.length;
+    const temC = linhas.some(l => l.custos), temD = linhas.some(l => l.desc);
+    const fraseAnexo = `A descrição ${temC && temD ? 'dos custos adicionais e dos descontos' : temD ? 'dos descontos' : 'dos custos adicionais'} está ${nArq > 1 ? 'nos arquivos anexados' : 'no arquivo anexado'}.`;
     const condTxt = cond.length ? `Fora do total, aguardando a sua aprovação: ${cond.map(x => `${nomeCurtoUfv({ nome: x.ufv })} — ${x.desc}: ${F(x.total)}`).join('; ')}.` : '';
     const fecho = em.fechamento || (plural ? 'Assim que possível, peço a validação dos boletins, para que possamos seguir com o trâmite e emissão das Notas Fiscais Grid.' : 'Assim que possível, peço a validação do boletim, para que possamos seguir com o trâmite e emissão da Nota Fiscal Grid.');
     const p = t => `<p style="margin:0 0 10px 0">${t}</p>`;
     const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">${p(esc(saud) + '<br>Tudo bem?')}${p(intro)}${tabela}`
-      + (notas.length || notasParcial.length ? `<p style="margin:8px 0 10px 0;font-size:10pt">${[...notasParcial, ...notas].map(esc).join('<br>')}</p>` : '<p style="margin:0 0 10px 0"></p>')
+      + (notas.length || notasParcial.length ? `<p style="margin:8px 0 10px 0">${[...notasParcial, ...notas].map(esc).join('<br>')}</p>` : '<p style="margin:0 0 10px 0"></p>')
+      + (notas.length ? p(esc(fraseAnexo)) : '')
       + (condTxt ? p(esc(condTxt)) : '') + p(esc(fecho)) + p('Atenciosamente,') + '</div>';
     const plain = [saud, 'Tudo bem?', '', intro.replace(/<[^>]+>/g, ''), '',
       ...linhas.map(l => {
         const per = periodos.length > 1 && l.periodo !== '—' ? ` (${l.periodo})` : '';
         const partes = [];
-        if (l.custos) partes.push(`${F(l.custos)} de custos adicionais${l.mk}`);
-        if (l.desc) partes.push(`${F(Math.abs(l.desc))} de desconto${l.custos ? '' : l.mk}`);
+        if (l.custos) partes.push(`${F(l.custos)} de custos adicionais`);
+        if (l.desc) partes.push(`${F(Math.abs(l.desc))} de desconto`);
         return partes.length
           ? `• ${l.ufv}${per}: mensalidade de ${F(l.men)} ${l.custos ? '+' : '−'} ${partes.join(' − ')} = ${F(l.total)}`
           : `• ${l.ufv}${per}: ${F(l.total)}`;
       }),
-      '', `Total dos boletins: ${F(tot.total)}`, '', ...notasParcial, ...notas, ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
+      '', `Total dos boletins: ${F(tot.total)}`, '', ...notasParcial, ...(notas.length ? [fraseAnexo] : []), ...(condTxt ? ['', condTxt] : []), '', fecho, '', 'Atenciosamente,'].join('\n');
     const ufvsAssunto = linhas.filter(l => !/monitoramento remoto/.test(l.ufv)).map(l => l.ufv.replace(/\/[A-Z]{2}$/, '')).join(' / ');
     const subst = s => String(s || '').replace(/\{CLIENTE\}/g, snap.cliente.nome.toUpperCase()).replace(/\{MES_PERIODO\}/g, cap(mesPer || mesRef))
       .replace(/\{MES_REF\}/g, cap(mesRef)).replace(/\{MES_REF_CURTO\}/g, cap(MLcurto(snap.competencia))).replace(/\{UFVS\}/g, ufvsAssunto)
