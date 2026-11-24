@@ -5674,9 +5674,24 @@ function isDesligamentoAtividade(a) {
 
 function toggleAtivDesligFiltro() {
   _ativDesligFiltro = !_ativDesligFiltro;
-  document.getElementById('ativDesligBanner')?.classList.toggle('active-filter', _ativDesligFiltro);
+  _ativDesligFiltroVisual();
   renderAtividadeCards();
 }
+// 24/11/2026: filtro "só usinas desligadas" fica visível e removível (antes não dava para tirar)
+function _ativDesligFiltroVisual() {
+  const banner = document.getElementById('ativDesligBanner');
+  banner?.classList.toggle('active-filter', _ativDesligFiltro);
+  const hint = banner?.querySelector('.deslig-filter-hint');
+  if (hint) hint.textContent = _ativDesligFiltro ? 'filtro ativo · clique para remover ✕' : 'clique para filtrar ↗';
+  document.getElementById('ativDesligFaixa')?.remove();
+  if (!_ativDesligFiltro) return;
+  const sec = document.getElementById('sec-atividades'); if (!sec) return;
+  const el = document.createElement('div');
+  el.id = 'ativDesligFaixa'; el.className = 'vg-faixa';
+  el.innerHTML = '<span>Mostrando só as atividades de <b>usinas desligadas</b></span><button type="button" onclick="_ativDesligLimpar()">Limpar filtro ✕</button><button type="button" onclick="_ativDesligLimpar();switchNav(\'visao-geral\')">← Voltar à Visão geral</button>';
+  sec.insertBefore(el, sec.firstChild);
+}
+function _ativDesligLimpar() { if (_ativDesligFiltro) toggleAtivDesligFiltro(); else _ativDesligFiltroVisual(); }
 
 function _ativAtualizarDesligBanner() {
   const banner = document.getElementById('ativDesligBanner');
@@ -5694,7 +5709,7 @@ function _ativAtualizarDesligBanner() {
       usinas.slice(0,3).join(' · ') + (usinas.length > 3 ? ` +${usinas.length-3}` : '');
   } else {
     banner.classList.remove('visible');
-    if (_ativDesligFiltro) { _ativDesligFiltro = false; banner.classList.remove('active-filter'); }
+    if (_ativDesligFiltro) { _ativDesligFiltro = false; _ativDesligFiltroVisual(); }
   }
 }
 
@@ -8355,6 +8370,7 @@ function applyFilters() {
 }
 
 function clearFilters() {
+  try { if (_ativDesligFiltro) { _ativDesligFiltro = false; _ativDesligFiltroVisual(); } } catch (e) {}
   selCliente.clear();
   selUsinaValues.clear(); selStatusValues.clear();
   selUsinaValue=''; selStatusValue='';
@@ -16181,6 +16197,7 @@ let _ativFiltroPrioridadeAlta = false;
 let _ativFiltroConcluidas7d = false;
 
 function _ativLimparFiltrosKpi() {
+  if (_ativDesligFiltro) { _ativDesligFiltro = false; try { _ativDesligFiltroVisual(); } catch (e) {} }
   _ativFiltroAtrasada = false;
   _ativFiltroPrioridadeAlta = false;
   _ativFiltroConcluidas7d = false;
