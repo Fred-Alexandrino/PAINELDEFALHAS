@@ -726,7 +726,7 @@
     const linha = x => {
       const ax = anexosDe(x.id);
       return `<tr><td>${esc(x.ufv)}</td><td>${esc(x.cat)}</td><td style="max-width:340px">${esc(x.desc)}${x.clausula ? `<div class="mut" style="font-size:11px">${esc(x.clausula)}</div>` : ''}${ax.length ? `<div style="font-size:11px">📎 ${ax.map(a => `<a href="#" data-acao="anexo" data-arg="${esc(a.id)}" style="color:var(--teal)">${esc(a.nome)}</a>`).join(', ')}</div>` : ''}</td>
-      <td>${dt(x.data)}</td><td>${esc(x.os || '—')}${x.nf ? `<div class="mut" style="font-size:11px">NF ${esc(x.nf)}</div>` : ''}</td><td class="num">${F(x.unit)}</td><td class="num">${pctDe(x) ? esc((x.rotuloAcr || 'Encargos') + ' ' + pctDe(x) + '%') : '—'}</td>
+      <td>${dt(x.data)}</td><td style="white-space:nowrap">${x.os || x.nf ? `${x.os ? 'OS ' + esc(x.os) : ''}${x.os && x.nf ? '<br>' : ''}${x.nf ? 'NF ' + esc(x.nf) : ''}` : '<span class="mut">—</span>'}</td><td class="num">${F(x.unit)}</td><td class="num">${pctDe(x) ? esc((x.rotuloAcr || 'Encargos') + ' ' + pctDe(x) + '%') : '—'}</td>
       <td class="num" style="${x.total < 0 ? 'color:var(--red)' : ''}"><b>${F(x.total)}</b></td>
       <td class="num"><button class="bm-btn sm" data-acao="lanc" data-arg="${esc(x.id)}">Editar</button> <button class="bm-btn sm ghost" data-acao="lancDel" data-arg="${esc(x.id)}">Excluir</button></td></tr>`;
     };
@@ -965,6 +965,11 @@
         const doc = { ...(l || {}), id: l ? l.id : undefined, clienteId: c.id, competencia: comp, tipo: ehDesc ? 'desconto' : 'custo', ufv: val(ov, 'lUfv'), cat: val(ov, 'lCat'),
           data: val(ov, 'lData'), desc, unit, pct: +val(ov, 'lPct') || 0, rotuloAcr: val(ov, 'lRot'), os: val(ov, 'lOs').trim(), nf: ehDesc ? '' : val(ov, 'lNf').trim(), cond: val(ov, 'lCond') };
         if (ehDesc) doc.clausula = val(ov, 'lClaus').trim();
+        // NF em branco: tenta ler o número do nome do arquivo anexado (ex.: "NF 9216.pdf")
+        if (!doc.nf && !ehDesc) {
+          const nomes = [...ov.querySelector('#lFile').files].map(f => f.name).concat(ax.map(a => a.nome));
+          for (const n of nomes) { const m = /\bNF[\s._-]*(?:n[ºo°.]?\s*)?(\d{2,})/i.exec(n); if (m) { doc.nf = m[1]; break; } }
+        }
         delete doc.imp; delete doc.total; delete doc.cnpj; delete doc.spe;
         const j = await api('/bm/lancamento', { method: 'POST', body: { lancamento: doc } });
         doc.id = j.id;
