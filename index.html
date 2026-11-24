@@ -16465,6 +16465,30 @@ async function _ativVerificarOsAgora(id, btnEl) {
 // Só OS da FAMA (status travado no Omni) e atividades sem OS. OS da Fracttal
 // não arrastam: o estado delas vem da Fracttal e voltaria no próximo sync.
 function _ativEhFama(a) { return String(a?.numeroOS || '').trim().toUpperCase().startsWith('FAMA-'); }
+// ESTADO = coluna do Kanban; STATUS = situação da OS (Fred, 24/11/2026)
+const _FAMA_ESTADOS_UI = [['Em Processo', 'Em Processo'], ['Em Revisão', 'Em Verificação'], ['Finalizada', 'Concluída']];
+const _FAMA_STATUS_UI = ['Não Iniciada', 'Em Progresso', 'Pausada', 'Concluída', 'Cancelada'];
+function _famaEstadoAtual(a) {
+  const e = String(a?.statusOS || '').trim();
+  if (e === 'Em Revisão' || e === 'Em Revisao') return 'Em Revisão';
+  if (e === 'Finalizada' || e === 'Cancelada') return 'Finalizada';
+  return 'Em Processo';
+}
+function _famaStatusAtual(a) {
+  const g = String(a?.statusGeralOS || '').trim().toLowerCase();
+  return _FAMA_STATUS_UI.find(v => v.toLowerCase() === g) || 'Não Iniciada';
+}
+async function _famaDefinirEstado(a, estadoOS, statusGeralOS) {
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  const resp = await fetch('https://api.168.138.232.237.sslip.io/fama/definir-estado', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: a.id, estadoOS, statusGeralOS, editor }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || ('HTTP ' + resp.status));
+  a.status = data.status; a.statusOS = data.statusOS; a.statusGeralOS = data.statusGeralOS;
+  return data;
+}
 const _ATIV_DROP_ALVO = {
   processo:    { status: 'Em Andamento', estadoOS: 'Em Processo' },
   verificacao: { status: 'Em Andamento', estadoOS: 'Em Revisão' },
@@ -16508,9 +16532,27 @@ async function _ativMoverParaColuna(id, estadoKey) {
   const colAtual = _ativIsConcluida(a) ? 'concluidas' : (_ativEmVerificacao(a) ? 'verificacao' : 'processo');
   if (colAtual === estadoKey) return;
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
-  const antes = { status: a.status, statusOS: a.statusOS };
+  const antes = { status: a.status, statusOS: a.statusOS, statusGeralOS: a.statusGeralOS };
+  if (fama) {
+    // Kanban só muda o ESTADO; o STATUS acompanha quando precisa (Fred, 24/11/2026)
+    const stAtual = _famaStatusAtual(a);
+    const geral = estadoKey === 'processo'
+      ? (['Não Iniciada', 'Em Progresso', 'Pausada'].includes(stAtual) ? stAtual : 'Em Progresso')
+      : 'Concluída';
+    try {
+      a.statusOS = alvo.estadoOS; a.statusGeralOS = geral;
+      renderAtividadeCards();
+      await _famaDefinirEstado(a, alvo.estadoOS, geral);
+      showToast('Estado travado no Omni (a FAMA não altera mais).', true);
+      await carregarAtividades();
+    } catch (err) {
+      Object.assign(a, antes);
+      renderAtividadeCards();
+      showToast('Não consegui mudar o estado: ' + err.message, false);
+    }
+    return;
+  }
   a.status = alvo.status;
-  if (fama) a.statusOS = alvo.estadoOS;
   renderAtividadeCards();
   try {
     const resp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
@@ -17007,11 +17049,19 @@ function _renderAtivDrawer() {
     </button>
 
     ${(!isFracttalOrigin || isFamaOS) ? `
-    ${isFamaOS ? `<div style="font-size:11.5px;color:var(--text-faint);margin:-4px 0 6px;">OS da FAMA: o status que você definir aqui fica valendo no Omni e não volta com a sincronização (na FAMA nada muda).</div>` : ''}
+    ${isFamaOS ? `<div style="font-size:11.5px;color:var(--text-faint);margin:-4px 0 6px;">OS da FAMA: o que você definir aqui fica valendo no Omni e não volta com a sincronização (na FAMA nada muda).</div>
+    <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Estado</label>
+    <select class="nova-oc-select" id="ativDrawerFamaEstado" style="width:100%;margin-bottom:12px;">
+      ${_FAMA_ESTADOS_UI.map(([v, l]) => `<option value="${esc(v)}" ${v===_famaEstadoAtual(a)?'selected':''}>${esc(l)}</option>`).join('')}
+    </select>
+    <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Status</label>
+    <select class="nova-oc-select" id="ativDrawerFamaStatus" style="width:100%;margin-bottom:16px;">
+      ${_FAMA_STATUS_UI.map(v => `<option value="${esc(v)}" ${v===_famaStatusAtual(a)?'selected':''}>${esc(v)}</option>`).join('')}
+    </select>` : `
     <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Status</label>
     <select class="nova-oc-select" id="ativDrawerStatus" style="width:100%;margin-bottom:16px;">
       ${ATIV_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}
-    </select>
+    </select>`}
 
     <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Adicionar ao histórico</label>
     <textarea class="nova-oc-textarea" id="ativDrawerNovoHist" rows="2" placeholder="Ex: aguardando peça do fornecedor…" style="width:100%;box-sizing:border-box;margin-bottom:10px;"></textarea>` : ''}
@@ -17346,6 +17396,12 @@ async function _salvarAtivDrawer() {
 
   const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
   try {
+    const famaEstadoSel = document.getElementById('ativDrawerFamaEstado')?.value;
+    const famaStatusSel = document.getElementById('ativDrawerFamaStatus')?.value;
+    if (_ativEhFama(a) && famaEstadoSel && famaStatusSel &&
+        (famaEstadoSel !== _famaEstadoAtual(a) || famaStatusSel !== _famaStatusAtual(a))) {
+      await _famaDefinirEstado(a, famaEstadoSel, famaStatusSel);
+    }
     if (novoStatus !== a.status) {
       await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
         method: 'POST', headers: {'Content-Type':'application/json'},
