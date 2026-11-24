@@ -16461,9 +16461,76 @@ async function _ativVerificarOsAgora(id, btnEl) {
   }
 }
 
+// ── Arrastar cards entre colunas do Kanban (Fred, 24/11/2026) ──────────────
+// Só OS da FAMA (status travado no Omni) e atividades sem OS. OS da Fracttal
+// não arrastam: o estado delas vem da Fracttal e voltaria no próximo sync.
+function _ativEhFama(a) { return String(a?.numeroOS || '').trim().toUpperCase().startsWith('FAMA-'); }
+const _ATIV_DROP_ALVO = {
+  processo:    { status: 'Em Andamento', estadoOS: 'Em Processo' },
+  verificacao: { status: 'Em Andamento', estadoOS: 'Em Revisão' },
+  concluidas:  { status: 'Concluído',    estadoOS: 'Finalizada' },
+};
+function _ativPodeArrastar(a) {
+  if (!a) return false;
+  if (!(_currentSession?.role === 'manager' || _currentSession?.role === 'supervisor')) return false;
+  return _ativEhFama(a) || !String(a.numeroOS || '').trim();
+}
+function _ativKanbanAtivarArrastar(kanban) {
+  kanban.querySelectorAll('.card').forEach(c => {
+    const a = ATIVIDADES.find(x => String(x.id) === String(c.dataset.id));
+    if (!_ativPodeArrastar(a)) return;
+    c.setAttribute('draggable', 'true');
+    c.style.cursor = 'grab';
+    c.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', String(c.dataset.id));
+      e.dataTransfer.effectAllowed = 'move';
+      c.style.opacity = '0.5';
+    });
+    c.addEventListener('dragend', () => { c.style.opacity = ''; });
+  });
+  kanban.querySelectorAll('.kanban-col').forEach(col => {
+    col.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.style.outline = '2px dashed var(--teal)'; });
+    col.addEventListener('dragleave', e => { if (!col.contains(e.relatedTarget)) col.style.outline = ''; });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.style.outline = '';
+      const id = e.dataTransfer.getData('text/plain');
+      if (id) _ativMoverParaColuna(id, col.dataset.estado);
+    });
+  });
+}
+async function _ativMoverParaColuna(id, estadoKey) {
+  const a = ATIVIDADES.find(x => String(x.id) === String(id));
+  const alvo = _ATIV_DROP_ALVO[estadoKey];
+  if (!a || !alvo || !_ativPodeArrastar(a)) return;
+  const fama = _ativEhFama(a);
+  if (!fama && estadoKey === 'verificacao') { showToast('Atividade sem OS não tem etapa de verificação.', false); return; }
+  const colAtual = _ativIsConcluida(a) ? 'concluidas' : (_ativEmVerificacao(a) ? 'verificacao' : 'processo');
+  if (colAtual === estadoKey) return;
+  const editor = _currentSession?.user || _currentSession?.role || 'dashboard';
+  const antes = { status: a.status, statusOS: a.statusOS };
+  a.status = alvo.status;
+  if (fama) a.statusOS = alvo.estadoOS;
+  renderAtividadeCards();
+  try {
+    const resp = await fetch('https://api.168.138.232.237.sslip.io/atualizar-campo-atividade', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id, field: 'status', value: alvo.status, editor, ...(fama ? { estadoOS: alvo.estadoOS } : {}) }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false) throw new Error(data.error || ('HTTP ' + resp.status));
+    showToast(fama ? 'Status travado no Omni (a FAMA não altera mais).' : 'Status atualizado.', true);
+    await carregarAtividades();
+  } catch (err) {
+    a.status = antes.status; a.statusOS = antes.statusOS;
+    renderAtividadeCards();
+    showToast('Não consegui mudar o status: ' + err.message, false);
+  }
+}
+
 function _ativKanbanColuna(titulo, cor, lista, estadoKey) {
   const idsParaVerificar = lista.filter(a => a.numeroOS).map(a => a.id);
-  return `<div class="kanban-col" style="border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+  return `<div class="kanban-col" data-estado="${esc(estadoKey)}" style="border:1px solid var(--border);border-radius:16px;overflow:hidden;">
     <div class="kanban-col-head" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:2px solid ${cor};background:${cor}11;">
       <span style="font-size:12.5px;font-weight:700;color:var(--text);">${titulo}</span>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -16530,6 +16597,7 @@ function _ativRenderKanban(ativasList, verificacaoList, historicoList) {
     _ativKanbanColuna('OSs em Processo', 'var(--amber)', ordenarPorId(ativasList), 'processo') +
     _ativKanbanColuna('OSs em Verificação', 'var(--blue)', ordenarPorId(verificacaoList), 'verificacao') +
     _ativKanbanColuna('OSs Concluídas', 'var(--teal)', ordenarPorId(historicoList), 'concluidas');
+  _ativKanbanAtivarArrastar(kanban);
   kanban.querySelectorAll('.card').forEach(c => {
     c.addEventListener('click', () => _abrirAtivDrawer(c.dataset.id));
     c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();_abrirAtivDrawer(c.dataset.id);} });
@@ -16823,6 +16891,8 @@ function _renderAtivDrawer() {
   }
 
   const isFracttalOrigin = !!a.statusGeralOS;
+  // OS da FAMA (Faro): o status pode ser mudado no Omni e fica travado (24/11/2026)
+  const isFamaOS = _ativEhFama(a);
   const emVerifDrawer = _ativEmVerificacao(a);
   body.innerHTML = `
     <div style="font-family:'Poppins',monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:8px;">Atividade #${esc(a.id)}</div>
@@ -16936,7 +17006,8 @@ function _renderAtivDrawer() {
       Transformar em Ocorrência
     </button>
 
-    ${!isFracttalOrigin ? `
+    ${(!isFracttalOrigin || isFamaOS) ? `
+    ${isFamaOS ? `<div style="font-size:11.5px;color:var(--text-faint);margin:-4px 0 6px;">OS da FAMA: o status que você definir aqui fica valendo no Omni e não volta com a sincronização (na FAMA nada muda).</div>` : ''}
     <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:4px;">Status</label>
     <select class="nova-oc-select" id="ativDrawerStatus" style="width:100%;margin-bottom:16px;">
       ${ATIV_STATUS_OPCOES.map(s => `<option value="${esc(s)}" ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}
