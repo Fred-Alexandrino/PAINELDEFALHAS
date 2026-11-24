@@ -311,6 +311,22 @@
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = nome;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
+  /* ZIP: com 2+ PDFs, baixa tudo num arquivo só (evita salvar um por um). */
+  let _zipPromise = null;
+  function carregarZip() {
+    if (window.JSZip) return Promise.resolve();
+    if (_zipPromise) return _zipPromise;
+    _zipPromise = new Promise((ok, err) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload = ok; s.onerror = () => { _zipPromise = null; err(new Error('não carregou o JSZip')); }; document.head.appendChild(s); });
+    return _zipPromise;
+  }
+  async function baixarVarios(arqs, nomeZip) {
+    if (arqs.length === 1) { baixar(arqs[0].blob, arqs[0].nome); return 'pdf'; }
+    try {
+      await carregarZip();
+      const z = new window.JSZip(); arqs.forEach(a => z.file(a.nome, a.blob));
+      baixar(await z.generateAsync({ type: 'blob' }), nomeZip); return 'zip';
+    } catch (e) { arqs.forEach(a => baixar(a.blob, a.nome)); return 'soltos'; }
+  }
   const slug = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
 
   /* ─────────────── dados derivados ─────────────── */
@@ -1161,16 +1177,19 @@
           em = j.emissao; S.emissoes = [em, ...S.emissoes.filter(x => x.id !== em.id)];
           S.anexos = S.anexos.filter(a => !(a.dono === em.id && a.tipo === 'pdf_emissao'));
         }
-        const docs = docsComRev();
+        const docs = docsComRev(), arqs = [];
         for (const d of docs) {
           const blob = await pdfBlob(d.D, tituloDoc(d), snap.cliente.rodape);
-          baixar(blob, nomeArq(d));
+          arqs.push({ blob, nome: nomeArq(d) });
           if (em.status === 'gerado' || !pdfsEm().some(a => a.rotulo === d.usina)) {
             const fd = new FormData(); fd.append('usina', d.usina); fd.append('arquivo', new File([blob], nomeArq(d), { type: 'application/pdf' }));
             const r = await api('/bm/emissao/' + em.id + '/pdf', { method: 'POST', form: fd }); S.anexos.push(r.anexo);
           }
         }
-        toast(`${docs.length} PDF(s) gerado(s) e guardado(s) — R${String(em.revisao || 0).padStart(2, '0')}.`);
+        const nomeZip = `BM_GridCo_${slug(snap.cliente.nome)}_${snap.competencia}_R${String(em.revisao || 0).padStart(2, '0')}.zip`;
+        const modo = await baixarVarios(arqs, nomeZip);
+        if (modo === 'soltos') toast('Não consegui montar o ZIP; baixei os PDFs separados.', false);
+        toast(`${docs.length} PDF(s) gerado(s) e guardado(s)${modo === 'zip' ? ' num ZIP' : ''} — R${String(em.revisao || 0).padStart(2, '0')}.`);
       } catch (e) { toast('Falha ao gerar: ' + e.message, false); }
       finally { btn.disabled = false; btn.textContent = txt; desenhar(); }
     }
