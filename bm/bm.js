@@ -421,6 +421,39 @@
   function mesFimPeriodo(txt) { const m = /a \d{2}\/(\d{2})\/(\d{4})/.exec(txt || ''); return m ? MESES[+m[1] - 1] + '/' + m[2] : ''; }
   function listaPt(arr) { return arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1]; }
 
+  /* Texto curto para o canal do Teams com o Financeiro ("Acompanhamento Medições e Faturamento"). */
+  function montarTeams(snap, emissao) {
+    const c = snap.cliente, docs = snap.docs || [];
+    let men = 0, add = 0, desc = 0, nU = 0; const comCusto = [];
+    docs.forEach(doc => doc.D.ufvs.forEach(u => {
+      nU++; men += u.men || 0;
+      const cs = doc.D.custos.filter(x => x.ufv === u.nome && !x.cond);
+      const a = cs.filter(x => x.tipo !== 'desconto').reduce((s, x) => s + x.total, 0), d = cs.filter(x => x.tipo === 'desconto').reduce((s, x) => s + x.total, 0);
+      add += a; desc += d; if (a || d) comCusto.push(nomeCurtoUfv(u).replace(/\/[A-Z]{2}$/, ''));
+    }));
+    const total = men + add + desc, mes = ML(snap.competencia);
+    const rev = emissao && emissao.revisao ? emissao.revisao : 0, R = n => 'R' + String(n).padStart(2, '0');
+    const nf = dataNf(c, snap.competencia), nfTxt = nf ? ` (NF até ${fmtD(nf)})` : '';
+    const h = new Date().getHours(), saud = (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', pessoal.';
+    const st = emissao ? emissao.status : 'gerado';
+    const doc = nU > 1 ? 'BMs' : 'BM';
+    const revTxt = rev ? ` — revisão ${R(rev)}, que substitui a ${R(rev - 1)}${c.reaj && c.reaj.pct ? ` (já com o reajuste contratual de ${String(r2(c.reaj.pct * 100)).replace('.', ',')}%)` : ''}` : '';
+    const linhas = [saud, ''];
+    if (st === 'aprovado') {
+      linhas.push(`${doc} da ${c.nome} (competência ${mes}${rev ? ', ' + R(rev) : ''}) aprovado${nU > 1 ? 's' : ''} pelo cliente${emissao.aprovadoEm ? ' em ' + dtHora(emissao.aprovadoEm).slice(0, 5) : ''}.`, '');
+      linhas.push(`• ${nU} UFV${nU > 1 ? 's' : ''}`, `• Total: ${F(total)}`, '');
+      linhas.push(`Financeiro, está autorizada a emissão da${nU > 1 ? 's' : ''} Nota${nU > 1 ? 's' : ''} Fiscal${nU > 1 ? 'is' : ''}${nfTxt}. A aprovação está na cadeia de e-mail do BM.`);
+    } else if (st === 'nf') {
+      linhas.push(`NF${nU > 1 ? 's' : ''} da ${c.nome} (competência ${mes}) emitida${nU > 1 ? 's' : ''}${emissao.nfNumero ? ' — nº ' + emissao.nfNumero : ''}. Obrigado!`);
+    } else {
+      linhas.push(`${doc} da ${c.nome} (competência ${mes})${revTxt} enviado${nU > 1 ? 's' : ''} para aprovação, com o Financeiro em cópia.`, '');
+      linhas.push(`• ${nU} UFV${nU > 1 ? 's' : ''}`);
+      linhas.push(`• Total: ${F(total)}` + (add || desc ? `, já com ${[add ? 'custos adicionais' : '', desc ? 'descontos' : ''].filter(Boolean).join(' e ')} de ${listaPt(comCusto)}` : ''), '');
+      linhas.push(`Já pedi ao cliente aprovação com urgência, para conseguirmos emitir as Notas Fiscais dentro do prazo contratual${nfTxt}. Assim que a aprovação chegar, sinalizo aqui para seguirmos com as emissões.`);
+    }
+    return linhas.join('\n');
+  }
+
   function montarEmail(snap, emissao) {
     const em = snap.cliente.email || {};
     const linhas = [], notas = [], cond = [], notasParcial = [];
@@ -1143,6 +1176,10 @@
           <div class="ov-row"><button class="bm-btn sm" id="ovCpAss">Copiar assunto</button>${mail.para ? '<button class="bm-btn sm" id="ovCpPara">Copiar Para</button>' : ''}${mail.cc ? '<button class="bm-btn sm" id="ovCpCc">Copiar Cc</button>' : ''}<button class="bm-btn sm pri" id="ovCpMail">Copiar e-mail (com tabela)</button><button class="bm-btn sm" id="ovCpTxt">Copiar texto simples</button><button class="bm-btn sm" id="ovMailto">Abrir no Outlook</button></div>
           <div class="ov-mail" id="ovMail">${mail.html}</div>
           <div class="mut" style="font-size:11px;margin-top:4px">"Copiar e-mail" leva a tabela formatada; cole no corpo do Outlook. Os PDFs vão anexos à mão. A assinatura é a do Outlook.</div>` : ''}
+          ${mail && em ? `<h4>Teams — Financeiro</h4>
+          <textarea id="ovTeams" rows="9" style="width:100%;box-sizing:border-box;background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:8px;font:12.5px/1.45 inherit;resize:vertical">${esc(montarTeams({ ...snap, docs }, em))}</textarea>
+          <div class="ov-row"><button class="bm-btn sm pri" id="ovCpTeams">Copiar texto do Teams</button></div>
+          <div class="mut" style="font-size:11px;margin-top:4px">O texto muda com a situação: enviado → pede aprovação; aprovado → libera a NF. Dá para editar antes de copiar.</div>` : ''}
           ${em ? `<h4>Situação</h4><div style="font-size:12.5px">${esc(st)}${em.enviadoEm ? ' · enviado ' + dtHora(em.enviadoEm) : ''}${em.aprovadoEm ? ' · aprovado ' + dtHora(em.aprovadoEm) : ''}${em.nfEm ? ' · NF ' + dtHora(em.nfEm) : ''}</div>
             <div class="ov-row">${em.status === 'gerado' ? '<button class="bm-btn pri" id="ovEnviado">Marcar como enviado</button>' : ''}${em.status === 'enviado' ? '<button class="bm-btn" id="ovAprovado">Marcar aprovado</button>' : ''}${['enviado', 'aprovado'].includes(em.status) ? '<button class="bm-btn" id="ovNf">Registrar NF</button>' : ''}</div>
             ${pdfsEm().length ? `<h4>PDFs guardados</h4>${pdfsEm().map(a => `<div style="font-size:12px"><a href="#" data-pdf="${a.id}" style="color:var(--teal)">${esc(a.nome)}</a></div>`).join('')}` : ''}
@@ -1160,6 +1197,7 @@
         if (q('ovCpCc')) q('ovCpCc').onclick = () => copiar(mail.cc, 'Cc');
         q('ovCpMail').onclick = () => copiarRico(mail.html, mail.plain);
         q('ovCpTxt').onclick = () => copiar(mail.plain, 'Texto simples');
+        if (q('ovCpTeams')) q('ovCpTeams').onclick = () => copiar(q('ovTeams').value, 'Texto do Teams');
         q('ovMailto').onclick = () => { const p = new URLSearchParams(); if (mail.cc) p.set('cc', mail.cc.replace(/[;\n]+/g, ',')); p.set('subject', q('ovAss').value); p.set('body', mail.plain); location.href = 'mailto:' + encodeURIComponent(mail.para.replace(/[;\n]+/g, ',')).replace(/%2C/g, ',').replace(/%40/g, '@') + '?' + p.toString().replace(/\+/g, '%20'); };
       }
       if (q('ovEnviado')) q('ovEnviado').onclick = () => modalData('Marcar como enviado', 'Enviado em', async (data, obs) => { em = await mudarStatus(em.id, 'enviado', data, { assunto: q('ovAss') ? q('ovAss').value : '', para: mail ? mail.para : '', cc: mail ? mail.cc : '', obs }); desenhar(); });
@@ -1204,5 +1242,5 @@
       [{ t: 'Cancelar', cls: 'ghost' }, { t: 'Salvar', cls: 'pri', fn: async ov => { await fn(val(ov, 'mdData'), val(ov, 'mdObs').trim(), comNf ? val(ov, 'mdNf').trim() : ''); } }]);
   }
 
-  window.BM = { entrar, _S: S, _pdfBlob: pdfBlob, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados };
+  window.BM = { entrar, _S: S, _pdfBlob: pdfBlob, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados, _montarTeams: montarTeams };
 })();
