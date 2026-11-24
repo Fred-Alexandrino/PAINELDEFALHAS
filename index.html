@@ -3469,7 +3469,9 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
             <style>
               /* 24/11/2026: tabela cabe na tela (sem cortar Grupo WhatsApp) e vira cartões no celular */
               #mapTabelaWrap{overflow:auto;max-height:calc(100vh - 230px);border:1px solid var(--border-strong);border-radius:10px;}
-              #mapTabela thead th{position:sticky;top:0;z-index:2;background:var(--bg-card,var(--bg,#fff));}
+              #mapTabela thead th{position:sticky;top:0;z-index:2;background:var(--bg,#fff);box-shadow:inset 0 -1px 0 var(--border-strong);}
+              #mapTabela thead th.map-ord{cursor:pointer;user-select:none;}
+              #mapTabela thead th.map-ord:hover{color:var(--text-dim)!important;}
               #mapTabela td{word-break:normal;overflow-wrap:normal;}
               #mapTabela td.map-cl{min-width:92px;max-width:180px;}
               #mapTabela td.map-ufv{min-width:96px;}
@@ -7977,6 +7979,21 @@ function _mapCorStatusIntranet(s) {
 // ── Painel Mapeamento: filtros múltiplos, filtros da sidebar e edição inline ──
 const _mapSel = { cluster: new Set(), cliente: new Set() };   // filtros próprios (multi-seleção)
 let _mapEdit = null;                                          // usina em edição
+// Ordenação por coluna (Fred, 24/11/2026): clique no cabeçalho → A-Z, de novo → Z-A, de novo → ordem original.
+let _mapOrd = { col: '', dir: 0 };
+const _MAP_ORD_CHAVE = {
+  'Cluster': i => i.cluster, 'Cliente': i => i.cliente, 'UFV': i => i.usina, 'Cidade/UF': i => i.cidade_uf,
+  'Responsável / função': i => i.responsavel, 'Demais membros': i => (i.membros || []).join(', '),
+  'Supervisor de campo': i => i.supervisor_campo, 'Grupo WhatsApp': i => i.grupo_nome,
+  'Situação': i => (typeof _mapStatusIntranet === 'function' ? _mapStatusIntranet(i) : '') || '',
+};
+function _mapOrdenarPor(col) {
+  if (!_MAP_ORD_CHAVE[col]) return;
+  if (_mapOrd.col !== col) _mapOrd = { col, dir: 1 };
+  else _mapOrd.dir = _mapOrd.dir === 1 ? -1 : (_mapOrd.dir === -1 ? 0 : 1);
+  if (!_mapOrd.dir) _mapOrd.col = '';
+  mapRender();
+}
 const _MAP_API = 'https://api.168.138.232.237.sslip.io';
 const _mapNorm = v => String(v == null ? '' : v).trim().toLowerCase();
 
@@ -8059,7 +8076,11 @@ function mapRender() {
   const rs = document.getElementById('mapSidebarInfo'); if (rs) rs.textContent = _mapResumoSidebar();
   const cols = ['Cluster','Cliente','UFV','Cidade/UF','Responsável / função','Demais membros','Supervisor de campo','Grupo WhatsApp','Situação',''];
   const th = document.getElementById('mapThead');
-  if (th) th.innerHTML = cols.map(c => `<th style="text-align:left;padding:9px 7px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);border-bottom:1px solid var(--border-strong);vertical-align:bottom;">${c}</th>`).join('');
+  if (th) th.innerHTML = cols.map(c => {
+    const ord = !!_MAP_ORD_CHAVE[c], at = ord && _mapOrd.col === c;
+    const seta = at ? (_mapOrd.dir === 1 ? ' ▲' : ' ▼') : (ord ? ' <span style="opacity:.35;">↕</span>' : '');
+    return `<th${ord ? ` class="map-ord" title="Ordenar (A→Z / Z→A)" onclick="_mapOrdenarPor('${c}')"` : ''} style="text-align:left;padding:9px 7px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:${at ? 'var(--text)' : 'var(--text-faint)'};border-bottom:1px solid var(--border-strong);vertical-align:bottom;">${c}${seta}</th>`;
+  }).join('');
   const linhas = itens.map((i, n) => ({ i, n: n + 1 })).filter(({ i }) => {
     if (_mapSel.cluster.size && !_mapSel.cluster.has(i.cluster)) return false;
     if (_mapSel.cliente.size && !_mapSel.cliente.has(i.cliente)) return false;
@@ -8075,6 +8096,15 @@ function mapRender() {
     }
     return true;
   });
+  if (_mapOrd.col && _mapOrd.dir) {
+    const k = _MAP_ORD_CHAVE[_mapOrd.col], d = _mapOrd.dir;
+    linhas.sort((a, b) => {
+      const va = String(k(a.i) || '').trim(), vb = String(k(b.i) || '').trim();
+      if (!va || !vb) return va ? -1 : (vb ? 1 : 0);   // vazios sempre no fim
+      return d * va.localeCompare(vb, 'pt-BR', { numeric: true, sensitivity: 'base' })
+        || a.i.usina.localeCompare(b.i.usina, 'pt-BR', { numeric: true });
+    });
+  }
   const td = (v, extra, l, cls) => `<td${l ? ` data-l="${l}"` : ''}${cls ? ` class="${cls}"` : ''} style="padding:8px 7px;border-bottom:1px solid var(--border);vertical-align:top;${extra || ''}">${v}</td>`;
   const grp = i => {
     if (!i.grupo_nome) return '<span style="color:var(--text-faint);">—</span>';
