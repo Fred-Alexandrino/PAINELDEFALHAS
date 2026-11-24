@@ -2188,6 +2188,7 @@ select.rp-input{display:block;}
 #osRapidaOverlay #osRapidaInputStep{grid-column:1;grid-row:1}
 #osRapidaOverlay #osRapidaLoading,#osRapidaOverlay #osRapidaResult,#osRapidaOverlay #osRapidaError,#osRapidaOverlay #osRapidaVazio{grid-column:2;grid-row:1}
 #osRapidaOverlay #osRapidaInput{min-height:38vh}
+#osRapidaOverlay #osRapidaComunicado{grid-column:1;grid-row:1}
 #osRapidaVazio{border:1px dashed var(--border-strong);border-radius:12px;padding:40px 20px;text-align:center;color:var(--text-faint);font-size:13px}
 #novaAtivFormStep{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);column-gap:28px;align-items:start}
 #novaAtivFormStep>*{grid-column:2}
@@ -4820,6 +4821,7 @@ Manutenção preventiva e corretiva.</textarea>
         Gerando texto da OS… (pode levar até 1 min na primeira vez)
       </div>
       <div id="osRapidaResult" style="display:none;"></div>
+      <div id="osRapidaComunicado" style="display:none;"></div>
       <div id="osRapidaError" style="display:none;color:var(--red);font-size:12.5px;padding:20px 0;text-align:center;"></div>
     </div>
   </div>
@@ -5892,26 +5894,24 @@ function _sbNavKeyOf(el) {
 // estavam sob ele ficam onde estão (passam a pertencer à seção de cima) e os
 // itens dali pra baixo, até o próximo cabeçalho, passam a ser dele. É o que
 // permite encaixar uma categoria ENTRE painéis (pedido do Fred, 07/10/2026).
-// 24/11/2026 (Fred): arrastar o TÓPICO leva tudo que está nele, solte onde soltar. Antes, soltar o
-// cabeçalho em cima de um item movia só o cabeçalho, e soltar "depois" de outro cabeçalho enfiava a seção
-// entre aquele cabeçalho e os itens dele — os tópicos se misturavam (e "Operação" chegou a sumir do lugar).
-function _sbCabecalhoDe(el) {
-  let x = el;
-  while (x && !(x.classList && x.classList.contains('sb-section-label-row'))) x = x.previousElementSibling;
-  return x || null;
-}
-function _sbMoveHeaderToItem(headerEl, itemEl, before) { _sbMoveSection(headerEl, itemEl, before); }
-function _sbMoveSection(headerEl, refEl, before) {
+function _sbMoveHeaderToItem(headerEl, itemEl, before) {
   const nav = document.getElementById('sbNav');
-  if (!nav || !headerEl || !refEl || headerEl === refEl) return;
+  if (!nav || !headerEl || !itemEl || headerEl === itemEl) return;
+  let ref = before ? itemEl : itemEl.nextSibling;
+  // nunca enfia o cabeçalho entre "Mais" e o submenu dele
+  if (!before && itemEl.id === 'navFerramentasToggle') {
+    const sub = document.getElementById('grupoFerramentasSubmenu');
+    if (sub) ref = sub.nextSibling;
+  }
+  nav.insertBefore(headerEl, ref);
+}
+function _sbMoveSection(headerEl, refHeaderEl, before) {
+  const nav = document.getElementById('sbNav');
+  if (!nav || !headerEl || !refHeaderEl || headerEl === refHeaderEl) return;
+  const bloco = [headerEl, ..._sbSectionItemsOf(headerEl)];
   const submenu = document.getElementById('grupoFerramentasSubmenu');
-  const blocoDe = h => { const b = [h, ..._sbSectionItemsOf(h)]; if (submenu && b.some(el => el.id === 'navFerramentasToggle') && !b.includes(submenu)) b.push(submenu); return b; };
-  const bloco = blocoDe(headerEl);
-  const refHeader = refEl.classList.contains('sb-section-label-row') ? refEl : _sbCabecalhoDe(refEl);
-  if (refHeader === headerEl || bloco.includes(refEl)) return;
-  let ponto;
-  if (!refHeader) ponto = before ? nav.firstElementChild : _sbNavTopItems().find(el => el.classList.contains('sb-section-label-row') && el !== headerEl) || null;
-  else { const alvo = blocoDe(refHeader); ponto = before ? alvo[0] : alvo[alvo.length - 1].nextSibling; }
+  if (submenu && bloco.some(el => el.id === 'navFerramentasToggle')) bloco.push(submenu);
+  const ponto = before ? refHeaderEl : refHeaderEl.nextSibling;
   bloco.forEach(el => { nav.insertBefore(el, ponto); });
 }
 
@@ -5933,20 +5933,7 @@ function _sbNavMigrateLegacyOrder(saved) {
   return migrated;
 }
 
-// 24/11/2026: organização dos tópicos (o que é de cada um) — vale como ordem padrão e reseta ordens antigas misturadas
-const SB_NAV_ORDEM_VERSAO = '2026-11-24';
-const SB_NAV_ORDEM_PADRAO = ['__header_paineis__', 'visao-geral', 'atividades', 'ocorrencias', 'chamados', 'programacao-pcm', 'processos',
-  '__header_comunicacao__', 'central-mensagens', 'com-tecnicos', 'com-clientes', 'com-livre', 'com-sobreaviso', 'ger-resumos', 'comunicados',
-  '__header_clientes__', 'performance', 'ger-entregaveis', 'boletins', 'relatorios',
-  '__header_gestao__', 'localizacao', 'ger-ponto'];
 function _sbNavApplyStoredOrder() {
-  try {
-    if (localStorage.getItem('sbNavOrdemVersao') !== SB_NAV_ORDEM_VERSAO) {
-      const resto = _sbNavTopItems().map(_sbNavKeyOf).filter(k => !SB_NAV_ORDEM_PADRAO.includes(k));
-      localStorage.setItem(SB_NAV_ORDER_KEY, JSON.stringify([...SB_NAV_ORDEM_PADRAO, ...resto]));
-      localStorage.setItem('sbNavOrdemVersao', SB_NAV_ORDEM_VERSAO);
-    }
-  } catch (e) {}
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SB_NAV_ORDER_KEY) || 'null'); } catch (e) { saved = null; }
   if (!saved || !Array.isArray(saved)) return;
@@ -6106,8 +6093,10 @@ _sbSecoesInit();
     if (!arrastandoCabecalho && soltandoEmCabecalho) return;
     const rect = overEl.getBoundingClientRect();
     const before = (clientY - rect.top) < rect.height / 2;
-    if (arrastandoCabecalho) {
-      _sbMoveSection(touchDragEl, overEl, before); // seção inteira, solta em cabeçalho ou em item
+    if (arrastandoCabecalho && soltandoEmCabecalho) {
+      _sbMoveSection(touchDragEl, overEl, before); // seção inteira
+    } else if (arrastandoCabecalho) {
+      _sbMoveHeaderToItem(touchDragEl, overEl, before); // divisor entre itens
     } else {
       const movingSubmenu = touchDragEl.id === 'navFerramentasToggle'
         ? document.getElementById('grupoFerramentasSubmenu') : null;
@@ -11642,6 +11631,7 @@ function _openElaborarOS() {
   document.getElementById('osRapidaLoading').style.display = 'none';
   document.getElementById('osRapidaResult').style.display = 'none';
   document.getElementById('osRapidaError').style.display = 'none';
+  { const _cm = document.getElementById('osRapidaComunicado'); if (_cm) { _cm.style.display = 'none'; _cm.innerHTML = ''; } }
   const input = document.getElementById('osRapidaInput');
   if (input) input.value = '';
   const _eq = document.getElementById('osRapidaEquip'); if (_eq) _eq.value = '';
@@ -11719,6 +11709,7 @@ async function _gerarOSRapida() {
     if (selU && selU.value) { const [c, u] = selU.value.split('|'); it = (mapa || []).find(i => i.cliente === c && i.usina === u) || null; }
     if (!it && txt) { it = _osRapidaDetectarUsina(txt, mapa); if (it) showToast('Usina detectada: ' + it.usina + ' (' + it.cliente + ')', true); }
     if (it) { pseudo.usina = it.usina; pseudo.cliente = it.cliente; }
+    window._osRapidaItem = it || null;
     const eqIn = (document.getElementById('osRapidaEquip')?.value || '').trim();
     pseudo._equipNexus = eqIn || _nexusEquipDoTexto(txt);
   } catch (e) { pseudo._equipNexus = ''; }
@@ -11761,6 +11752,79 @@ async function _gerarOSRapida() {
 
   loading.style.display = 'none';
   result.style.display = 'block';
+  try { _osRapidaRenderComunicado(osList, window._osRapidaItem || null); } catch (e) { console.error('[comunicado OS]', e); }
+}
+
+// ── Comunicado ao técnico (24/11/2026) ───────────────────────────────────────
+// Depois de gerar a OS, a coluna da esquerda vira o aviso para a equipe da usina:
+// o que foi solicitado e os procedimentos, avisando que a OS logo cai no app Grid.
+// Texto montado na hora (sem IA), editável, enviado pelo /disparar-comunicado-cluster
+// (mesmo endpoint do comunicado de atividade: vai pro grupo da equipe da usina).
+function _osRapidaTextoComunicado(osList, it) {
+  const usina = it ? it.usina : '';
+  const nome = it && it.responsavel ? String(it.responsavel).trim().split(/\s+/)[0] : '';
+  const FIXAS = /^(registro fotogr|ficou alguma pend)/i;
+  const tirarUsina = t => String(t || '').replace(/\s*-\s*UFV\s+.+$/i, '').trim();
+  const L = [];
+  L.push(nome ? `Olá, ${nome}, tudo bem?` : 'Olá, pessoal, tudo bem?');
+  L.push('');
+  if (osList.length === 1) {
+    L.push(`Solicitamos uma OS para a *UFV ${usina || '—'}*: _${tirarUsina(osList[0].titulo)}_. Ela deve aparecer no app Grid em breve. Seguem os procedimentos para você já se programar:`);
+  } else {
+    L.push(`Solicitamos *${osList.length} OS* para a *UFV ${usina || '—'}*. Elas devem aparecer no app Grid em breve. Seguem os procedimentos de cada uma para você já se programar:`);
+  }
+  osList.forEach((o, i) => {
+    L.push('');
+    if (osList.length > 1) L.push(`*OS ${i + 1} – ${tirarUsina(o.titulo)}*`);
+    (o.subtarefas || []).filter(s => !FIXAS.test(String(s).trim())).forEach((s, si) => L.push(`${si + 1}. ${s}`));
+    if (o.observacao) { L.push(''); L.push(`Observação: ${o.observacao}`); }
+  });
+  L.push('');
+  L.push('Na execução, registre as fotos de cada etapa e, se ficar alguma pendência, descreva na própria OS. Qualquer dúvida, me chama.');
+  return L.join('\n');
+}
+function _osRapidaRenderComunicado(osList, it) {
+  const box = document.getElementById('osRapidaComunicado'); if (!box) return;
+  const texto = _osRapidaTextoComunicado(osList || [], it);
+  const destino = it ? `Grupo da equipe da UFV ${esc(it.usina)}${it.cluster ? ' (' + esc(it.cluster) + ')' : ''}${it.responsavel ? ' · ' + esc(it.responsavel) : ''}` : '';
+  box.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:4px;">Comunicado ao técnico</div>
+    <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:10px;">${it ? 'Destino: ' + destino : '<span style="color:var(--amber,#F59E0B);">⚠️ Usina não identificada: escolha a usina no seletor e gere de novo para poder enviar (copiar funciona).</span>'}</div>
+    <textarea id="osRapidaComTexto" rows="16" style="width:100%;background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-size:12.5px;line-height:1.55;font-family:'Poppins',sans-serif;resize:vertical;min-height:46vh;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button id="osRapidaComCopiar" style="flex:0 0 auto;background:var(--panel);border:1px solid var(--border-strong);color:var(--text);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;">Copiar</button>
+      <button id="osRapidaComEnviar" ${it ? '' : 'disabled'} style="flex:1;background:var(--acao);border:none;color:var(--acao-tx);border-radius:8px;padding:10px;font-size:12.5px;font-weight:700;cursor:${it ? 'pointer' : 'not-allowed'};opacity:${it ? 1 : .5};font-family:'Poppins',sans-serif;">Enviar ao grupo da equipe</button>
+    </div>`;
+  box.querySelector('#osRapidaComTexto').value = texto;
+  box.querySelector('#osRapidaComCopiar').onclick = () => {
+    navigator.clipboard?.writeText(box.querySelector('#osRapidaComTexto').value)
+      .then(() => showToast('Copiado!', true)).catch(() => showToast('Não consegui copiar automaticamente.', false));
+  };
+  const bt = box.querySelector('#osRapidaComEnviar');
+  let armado = false;
+  bt.onclick = async () => {
+    if (!it) return;
+    const txt = box.querySelector('#osRapidaComTexto').value.trim();
+    if (!txt) { showToast('Comunicado vazio.', false); return; }
+    // 1º clique arma, 2º confirma (evita disparo acidental no grupo)
+    if (!armado) { armado = true; bt.textContent = 'Confirmar envio para a equipe de ' + it.usina; setTimeout(() => { if (armado && !bt.disabled) { armado = false; bt.textContent = 'Enviar ao grupo da equipe'; } }, 6000); return; }
+    armado = false; bt.disabled = true; bt.textContent = 'Enviando…';
+    try {
+      const r = await fetch('https://api.168.138.232.237.sslip.io/disparar-comunicado-cluster', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cluster: it.cluster || '', usina: it.usina, texto: txt }),
+        signal: AbortSignal.timeout(60000),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      bt.textContent = 'Enviado' + (j.grupoNome ? ' · ' + j.grupoNome : '');
+      showToast('Comunicado enviado' + (j.grupoNome ? ' para ' + j.grupoNome : '') + '.', true);
+    } catch (e) {
+      bt.disabled = false; bt.textContent = 'Enviar ao grupo da equipe';
+      showToast('Falha ao enviar: ' + (e.message || e), false);
+    }
+  };
+  box.style.display = 'block';
 }
 
 
