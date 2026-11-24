@@ -6150,6 +6150,7 @@ const LOC_RAIO_METROS = 150000; // 150km — área de atuação da equipe, sem c
 const LOC_CORES_CLIENTE = {
   'Renogrid': '#F5A623', 'Thopen': '#60A5FA', '2C Energia': '#9FE870',
   'GD Energy': '#EF4444', 'Alves Lima': '#A78BFA',
+  'Faro Energy': '#22D3EE',
 };
 let _locMarkersByChave = {};
 
@@ -7455,6 +7456,7 @@ const CLIENTE_CANONICO = {
   'gd energy': 'GD Energy',
   'renogrid': 'Renogrid', 'reno grid': 'Renogrid',
   'thopen': 'Thopen',
+  'faro energy': 'Faro Energy', 'faro': 'Faro Energy',
 };
 function normalizeCliente(raw) {
   if (!raw) return raw;
@@ -7911,7 +7913,8 @@ function mapRender() {
     if (_mapEdit === i.usina) return _mapLinhaEdicao(i, n, cols.length);
     const sit = i.temporaria
       ? '<span style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Temporária</span>'
-      : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>' : '<span style="color:var(--text-faint);">—</span>');
+      : (i.transicao ? '<span style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">Em transição</span>'
+      : (i.etiqueta ? '<span style="background:#22d3ee22;color:#22d3ee;border:1px solid #22d3ee55;border-radius:999px;padding:2px 8px;font-size:11px;white-space:nowrap;">' + esc(i.etiqueta) + '</span>' : '<span style="color:var(--text-faint);">—</span>'));
     const nome = (i.usina || '').replace(/'/g, "\\'");
     return `<tr>${td(n, 'color:var(--text-faint);')}${td(esc(i.cluster), 'white-space:nowrap;')}${td(esc(i.cliente))}${td('<b>' + esc(i.usina) + '</b>' + ed(i))}${td(esc(i.cidade_uf || ''))}${td(esc(i.responsavel))}${td(esc(i.funcao || ''))}${td(esc((i.membros || []).join(', ') || '—'))}${td(esc(i.alternativo || '—'))}${td(i.grupo_nome ? esc(i.grupo_nome) : '<span style="color:var(--text-faint);">—</span>')}${td(sit)}${td(`<button class="modal-close-btn" style="width:auto;padding:0 10px;height:28px;font-size:12px;" onclick="mapEditar('${nome}')">✎ Editar</button>`)}</tr>`;
   }).join('') || `<tr><td colspan="${cols.length}" style="padding:16px;color:var(--text-faint);">Nenhuma usina encontrada.</td></tr>`;
@@ -9451,6 +9454,8 @@ const ANOT_CATALOGO_USINAS = {
              'Ceilândia I', 'Ceilândia II', 'Sítio dos Nogueiras', 'Aparecida do Taboado I', 'Aparecida do Taboado II', 'Ipixuna I', 'Ipixuna II',
              'Cambé', 'Sapopema', 'Segredo'],
   '2C Energia': ['Araputanga', 'Sete Lagoas', 'União I', 'União II', 'Ipixuna do Pará I', 'Nova Ipixuna I', 'Tupi Paulista I'],
+  // Faro Energy (24/11/2026): contrato assumido integralmente pelo Fred; nomes = projetos da FAMA
+  'Faro Energy': ["Monte Alto I", "Monte Alto II", "Monte Alto III", "Porto Seguro XV", "Alto do Pajeú I", "Alto do Pajeú II", "Corisco", "Canabrava", "Oiticica I", "Ponta da Pedra I", "Ponta da Pedra II", "Ponta da Pedra III", "Olinda I", "Riacho Fundo I", "Riacho Fundo II", "Riacho Fundo III", "Cabo Branco II", "Cabo Branco III", "Passé I", "Passé II", "Passé III", "Passé IV", "Pedra do Sal I", "Pedra do Sal II", "Pedra do Sal III", "Pedra do Sal IV", "Morro Branco II", "Morro Branco III", "Morro Branco IV", "Morro Branco VI", "Morro Branco VIII", "Praia Grande I", "Praia Grande II", "Praia Grande III", "Praia Grande IV", "Praia Grande VIII", "Praia Grande VI", "Rio do Fogo I", "Rio do Fogo II", "Rio do Fogo III", "Rio do Fogo IV", "Rio do Fogo V", "Rio do Fogo VI"],
 };
 
 // Cache do catálogo já mesclado com usinas sob supervisão temporária
@@ -22618,11 +22623,12 @@ function _auRender() {
       <div><b class="${(R.revisaoManual || []).length ? 'pf-aten' : ''}">${(R.revisaoManual || []).length}</b><span>OS com usina que a Fracttal não identifica</span></div>
       <div><b class="${(R.foraMapeamento || []).length ? 'pf-aten' : ''}">${(R.foraMapeamento || []).length}</b><span>OS de outro cliente retiradas do painel</span></div>
       <div><b>${(R.duplicadas || []).length}</b><span>OS duplicadas na Central</span></div>
+      ${R.fama && !R.fama.erro ? `<div><b>${R.fama.conferidas || 0}</b><span>OS da Faro conferidas na FAMA (de ${R.fama.escopo || 0} em aberto)</span></div><div><b class="${(R.fama.naoEncontradas || []).length ? 'pf-aten' : ''}">${(R.fama.naoEncontradas || []).length}</b><span>OS da Faro que não estão mais na FAMA</span></div>` : (R.fama && R.fama.erro ? `<div><b class="pf-aten">!</b><span>FAMA: ${esc(R.fama.erro)}</span></div>` : '')}
     </div>
     ${campos.length ? `<div class="au-ch"><button type="button" class="${_auFiltro ? '' : 'on'}" onclick="_auFiltro='';_auRender()">Todos (${(R.divergencias || []).length})</button>${campos.map(([c, n]) => `<button type="button" class="${_auFiltro === c ? 'on' : ''}" onclick="_auFiltro=${JSON.stringify(c).replace(/"/g, '&quot;')};_auRender()">${esc(c)} (${n})</button>`).join('')}</div>
     <div class="au-row"><input id="auBusca" class="sb-search" style="max-width:280px" placeholder="Buscar OS, usina ou texto…" value="${esc(_auBusca)}" oninput="_auBusca=this.value;_auRender();setTimeout(()=>{const i=document.getElementById('auBusca');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)"><button class="au-btn" type="button" onclick="_auCsv()">Copiar relatório (Excel)</button></div>
-    <div class="au-tw"><table class="au-t"><thead><tr><th>OS</th><th>Usina</th><th>Campo</th><th>Estava na Central O&M</th><th>Na Fracttal</th></tr></thead><tbody>
-      ${L.slice(0, 1500).map(d => `<tr><td class="os">${esc(d.numeroOS)}</td><td>${esc(d.usina || '')}</td><td>${esc(d.rotulo)}</td><td class="c">${esc(d.central || '(vazio)')}</td><td class="f">${esc(d.fracttal || '(vazio)')}</td></tr>`).join('') || '<tr><td colspan="5">Nada com esse filtro.</td></tr>'}
+    <div class="au-tw"><table class="au-t"><thead><tr><th>OS</th><th>Usina</th><th>Campo</th><th>Estava na Central O&M</th><th>Na Fracttal / FAMA</th></tr></thead><tbody>
+      ${L.slice(0, 1500).map(d => `<tr><td class="os">${esc(d.numeroOS)}</td><td>${esc(d.usina || '')}</td><td>${esc(d.rotulo)}</td><td class="c">${esc(d.central || '(vazio)')}</td><td class="f">${d.fonte === 'FAMA' ? '<span style="font-size:10px;color:#22d3ee;border:1px solid #22d3ee55;border-radius:999px;padding:0 5px;margin-right:4px;">FAMA</span>' : ''}${esc(d.fracttal || '(vazio)')}</td></tr>`).join('') || '<tr><td colspan="5">Nada com esse filtro.</td></tr>'}
     </tbody></table></div>` : '<div class="au-sub" style="color:var(--sla-ok)">Nenhuma divergência: a Central O&M está igual à Fracttal em todas as OS conferidas.</div>'}
     ${(R.foraMapeamento || []).length ? `<div class="au-sec">OS de outro cliente/supervisor (o cliente informado na Fracttal não é o da usina do seu mapeamento) — ${R.aplicado ? 'retiradas do painel' : 'seriam retiradas do painel'}</div><div class="au-li">${R.foraMapeamento.map(x => `OS ${esc(x.numeroOS)}: estava como ${esc(x.usinaCentral || '—')}; na Fracttal é <b>${esc(x.grupoFracttal || x.clienteFracttal)}</b>`).join('<br>')}</div>` : ''}
     ${(R.naoEncontradas || []).length ? `<div class="au-sec">OS que estão na Central mas não existem na Fracttal</div><div class="au-li">${R.naoEncontradas.map(esc).join(', ')}</div>` : ''}
