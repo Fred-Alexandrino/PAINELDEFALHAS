@@ -18011,7 +18011,7 @@ function _osSyncPasso(k) {
   if (_osSync.semScript) return { ok: true, msg: 'script não instalado' };
   const est = _osSyncEstado();
   const passou = (Date.now() - _OS.inicio) > 4000;
-  if (!est) { if (passou && document.documentElement.getAttribute('data-omni-sync') !== '1') { _osSync.semScript = true; return { ok: true, msg: 'script não instalado' }; } return { ok: false, msg: '' }; }
+  if (!est) { if (passou && !document.documentElement.getAttribute('data-omni-sync')) { _osSync.semScript = true; return { ok: true, msg: 'script não instalado' }; } return { ok: false, msg: '' }; }
   const e = (est.etapas || {})[k];
   if (!e) return { ok: false, msg: '' };
   if (e.st === 'ok') { _osSyncRecarregar(k); return { ok: !!_osSync.recarregado[k], msg: e.msg }; }
