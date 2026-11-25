@@ -304,13 +304,32 @@
       await new Promise(r => setTimeout(r, 30));
       const canvas = await window.html2canvas(root, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: W, windowHeight: root.scrollHeight + 20 });
       const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pxMm = canvas.width / WMM, pagPx = Math.floor(HMM * pxMm), n = Math.max(1, Math.ceil(canvas.height / pagPx));
-      for (let i = 0; i < n; i++) {
-        const sc = document.createElement('canvas'); sc.width = canvas.width; sc.height = Math.min(pagPx, canvas.height - i * pagPx);
+      const pxMm = canvas.width / WMM, pagPx = Math.floor(HMM * pxMm);
+      // Quebra de página só entre linhas/blocos (nunca cortando uma linha da tabela ao meio).
+      const esc2 = canvas.height / root.scrollHeight, topo = root.getBoundingClientRect().top;
+      const cortes = [...new Set([...root.querySelectorAll('tr, h2, table, .bmx-note, .bmx-kpis, .bmx-sub')]
+        .flatMap(el => { const r = el.getBoundingClientRect(); return [r.top - topo, r.bottom - topo]; })
+        .map(y => Math.round(y * esc2)))].filter(y => y > 0).sort((a, b) => a - b);
+      const titulos = [...root.querySelectorAll('h2')].map(el => Math.round((el.getBoundingClientRect().top - topo - 6) * esc2));
+      const MARGEM = Math.round(8 * pxMm); // respiro no topo das páginas seguintes
+      let ini = 0, pag = 0;
+      while (ini < canvas.height - 2) {
+        const util = pag ? pagPx - MARGEM : pagPx;
+        let fim = Math.min(canvas.height, ini + util);
+        if (fim < canvas.height) {
+          const ok = cortes.filter(y => y > ini + util * 0.4 && y <= fim);
+          if (ok.length) fim = ok[ok.length - 1];
+          // seção que não cabe inteira: leva o título junto pra página seguinte (não deixa "Resumo" partido)
+          const tit = titulos.filter(y => y > ini + util * 0.4 && y <= fim);
+          if (tit.length && fim - tit[tit.length - 1] < util * 0.35) fim = tit[tit.length - 1];
+        }
+        const off = pag ? MARGEM : 0;
+        const sc = document.createElement('canvas'); sc.width = canvas.width; sc.height = (fim - ini) + off;
         const ctx = sc.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sc.width, sc.height);
-        ctx.drawImage(canvas, 0, i * pagPx, canvas.width, sc.height, 0, 0, canvas.width, sc.height);
-        if (i) pdf.addPage();
+        ctx.drawImage(canvas, 0, ini, canvas.width, fim - ini, 0, off, canvas.width, fim - ini);
+        if (pag) pdf.addPage();
         pdf.addImage(sc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, WMM, sc.height / pxMm);
+        ini = fim; pag++;
       }
       return pdf.output('blob');
     } finally { ifr.remove(); }
