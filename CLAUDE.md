@@ -4,4 +4,4 @@
 - Central de Mensagens: `comunicacao/` (formatWhatsApp, roteamento, validators, ui). Testes: `npm test` (Node, sem dependências).
 - Usinas, clientes e técnicos vêm só do mapeamento oficial (`GET /mapeamento-ufvs`). Não inventar contatos, usinas ou técnicos.
 - Chaves de API e secrets ficam no backend (VM1, `.env`), nunca neste repositório.
-- Boletins de Medição: `bm/bm.js`. Ao alterar, suba o `?v=` das tags `<script src="bm/...">` no fim do `index.html` (senão o navegador segue com a versão antiga em cache).
+- Boletins de Medição: `bm/bm.js`. Ao alterar, suba o `?v=` das tags `<script src="bm/...">` no fim do `index.html`, a constante `VERSAO` do `bm.js` e o `bm/versao.txt` (os três iguais) (senão o navegador segue com a versão antiga em cache).

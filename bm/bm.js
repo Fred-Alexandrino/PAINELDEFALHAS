@@ -702,7 +702,24 @@
     };
   }
 
+  /* Versão do módulo: tem de bater com bm/versao.txt e com o ?v= do index.html.
+     Se o navegador estiver com um bm.js antigo (aba aberta antes do deploy), avisa e
+     bloqueia a geração de PDF — PDF de BM gerado com código velho já saiu errado pro cliente. */
+  const VERSAO = '20261125d';
+  async function versaoAtual() {
+    try { const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
+    catch (e) { return true; }
+  }
+  function avisoVersao() {
+    if (document.getElementById('bmAvisoVersao')) return;
+    const d = document.createElement('div'); d.id = 'bmAvisoVersao';
+    d.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100000;background:#B3261E;color:#fff;padding:10px 16px;border-radius:8px;font:600 13px Poppins,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.4);display:flex;gap:12px;align-items:center';
+    d.innerHTML = 'Esta aba está com uma versão antiga do módulo de BM. Recarregue antes de gerar PDFs. <button style="background:#fff;color:#B3261E;border:0;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer">Recarregar agora</button>';
+    d.querySelector('button').onclick = () => location.reload();
+    document.body.appendChild(d);
+  }
   async function entrar(forcar) {
+    versaoAtual().then(ok => { if (!ok) avisoVersao(); });
     const el = root(); if (!el) return;
     injetarCss();
     // _currentSession é "let" global do index.html (não fica em window)
@@ -1235,6 +1252,7 @@
     }
 
     async function congelarEBaixar(btn) {
+      if (!(await versaoAtual())) { avisoVersao(); toast('Versão antiga do módulo nesta aba: recarregue a página antes de gerar os PDFs.', false); return; }
       btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Gerando…';
       try {
         if (!em) {
@@ -1273,5 +1291,5 @@
       [{ t: 'Cancelar', cls: 'ghost' }, { t: 'Salvar', cls: 'pri', fn: async ov => { await fn(val(ov, 'mdData'), val(ov, 'mdObs').trim(), comNf ? val(ov, 'mdNf').trim() : ''); } }]);
   }
 
-  window.BM = { entrar, _S: S, _pdfBlob: pdfBlob, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados, _montarTeams: montarTeams };
+  window.BM = { entrar, _S: S, _pdfBlob: pdfBlob, _montarEmail: montarEmail, _montarLote: montarLote, _dataEnvio: dataEnvio, _dataNf: dataNf, _renderBoletim: renderBoletim, _feriados: feriados, _montarTeams: montarTeams, versao: VERSAO };
 })();
