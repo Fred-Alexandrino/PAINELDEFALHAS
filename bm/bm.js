@@ -149,16 +149,17 @@
       const pcts = [...new Set(custosAdd.map(pctDe))];
       const legado = pcts.length === 1 && (pcts[0] === 20 || pcts[0] === 0);
       const colAcr = legado ? 'Imposto 20%' : 'Acréscimo';
+      const uni = !!D.custoUnico; // cliente pediu um valor só por item, sem abrir base/encargos/BDI
       h += '<table><thead><tr><th>UFV</th><th>SPE / CNPJ</th><th>Categoria</th><th>Descrição</th><th>Data</th><th>OS</th>'
-        + `<th class="bmx-num">Valor base</th><th class="bmx-num">${colAcr}</th><th class="bmx-num">Total</th></tr></thead><tbody>`;
+        + (uni ? '<th class="bmx-num">Valor</th></tr></thead><tbody>' : `<th class="bmx-num">Valor base</th><th class="bmx-num">${colAcr}</th><th class="bmx-num">Total</th></tr></thead><tbody>`);
       custosAdd.slice().sort((a, b) => (a.ufv || '').localeCompare(b.ufv || '', 'pt-BR', { numeric: true, sensitivity: 'base' }) || String(a.data || '').localeCompare(String(b.data || ''))).forEach(c => {
         const p = pctDe(c), acr = (c.total || 0) - (c.unit || 0);
         h += `<tr><td>${esc(c.ufv)}</td><td class="bmx-mut" style="font-size:11px">${c.cnpj ? (c.spe ? esc(c.spe) + '<br>' : '') + esc(c.cnpj) : '—'}</td><td>${esc(c.cat)}</td>
-    <td>${esc(c.desc)}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td><td class="bmx-num ${c.unit < 0 ? 'bmx-neg' : ''}">${F(c.unit)}</td>
-    <td class="bmx-num">${p ? F(acr) + (legado ? '' : `<div class="bmx-mut" style="font-size:10px">${esc(c.rotuloAcr || 'Encargos')} ${p}%</div>`) : '<span class="bmx-mut">—</span>'}</td>
+    <td>${esc(c.desc)}</td><td>${dt(c.data)}</td><td>${esc(c.os || '—')}</td>${uni ? '' : `<td class="bmx-num ${c.unit < 0 ? 'bmx-neg' : ''}">${F(c.unit)}</td>
+    <td class="bmx-num">${p ? F(acr) + (legado ? '' : `<div class="bmx-mut" style="font-size:10px">${esc(c.rotuloAcr || 'Encargos')} ${p}%</div>`) : '<span class="bmx-mut">—</span>'}</td>`}
     <td class="bmx-num ${c.total < 0 ? 'bmx-neg' : ''}"><b>${F(c.total)}</b></td></tr>`;
       });
-      h += `<tr class="bmx-tot"><td colspan="8">Total custos adicionais</td><td class="bmx-num">${F(sC)}</td></tr></tbody></table>`;
+      h += `<tr class="bmx-tot"><td colspan="${uni ? 6 : 8}">Total custos adicionais</td><td class="bmx-num">${F(sC)}</td></tr></tbody></table>`;
     } else h += '<div class="bmx-note">Nenhum custo adicional lançado neste mês. O valor do BM corresponde às mensalidades contratuais.</div>';
     if (descontos.length) {
       h += '<h2>Descontos</h2><div class="bmx-note">Descontos por descumprimento de obrigação contratual, abatimento acordado com o cliente ou reembolso de custo da Grid Co. pago pelo cliente. Os valores abaixo são <b>subtraídos</b> do total deste Boletim.</div>';
@@ -399,7 +400,8 @@
     return {
       ref: comp, diaIni: c.diaIni != null ? c.diaIni : 26, diaFim: c.diaFim != null ? c.diaFim : 25,
       offsetIniMeses: c.offsetIniMeses != null ? c.offsetIniMeses : -1, offsetFimMeses: c.offsetFimMeses != null ? c.offsetFimMeses : 0,
-      ufvs, custos, cos: (c.modo === 'multi' || todas) && (c.modo === 'multi') ? (c.cos || []).map(m => ({ ...m })) : [], reaj: c.reaj || null
+      ufvs, custos, cos: (c.modo === 'multi' || todas) && (c.modo === 'multi') ? (c.cos || []).map(m => ({ ...m })) : [], reaj: c.reaj || null,
+      ...(c.custoValorUnico ? { custoUnico: true } : {})
     };
   }
   /* Um lote = o que vai num e-mail. Multi-usina: 1 documento com todas. Usina única: 1 documento por usina. */
@@ -863,6 +865,7 @@
       <div class="bm-sec">Custos adicionais</div>
       <div class="bm-f"><label>Acréscimo padrão (%)</label><input id="cfPct" type="number" step="0.01" value="${esc(c.pctPadrao ?? 20)}"></div>
       <div class="bm-f"><label>Rótulo do acréscimo</label><input id="cfRot" value="${esc(c.rotuloAcrPadrao || 'Encargos')}"></div>
+      <div class="bm-f chk w"><input type="checkbox" id="cfUni" ${c.custoValorUnico ? 'checked' : ''}><label for="cfUni">No boletim, mostrar cada custo adicional num valor só (sem abrir valor base, encargos e BDI)</label></div>
       <div class="bm-f"><label>Reajuste (%) — monitoramento</label><input id="cfReaj" type="number" step="0.01" value="${c.reaj && c.reaj.pct ? r2(c.reaj.pct * 100) : ''}"></div>
       <div class="bm-f w"><label>Descrição do reajuste</label><input id="cfReajD" value="${esc((c.reaj && c.reaj.desc) || '')}"></div>
       <div class="bm-f w"><label>Rodapé do boletim</label><textarea id="cfRodape">${esc(c.rodape || RODAPE_PADRAO)}</textarea></div>
@@ -886,7 +889,7 @@
         offsetIniMeses: +v('cfOffI'), diaIni: +v('cfDiaI'), offsetFimMeses: +v('cfOffF'), diaFim: +v('cfDiaF'),
         nf: { tipo: v('cfNfTipo'), valor: +v('cfNfVal') || null, ajusteDiaUtil: ck('cfNfAj') },
         envio: { tipo: v('cfEvTipo'), valor: +v('cfEvVal') || null, ajusteDiaUtil: ck('cfEvAj') },
-        basePrazos: v('cfBase').trim(), pctPadrao: v('cfPct') === '' ? 0 : +v('cfPct'), rotuloAcrPadrao: v('cfRot').trim() || 'Encargos',
+        basePrazos: v('cfBase').trim(), pctPadrao: v('cfPct') === '' ? 0 : +v('cfPct'), rotuloAcrPadrao: v('cfRot').trim() || 'Encargos', custoValorUnico: ck('cfUni'),
         reaj: v('cfReaj') ? { pct: (+v('cfReaj')) / 100, desc: v('cfReajD').trim() } : null,
         rodape: v('cfRodape').trim(),
         email: { assunto: v('cfAss').trim(), contato: v('cfCont').trim(), rotuloMes: v('cfRotMes'), para: v('cfPara').trim(), cc: v('cfCc').trim(), fechamento: v('cfFecho').trim() }
