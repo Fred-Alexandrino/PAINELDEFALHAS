@@ -705,9 +705,9 @@
   /* Versão do módulo: tem de bater com bm/versao.txt e com o ?v= do index.html.
      Se o navegador estiver com um bm.js antigo (aba aberta antes do deploy), avisa e
      bloqueia a geração de PDF — PDF de BM gerado com código velho já saiu errado pro cliente. */
-  const VERSAO = '20261125d';
+  const VERSAO = '20261125e';
   async function versaoAtual() {
-    try { const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
+    try { const ac = new AbortController(); setTimeout(() => ac.abort(), 4000); const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store', signal: ac.signal }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
     catch (e) { return true; }
   }
   function avisoVersao() {
