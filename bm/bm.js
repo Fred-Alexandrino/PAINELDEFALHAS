@@ -277,9 +277,11 @@
     await carregarLibs();
     const b = renderBoletim(D, titulo);
     const W = 1123, WMM = 297, HMM = 210;
-    const host = document.createElement('div');
-    host.style.cssText = `position:fixed;left:-99999px;top:0;width:${W}px;background:#fff;`;
-    host.innerHTML = `<style>${CSS_PREVIEW}</style><div id="pdfRoot" style="position:relative;width:${W}px;background:#fff;font:11pt/1.45 Calibri,'Segoe UI',Arial,sans-serif;color:#000;--navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E;">
+    // Renderiza num iframe isolado: o html2canvas clona o documento inteiro do elemento,
+    // e clonar o Omni (index.html enorme) a cada PDF travava a página ("página não responde").
+    const ifr = document.createElement('iframe');
+    ifr.style.cssText = `position:fixed;left:-99999px;top:0;width:${W}px;height:800px;border:0;background:#fff;`;
+    ifr.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><style>${CSS_PREVIEW}</style><div id="pdfRoot" style="position:relative;width:${W}px;background:#fff;font:11pt/1.45 Calibri,'Segoe UI',Arial,sans-serif;color:#000;--navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E;">
       <img alt="" src="${ASSETS().marca}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;z-index:0;pointer-events:none">
       <div style="position:relative;z-index:1;padding:24px 32px">
         <div style="text-align:right;margin-bottom:6px"><img alt="Grid Co." src="${ASSETS().logo}" style="width:150px"></div>
@@ -291,11 +293,16 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">${b.kpis}</div>
         <div>${b.body}</div>
         <div style="margin-top:30px;padding-top:10px;border-top:1px solid var(--bd);color:var(--sec);font-size:8.5pt;font-style:italic">${esc(rodape || RODAPE_PADRAO)}</div>
-      </div></div>`;
-    document.body.appendChild(host);
+      </div></div></body></html>`;
+    const carregou = new Promise(r => { ifr.onload = r; });
+    document.body.appendChild(ifr);
     try {
-      await new Promise(r => setTimeout(r, 80));
-      const canvas = await window.html2canvas(host.querySelector('#pdfRoot'), { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      await carregou;
+      const doc = ifr.contentDocument, root = doc.querySelector('#pdfRoot');
+      await Promise.all([...doc.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+      ifr.style.height = (root.scrollHeight + 20) + 'px';
+      await new Promise(r => setTimeout(r, 30));
+      const canvas = await window.html2canvas(root, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: W, windowHeight: root.scrollHeight + 20 });
       const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pxMm = canvas.width / WMM, pagPx = Math.floor(HMM * pxMm), n = Math.max(1, Math.ceil(canvas.height / pagPx));
       for (let i = 0; i < n; i++) {
@@ -306,7 +313,7 @@
         pdf.addImage(sc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, WMM, sc.height / pxMm);
       }
       return pdf.output('blob');
-    } finally { host.remove(); }
+    } finally { ifr.remove(); }
   }
   function baixar(blob, nome) {
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = nome;
@@ -1219,7 +1226,9 @@
           S.anexos = S.anexos.filter(a => !(a.dono === em.id && a.tipo === 'pdf_emissao'));
         }
         const docs = docsComRev(), arqs = [];
-        for (const d of docs) {
+        for (const [i, d] of docs.entries()) {
+          btn.textContent = `Gerando ${i + 1}/${docs.length}…`;
+          await new Promise(r => setTimeout(r, 30)); // devolve o controle ao navegador entre um PDF e outro
           const blob = await pdfBlob(d.D, tituloDoc(d), snap.cliente.rodape);
           arqs.push({ blob, nome: nomeArq(d) });
           if (em.status === 'gerado' || !pdfsEm().some(a => a.rotulo === d.usina)) {
