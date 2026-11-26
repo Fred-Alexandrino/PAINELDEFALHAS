@@ -716,7 +716,7 @@
   /* Versão do módulo: tem de bater com bm/versao.txt e com o ?v= do index.html.
      Se o navegador estiver com um bm.js antigo (aba aberta antes do deploy), avisa e
      bloqueia a geração de PDF — PDF de BM gerado com código velho já saiu errado pro cliente. */
-  const VERSAO = '20261125f';
+  const VERSAO = '20261125g';
   async function versaoAtual() {
     try { const ac = new AbortController(); setTimeout(() => ac.abort(), 4000); const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store', signal: ac.signal }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
     catch (e) { return true; }
@@ -1185,10 +1185,13 @@
     const pend = forcarNovo ? [] : emissoesDe(c, c.ref).filter(e => e.status === 'gerado' && e.origem !== 'historico');
     if (pend.length) {
       const e = pend.sort((a, b) => String(b.criado).localeCompare(String(a.criado)))[0];
-      return modal(`${c.nome} — ${ML(c.ref)}`, `<div class="bm-note">Já existe um BM congelado deste mês, ainda não marcado como enviado: <b>R${String(e.revisao || 0).padStart(2, '0')}</b>, ${e.usinas.length} usina(s), ${e.total != null ? F(e.total) : ''}, congelado em ${dtHora(e.criado)}.</div>
-        <div style="font-size:12.5px;color:var(--text-dim)">Abra esse BM para marcar como enviado, copiar o e-mail ou baixar os PDFs de novo, sem criar revisão. Use "Gerar com os dados atuais" só se mudou algo (custo, valor, usina).</div>`,
-        [{ t: 'Gerar com os dados atuais', cls: 'ghost', fn: async () => { escolherUsinasEGerar(c, true); } },
-         { t: 'Abrir o BM congelado ▸', cls: 'pri', fn: async () => { await abrirEmissao(c, e.id); } }]);
+      const R = 'R' + String(e.revisao || 0).padStart(2, '0'), Rprox = 'R' + String((e.revisao || 0) + 1).padStart(2, '0');
+      return modal(`${c.nome} — ${ML(c.ref)}`, `<div class="bm-note">A <b>${R}</b> deste mês já foi gerada em ${dtHora(e.criado)} (${e.usinas.length} usina(s), ${e.total != null ? F(e.total) : ''}) e <b>ainda não foi marcada como enviada</b>.</div>
+        <div style="font-size:12.5px;color:var(--text-dim);line-height:1.5">
+          <b>Abrir a ${R}</b>: para baixar os PDFs, copiar o e-mail e marcar como enviada. Nada muda nos valores.<br><br>
+          <b>Refazer a ${R} com os dados atuais</b>: use se você lançou, apagou ou mudou algum custo, valor ou usina depois disso. Como ela ainda não foi enviada, continua sendo ${R}, só que com os dados novos. Depois de marcada como enviada, qualquer mudança vira ${Rprox}.</div>`,
+        [{ t: `Refazer a ${R} com os dados atuais`, cls: 'ghost', fn: async () => { escolherUsinasEGerar(c, true); } },
+         { t: `Abrir a ${R} ▸`, cls: 'pri', fn: async () => { await abrirEmissao(c, e.id); } }]);
     }
     const sit = situacao(c, c.ref);
     if (c.modo === 'multi') return abrirOverlay(c, montarLote(c, c.ufvs.map(u => u.nome), c.ref), null);
@@ -1216,7 +1219,7 @@
       const docs = docsComRev(), d = docs[idxDoc] || docs[0];
       const mail = docs.length ? montarEmail({ ...snap, docs }, em) : null;
       const totalLote = docs.reduce((s, x) => s + renderBoletim(x.D, '').total, 0);
-      const st = em ? (em.status === 'cancelado' ? 'Cancelado' : FASE_TXT[FASE[em.status] || 0]) : 'Rascunho (ainda não congelado)';
+      const st = em ? (em.status === 'cancelado' ? 'Cancelado' : FASE_TXT[FASE[em.status] || 0]) : 'Rascunho (ainda não gerado)';
       ov.innerHTML = `<div class="ov-bar"><button class="bm-btn" id="ovVoltar">◂ Voltar</button>
         <div style="flex:1;font-size:13px"><b>${esc(snap.cliente.nome)}</b> · BM ${ML(snap.competencia)}${em ? ' · R' + String(em.revisao || 0).padStart(2, '0') : ''} · ${docs.length} documento(s) · ${F(totalLote)} · <span style="color:#A9DB21">${esc(st)}</span></div>
         ${docs.length ? `<button class="bm-btn" id="ovHtml">Baixar HTML</button><button class="bm-btn pri" id="ovPdf">${em ? 'Baixar PDF(s)' : 'Congelar e baixar PDF(s)'}</button>` : ''}</div>
@@ -1226,8 +1229,8 @@
         </div>
         <div class="ov-side">
           ${!em ? `<div class="bm-note">Confira o boletim. <b>Congelar e baixar PDF(s)</b> grava esta versão no histórico (com o PDF) e libera o registro de envio.</div>` : ''}
-          ${em && em.status === 'gerado' && mudou ? `<div class="bm-warn">Os dados deste mês mudaram depois do congelamento (custo, valor ou usina). Este BM mostra a versão congelada. Para mandar os dados novos, volte e use "Gerar com os dados atuais".</div>` : ''}
-          ${em && em.status === 'gerado' ? `<div class="bm-note">Versão congelada em ${dtHora(em.criado)}. Depois de enviar o e-mail no Outlook, clique em <b>Marcar como enviado</b>.</div>` : ''}
+          ${em && em.status === 'gerado' && mudou ? `<div class="bm-warn">Depois que esta revisão foi gerada, algum custo, valor ou usina mudou. Estes PDFs ainda estão com os dados antigos. Para mandar os dados novos, feche, clique em "Gerar BM" e escolha "Refazer com os dados atuais".</div>` : ''}
+          ${em && em.status === 'gerado' ? `<div class="bm-note">Revisão gerada em ${dtHora(em.criado)}. Depois de enviar o e-mail no Outlook, clique em <b>Marcar como enviado</b>.</div>` : ''}
           ${mail ? `<h4>E-mail</h4>
           <div class="bm-f"><label>Assunto</label><input id="ovAss" value="${esc(mail.assunto)}" style="background:var(--panel-alt);border:1px solid var(--border-strong);color:var(--text);border-radius:7px;padding:6px 8px"></div>
           <div class="ov-row"><button class="bm-btn sm" id="ovCpAss">Copiar assunto</button>${mail.para ? '<button class="bm-btn sm" id="ovCpPara">Copiar Para</button>' : ''}${mail.cc ? '<button class="bm-btn sm" id="ovCpCc">Copiar Cc</button>' : ''}<button class="bm-btn sm pri" id="ovCpMail">Copiar e-mail (com tabela)</button><button class="bm-btn sm" id="ovCpTxt">Copiar texto simples</button><button class="bm-btn sm" id="ovMailto">Abrir no Outlook</button></div>
