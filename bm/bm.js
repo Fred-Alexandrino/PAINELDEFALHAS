@@ -273,6 +273,9 @@
     _libsPromise = Promise.all([add('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), add('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).catch(e => { _libsPromise = null; throw e; });
     return _libsPromise;
   }
+  // Celular (Chrome Android): o "text autosizing" aumenta a fonte no layout do iframe largo, mas o
+  // html2canvas desenha no tamanho nominal → palavras espalhadas e PDF com 2 páginas. Daí o
+  // text-size-adjust:100% e o meta viewport no srcdoc do pdfBlob.
   // O html2canvas mede a posição de cada palavra no clone; se a fonte ainda não estiver pronta ali,
   // mede com outra fonte e desenha com a certa → palavras espalhadas. Força o carregamento antes.
   async function garantirFontes(doc) {
@@ -291,7 +294,7 @@
     // e clonar o Omni (index.html enorme) a cada PDF travava a página ("página não responde").
     const ifr = document.createElement('iframe');
     ifr.style.cssText = `position:fixed;left:-99999px;top:0;width:${W}px;height:800px;border:0;background:#fff;`;
-    ifr.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><style>${CSS_PREVIEW}</style><div id="pdfRoot" style="position:relative;width:${W}px;background:#fff;font:11pt/1.45 Arial,Helvetica,sans-serif;color:#000;--navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E;">
+    ifr.srcdoc = `<!DOCTYPE html><html style="-webkit-text-size-adjust:100%;text-size-adjust:100%"><head><meta charset="utf-8"><meta name="viewport" content="width=${W}, initial-scale=1"><style>html,body,*{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}</style></head><body style="margin:0;background:#fff"><style>${CSS_PREVIEW}</style><div id="pdfRoot" style="position:relative;width:${W}px;background:#fff;font:11pt/1.45 Arial,Helvetica,sans-serif;color:#000;--navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E;">
       <img alt="" src="${ASSETS().marca}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;z-index:0;pointer-events:none">
       <div style="position:relative;z-index:1;padding:24px 32px">
         <div style="text-align:right;margin-bottom:6px"><img alt="Grid Co." src="${ASSETS().logo}" style="width:150px"></div>
@@ -716,7 +719,7 @@
   /* Versão do módulo: tem de bater com bm/versao.txt e com o ?v= do index.html.
      Se o navegador estiver com um bm.js antigo (aba aberta antes do deploy), avisa e
      bloqueia a geração de PDF — PDF de BM gerado com código velho já saiu errado pro cliente. */
-  const VERSAO = '20261125g';
+  const VERSAO = '20261125h';
   async function versaoAtual() {
     try { const ac = new AbortController(); setTimeout(() => ac.abort(), 4000); const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store', signal: ac.signal }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
     catch (e) { return true; }
