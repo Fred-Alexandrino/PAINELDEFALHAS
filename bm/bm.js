@@ -273,80 +273,20 @@
     _libsPromise = Promise.all([add('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'), add('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).catch(e => { _libsPromise = null; throw e; });
     return _libsPromise;
   }
-  // Celular (Chrome Android): o "text autosizing" aumenta a fonte no layout do iframe largo, mas o
-  // html2canvas desenha no tamanho nominal → palavras espalhadas e PDF com 2 páginas. Daí o
-  // text-size-adjust:100% e o meta viewport no srcdoc do pdfBlob.
-  // O html2canvas mede a posição de cada palavra no clone; se a fonte ainda não estiver pronta ali,
-  // mede com outra fonte e desenha com a certa → palavras espalhadas. Força o carregamento antes.
-  async function garantirFontes(doc) {
-    try {
-      if (!doc.fonts) return;
-      await Promise.all(['11pt Arial', 'bold 11pt Arial', 'italic 11pt Arial', 'bold italic 11pt Arial'].map(f => doc.fonts.load(f).catch(() => 0)));
-      await doc.fonts.ready;
-    } catch (e) { /* segue sem travar */ }
-    await new Promise(r => setTimeout(r, 60));
-  }
+  /* PDF gerado no SERVIDOR (VM1, reportlab, fonte embutida). Antes era uma "foto" da tela
+     feita no navegador (html2canvas) e cada aparelho saía diferente: palavras espalhadas no
+     celular, linhas cortadas, colunas antigas. Agora sai igual em qualquer navegador. */
   async function pdfBlob(D, titulo, rodape) {
-    await carregarLibs();
-    const b = renderBoletim(D, titulo);
-    const W = 1123, WMM = 297, HMM = 210;
-    // Renderiza num iframe isolado: o html2canvas clona o documento inteiro do elemento,
-    // e clonar o Omni (index.html enorme) a cada PDF travava a página ("página não responde").
-    const ifr = document.createElement('iframe');
-    ifr.style.cssText = `position:fixed;left:-99999px;top:0;width:${W}px;height:800px;border:0;background:#fff;`;
-    ifr.srcdoc = `<!DOCTYPE html><html style="-webkit-text-size-adjust:100%;text-size-adjust:100%"><head><meta charset="utf-8"><meta name="viewport" content="width=${W}, initial-scale=1"><style>html,body,*{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}</style></head><body style="margin:0;background:#fff"><style>${CSS_PREVIEW}</style><div id="pdfRoot" style="position:relative;width:${W}px;background:#fff;font:11pt/1.45 Arial,Helvetica,sans-serif;color:#000;--navy:#191528;--sec:#504C63;--lime:#A9DB21;--bd:#D9D9E0;--zebra:#F0F1F4;--er:#B3261E;">
-      <img alt="" src="${ASSETS().marca}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;z-index:0;pointer-events:none">
-      <div style="position:relative;z-index:1;padding:24px 32px">
-        <div style="text-align:right;margin-bottom:6px"><img alt="Grid Co." src="${ASSETS().logo}" style="width:150px"></div>
-        <div style="border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:6px">
-          <div style="font-size:12pt;font-weight:700;color:var(--navy);letter-spacing:.14em;text-transform:uppercase">Operação &amp; Manutenção</div>
-          <h1 style="font-size:19pt;margin:6px 0 2px;color:var(--navy);font-weight:700">${esc(b.titulo)}</h1>
-          <div style="height:4px;background:var(--lime);width:120px;margin:8px 0 10px;border-radius:2px"></div></div>
-        <div style="color:var(--sec);font-size:10.5pt;margin-bottom:20px">${b.sub}</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">${b.kpis}</div>
-        <div>${b.body}</div>
-        <div style="margin-top:30px;padding-top:10px;border-top:1px solid var(--bd);color:var(--sec);font-size:8.5pt;font-style:italic">${esc(rodape || RODAPE_PADRAO)}</div>
-      </div></div></body></html>`;
-    const carregou = new Promise(r => { ifr.onload = r; });
-    document.body.appendChild(ifr);
-    try {
-      await carregou;
-      const doc = ifr.contentDocument, root = doc.querySelector('#pdfRoot');
-      await Promise.all([...doc.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
-      await garantirFontes(doc);
-      ifr.style.height = (root.scrollHeight + 20) + 'px';
-      await new Promise(r => setTimeout(r, 30));
-      const canvas = await window.html2canvas(root, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: W, windowHeight: root.scrollHeight + 20, onclone: cdoc => garantirFontes(cdoc) });
-      const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pxMm = canvas.width / WMM, pagPx = Math.floor(HMM * pxMm);
-      // Quebra de página só entre linhas/blocos (nunca cortando uma linha da tabela ao meio).
-      const esc2 = canvas.height / root.scrollHeight, topo = root.getBoundingClientRect().top;
-      const cortes = [...new Set([...root.querySelectorAll('tr, h2, table, .bmx-note, .bmx-kpis, .bmx-sub')]
-        .flatMap(el => { const r = el.getBoundingClientRect(); return [r.top - topo, r.bottom - topo]; })
-        .map(y => Math.round(y * esc2)))].filter(y => y > 0).sort((a, b) => a - b);
-      const titulos = [...root.querySelectorAll('h2')].map(el => Math.round((el.getBoundingClientRect().top - topo - 6) * esc2));
-      const MARGEM = Math.round(8 * pxMm); // respiro no topo das páginas seguintes
-      let ini = 0, pag = 0;
-      while (ini < canvas.height - 2) {
-        const util = pag ? pagPx - MARGEM : pagPx;
-        let fim = Math.min(canvas.height, ini + util);
-        if (fim < canvas.height) {
-          const ok = cortes.filter(y => y > ini + util * 0.4 && y <= fim);
-          if (ok.length) fim = ok[ok.length - 1];
-          // seção que não cabe inteira: leva o título junto pra página seguinte (não deixa "Resumo" partido)
-          const tit = titulos.filter(y => y > ini + util * 0.4 && y <= fim);
-          if (tit.length && fim - tit[tit.length - 1] < util * 0.35) fim = tit[tit.length - 1];
-        }
-        const off = pag ? MARGEM : 0;
-        const sc = document.createElement('canvas'); sc.width = canvas.width; sc.height = (fim - ini) + off;
-        const ctx = sc.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sc.width, sc.height);
-        ctx.drawImage(canvas, 0, ini, canvas.width, fim - ini, 0, off, canvas.width, fim - ini);
-        if (pag) pdf.addPage();
-        pdf.addImage(sc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, WMM, sc.height / pxMm);
-        ini = fim; pag++;
-      }
-      return pdf.output('blob');
-    } finally { ifr.remove(); }
+    let ultimoErro;
+    for (let t = 0; t < 2; t++) {
+      try {
+        const b = await api('/bm/pdf', { method: 'POST', body: { D, titulo, rodape: rodape || null }, blob: true });
+        if (b && b.size > 1000) return b;
+        ultimoErro = new Error('PDF vazio');
+      } catch (e) { ultimoErro = e; }
+      await new Promise(r => setTimeout(r, 800));
+    }
+    throw new Error('O servidor não conseguiu gerar o PDF (' + (ultimoErro && ultimoErro.message) + '). Tente de novo em instantes.');
   }
   function baixar(blob, nome) {
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = nome;
@@ -719,7 +659,7 @@
   /* Versão do módulo: tem de bater com bm/versao.txt e com o ?v= do index.html.
      Se o navegador estiver com um bm.js antigo (aba aberta antes do deploy), avisa e
      bloqueia a geração de PDF — PDF de BM gerado com código velho já saiu errado pro cliente. */
-  const VERSAO = '20261125h';
+  const VERSAO = '20261125i';
   async function versaoAtual() {
     try { const ac = new AbortController(); setTimeout(() => ac.abort(), 4000); const r = await fetch('bm/versao.txt?t=' + Date.now(), { cache: 'no-store', signal: ac.signal }); if (!r.ok) return true; const v = (await r.text()).trim(); return !v || v === VERSAO; }
     catch (e) { return true; }
