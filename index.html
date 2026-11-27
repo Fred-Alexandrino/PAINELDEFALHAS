@@ -3096,7 +3096,7 @@ html[data-theme="light"]{--bg:#EDEBE2;--ds-s2:#E3E0D3;--panel:#FFFFFF;--panel-al
                      style="background:var(--panel-alt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Poppins',sans-serif;min-width:220px;">
               <select id="seFiltroUsina" class="sb-select" style="width:auto;min-width:150px;" onchange="_SE.usina=this.value;_seRender()"><option value="">Todas as usinas</option></select>
               <button class="tb-btn se-so-grid" onclick="_seTextoApresentacao()" title="Texto no formato do slide CHAMADOS COM FABRICANTE da apresentação semanal">Texto p/ apresentação</button>
-              <button class="tb-btn se-so-grid" onclick="_seRelatorio()" title="Relatório em PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e posição de cada case)">Gerar relatório</button>
+              <button class="tb-btn se-so-grid" onclick="_seRelatorio()" title="Relatório em PDF no padrão Grid: situação para o cliente ou punch list de campo por usina, com a cobrança por cluster">Gerar relatório</button>
               <button class="tb-btn se-so-grid" id="seSyncBtn" style="background:var(--acao);border-color:var(--acao);color:var(--acao-tx);font-weight:600;" onclick="_seSyncAgora()" title="Busca os cases direto do site da SolarEdge (extensão Grid Sync SolarEdge no Chrome)">Atualizar da SolarEdge</button>
               <a class="tb-btn" href="https://www.solaredge.com/service/support/cases" target="_blank" rel="noopener" style="text-decoration:none;color:var(--teal);">Abrir site</a>
             </div>
@@ -10676,22 +10676,30 @@ function _seRelatorio() {
   document.getElementById('seRelOverlay')?.remove();
   const clientes = [...new Set(_SE.itens.filter(c => _seAberto(c) || _seRecente(c)).map(c => c.cliente || ''))].filter(Boolean).sort();
   const pad = clientes.includes('Renogrid') ? 'Renogrid' : (clientes.length === 1 ? clientes[0] : '');
+  let modelo = 'cliente'; try { modelo = localStorage.getItem('seRelModelo') === 'punch' ? 'punch' : 'cliente'; } catch (e) {}
   const ov = document.createElement('div'); ov.className = 'se-ov'; ov.id = 'seRelOverlay'; ov.style.zIndex = 10001;
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
   ov.innerHTML = `<div class="se-modal"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>Gerar relatório — Chamados SolarEdge</h3><button class="se-btn" onclick="document.getElementById('seRelOverlay').remove()">Fechar</button></div>
-    <div style="font-size:12.5px;color:var(--text-dim);margin:4px 0 10px;">PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada chamado com a última posição do case). Versão para o cliente: sem notas internas.</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 4px;font-size:12.5px;">
+      <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="seRelModelo" value="cliente" ${modelo === 'cliente' ? 'checked' : ''} onchange="_seRelModeloTrocar()"> Situação dos chamados (cliente)</label>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="seRelModelo" value="punch" ${modelo === 'punch' ? 'checked' : ''} onchange="_seRelModeloTrocar()"> Punch list de campo por usina (interno)</label></div>
+    <div id="seRelDesc" style="font-size:12.5px;color:var(--text-dim);margin:4px 0 10px;"></div>
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-      <label style="font-size:12.5px;">Cliente: <select id="seRelCliente" class="se-in" style="width:auto;display:inline-block;"><option value="">Todos</option>${clientes.map(c => `<option value="${esc(c)}" ${c === pad ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
-      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="seRelEnc" checked> Incluir encerrados pela SolarEdge (15 dias)</label></div>
+      <label style="font-size:12.5px;">Cliente: <select id="seRelCliente" class="se-in" style="width:auto;display:inline-block;" onchange="if(_seRelModelo()==='punch')_seRelUsinasRender()"><option value="">Todos</option>${clientes.map(c => `<option value="${esc(c)}" ${c === pad ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+      <label id="seRelOpCli" style="font-size:12.5px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="seRelEnc" checked> Incluir encerrados pela SolarEdge (15 dias)</label></div>
+    <div id="seRelOpPunch" style="display:none;margin-bottom:10px;"><div style="font-size:12px;color:var(--text-faint);margin-bottom:4px;">Usinas</div><div id="seRelUsinas"></div></div>
     <button class="se-btn pri" id="seRelBtn" onclick="_seRelatorioGerar()">Gerar PDF</button>
     <div id="seRelMsg" style="font-size:12.5px;color:var(--text-dim);margin-top:8px;"></div>
     <div id="seRelEnvio" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
       <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;">Texto de envio</div>
       <textarea id="seRelEnvioTxt" class="se-in" rows="6" style="font-family:'Poppins',monospace;font-size:12.5px;"></textarea>
-      <button class="se-btn pri" style="margin-top:8px;" onclick="navigator.clipboard.writeText(document.getElementById('seRelEnvioTxt').value).then(()=>showToast('Texto copiado.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar</button></div></div>`;
+      <button class="se-btn pri" style="margin-top:8px;" onclick="navigator.clipboard.writeText(document.getElementById('seRelEnvioTxt').value).then(()=>showToast('Texto copiado.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar</button></div>
+    <div id="seRelTextos"></div></div>`;
   document.body.appendChild(ov);
+  _seRelModeloTrocar();
 }
 async function _seRelatorioGerar() {
+  if (_seRelModelo() === 'punch') return _sePunchGerar();
   const btn = document.getElementById('seRelBtn'), msg = document.getElementById('seRelMsg');
   const cliente = document.getElementById('seRelCliente').value, comEnc = document.getElementById('seRelEnc').checked;
   btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…';
@@ -10709,6 +10717,223 @@ async function _seRelatorioGerar() {
     document.getElementById('seRelEnvio').style.display = 'block';
   } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
   btn.disabled = false;
+}
+
+/* ── Punch list de campo por usina — chamados SolarEdge (27/11/2026) ──
+   Modelo interno do "Gerar relatório": o que o time de campo precisa fazer em cada case
+   aberto, por usina. Os dados saem do subpainel (_SE.itens + mapeamento oficial) e o PDF é
+   desenhado pelo backend em texto (POST /relatorios/gerar-link, campo punchList, reportlab):
+   nada de imagem/print de tela. Também monta um texto de cobrança por grupo de cluster. */
+const _SEP_ORD = { pedido: 0, grid: 1, coleta: 2, chegada: 3, encerrado: 4, fabricante: 5, acompanhar: 6 };
+const _SEP_COR = { pedido: '#C62828', grid: '#B26A00', coleta: '#B26A00', chegada: '#1565C0', encerrado: '#777777', fabricante: '#1565C0', acompanhar: '#2E7D32' };
+const _SEP_ROT = { pedido: 'Pedido da SolarEdge sem resposta', grid: 'Ação da Grid em campo', coleta: 'Devolver equipamento (RMA)', chegada: 'Equipamento a caminho', encerrado: 'Encerrado com teste pendente', fabricante: 'Com a SolarEdge', acompanhar: 'Resolvido — acompanhar' };
+const _sepNudge = t => !String(t || '').replace(/\s+/g, ' ').trim() || /^(prezad[oa]s?,?\s*)?(bom dia|boa tarde|boa noite)?[!,.\s]*(alguma|tem alguma|teria alguma|h[áa] alguma)\s+(atualiza|novidade|retorno|previs)|aguardamos (o )?retorno|precisamos de uma solu|^(bom dia|boa tarde|boa noite)[!.,\s]*$/i.test(String(t).replace(/\s+/g, ' ').trim().slice(0, 160));
+const _sepLog = t => /n[ãa]o recebemos mais (mensagens|informa)|enviado ao nosso setor (de )?log[íi]stic|parceiro log[íi]stico/i.test(t || '');
+const _sepFat = t => /INFORMA[ÇC][ÕO]ES PARA FATURAMENTO|Raz[ãa]o Social\)?:?\s*\n\s*CPF/i.test(t || '');
+const _sepDBR = iso => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); return m ? `${m[3]}/${m[2]}` : ''; };
+/* Pedido técnico da SolarEdge ainda não atendido: a Grid só cobrou retorno depois dele (ou nada) */
+function _sePedidoAberto(c) {
+  const l = (c.comentarios || []).filter(m => (m.texto || '').trim()).slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+  let i = l.length - 1;
+  for (; i >= 0; i--) if (l[i].quem !== 'Grid') break;
+  if (i < 0) return null;
+  const m = l[i], t = m.texto || '';
+  if (_sepLog(t) || _sepFat(t)) return null;
+  if (!_SEP_PEDE.test(t)) return null;
+  if (l.slice(i + 1).some(x => x.quem === 'Grid' && !_sepNudge(x.texto))) return null;
+  return m;
+}
+/* Só o trecho do pedido (parágrafos com a solicitação), sem saudação nem contexto */
+const _SEP_PEDE = /\?|poderi(a|am)|por gentileza|por favor|favor\s|solicitamos|pedimos|precisamos (de|que)|gentileza|compartilh|envi(e|em|ar)\b|verifi(que|car)|realiz(e|ar)\b|informe|aguardamos sua resposta/i;
+function _sepPedidoTexto(t, max) {
+  const ps = _seLimpaMsg(t).split(/\n+/).map(x => x.trim()).filter(Boolean);
+  let so = ps.filter(x => /\?|poderi(a|am)|por gentileza|por favor|compartilh|favor\s/i.test(x));
+  if (!so.length) so = ps.filter(x => _SEP_PEDE.test(x));
+  return _seRelTexto((so.length ? so : ps).join(' '), max);
+}
+/* Equipamento: se o case não informa, usa o de outro case com o mesmo S/N */
+function _sepEquip(c) {
+  if (c.equipamento) return c.equipamento;
+  const o = c.serial && _SE.itens.find(x => x !== c && x.serial === c.serial && x.equipamento);
+  return o ? o.equipamento : '';
+}
+function _seCampo(c) {
+  const si = (c.statusInterno || '').trim(), st = (c.status || '').toLowerCase();
+  const nota = c.notaGrid || '', rma = c.rma ? ' (RMA ' + c.rma + ')' : '';
+  if (!_seAberto(c)) {
+    if (/^testes em campo/i.test(si)) return { k: 'encerrado', acao: `A SolarEdge encerrou o case em ${_seRelData(String(c.fechadoEm || c.atualizadoEm || '').replace('T', ' '))} com o teste de campo ainda em aberto. Decidir se o teste segue (e reabrir o case com as evidências) ou se a OS é cancelada.` };
+    return null;
+  }
+  const p = _sePedidoAberto(c);
+  if (p) return { k: 'pedido', desde: p.data, acao: `Atender o pedido da SolarEdge de ${_seRelData(p.data)} (sem resposta): ${_sepPedidoTexto(p.texto, 420)}` };
+  if (_seColetaPend(c)) return { k: 'coleta', acao: `Confirmar que o equipamento novo está instalado e devolver o substituído${c.serial ? ' (S/N ' + c.serial + ')' : ''}${rma}: embalar, deixar pronto para a coleta e informar o rastreio.` };
+  if (/^resolvido/i.test(si) || /recebido e instalado/i.test(nota)) return { k: 'acompanhar', acao: 'Sem atividade de campo: acompanhar a operação do equipamento no monitoramento.' };
+  if (/^testes em campo/i.test(si) || c.quemAge === 'Grid') return { k: 'grid', acao: _seAcaoPadrao(c) };
+  if (st === 'rma shipment processing' || /aguardando pe[çc]a/i.test(si)) return { k: 'chegada', acao: `Equipamento de reposição em envio pela SolarEdge${rma}. Ao chegar: conferir o S/N, instalar, comissionar, registrar fotos e separar o defeituoso para devolução.` };
+  return { k: 'fabricante', acao: 'Sem atividade de campo: aguardando análise da SolarEdge.' };
+}
+function _sePunchCasos(cliente, usinasSel) {
+  const ok = c => (!cliente || (c.cliente || '') === cliente) && (!usinasSel || usinasSel.includes(c.usina || 'Usina não identificada'));
+  return _SE.itens.filter(ok).map(c => ({ c, f: _seCampo(c) })).filter(x => x.f)
+    .sort((a, b) => (a.c.usina || '').localeCompare(b.c.usina || '', 'pt-BR') || _SEP_ORD[a.f.k] - _SEP_ORD[b.f.k] || (_seDias(b.c.criado) || 0) - (_seDias(a.c.criado) || 0));
+}
+async function _sePunchMontar(cliente, usinasSel) {
+  const L = _sePunchCasos(cliente, usinasSel);
+  let mapa = [];
+  try { mapa = (await _mapUfvsCarregar()) || []; } catch (e) {}
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const mp = u => mapa.find(m => norm(m.usina) === norm(u)) || {};
+  const hoje = new Date(), dd = String(hoje.getDate()).padStart(2, '0'), mm = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dataBR = `${dd}/${mm}/${hoje.getFullYear()}`, iso = `${hoje.getFullYear()}-${mm}-${dd}`;
+  const mes = _SE_REL_MESES[hoje.getMonth()], ext = `${hoje.getDate()} de ${mes} de ${hoje.getFullYear()}`;
+  const usinas = [...new Set(L.map(x => x.c.usina || 'Usina não identificada'))];
+  const cnt = (arr, k) => arr.filter(x => x.f.k === k).length;
+  const ab = L.filter(x => x.f.k !== 'encerrado'), n = ab.length;
+  const nPed = cnt(L, 'pedido'), nGrid = cnt(L, 'grid') + cnt(L, 'coleta'), nCheg = cnt(L, 'chegada'), nEnc = cnt(L, 'encerrado');
+  const zero = v => v ? String(v) : '—';
+  const sub = u => { const m = mp(u); return [m.cluster, m.supervisor_campo && 'Sup. de campo: ' + m.supervisor_campo, m.responsavel && 'Técnico: ' + m.responsavel, m.cliente].filter(Boolean).join('  ·  '); };
+  const ult = c => { const d = _seDias(c.ultimoComentarioEm || c.criado); return d == null ? '—' : d + ' d'; };
+  const os = c => (c.osVinculadas || []).map(v => v.os).filter(Boolean).join(', ') || '—';
+  const punchList = usinas.map(u => ({
+    usina: u, sub: sub(u),
+    linhas: L.filter(x => (x.c.usina || 'Usina não identificada') === u).map(({ c, f }) => {
+      const ver = f.k === 'pedido', amb = f.k === 'grid' || f.k === 'coleta';
+      return [`#${c.case}\n${[_sepEquip(c), c.serial].filter(Boolean).join(' · ')}`,
+        { t: _SEP_ROT[f.k], cor: _SEP_COR[f.k] },
+        f.k === 'encerrado' ? '—' : (_seDias(c.criado) ?? '—') + (_seDias(c.criado) != null ? ' d' : ''),
+        { t: ult(c), cor: ver && (_seDias(f.desde) || 0) >= 3 ? _SEP_COR.pedido : null }, os(c),
+        { t: f.acao, cor: ver ? _SEP_COR.pedido : (amb ? _SEP_COR.grid : null) }];
+    }),
+  }));
+  const itens = L.filter(x => x.f.k !== 'fabricante' && x.f.k !== 'acompanhar').map(({ c, f }) => {
+    const it = _seRelItem(c, _seRelGrupo(c));
+    delete it._dias;
+    return Object.assign(it, { equipamento: _sepEquip(c), status: _SEP_ROT[f.k], statusCor: _SEP_COR[f.k], plano: f.acao });
+  });
+  const porUsina = usinas.map(u => {
+    const l = L.filter(x => (x.c.usina || 'Usina não identificada') === u), m = mp(u);
+    return [u, [m.cluster, m.supervisor_campo].filter(Boolean).join(' · ') || '—', String(l.filter(x => x.f.k !== 'encerrado').length),
+      zero(cnt(l, 'pedido')), zero(cnt(l, 'grid') + cnt(l, 'coleta')), zero(cnt(l, 'chegada')), zero(cnt(l, 'encerrado'))];
+  });
+  const destaque = cliente || 'Todos os clientes';
+  const ped = L.filter(x => x.f.k === 'pedido').map(x => `#${x.c.case} (${x.c.usina}${_sepEquip(x.c) ? ' · ' + _sepEquip(x.c) : ''})`);
+  const leitura = _SE.ultima ? _seDataBR(String(_SE.ultima).replace('T', ' ')) : '';
+  return {
+    arquivo: `Punch_List_Campo_SolarEdge_${destaque.replace(/\s+/g, '_')}_${iso}_R01.pdf`,
+    tituloPdf: `Punch list de campo — chamados SolarEdge — ${destaque}`,
+    rotuloCapa: 'PUNCH LIST DE CAMPO', tituloCapa: 'Chamados de Garantia SolarEdge —', destaqueCapa: destaque,
+    subtituloCapa: `Atividades de campo por usina · ${_seRelPl(usinas.length, 'usina', 'usinas')}`,
+    fraseResumo: `${_seRelPl(n, 'case aberto', 'cases abertos')}${nPed ? `, ${_seRelPl(nPed, 'pedido', 'pedidos')} da SolarEdge sem resposta` : ''}.`,
+    dataCapa: `Posição de ${dataBR}`, cliente: destaque, usinasTexto: _seRelLista(usinas), dataExtenso: ext,
+    responsavelTecnico: 'Fred Alexandrino — Supervisor de Contratos',
+    cabecalho: `PUNCH LIST DE CAMPO  |  Chamados SolarEdge — ${destaque}`,
+    rodape: `Grid Co.  |  ${destaque}  |  Uso interno  |  ${mes} ${hoje.getFullYear()}`,
+    introducao: [`Punch list dos chamados de garantia com a SolarEdge em ${dataBR}: ${_seRelPl(n, 'case aberto', 'cases abertos')} em ${_seRelPl(usinas.length, 'usina', 'usinas')}. Para cada usina, o que o time de campo precisa executar em cada case; em seguida, o detalhe dos cases que dependem da Grid Co. Documento interno: inclui as notas da Grid.`],
+    kpis: [{ valor: n, rotulo: 'cases abertos', cor: '#1C1F3B' }, { valor: nPed, rotulo: 'pedidos da SolarEdge sem resposta', cor: _SEP_COR.pedido },
+      { valor: nGrid, rotulo: 'ações da Grid em campo', cor: _SEP_COR.grid }, { valor: nCheg, rotulo: 'equipamentos a caminho', cor: _SEP_COR.chegada }],
+    enquadramento: `Situação lida do SolarEdge Service Center${leitura ? ' em ' + leitura : ''}. "Pedido sem resposta" = a última mensagem técnica da SolarEdge pede algo e a Grid só cobrou retorno depois dela.`,
+    porUsinaCab: ['Usina', 'Cluster · sup. de campo', 'Abertos', 'Pedido s/ resp.', 'Ação Grid', 'A caminho', 'Encerr. c/ teste'],
+    porUsinaLarguras: [0.18, 0.24, 0.1, 0.13, 0.11, 0.11, 0.13],
+    porUsina, porUsinaTotal: ['Total', '', String(n), zero(nPed), zero(nGrid), zero(nCheg), zero(nEnc)],
+    punchList, punchTitulo: 'Punch list por usina',
+    punchCab: ['Case · equipamento', 'Situação', 'Aberto', 'Últ. msg', 'OS', 'Atividade de campo / próximo passo'],
+    punchLarguras: [0.19, 0.14, 0.08, 0.09, 0.1, 0.4], punchCentro: [2, 3, 4],
+    grupos: [{ titulo: 'Detalhe dos cases com ação da Grid', descricao: 'Ordem: usina e prioridade (pedido sem resposta, ação em campo, devolução, equipamento a caminho, encerrado com teste pendente).', itens }],
+    proximos: [nPed && `Responder ${nPed === 1 ? 'ao pedido' : 'aos pedidos'} da SolarEdge sem resposta: ${_seRelLista(ped)}.`,
+      nGrid && `Executar e registrar em OS ${_seRelPl(nGrid, 'ação da Grid', 'ações da Grid')} em campo e enviar as evidências no case.`,
+      nCheg && `Programar a instalação de ${_seRelPl(nCheg, 'equipamento', 'equipamentos')} de reposição assim que chegarem.`,
+      nEnc && `Decidir o destino de ${_seRelPl(nEnc, 'teste de campo', 'testes de campo')} de cases já encerrados pela SolarEdge.`].filter(Boolean),
+    conclusao: ['Os supervisores de campo recebem a cobrança de cada cluster pelo grupo de WhatsApp.'],
+    localData: ext + '.',
+    _casos: L, _mapa: mapa,
+  };
+}
+/* Texto de cobrança por grupo de cluster (supervisor de campo) — só cases com atividade de campo */
+function _sePunchTextos(d) {
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const mp = u => d._mapa.find(m => norm(m.usina) === norm(u)) || {};
+  const ag = {};
+  d._casos.filter(x => ['pedido', 'grid', 'coleta', 'chegada'].includes(x.f.k)).forEach(x => {
+    const m = mp(x.c.usina), g = m.grupo || ('sem:' + (m.cluster || x.c.usina));
+    (ag[g] = ag[g] || { grupo: m.grupo || '', grupoNome: m.grupo_nome || '', cluster: m.cluster || '', sup: m.supervisor_campo || '', usinas: {} });
+    (ag[g].usinas[x.c.usina] = ag[g].usinas[x.c.usina] || []).push(x);
+  });
+  const nome = s => String(s || '').split(' ')[0];
+  return Object.values(ag).map(g => {
+    const us = Object.keys(g.usinas).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const L = [`*Chamados SolarEdge — ${_seRelLista(us)}*`, `${nome(g.sup) || 'Pessoal'}, bom dia! Como estão as atividades dos chamados SolarEdge${us.length > 1 ? ' dessas usinas' : ' de ' + us[0]}?`];
+    us.forEach(u => {
+      if (us.length > 1) L.push('', `*${u}*`); else L.push('');
+      g.usinas[u].forEach(({ c, f }) => {
+        const osv = (c.osVinculadas || []).map(v => v.os).filter(Boolean);
+        const ref = [_sepEquip(c), osv.length && f.k !== 'pedido' ? 'OS ' + osv[osv.length - 1] : 'case #' + c.case].filter(Boolean).join(' – ');
+        let t;
+        if (f.k === 'pedido') t = `a SolarEdge pediu em *${_sepDBR(f.desde)}* e o case está _aguardando nosso retorno_: ${_sepPedidoTexto(_sePedidoAberto(c).texto, 360)}`;
+        else if (f.k === 'coleta') t = `confirmar a instalação do equipamento novo e deixar o substituído pronto para a devolução${c.rma ? ' (RMA ' + c.rma + ')' : ''}, com o rastreio.`;
+        else if (f.k === 'chegada') t = `equipamento de reposição _em envio_${c.rma ? ' (RMA ' + c.rma + ')' : ''}. Assim que chegar, programar a instalação e separar o defeituoso para devolução.`;
+        else t = f.acao;
+        L.push(`• *${ref}:* ${t}`);
+      });
+    });
+    return { ...g, texto: L.join('\n') };
+  }).sort((a, b) => a.cluster.localeCompare(b.cluster));
+}
+/* ── Interface: modelo "Punch list de campo" dentro do Gerar relatório ── */
+function _seRelModelo() { return (document.querySelector('input[name="seRelModelo"]:checked') || {}).value || 'cliente'; }
+function _seRelModeloTrocar() {
+  const p = _seRelModelo() === 'punch';
+  try { localStorage.setItem('seRelModelo', _seRelModelo()); } catch (e) {}
+  document.getElementById('seRelOpCli').style.display = p ? 'none' : 'flex';
+  document.getElementById('seRelOpPunch').style.display = p ? 'block' : 'none';
+  document.getElementById('seRelDesc').textContent = p
+    ? 'Uso interno: por usina, o que o time de campo precisa fazer em cada case aberto (pedidos da SolarEdge sem resposta, testes, devoluções, equipamentos a caminho). Gera também a cobrança por grupo de cluster.'
+    : 'PDF no padrão do Relatório da Grid (capa, resumo, visão por usina e cada chamado com a última posição do case). Versão para o cliente: sem notas internas.';
+  document.getElementById('seRelEnvio').style.display = 'none'; document.getElementById('seRelTextos').innerHTML = '';
+  if (p) _seRelUsinasRender();
+}
+function _seRelUsinasRender() {
+  const cli = document.getElementById('seRelCliente').value, box = document.getElementById('seRelUsinas'); if (!box) return;
+  const us = [...new Set(_sePunchCasos(cli, null).map(x => x.c.usina || 'Usina não identificada'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  box.innerHTML = us.length ? us.map(u => `<label style="font-size:12.5px;display:inline-flex;align-items:center;gap:5px;margin:0 12px 6px 0;"><input type="checkbox" class="seRelUs" value="${esc(u)}" checked> ${esc(u)}</label>`).join('')
+    : '<span style="font-size:12.5px;color:var(--text-faint);">Nenhum case com atividade para este cliente.</span>';
+}
+async function _sePunchGerar() {
+  const btn = document.getElementById('seRelBtn'), msg = document.getElementById('seRelMsg'), out = document.getElementById('seRelTextos');
+  const cliente = document.getElementById('seRelCliente').value;
+  const sel = [...document.querySelectorAll('.seRelUs:checked')].map(x => x.value);
+  if (!sel.length) { msg.style.color = 'var(--acao)'; msg.textContent = 'Selecione ao menos uma usina.'; return; }
+  btn.disabled = true; msg.style.color = 'var(--text-dim)'; msg.textContent = 'Gerando o PDF…'; out.innerHTML = '';
+  try {
+    const d = await _sePunchMontar(cliente, sel);
+    if (!d._casos.length) throw new Error('não há cases para essas usinas');
+    const envio = Object.assign({}, d); delete envio._casos; delete envio._mapa;
+    const r = await fetch(_SE_API + '/relatorios/gerar-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(envio), signal: AbortSignal.timeout(90000) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || 'HTTP ' + r.status);
+    const url = `${_SE_API}/relatorios/arquivo/${j.id}/${encodeURIComponent(j.nome)}`;
+    msg.innerHTML = `✓ ${esc(j.nome)} — <a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);">Abrir PDF</a> · <a href="${url}?baixar=1" style="color:var(--teal);">Baixar</a> <span style="color:var(--text-faint);">(link válido por 3 dias)</span>`;
+    _SE._punchTx = _sePunchTextos(d);
+    out.innerHTML = _SE._punchTx.length ? `<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border);">Cobrança por grupo de cluster</div>` +
+      _SE._punchTx.map((t, i) => `<div style="margin-bottom:14px;"><div style="font-size:12.5px;font-weight:600;margin-bottom:4px;">${esc(t.cluster || 'Sem cluster')}${t.sup ? ' · ' + esc(t.sup) : ''}<span style="font-weight:400;color:var(--text-faint);"> — ${t.grupo ? 'grupo ' + esc(t.grupoNome || t.grupo) : 'sem grupo mapeado'}</span></div>
+        <textarea id="sePunchTx${i}" class="se-in" rows="9" style="font-family:'Poppins',monospace;font-size:12.5px;">${esc(t.texto)}</textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center;"><button class="se-btn pri" onclick="navigator.clipboard.writeText(document.getElementById('sePunchTx${i}').value).then(()=>showToast('Texto copiado.',true)).catch(()=>showToast('Não consegui copiar.',false))">Copiar</button>
+        ${t.grupo ? `<button class="se-btn" id="sePunchEnv${i}" style="border-color:#25D366;color:#25D366;" onclick="_sePunchEnviar(${i})">Enviar no grupo</button>` : ''}<span id="sePunchMsg${i}" style="font-size:12px;color:var(--text-faint);"></span></div></div>`).join('')
+      : '<div style="font-size:12.5px;color:var(--text-faint);margin-top:12px;">Nenhum case com atividade de campo para cobrar nessas usinas.</div>';
+  } catch (e) { msg.style.color = 'var(--acao)'; msg.textContent = 'Falha ao gerar: ' + (e.message || 'erro'); }
+  btn.disabled = false;
+}
+async function _sePunchEnviar(i) {
+  const t = (_SE._punchTx || [])[i], ta = document.getElementById('sePunchTx' + i), m = document.getElementById('sePunchMsg' + i), b = document.getElementById('sePunchEnv' + i);
+  if (!t || !ta || !t.grupo) return;
+  const texto = ta.value.trim(); if (!texto) { showToast('O texto está vazio.', false); return; }
+  if (!confirm(`Enviar esta cobrança agora no grupo "${t.grupoNome || t.grupo}" do WhatsApp?`)) return;
+  b.disabled = true; m.textContent = 'Enviando…';
+  try {
+    const r = await fetch(_SE_API + '/disparar-comunicado-livre', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto, grupos: [t.grupo] }), signal: AbortSignal.timeout(45000) });
+    const j = await r.json(); if (!j.ok) throw new Error(j.error || 'erro ao enviar');
+    if ((j.erros || []).length) throw new Error('O WhatsApp recusou o envio: ' + (j.erros[0].erro || 'erro'));
+    m.textContent = '✓ Enviado.'; showToast('Cobrança enviada no grupo.', true);
+  } catch (e) { m.textContent = 'Falha: ' + (e.message || 'erro'); b.disabled = false; }
 }
 
 function _seSetFiltro(k) { _SE.filtro = k; _seRender(); }
